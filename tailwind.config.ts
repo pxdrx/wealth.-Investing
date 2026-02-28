@@ -35,10 +35,23 @@ export default {
         xl: "1rem",
         "2xl": "1.25rem",
         "3xl": "1.5rem",
+        card: "var(--radius-card)",
+        modal: "var(--radius-modal)",
+        input: "var(--radius-input)",
+      },
+      letterSpacing: {
+        "tight-apple": "var(--tracking-tight)",
+        "tighter-apple": "var(--tracking-tighter)",
+      },
+      lineHeight: {
+        "tight-apple": "var(--leading-tight)",
+        "snug-apple": "var(--leading-snug)",
+        "relaxed-apple": "var(--leading-relaxed)",
       },
       boxShadow: {
-        soft: "0 2px 8px -2px rgba(0,0,0,0.08), 0 4px 16px -4px rgba(0,0,0,0.06)",
-        "soft-dark": "0 2px 8px -2px rgba(0,0,0,0.3), 0 4px 16px -4px rgba(0,0,0,0.2)",
+        /* Duas camadas: ampla leve + próxima — profundidade sofisticada, sem exagero */
+        soft: "0 1px 3px rgba(0,0,0,0.06), 0 10px 32px -12px rgba(0,0,0,0.08)",
+        "soft-dark": "0 1px 4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.14)",
       },
     },
   },

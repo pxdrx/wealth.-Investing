@@ -9,13 +9,13 @@ import {
 export default function JournalPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+      <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
         Journal
       </h1>
-      <p className="mt-2 text-muted-foreground">
+      <p className="mt-2 text-muted-foreground leading-relaxed-apple">
         Registro de trades e análise de performance.
       </p>
-      <Card className="mt-8 rounded-2xl">
+      <Card className="mt-8">
         <CardHeader>
           <CardTitle>Em breve</CardTitle>
           <CardDescription>

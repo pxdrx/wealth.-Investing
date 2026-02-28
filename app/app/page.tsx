@@ -63,10 +63,10 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-12">
       <div className="mb-10">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
           Trading Dashboard
         </h1>
-        <p className="mt-1 text-muted-foreground">
+        <p className="mt-1 text-muted-foreground leading-relaxed-apple">
           Visão geral dos seus alertas, watchlist, notícias e journal.
         </p>
       </div>
@@ -136,7 +136,7 @@ export default function DashboardPage() {
                     </TableCell>
                     <TableCell
                       className={`text-right font-medium ${
-                        row.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                        row.change >= 0 ? "text-emerald-800 dark:text-emerald-500" : "text-red-800 dark:text-red-500"
                       }`}
                     >
                       {row.change >= 0 ? "+" : ""}
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                   <p className="text-xs font-medium text-muted-foreground">
                     {kpi.label}
                   </p>
-                  <p className="text-xl font-semibold tracking-tight text-foreground">
+                  <p className="kpi-value text-xl">
                     {kpi.value}
                   </p>
                 </div>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/20">
+            <div className="flex min-h-[180px] items-center justify-center rounded-input border border-dashed border-border/80 bg-muted/20">
               <p className="text-sm text-muted-foreground">
                 Heatmap em breve
               </p>

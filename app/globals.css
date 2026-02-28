@@ -4,52 +4,110 @@
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --foreground: 240 10% 6%;
+    /* Apple Pro — #F5F5F7 page, cards elevados e legíveis */
+    --background: 240 6% 97%;
+    --foreground: 220 16% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 6%;
-    --primary: 240 6% 10%;
+    --card-foreground: 220 16% 8%;
+    --primary: 220 12% 12%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 10%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 240 5% 96%;
-    --accent-foreground: 240 6% 10%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 240 6% 10%;
+    --secondary: 240 5% 93%;
+    --secondary-foreground: 220 12% 18%;
+    --muted: 240 5% 93%;
+    --muted-foreground: 220 5% 50%;
+    --accent: 240 5% 93%;
+    --accent-foreground: 220 12% 18%;
+    --border: 220 11% 87%;
+    --input: 220 10% 89%;
+    --ring: 220 12% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 6%;
+    --popover-foreground: 220 16% 8%;
+    /* iOS-style radius (20–24px) */
+    --radius-card: 22px;
+    --radius-modal: 24px;
+    --radius-input: 12px;
+    /* Typography — profissional, contraste claro */
+    --tracking-tight: -0.012em;
+    --tracking-tighter: -0.015em;
+    --leading-tight: 1.2;
+    --leading-snug: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+    --placeholder-opacity: 0.55;
+    --font-weight-heading: 600;
+    --font-weight-display: 700;
   }
 
   .dark {
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 10% 4%;
-    --secondary: 240 6% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 6% 12%;
-    --muted-foreground: 240 4% 60%;
-    --accent: 240 6% 12%;
-    --accent-foreground: 0 0% 98%;
-    --border: 240 6% 16%;
-    --input: 240 6% 16%;
-    --ring: 240 4% 66%;
-    --popover: 240 10% 6%;
-    --popover-foreground: 0 0% 98%;
+    /* Dark mode suave — menos contraste */
+    --background: 240 8% 10%;
+    --foreground: 0 0% 94%;
+    --card: 240 8% 12%;
+    --card-foreground: 0 0% 94%;
+    --primary: 0 0% 96%;
+    --primary-foreground: 240 8% 12%;
+    --secondary: 240 6% 18%;
+    --secondary-foreground: 0 0% 94%;
+    --muted: 240 6% 18%;
+    --muted-foreground: 240 4% 58%;
+    --accent: 240 6% 18%;
+    --accent-foreground: 0 0% 94%;
+    --border: 240 6% 20%;
+    --input: 240 6% 20%;
+    --ring: 240 4% 60%;
+    --popover: 240 8% 12%;
+    --popover-foreground: 0 0% 94%;
+    --placeholder-opacity: 0.5;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.55;
+    font-weight: 400;
+  }
+
+  /* Hierarchy — títulos 600–700, tracking -0.01 a -0.015em, grafite escuro */
+  h1, .text-h1 {
+    letter-spacing: var(--tracking-tighter);
+    line-height: var(--leading-tight);
+    font-weight: var(--font-weight-display);
+  }
+  h2, .text-h2 {
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-snug);
+    font-weight: var(--font-weight-heading);
+  }
+  h3, .text-h3 {
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-snug);
+    font-weight: var(--font-weight-heading);
+  }
+  .text-muted, [class*="text-muted-foreground"] {
+    line-height: var(--leading-relaxed);
+  }
+}
+
+@layer components {
+  /* KPIs e números — destaque visual forte */
+  .kpi-value {
+    font-weight: 700;
+    letter-spacing: 0;
+    color: hsl(var(--card-foreground));
+  }
+}
+
+@layer components {
+  /* Inputs: bordas sutis, foco com ring discreto, placeholder mais claro */
+  .input-ios {
+    @apply w-full rounded-[var(--radius-input)] border border-input bg-background px-4 py-3 text-foreground outline-none transition-[border-color,box-shadow];
+    @apply placeholder:text-muted-foreground focus:border-ring/50 focus:ring-2 focus:ring-ring/15 focus:ring-offset-0;
+  }
+  .input-ios::placeholder {
+    opacity: var(--placeholder-opacity);
   }
 }
