@@ -19,6 +19,7 @@
     --accent-foreground: 220 12% 18%;
     --border: 220 11% 87%;
     --input: 220 10% 89%;
+    --input-bg: 240 5% 97%;
     --ring: 220 12% 18%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 16% 8%;
@@ -54,6 +55,7 @@
     --accent-foreground: 0 0% 94%;
     --border: 240 6% 20%;
     --input: 240 6% 20%;
+    --input-bg: 240 6% 14%;
     --ring: 240 4% 60%;
     --popover: 240 8% 12%;
     --popover-foreground: 0 0% 94%;
@@ -104,7 +106,8 @@
 @layer components {
   /* Inputs: bordas sutis, foco com ring discreto, placeholder mais claro */
   .input-ios {
-    @apply w-full rounded-[var(--radius-input)] border border-input bg-background px-4 py-3 text-foreground outline-none transition-[border-color,box-shadow];
+    @apply w-full rounded-[var(--radius-input)] border border-input px-4 py-3 text-foreground outline-none transition-[border-color,box-shadow];
+    background-color: hsl(var(--input-bg));
     @apply placeholder:text-muted-foreground focus:border-ring/50 focus:ring-2 focus:ring-ring/15 focus:ring-offset-0;
   }
   .input-ios::placeholder {

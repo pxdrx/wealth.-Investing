@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { setAuth } from "@/lib/auth";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { LoginBackground } from "@/components/login/LoginBackground";
+import { supabase } from "@/lib/supabase/client";
+import { getMyProfile, toFriendlyMessage } from "@/lib/profile";
 
 const easeApple = [0.16, 1, 0.3, 1] as const;
 const DURATION_PAGE = 0.45;
@@ -86,26 +88,85 @@ const cardVariants = {
 export default function LoginPage() {
   const router = useRouter();
   const reducedMotion = useReducedMotion();
-  const isExitingRef = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const redirectToRef = useRef<"/app" | "/onboarding">("/app");
 
   function handleExitComplete() {
-    if (isExitingRef.current) {
-      router.push("/app");
-    }
+    router.replace(redirectToRef.current);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 480));
-    setAuth();
-    setLoading(false);
-    isExitingRef.current = true;
-    setIsExiting(true);
+    try {
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[login] signInWithPassword start");
+      }
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[login] signInWithPassword result", err ? { error: err.message } : "ok");
+      }
+      if (err || !data.session) {
+        setError(err?.message ?? "Falha ao entrar.");
+        return;
+      }
+      const profile = await getMyProfile();
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[login] getMyProfile done, redirect:", profile?.display_name?.trim() ? "/app" : "/onboarding");
+      }
+      redirectToRef.current = profile?.display_name?.trim() ? "/app" : "/onboarding";
+      setIsExiting(true);
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[login] handleSubmit error", err);
+      }
+      setError(toFriendlyMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleMagicLink() {
+    setError(null);
+    if (!email.trim()) {
+      setError("Informe o e-mail para enviar o link.");
+      return;
+    }
+    setLoading(true);
+    try {
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[login] signInWithOtp start");
+      }
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback`
+          : `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
+      const { error: err } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: redirectTo },
+      });
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[login] signInWithOtp result", err ? { error: err.message } : "ok");
+      }
+      if (err) {
+        setError(err.message);
+        return;
+      }
+      setMagicLinkSent(true);
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[login] handleMagicLink error", err);
+      }
+      setError(toFriendlyMessage(err));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -131,17 +192,10 @@ export default function LoginPage() {
         style={{ willChange: reducedMotion ? "auto" : "opacity" }}
       >
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.22]"
+          className="pointer-events-none absolute inset-0 opacity-30"
           style={{
             background:
-              "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(120,119,198,0.4), transparent 60%)",
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.2]"
-          style={{
-            background:
-              "radial-gradient(ellipse 60% 80% at 80% 20%, rgba(147,197,253,0.35), transparent 50%)",
+              "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0,0,0,0.02), transparent 60%)",
           }}
         />
         <motion.div
@@ -152,23 +206,22 @@ export default function LoginPage() {
           custom={reducedMotion}
           style={{ willChange: reducedMotion ? "auto" : "transform, opacity" }}
         >
-          <h2 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] md:text-3xl">
-            Trading Dashboard
-          </h2>
-          <p className="mt-3 text-sm text-[#6e6e73] md:text-base">
-            Acompanhe alertas, watchlist e decisões em um só lugar.
+          <BrandMark size="xl" className="leading-tight-apple" />
+          <p className="mt-2 text-lg leading-relaxed-apple">
+            <span className="text-muted-foreground">Suas notícias, seu journal, sua wallet, </span>
+            <span className="text-foreground">seu tudo.</span>
           </p>
         </motion.div>
       </motion.div>
 
       {/* Form side + overlay */}
       <div className="relative z-10 flex flex-1 items-center justify-center px-6 py-12 md:py-16">
-        {/* Glow fixo atrás do card — blur estático, opacidade baixa */}
+        {/* Sombra suave atrás do card — neutra, profundidade sutil */}
         <div
-          className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[320px] w-[min(100%,420px)] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.42] dark:opacity-[0.2]"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[320px] w-[min(100%,420px)] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.25] dark:opacity-[0.12]"
           style={{
-            background: "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(180,200,255,0.5), transparent 65%)",
-            filter: "blur(32px)",
+            background: "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0,0,0,0.06), transparent 65%)",
+            filter: "blur(24px)",
           }}
           aria-hidden
         />
@@ -201,25 +254,33 @@ export default function LoginPage() {
               }}
             >
               <motion.div
-                className="rounded-[22px] border border-[#d2d2d7] bg-white p-8 transition-shadow duration-200 dark:border-border dark:bg-card md:hover:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12)]"
-                style={{
-                  boxShadow: "0 4px 24px -4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02)",
-                }}
+                className="rounded-card border border-border bg-card p-8 shadow-soft dark:shadow-soft-dark transition-shadow duration-200 md:hover:shadow-soft"
                 whileHover={reducedMotion ? undefined : { y: -2 }}
                 transition={{ duration: 0.2, ease: easeApple }}
               >
-                <h1 className="text-xl font-semibold tracking-tight text-[#1d1d1f] dark:text-foreground">
+                <h1 className="text-xl font-semibold tracking-tight-apple leading-snug-apple text-foreground">
                   Entrar
                 </h1>
-                <p className="mt-1 text-sm text-[#6e6e73] dark:text-muted-foreground">
-                  Use seu e-mail para acessar o dashboard.
+                <p className="mt-1 text-sm text-muted-foreground leading-relaxed-apple">
+                  Use seu e-mail e senha para acessar.
                 </p>
 
-                <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                {error && (
+                  <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                    {error}
+                  </p>
+                )}
+                {magicLinkSent && (
+                  <p className="mt-4 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400" role="status">
+                    Link enviado. Verifique seu e-mail.
+                  </p>
+                )}
+
+                <form onSubmit={handleSubmit} className="mt-6 space-y-5">
                   <div>
                     <label
                       htmlFor="email"
-                      className="mb-1.5 block text-sm font-medium text-[#1d1d1f] dark:text-foreground"
+                      className="mb-1.5 block text-sm font-medium text-foreground"
                     >
                       E-mail
                     </label>
@@ -236,7 +297,7 @@ export default function LoginPage() {
                   <div>
                     <label
                       htmlFor="password"
-                      className="mb-1.5 block text-sm font-medium text-[#1d1d1f] dark:text-foreground"
+                      className="mb-1.5 block text-sm font-medium text-foreground"
                     >
                       Senha
                     </label>
@@ -253,7 +314,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="relative w-full overflow-hidden rounded-xl bg-[#0071e3] py-3 font-medium text-white hover:bg-[#0077ed] focus:ring-[#0071e3]"
+                    className="relative w-full overflow-hidden py-3 font-medium"
                   >
                     {loading && (
                       <motion.span
@@ -294,10 +355,21 @@ export default function LoginPage() {
                   </Button>
                 </form>
 
+                <p className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={handleMagicLink}
+                    disabled={loading}
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors disabled:opacity-50"
+                  >
+                    Ou enviar link mágico por e-mail
+                  </button>
+                </p>
+
                 <p className="mt-6 text-center">
                   <Link
                     href="/"
-                    className="text-sm font-medium text-[#0071e3] hover:underline"
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors"
                   >
                     ← Voltar para home
                   </Link>

@@ -1,0 +1,313 @@
+import { NextResponse } from "next/server";
+import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { parseMt5Xlsx } from "@/lib/mt5-parser";
+import { parseMt5Html } from "@/lib/mt5-html-parser";
+import { inferCategory } from "@/lib/trading/category";
+
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  const start = Date.now();
+  const auth = request.headers.get("Authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let userId: string;
+  let accountId: string;
+  let isPropAccount: boolean;
+  let personalAccountId: string | null = null;
+  let firmName = "";
+
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const accountIdParam = formData.get("accountId") as string | null;
+
+    if (!file) {
+      return NextResponse.json({ error: "Missing file" }, { status: 400 });
+    }
+    if (!accountIdParam) {
+      return NextResponse.json({ error: "Missing accountId" }, { status: 400 });
+    }
+    accountId = accountIdParam;
+
+    const supabase = createSupabaseClientForUser(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user?.id) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    userId = user.id;
+
+    const { data: accountRow } = await supabase
+      .from("accounts")
+      .select("id, kind")
+      .eq("id", accountId)
+      .eq("user_id", userId)
+      .single();
+    if (!accountRow) {
+      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    }
+    isPropAccount = (accountRow as { kind: string }).kind === "prop";
+
+    // Prop payouts use prop_accounts.id (prop_account_id), not accounts.id.
+    let propAccountRowId: string | null = null;
+    if (isPropAccount) {
+      const { data: propRow, error: propError } = await supabase
+        .from("prop_accounts")
+        .select("id, firm_name")
+        .eq("account_id", accountId)
+        .eq("user_id", userId)
+        .single();
+      if (propError) {
+        // Falha clara de compatibilidade de schema (ex.: coluna user_id ausente) ou erro de consulta.
+        const code = (propError as { code?: string }).code;
+        const baseMessage = "Failed to lookup prop account metadata (prop_accounts).";
+        const schemaHint =
+          code === "42703"
+            ? " Verifique se a tabela prop_accounts contém a coluna user_id e está alinhada ao código."
+            : "";
+        console.error("[import-mt5] prop_accounts error:", propError);
+        return NextResponse.json(
+          { error: baseMessage + schemaHint },
+          { status: 500 }
+        );
+      }
+      firmName = (propRow as { firm_name?: string } | null)?.firm_name ?? "";
+      propAccountRowId = (propRow as { id?: string } | null)?.id ?? null;
+      if (!propAccountRowId) {
+        return NextResponse.json(
+          { error: "Prop account has no corresponding prop_accounts row" },
+          { status: 400 }
+        );
+      }
+    }
+
+    const { data: personalRow } = await supabase
+      .from("accounts")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("kind", "personal")
+      .limit(1)
+      .single();
+    personalAccountId = (personalRow as { id: string } | null)?.id ?? null;
+
+    const buffer = await file.arrayBuffer();
+    const isHtml = /\.html?$/i.test(file.name ?? "") || (file.type && file.type.toLowerCase().includes("html"));
+    const parserChosen = isHtml ? "html" : "xlsx";
+
+    let trades: Array<{ external_id: string; symbol: string; direction: string; opened_at: string; closed_at: string; pnl_usd: number; fees_usd: number; category?: string }>;
+    let balanceOps: Array<{ type: string; amount_usd: number; at?: string | null; external_id?: string | null }>;
+    try {
+      const result = isHtml ? parseMt5Html(buffer) : parseMt5Xlsx(buffer);
+      trades = result.trades;
+      balanceOps = result.balanceOps;
+    } catch (parseErr) {
+      const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+      if (msg.startsWith("MT5 HTML parse failed")) {
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+      throw parseErr;
+    }
+
+    if (isHtml && process.env.NODE_ENV === "development") {
+      console.log("[import-mt5] diagnostic (HTML, dev): file=" + file.name);
+      console.log("[import-mt5] diagnostic: trades=" + trades.length + " balanceOps=" + balanceOps.length);
+      if (trades.length > 0) {
+        console.log("[import-mt5] diagnostic first 3 trades:", JSON.stringify(trades.slice(0, 3).map((t) => ({ external_id: t.external_id, symbol: t.symbol, direction: t.direction, pnl_usd: t.pnl_usd }))));
+      }
+      if (balanceOps.length > 0) {
+        console.log("[import-mt5] diagnostic first 3 balanceOps:", JSON.stringify(balanceOps.slice(0, 3).map((o) => ({ type: o.type, amount_usd: o.amount_usd, at: o.at }))));
+      }
+    }
+
+    const sourceLabel = isHtml ? "mt5_html" : "mt5_xlsx";
+
+    let imported = 0;
+    let duplicates = 0;
+    let failed = 0;
+    let payoutsDetected = 0;
+    let payoutsWithoutWalletDeposit = 0;
+
+    // Idempotent import: explicit existence check for accurate duplicate count (unique: user_id, account_id, external_source, external_id).
+    // net_pnl_usd is generated by the DB — do not send it on insert.
+    for (const t of trades) {
+      const { data: existing } = await supabase
+        .from("journal_trades")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("account_id", accountId)
+        .eq("external_source", "mt5")
+        .eq("external_id", t.external_id)
+        .maybeSingle();
+
+      if (existing) {
+        duplicates += 1;
+        continue;
+      }
+
+      const category = (t as { category?: string }).category ?? inferCategory(t.symbol);
+      const { error } = await supabase.from("journal_trades").insert({
+        user_id: userId,
+        account_id: accountId,
+        symbol: t.symbol,
+        category,
+        direction: t.direction,
+        opened_at: t.opened_at,
+        closed_at: t.closed_at,
+        pnl_usd: t.pnl_usd,
+        fees_usd: t.fees_usd,
+        external_source: "mt5",
+        external_id: t.external_id,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          duplicates += 1;
+        } else {
+          failed += 1;
+          console.warn("[import-mt5] trade insert error:", error.message);
+        }
+      } else {
+        imported += 1;
+      }
+    }
+
+    // INITIAL_DEPOSIT from MT5 report is not sent to personal wallet — it's the prop firm's capital.
+    for (const op of balanceOps) {
+      if (op.type === "INITIAL_DEPOSIT" && isPropAccount) {
+        continue;
+      }
+      // WITHDRAWAL on prop = payout; each payout resets the prop cycle (profit = net_pnl_usd after last paid_at).
+      if (op.type === "WITHDRAWAL" && isPropAccount && propAccountRowId) {
+        payoutsDetected += 1;
+        const paidAt = op.at ? new Date(op.at).toISOString() : new Date().toISOString();
+        const externalId = op.external_id ?? `payout-${paidAt}-${op.amount_usd}`;
+
+        let existing = null;
+        if (op.external_id) {
+          const { data } = await supabase
+            .from("prop_payouts")
+            .select("id")
+            .eq("prop_account_id", propAccountRowId)
+            .eq("external_source", "mt5")
+            .eq("external_id", op.external_id)
+            .maybeSingle();
+          existing = data;
+        }
+        if (!existing) {
+          const { data: byDateAmount } = await supabase
+            .from("prop_payouts")
+            .select("id")
+            .eq("prop_account_id", propAccountRowId)
+            .eq("paid_at", paidAt)
+            .eq("amount_usd", op.amount_usd)
+            .maybeSingle();
+          existing = byDateAmount;
+        }
+        if (existing) continue;
+
+        await supabase.from("prop_payouts").insert({
+          user_id: userId,
+          prop_account_id: propAccountRowId,
+          paid_at: paidAt,
+          amount_usd: op.amount_usd,
+          external_source: "mt5",
+          external_id: externalId,
+        });
+
+        if (personalAccountId) {
+          await supabase.from("wallet_transactions").insert({
+            user_id: userId,
+            account_id: personalAccountId,
+            tx_type: "deposit",
+            amount_usd: op.amount_usd,
+            notes: `Payout ${firmName || "Prop"}`,
+          });
+        } else {
+          payoutsWithoutWalletDeposit += 1;
+        }
+      }
+    }
+
+    const durationMs = Date.now() - start;
+    const meta: Record<string, unknown> = {
+      account_id: accountId,
+      imported,
+      duplicates,
+      failed,
+      payouts_detected: payoutsDetected,
+    };
+    if (payoutsWithoutWalletDeposit > 0) {
+      meta.no_personal_account_for_wallet_deposit = payoutsWithoutWalletDeposit;
+    }
+
+    await supabase.from("ingestion_logs").insert({
+      user_id: userId,
+      status: "ok",
+      source: sourceLabel,
+      items_count: imported + duplicates + failed,
+      duration_ms: durationMs,
+      message: `Imported ${imported} trades, ${duplicates} duplicates, ${failed} failed, ${payoutsDetected} payouts`,
+      meta,
+    });
+
+    console.log(
+      "[import-mt5]",
+      file.name,
+      "type=" + (file.type ?? "(none)"),
+      "parser=" + parserChosen,
+      "trades_found=" + trades.length,
+      "balance_ops_found=" + balanceOps.length,
+      "imported=" + imported,
+      "duplicates=" + duplicates,
+      "failed=" + failed,
+      "payouts=" + payoutsDetected
+    );
+    if (trades.length > 0) {
+      console.log("[import-mt5] first 3 trades:", JSON.stringify(trades.slice(0, 3).map((t) => ({ external_id: t.external_id, symbol: t.symbol, direction: t.direction, pnl_usd: t.pnl_usd }))));
+    }
+    if (balanceOps.length > 0) {
+      console.log("[import-mt5] first 3 balanceOps:", JSON.stringify(balanceOps.slice(0, 3).map((o) => ({ type: o.type, amount_usd: o.amount_usd, at: o.at }))));
+    }
+
+    return NextResponse.json({
+      ok: true,
+      parser_used: parserChosen,
+      trades_found: trades.length,
+      balance_ops_found: balanceOps.length,
+      trades_imported: imported,
+      trades_duplicates_ignored: duplicates,
+      trades_failed: failed,
+      imported,
+      duplicates,
+      failed,
+      payouts_detected: payoutsDetected,
+      duration_ms: durationMs,
+    });
+  } catch (err) {
+    const durationMs = Date.now() - start;
+    console.error("[import-mt5] error:", err);
+    if (token) {
+      try {
+        const supabase = createSupabaseClientForUser(token);
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user?.id) {
+          await supabase.from("ingestion_logs").insert({
+            user_id: user.id,
+            status: "error",
+            source: "mt5_import",
+            items_count: 0,
+            duration_ms: durationMs,
+            message: err instanceof Error ? err.message : String(err),
+            meta: { error: String(err) },
+          });
+        }
+      } catch (_) {}
+    }
+    const errMsg = err instanceof Error ? err.message : "Import failed";
+    const status = errMsg.startsWith("MT5 HTML parse failed") ? 400 : 500;
+    return NextResponse.json({ error: errMsg }, { status });
+  }
+}

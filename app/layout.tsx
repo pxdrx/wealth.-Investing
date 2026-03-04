@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Header } from "@/components/layout/header";
+import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Trading Dashboard",
-  description: "Dashboard e ferramentas de trading",
+  title: "wealth. Investing",
+  description: "Seu centro de comando para o mercado financeiro.",
 };
 
 export default function RootLayout({
@@ -15,10 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      </head>
       <body className="min-h-screen font-sans antialiased">
-        <ThemeProvider defaultTheme="system" storageKey="trading-dashboard-theme">
-          <Header />
-          <main>{children}</main>
+        <ThemeProvider defaultTheme="light" storageKey="trading-dashboard-theme">
+          <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

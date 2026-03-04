@@ -22,12 +22,12 @@ export function LoginBackground({ className = "" }: { className?: string }) {
       {/* 1) Base — Apple gray light / dark (theme in dark mode) */}
       <div className="absolute inset-0 bg-[#F5F5F7] dark:bg-background" />
 
-      {/* 2) Subtle static gradient — low opacity, no animation */}
+      {/* 2) Sutil gradiente neutro — profundidade sem cor saturada */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-[0.18]"
+        className="pointer-events-none absolute inset-0 opacity-[0.4] dark:opacity-[0.2]"
         style={{
           background:
-            "radial-gradient(ellipse 100% 80% at 30% 20%, rgba(200,210,255,0.4), transparent 50%), radial-gradient(ellipse 80% 100% at 75% 70%, rgba(220,215,245,0.25), transparent 45%)",
+            "radial-gradient(ellipse 100% 80% at 30% 20%, rgba(0,0,0,0.02), transparent 50%), radial-gradient(ellipse 80% 100% at 75% 70%, rgba(0,0,0,0.015), transparent 45%)",
         }}
       />
 

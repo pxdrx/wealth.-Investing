@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -5,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 
 const mockEquity = { usd: 125_430.5, brl: 628_150.0 };
 const mockPnL = {
@@ -13,8 +14,6 @@ const mockPnL = {
   week: { value: 3_820.5, pct: 3.04 },
   month: { value: 8_100.0, pct: 6.45 },
 };
-const mockDrawdown = { current: -0.8, max: -2.4 };
-const mockUsdBrl = { rate: 5.012, updatedAt: "28/02/2025 14:32" };
 
 export default function WalletPage() {
   return (
@@ -85,32 +84,27 @@ export default function WalletPage() {
           </CardContent>
         </Card>
 
-        {/* Drawdown */}
+        {/* Drawdown — placeholder */}
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle className="text-base font-medium">Drawdown</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Atual</p>
-              <p className="kpi-value text-lg">{mockDrawdown.current}%</p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Máximo</p>
-              <p className="kpi-value text-lg">{mockDrawdown.max}%</p>
+          <CardContent>
+            <div className="flex min-h-[140px] items-center justify-center rounded-input border border-dashed border-border/80 bg-muted/20">
+              <p className="text-sm text-muted-foreground">Em breve</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Taxa USD/BRL */}
+        {/* Taxa USD/BRL usada — placeholder */}
         <Card className="lg:col-span-12">
           <CardHeader>
-            <CardTitle className="text-base font-medium">Taxa USD/BRL usada</CardTitle>
+            <CardTitle className="text-base font-medium">USD/BRL usado</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="kpi-value text-xl">R$ {mockUsdBrl.rate.toFixed(3)}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Atualizado: {mockUsdBrl.updatedAt}</p>
+            <div className="flex min-h-[80px] items-center justify-center rounded-input border border-dashed border-border/80 bg-muted/20">
+              <p className="text-sm text-muted-foreground">Em breve</p>
+            </div>
           </CardContent>
         </Card>
       </div>

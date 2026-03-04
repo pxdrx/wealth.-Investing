@@ -1,0 +1,96 @@
+"use client";
+
+import { useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { filterTradesByPeriod, getNetPnl } from "./types";
+import type { JournalTradeRow } from "./types";
+import type { PeriodFilter } from "./types";
+
+interface JournalEquityChartProps {
+  trades: JournalTradeRow[];
+  period: PeriodFilter;
+  startingBalanceUsd: number | null;
+}
+
+export function JournalEquityChart({ trades, period, startingBalanceUsd }: JournalEquityChartProps) {
+  const filtered = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
+  const start = startingBalanceUsd ?? 0;
+
+  const data = useMemo(() => {
+    const points: { date: string; equity: number; fullDate: string }[] = [];
+    let cum = start;
+    points.push({
+      date: "Início",
+      fullDate: "—",
+      equity: cum,
+    });
+    const sorted = [...filtered].sort((a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime());
+    for (const t of sorted) {
+      cum += getNetPnl(t);
+      const d = new Date(t.opened_at);
+      points.push({
+        date: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+        fullDate: d.toLocaleString("pt-BR"),
+        equity: Math.round(cum * 100) / 100,
+      });
+    }
+    return points;
+  }, [filtered, start]);
+
+  const currentEquity = data.length > 0 ? data[data.length - 1].equity : start;
+  const lineColor = currentEquity >= start ? "#059669" : "#dc2626"; // emerald-600 / red-600
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base font-medium">Curva de equity</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {data.length <= 1 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            Nenhum trade no período. Equity: {start.toFixed(2)} USD
+          </p>
+        ) : (
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" tickFormatter={(v) => `${v.toFixed(0)}`} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const p = payload[0].payload;
+                    return (
+                      <div className="rounded-input border border-border bg-card px-3 py-2 text-sm shadow-sm">
+                        <p className="text-muted-foreground">{p.fullDate}</p>
+                        <p className="font-semibold text-foreground">Equity: {p.equity.toFixed(2)} USD</p>
+                      </div>
+                    );
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="equity"
+                  stroke={lineColor}
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                  activeDot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
