@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, toFriendlyMessage } from "@/lib/profile";
 import { BrandMark } from "@/components/brand/BrandMark";
 
-// Alerts removido — integrado ao Dashboard
+// Alerts removido - integrado ao Dashboard
 const navLinks = [
   { href: "/app", label: "Dashboard" },
   { href: "/app/wallet", label: "Wallet" },
@@ -20,7 +20,7 @@ const navLinks = [
   { href: "/app/settings", label: "Settings" },
 ];
 
-/** Avatar com iniciais — cor neutra */
+/** Avatar com iniciais - cor neutra */
 function UserAvatar({ name }: { name: string }) {
   const initials = name
     .split(" ")
@@ -89,15 +89,15 @@ export function AppHeader() {
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center px-6">
 
-        {/* LEFT — Logo */}
+        {/* LEFT - Logo */}
         <Link href="/" className="flex items-baseline shrink-0 mr-6">
           <BrandMark />
         </Link>
 
-        {/* CENTER — spacer */}
+        {/* CENTER - spacer */}
         <div className="flex-1" />
 
-        {/* RIGHT — Nav + Conta + Tema */}
+        {/* RIGHT - Nav + Conta + Tema */}
         <div className="hidden md:flex items-center gap-1">
           {/* Nav links */}
           <nav className="flex items-center gap-1 mr-2">
@@ -146,7 +146,7 @@ export function AppHeader() {
                     className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-foreground hover:bg-accent transition-colors rounded-[8px] mx-1 w-[calc(100%-8px)]"
                   >
                     <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-                    Configurações
+                    Configuracoes
                   </button>
                   <div className="my-1 h-px bg-border/60 mx-2" />
                   <button
@@ -165,7 +165,7 @@ export function AppHeader() {
           <ThemeToggle />
         </div>
 
-        {/* MOBILE — burger */}
+        {/* MOBILE - burger */}
         <Button
           variant="ghost"
           size="icon"
@@ -204,7 +204,7 @@ export function AppHeader() {
                   className="mt-1 flex items-center gap-2 rounded-input px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                 >
                   <Settings className="h-4 w-4" />
-                  Configurações
+                  Configuracoes
                 </button>
                 <Button
                   variant="ghost"
