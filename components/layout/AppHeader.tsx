@@ -20,7 +20,7 @@ const navLinks = [
   { href: "/app/settings", label: "Settings" },
 ];
 
-/** Avatar com iniciais — gradiente dourado premium */
+/** Avatar com iniciais — cor neutra */
 function UserAvatar({ name }: { name: string }) {
   const initials = name
     .split(" ")
@@ -31,11 +31,8 @@ function UserAvatar({ name }: { name: string }) {
 
   return (
     <span
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white shadow-sm"
-      style={{
-        background: "linear-gradient(135deg, #C9A96E 0%, #E8C97A 50%, #B8924F 100%)",
-        letterSpacing: "0.04em",
-      }}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-foreground shadow-sm"
+      style={{ background: "hsl(var(--muted))" }}
       aria-hidden
     >
       {initials}
