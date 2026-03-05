@@ -27,35 +27,34 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       setError(null);
       try {
         const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          throw sessionError;
-        }
+        if (sessionError) throw sessionError;
+
         if (!data.session) {
           const from = pathname ?? "/app";
           router.replace(`/login?from=${encodeURIComponent(from)}`);
           return;
         }
 
-        try {
-          const profile = await getMyProfile();
+        // Tenta buscar profile com retry — trigger pode ainda estar executando
+        let profile = null;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            profile = await getMyProfile();
+            if (profile?.display_name?.trim()) break;
+          } catch {
+            // ignora erro temporário
+          }
+          await new Promise((r) => setTimeout(r, attempt * 300));
+        }
+
+        if (!cancelled) {
           if (!profile?.display_name?.trim()) {
             router.replace("/onboarding");
             return;
           }
-        } catch (profileErr) {
-          if (process.env.NODE_ENV === "development") {
-            console.error("[AuthGate] getMyProfile error", profileErr);
-          }
-          if (!cancelled) {
-            setError(toFriendlyMessage(profileErr));
-          }
-          return;
-        }
-
-        if (!cancelled) {
           setReady(true);
+          runBootstrapInBackground(data.session.user.id);
         }
-        runBootstrapInBackground(data.session.user.id);
       } catch (err) {
         if (process.env.NODE_ENV === "development") {
           console.error("[AuthGate] session error", err);
@@ -67,10 +66,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
 
     run();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [router, pathname]);
 
   if (error) {
