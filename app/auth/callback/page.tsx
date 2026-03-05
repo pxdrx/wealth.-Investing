@@ -13,27 +13,25 @@ function AuthCallbackContent() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const code = searchParams.get("code");
-
     async function finishAuth() {
       try {
+        const code = searchParams.get("code");
+        const token_hash = searchParams.get("token_hash");
+        const type = searchParams.get("type");
+
         if (code) {
-          // PKCE flow (magic link / OAuth)
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) {
-            setError(true);
-            return;
-          }
+          if (exchangeError) { setError(true); return; }
+        } else if (token_hash && type) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash, type: type as any });
+          if (verifyError) { setError(true); return; }
         } else {
-          // OTP hash flow — Supabase processa automaticamente o hash da URL
-          // Aguarda um tick para o SDK processar o fragment (#access_token=...)
-          await new Promise((r) => setTimeout(r, 300));
+          // fallback: hash fragment (#access_token) — SDK processa automaticamente
+          await new Promise((r) => setTimeout(r, 500));
           const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            setError(true);
-            return;
-          }
+          if (!session) { setError(true); return; }
         }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.id) {
           ensureDefaultAccounts(session.user.id).then((r) => {
@@ -42,6 +40,7 @@ function AuthCallbackContent() {
             }
           });
         }
+
         const profile = await getMyProfile();
         if (!profile?.display_name?.trim()) {
           router.replace("/onboarding");
@@ -65,10 +64,7 @@ function AuthCallbackContent() {
         <p className="text-center text-muted-foreground">
           Não foi possível concluir o login.
         </p>
-        <Link
-          href="/login"
-          className="text-sm font-medium text-primary hover:underline"
-        >
+        <Link href="/login" className="text-sm font-medium text-primary hover:underline">
           Voltar para o login
         </Link>
       </div>
