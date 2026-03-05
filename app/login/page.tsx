@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -10,20 +10,6 @@ import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, toFriendlyMessage } from "@/lib/profile";
 
 const easeApple = [0.16, 1, 0.3, 1] as const;
-const DURATION_PAGE = 0.45;
-const DURATION_EXIT = 0.28;
-
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const fn = () => setReduced(mq.matches);
-    mq.addEventListener("change", fn);
-    return () => mq.removeEventListener("change", fn);
-  }, []);
-  return reduced;
-}
 
 type Mode = "signin" | "signup" | "magic";
 
@@ -40,22 +26,14 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const reducedMotion = useReducedMotion();
   const [mode, setMode] = useState<Mode>("signin");
-
-  // signin
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // signup
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirm, setSignupConfirm] = useState("");
-
-  // magic
   const [magicEmail, setMagicEmail] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,8 +47,12 @@ export default function LoginPage() {
   }, [isExiting, router]);
 
   async function finishLogin() {
-    const profile = await getMyProfile();
-    redirectToRef.current = profile?.display_name?.trim() ? "/app" : "/onboarding";
+    try {
+      const profile = await getMyProfile();
+      redirectToRef.current = profile?.display_name?.trim() ? "/app" : "/onboarding";
+    } catch {
+      redirectToRef.current = "/onboarding";
+    }
     setIsExiting(true);
   }
 
@@ -92,33 +74,21 @@ export default function LoginPage() {
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
     const trimmedName = signupName.trim();
     if (trimmedName.length < 2) { setError("Nome deve ter pelo menos 2 caracteres."); return; }
-    if (!signupEmail.trim()) { setError("Informe um e-mail vÃƒÂ¡lido."); return; }
-    if (signupPassword.length < 8) { setError("A senha deve ter no mÃƒÂ­nimo 8 caracteres."); return; }
-    if (signupPassword !== signupConfirm) { setError("As senhas nÃƒÂ£o coincidem."); return; }
-
+    if (!signupEmail.trim()) { setError("Informe um e-mail valido."); return; }
+    if (signupPassword.length < 8) { setError("A senha deve ter no minimo 8 caracteres."); return; }
+    if (signupPassword !== signupConfirm) { setError("As senhas nao coincidem."); return; }
     setLoading(true);
     try {
-      const redirectTo = typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback`
-        : `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
-
+      const redirectTo = `${window.location.origin}/auth/callback`;
       const { data, error: err } = await supabase.auth.signUp({
         email: signupEmail.trim(),
         password: signupPassword,
-        options: {
-          emailRedirectTo: redirectTo,
-          data: { display_name: trimmedName },
-        },
+        options: { emailRedirectTo: redirectTo, data: { display_name: trimmedName } },
       });
       if (err) { setError(err.message); return; }
-      if (data.session) {
-        await finishLogin();
-      } else {
-        setInfo("Conta criada! Verifique seu e-mail para confirmar.");
-      }
+      if (data.session) { await finishLogin(); } else { setInfo("Conta criada! Verifique seu e-mail."); }
     } catch (err) {
       setError(toFriendlyMessage(err));
     } finally {
@@ -129,13 +99,10 @@ export default function LoginPage() {
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!magicEmail.trim()) { setError("Informe o e-mail para enviar o link."); return; }
+    if (!magicEmail.trim()) { setError("Informe o e-mail."); return; }
     setLoading(true);
     try {
-      const redirectTo = typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback`
-        : `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
-
+      const redirectTo = `${window.location.origin}/auth/callback`;
       const { error: err } = await supabase.auth.signInWithOtp({
         email: magicEmail.trim(),
         options: { emailRedirectTo: redirectTo },
@@ -153,13 +120,9 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const redirectTo = typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback`
-        : `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
-
       const { error: err } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (err) { setError(err.message); setLoading(false); }
     } catch (err) {
@@ -168,89 +131,70 @@ export default function LoginPage() {
     }
   }
 
-  function switchMode(m: Mode) {
-    setMode(m);
-    setError(null);
-    setInfo(null);
-  }
+  function switchMode(m: Mode) { setMode(m); setError(null); setInfo(null); }
 
   const isSignIn = mode === "signin";
   const isSignUp = mode === "signup";
-  const isMagic  = mode === "magic";
+  const isMagic = mode === "magic";
 
   return (
     <motion.div
       className="relative flex min-h-screen flex-col items-center justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: reducedMotion ? 0.06 : DURATION_PAGE, ease: easeApple }}
+      transition={{ duration: 0.45, ease: easeApple }}
     >
       <LoginBackground className="z-0" />
-
       <motion.div
         className="pointer-events-none absolute inset-0 z-20 bg-[#F5F5F7] dark:bg-background"
         initial={{ opacity: 0 }}
         animate={{ opacity: isExiting ? 1 : 0 }}
-        transition={{ duration: reducedMotion ? 0.05 : DURATION_EXIT, ease: easeApple }}
+        transition={{ duration: 0.28, ease: easeApple }}
         aria-hidden
       />
-
       <motion.div
         className="relative z-10 mb-8 text-center px-4"
-        initial={{ opacity: 0, y: reducedMotion ? 0 : -8 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reducedMotion ? 0.06 : 0.5, ease: easeApple }}
+        transition={{ duration: 0.5, ease: easeApple }}
       >
         <BrandMark size="xl" />
         <p className="mt-3 text-base text-muted-foreground leading-relaxed max-w-xs mx-auto">
-          Suas notÃƒÂ­cias, seu journal, sua wallet,{" "}
+          Suas noticias, seu journal, sua wallet,{" "}
           <span className="text-foreground font-medium">seu tudo.</span>
         </p>
       </motion.div>
 
       {!isExiting && (
-        <div className="relative z-10 w-full max-w-[400px] px-4">
+        <div className="relative z-10 w-full max-w-[400px] px-4 pb-10">
           <div className="rounded-[22px] border border-border bg-card p-8 shadow-soft dark:shadow-soft-dark">
             <h1 className="text-xl font-semibold tracking-tight text-foreground">
               {isSignIn && "Entrar"}
               {isSignUp && "Criar conta"}
-              {isMagic  && "Link mÃƒÂ¡gico"}
+              {isMagic && "Link magico"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {isSignIn && "Acesse sua conta wealth.Investing."}
               {isSignUp && "Comece sua jornada no mercado."}
-              {isMagic  && "Receba um link de acesso no e-mail."}
+              {isMagic && "Receba um link de acesso no e-mail."}
             </p>
 
-            {error && (
-              <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-                {error}
-              </p>
-            )}
-            {info && (
-              <p className="mt-4 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400" role="status">
-                {info}
-              </p>
-            )}
+            {error && <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">{error}</p>}
+            {info && <p className="mt-4 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400" role="status">{info}</p>}
 
             {!isMagic && (
-              <button
-                type="button"
-                onClick={handleGoogle}
-                disabled={loading}
-                className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-border bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50"
-              >
-                <GoogleIcon />
-                Continuar com Google
-              </button>
-            )}
-
-            {!isMagic && (
-              <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-border/60" />
-                <span className="text-xs text-muted-foreground">ou</span>
-                <div className="h-px flex-1 bg-border/60" />
-              </div>
+              <>
+                <button type="button" onClick={handleGoogle} disabled={loading}
+                  className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-border bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50">
+                  <GoogleIcon />
+                  Continuar com Google
+                </button>
+                <div className="my-5 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border/60" />
+                  <span className="text-xs text-muted-foreground">ou</span>
+                  <div className="h-px flex-1 bg-border/60" />
+                </div>
+              </>
             )}
 
             {isSignIn && (
@@ -261,10 +205,10 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">Senha</label>
-                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢" className="input-ios" />
+                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
-                  {loading ? "EntrandoÃ¢Â€Â¦" : "Entrar"}
+                  {loading ? "Entrando..." : "Entrar"}
                 </Button>
               </form>
             )}
@@ -280,15 +224,15 @@ export default function LoginPage() {
                   <input id="signup-email" type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
                 </div>
                 <div>
-                  <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-foreground">Senha <span className="text-muted-foreground font-normal">(mÃƒÂ­n. 8 caracteres)</span></label>
-                  <input id="signup-password" type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required placeholder="Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢" className="input-ios" />
+                  <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-foreground">Senha (min. 8 caracteres)</label>
+                  <input id="signup-password" type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
                 </div>
                 <div>
                   <label htmlFor="signup-confirm" className="mb-1.5 block text-sm font-medium text-foreground">Confirmar senha</label>
-                  <input id="signup-confirm" type="password" value={signupConfirm} onChange={(e) => setSignupConfirm(e.target.value)} required placeholder="Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢" className="input-ios" />
+                  <input id="signup-confirm" type="password" value={signupConfirm} onChange={(e) => setSignupConfirm(e.target.value)} required placeholder="••••••••" className="input-ios" />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
-                  {loading ? "Criando contaÃ¢Â€Â¦" : "Criar conta"}
+                  {loading ? "Criando..." : "Criar conta"}
                 </Button>
               </form>
             )}
@@ -300,7 +244,7 @@ export default function LoginPage() {
                   <input id="magic-email" type="email" value={magicEmail} onChange={(e) => setMagicEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
-                  {loading ? "EnviandoÃ¢Â€Â¦" : "Enviar link"}
+                  {loading ? "Enviando..." : "Enviar link"}
                 </Button>
               </form>
             )}
@@ -309,21 +253,21 @@ export default function LoginPage() {
               {isSignIn && (
                 <>
                   <button type="button" onClick={() => switchMode("magic")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
-                    Entrar com link mÃƒÂ¡gico
+                    Entrar com link magico
                   </button>
                   <button type="button" onClick={() => switchMode("signup")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    NÃƒÂ£o tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
+                    Nao tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
                   </button>
                 </>
               )}
               {isSignUp && (
                 <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  JÃƒÂ¡ tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
+                  Ja tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
                 </button>
               )}
               {isMagic && (
                 <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
-                  Ã¢←Â Voltar para o login
+                  Voltar para o login
                 </button>
               )}
             </div>
@@ -333,4 +277,3 @@ export default function LoginPage() {
     </motion.div>
   );
 }
-
