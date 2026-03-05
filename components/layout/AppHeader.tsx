@@ -15,6 +15,7 @@ import { BrandMark } from "@/components/brand/BrandMark";
 const navLinks = [
   { href: "/app", label: "Dashboard" },
   { href: "/app/wallet", label: "Wallet" },
+  { href: "/app/alerts", label: "Alerts" },
   { href: "/app/news", label: "News" },
   { href: "/app/journal", label: "Journal" },
   { href: "/app/settings", label: "Settings" },
@@ -151,7 +152,7 @@ export function AppHeader() {
                     className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-foreground hover:bg-accent transition-colors rounded-[8px] mx-1 w-[calc(100%-8px)]"
                   >
                     <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-                    Configuracoes
+                    Configurações
                   </button>
                   <div className="my-1 h-px bg-border/60 mx-2" />
                   <button
@@ -209,7 +210,7 @@ export function AppHeader() {
                   className="mt-1 flex items-center gap-2 rounded-input px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                 >
                   <Settings className="h-4 w-4" />
-                  Configuracoes
+                  Configurações
                 </button>
                 <Button
                   variant="ghost"

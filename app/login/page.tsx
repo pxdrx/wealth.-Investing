@@ -76,9 +76,9 @@ export default function LoginPage() {
     setError(null);
     const trimmedName = signupName.trim();
     if (trimmedName.length < 2) { setError("Nome deve ter pelo menos 2 caracteres."); return; }
-    if (!signupEmail.trim()) { setError("Informe um e-mail valido."); return; }
-    if (signupPassword.length < 8) { setError("A senha deve ter no minimo 8 caracteres."); return; }
-    if (signupPassword !== signupConfirm) { setError("As senhas nao coincidem."); return; }
+    if (!signupEmail.trim()) { setError("Informe um e-mail válido."); return; }
+    if (signupPassword.length < 8) { setError("A senha deve ter no mínimo 8 caracteres."); return; }
+    if (signupPassword !== signupConfirm) { setError("As senhas não coincidem."); return; }
     setLoading(true);
     try {
       const redirectTo = `${window.location.origin}/auth/callback`;
@@ -160,7 +160,7 @@ export default function LoginPage() {
       >
         <BrandMark size="xl" />
         <p className="mt-3 text-base text-muted-foreground leading-relaxed max-w-xs mx-auto">
-          Suas noticias, seu journal, sua wallet,{" "}
+          Suas notícias, seu journal, sua wallet,{" "}
           <span className="text-foreground font-medium">seu tudo.</span>
         </p>
       </motion.div>
@@ -171,7 +171,7 @@ export default function LoginPage() {
             <h1 className="text-xl font-semibold tracking-tight text-foreground">
               {isSignIn && "Entrar"}
               {isSignUp && "Criar conta"}
-              {isMagic && "Link magico"}
+              {isMagic && "Link mágico"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {isSignIn && "Acesse sua conta wealth.Investing."}
@@ -256,13 +256,13 @@ export default function LoginPage() {
                     Entrar com link magico
                   </button>
                   <button type="button" onClick={() => switchMode("signup")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Nao tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
+                    Não tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
                   </button>
                 </>
               )}
               {isSignUp && (
                 <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Ja tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
+                  Já tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
                 </button>
               )}
               {isMagic && (

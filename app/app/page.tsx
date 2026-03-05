@@ -92,7 +92,6 @@ type TvAlertRow = {
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(5);
-        console.log("alerts:", data, error);
         if (cancelled) return;
         if (error) {
           console.warn("[dashboard] tv_alerts error", error.message);

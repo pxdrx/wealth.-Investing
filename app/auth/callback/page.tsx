@@ -73,7 +73,7 @@ function AuthCallbackContent() {
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-6">
-      <p className="text-muted-foreground">Autenticando…</p>
+      <p className="text-muted-foreground">Autenticando...</p>
     </div>
   );
 }
@@ -83,7 +83,7 @@ export default function AuthCallbackPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-6">
-          <p className="text-muted-foreground">Autenticando…</p>
+          <p className="text-muted-foreground">Autenticando...</p>
         </div>
       }
     >

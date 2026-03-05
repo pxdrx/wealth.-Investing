@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: NextRequest) {
   try {
-    const secret = req.nextUrl.searchParams.get('secret');
+    const secret = req.headers.get("x-webhook-secret");
     if (secret !== process.env.WEBHOOK_SECRET) {
       return NextResponse.json({ ok: false }, { status: 401 });
     }

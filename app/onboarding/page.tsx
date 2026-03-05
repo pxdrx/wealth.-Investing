@@ -84,7 +84,7 @@ export default function OnboardingPage() {
   if (checking) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <p className="text-muted-foreground">Carregando…</p>
+        <p className="text-muted-foreground">Carregando...</p>
       </div>
     );
   }
@@ -143,7 +143,7 @@ export default function OnboardingPage() {
               disabled={loading || displayName.trim().length < MIN_LENGTH}
               className="w-full py-3 font-medium"
             >
-              {loading ? "Salvando…" : "Continuar"}
+              {loading ? "Salvando..." : "Continuar"}
             </Button>
           </form>
         </div>
