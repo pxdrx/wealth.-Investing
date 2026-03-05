@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { LoginBackground } from "@/components/login/LoginBackground";
@@ -11,7 +11,6 @@ import { getMyProfile, toFriendlyMessage } from "@/lib/profile";
 
 const easeApple = [0.16, 1, 0.3, 1] as const;
 const DURATION_PAGE = 0.45;
-const DURATION_CARD = 0.5;
 const DURATION_EXIT = 0.28;
 
 function useReducedMotion() {
@@ -25,18 +24,6 @@ function useReducedMotion() {
   }, []);
   return reduced;
 }
-
-const cardVariants = {
-  initial: (r: boolean) => (r ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.985 }),
-  animate: (r: boolean) => ({
-    opacity: 1, y: 0, scale: 1,
-    transition: { duration: r ? 0.08 : DURATION_CARD, ease: easeApple },
-  }),
-  exit: (r: boolean) => ({
-    opacity: 0, scale: 0.99,
-    transition: { duration: r ? 0.04 : DURATION_EXIT, ease: easeApple },
-  }),
-};
 
 type Mode = "signin" | "signup" | "magic";
 
@@ -75,9 +62,11 @@ export default function LoginPage() {
   const [info, setInfo] = useState<string | null>(null);
   const redirectToRef = useRef<"/app" | "/onboarding">("/app");
 
-  function handleExitComplete() {
-    router.replace(redirectToRef.current);
-  }
+  useEffect(() => {
+    if (!isExiting) return;
+    const t = setTimeout(() => router.replace(redirectToRef.current), 150);
+    return () => clearTimeout(t);
+  }, [isExiting, router]);
 
   async function finishLogin() {
     const profile = await getMyProfile();
@@ -219,141 +208,128 @@ export default function LoginPage() {
         </p>
       </motion.div>
 
-      <AnimatePresence mode="wait" onExitComplete={handleExitComplete}>
-        {!isExiting && (
-          <motion.div
-            key={mode}
-            className="relative z-10 w-full max-w-[400px] px-4"
-            variants={cardVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            custom={reducedMotion}
-          >
-            <div className="rounded-[22px] border border-border bg-card p-8 shadow-soft dark:shadow-soft-dark">
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">
-                {isSignIn && "Entrar"}
-                {isSignUp && "Criar conta"}
-                {isMagic  && "Link mágico"}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {isSignIn && "Acesse sua conta wealth.Investing."}
-                {isSignUp && "Comece sua jornada no mercado."}
-                {isMagic  && "Receba um link de acesso no e-mail."}
+      {!isExiting && (
+        <div className="relative z-10 w-full max-w-[400px] px-4">
+          <div className="rounded-[22px] border border-border bg-card p-8 shadow-soft dark:shadow-soft-dark">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              {isSignIn && "Entrar"}
+              {isSignUp && "Criar conta"}
+              {isMagic  && "Link mágico"}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isSignIn && "Acesse sua conta wealth.Investing."}
+              {isSignUp && "Comece sua jornada no mercado."}
+              {isMagic  && "Receba um link de acesso no e-mail."}
+            </p>
+
+            {error && (
+              <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                {error}
               </p>
+            )}
+            {info && (
+              <p className="mt-4 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400" role="status">
+                {info}
+              </p>
+            )}
 
-              {error && (
-                <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              )}
-              {info && (
-                <p className="mt-4 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400" role="status">
-                  {info}
-                </p>
-              )}
+            {!isMagic && (
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={loading}
+                className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-border bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50"
+              >
+                <GoogleIcon />
+                Continuar com Google
+              </button>
+            )}
 
-              {!isMagic && (
-                <button
-                  type="button"
-                  onClick={handleGoogle}
-                  disabled={loading}
-                  className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-border bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50"
-                >
-                  <GoogleIcon />
-                  Continuar com Google
+            {!isMagic && (
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-border/60" />
+                <span className="text-xs text-muted-foreground">ou</span>
+                <div className="h-px flex-1 bg-border/60" />
+              </div>
+            )}
+
+            {isSignIn && (
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
+                  <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
+                </div>
+                <div>
+                  <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">Senha</label>
+                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
+                </div>
+                <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
+                  {loading ? "Entrando…" : "Entrar"}
+                </Button>
+              </form>
+            )}
+
+            {isSignUp && (
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div>
+                  <label htmlFor="signup-name" className="mb-1.5 block text-sm font-medium text-foreground">Nome</label>
+                  <input id="signup-name" type="text" value={signupName} onChange={(e) => setSignupName(e.target.value)} required placeholder="Como quer ser chamado" className="input-ios" />
+                </div>
+                <div>
+                  <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
+                  <input id="signup-email" type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
+                </div>
+                <div>
+                  <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-foreground">Senha <span className="text-muted-foreground font-normal">(mín. 8 caracteres)</span></label>
+                  <input id="signup-password" type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
+                </div>
+                <div>
+                  <label htmlFor="signup-confirm" className="mb-1.5 block text-sm font-medium text-foreground">Confirmar senha</label>
+                  <input id="signup-confirm" type="password" value={signupConfirm} onChange={(e) => setSignupConfirm(e.target.value)} required placeholder="••••••••" className="input-ios" />
+                </div>
+                <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
+                  {loading ? "Criando conta…" : "Criar conta"}
+                </Button>
+              </form>
+            )}
+
+            {isMagic && (
+              <form onSubmit={handleMagicLink} className="mt-5 space-y-5">
+                <div>
+                  <label htmlFor="magic-email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
+                  <input id="magic-email" type="email" value={magicEmail} onChange={(e) => setMagicEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
+                </div>
+                <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
+                  {loading ? "Enviando…" : "Enviar link"}
+                </Button>
+              </form>
+            )}
+
+            <div className="mt-5 flex flex-col items-center gap-2">
+              {isSignIn && (
+                <>
+                  <button type="button" onClick={() => switchMode("magic")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                    Entrar com link mágico
+                  </button>
+                  <button type="button" onClick={() => switchMode("signup")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Não tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
+                  </button>
+                </>
+              )}
+              {isSignUp && (
+                <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Já tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
                 </button>
               )}
-
-              {!isMagic && (
-                <div className="my-5 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-border/60" />
-                  <span className="text-xs text-muted-foreground">ou</span>
-                  <div className="h-px flex-1 bg-border/60" />
-                </div>
-              )}
-
-              {/* SIGNIN */}
-              {isSignIn && (
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
-                    <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
-                  </div>
-                  <div>
-                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">Senha</label>
-                    <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
-                  </div>
-                  <Button type="submit" disabled={loading} className="relative w-full overflow-hidden py-3 font-medium">
-                    {loading ? <span className="flex items-center justify-center gap-2"><motion.span animate={reducedMotion ? {} : { rotate: 360 }} transition={reducedMotion ? {} : { repeat: Infinity, duration: 0.7, ease: "linear" }} className="h-4 w-4 rounded-full border-2 border-white border-t-transparent" />Entrando…</span> : "Entrar"}
-                  </Button>
-                </form>
-              )}
-
-              {/* SIGNUP */}
-              {isSignUp && (
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div>
-                    <label htmlFor="signup-name" className="mb-1.5 block text-sm font-medium text-foreground">Nome</label>
-                    <input id="signup-name" type="text" value={signupName} onChange={(e) => setSignupName(e.target.value)} required placeholder="Como quer ser chamado" className="input-ios" />
-                  </div>
-                  <div>
-                    <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
-                    <input id="signup-email" type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
-                  </div>
-                  <div>
-                    <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-foreground">Senha <span className="text-muted-foreground font-normal">(mín. 8 caracteres)</span></label>
-                    <input id="signup-password" type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
-                  </div>
-                  <div>
-                    <label htmlFor="signup-confirm" className="mb-1.5 block text-sm font-medium text-foreground">Confirmar senha</label>
-                    <input id="signup-confirm" type="password" value={signupConfirm} onChange={(e) => setSignupConfirm(e.target.value)} required placeholder="••••••••" className="input-ios" />
-                  </div>
-                  <Button type="submit" disabled={loading} className="relative w-full overflow-hidden py-3 font-medium">
-                    {loading ? <span className="flex items-center justify-center gap-2"><motion.span animate={reducedMotion ? {} : { rotate: 360 }} transition={reducedMotion ? {} : { repeat: Infinity, duration: 0.7, ease: "linear" }} className="h-4 w-4 rounded-full border-2 border-white border-t-transparent" />Criando conta…</span> : "Criar conta"}
-                  </Button>
-                </form>
-              )}
-
-              {/* MAGIC */}
               {isMagic && (
-                <form onSubmit={handleMagicLink} className="mt-5 space-y-5">
-                  <div>
-                    <label htmlFor="magic-email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
-                    <input id="magic-email" type="email" value={magicEmail} onChange={(e) => setMagicEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
-                  </div>
-                  <Button type="submit" disabled={loading} className="relative w-full overflow-hidden py-3 font-medium">
-                    {loading ? <span className="flex items-center justify-center gap-2"><motion.span animate={reducedMotion ? {} : { rotate: 360 }} transition={reducedMotion ? {} : { repeat: Infinity, duration: 0.7, ease: "linear" }} className="h-4 w-4 rounded-full border-2 border-white border-t-transparent" />Enviando…</span> : "Enviar link"}
-                  </Button>
-                </form>
+                <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                  ← Voltar para o login
+                </button>
               )}
-
-              <div className="mt-5 flex flex-col items-center gap-2">
-                {isSignIn && (
-                  <>
-                    <button type="button" onClick={() => switchMode("magic")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
-                      Entrar com link mágico
-                    </button>
-                    <button type="button" onClick={() => switchMode("signup")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      Não tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
-                    </button>
-                  </>
-                )}
-                {isSignUp && (
-                  <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Já tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
-                  </button>
-                )}
-                {isMagic && (
-                  <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
-                    ← Voltar para o login
-                  </button>
-                )}
-              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
