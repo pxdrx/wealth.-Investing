@@ -81,8 +81,13 @@ export function AppHeader() {
   }, [userMenuOpen]);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignora erro
+    } finally {
+      window.location.href = "/login";
+    }
   }
 
   return (
