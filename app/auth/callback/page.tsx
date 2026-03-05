@@ -18,12 +18,16 @@ function AuthCallbackContent() {
     async function finishAuth() {
       try {
         if (code) {
+          // PKCE flow (magic link / OAuth)
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) {
             setError(true);
             return;
           }
         } else {
+          // OTP hash flow — Supabase processa automaticamente o hash da URL
+          // Aguarda um tick para o SDK processar o fragment (#access_token=...)
+          await new Promise((r) => setTimeout(r, 300));
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) {
             setError(true);

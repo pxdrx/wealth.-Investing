@@ -17,12 +17,14 @@
  import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
 
- type TvAlertRow = {
-   symbol: string;
-   alert_type: string | null;
-   message: string | null;
-   created_at: string;
- };
+type TvAlertRow = {
+  id: string;
+  symbol: string;
+  alert_type: string | null;
+  message: string | null;
+  timeframe: string | null;
+  created_at: string;
+};
 
  type JournalTradeKpiRow = {
    net_pnl_usd: number | null;
@@ -80,34 +82,35 @@ import { cn } from "@/lib/utils";
        setAlerts([]);
        return;
      }
-     let cancelled = false;
-     setAlertsLoading(true);
-     (async () => {
-       try {
-         const { data, error } = await supabase
-           .from("tv_alerts")
-           .select("symbol, alert_type, message, created_at")
-           .eq("user_id", userId)
-           .order("created_at", { ascending: false })
-           .limit(5);
-         if (cancelled) return;
-         if (error) {
-           console.warn("[dashboard] tv_alerts error", error.message);
-           setAlerts([]);
-           return;
-         }
-         setAlerts((data ?? []) as TvAlertRow[]);
-       } catch (e) {
-         if (!cancelled) {
-           console.warn("[dashboard] tv_alerts exception", e);
-           setAlerts([]);
-         }
-       } finally {
-         if (!cancelled) {
-           setAlertsLoading(false);
-         }
-       }
-     })();
+    let cancelled = false;
+    setAlertsLoading(true);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("tv_alerts")
+          .select("id, symbol, alert_type, message, timeframe, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        console.log("alerts:", data, error);
+        if (cancelled) return;
+        if (error) {
+          console.warn("[dashboard] tv_alerts error", error.message);
+          setAlerts([]);
+          return;
+        }
+        setAlerts((data ?? []) as TvAlertRow[]);
+      } catch (e) {
+        if (!cancelled) {
+          console.warn("[dashboard] tv_alerts exception", e);
+          setAlerts([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setAlertsLoading(false);
+        }
+      }
+    })();
      return () => {
        cancelled = true;
      };
@@ -318,36 +321,45 @@ import { cn } from "@/lib/utils";
                  Carregando alertas…
                </p>
              )}
-             {!alertsLoading && alerts.length === 0 && (
-               <p className="text-sm text-muted-foreground">
-                 Nenhum alerta recebido ainda. Configure o webhook do TradingView para começar.
-               </p>
-             )}
-             {!alertsLoading && alerts.length > 0 && (
-               <ul className="space-y-4">
-                 {alerts.map((alert, index) => (
-                   <li key={`${alert.symbol}-${alert.created_at}-${index}`}>
-                     <div className="flex items-center justify-between gap-3">
-                       <div className="min-w-0 flex-1">
-                         <p className="truncate text-sm font-medium text-foreground">
-                           {alert.symbol}
-                         </p>
-                         <p className="truncate text-xs text-muted-foreground">
-                           {alert.message ?? alert.alert_type ?? "Alerta"}
-                         </p>
-                       </div>
-                       <Badge variant="outline" className="shrink-0 text-[11px]">
-                         {new Date(alert.created_at).toLocaleTimeString("pt-BR", {
-                           hour: "2-digit",
-                           minute: "2-digit",
-                         })}
-                       </Badge>
-                     </div>
-                     {index < alerts.length - 1 && <Separator className="mt-3" />}
-                   </li>
-                 ))}
-               </ul>
-             )}
+            {!alertsLoading && alerts.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Nenhum alerta recebido ainda.
+              </p>
+            )}
+            {!alertsLoading && alerts.length > 0 && (
+              <ul className="space-y-4">
+                {alerts.map((alert, index) => (
+                  <li key={alert.id}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {alert.symbol}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          <span className="font-medium">
+                            {alert.alert_type || "manual"}
+                          </span>
+                          {alert.timeframe && (
+                            <span className="ml-1">· {alert.timeframe}</span>
+                          )}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {alert.message ?? ""}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="shrink-0 text-[11px]">
+                        {new Date(alert.created_at).toLocaleTimeString("pt-BR", {
+                          timeZone: "America/Sao_Paulo",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Badge>
+                    </div>
+                    {index < alerts.length - 1 && <Separator className="mt-3" />}
+                  </li>
+                ))}
+              </ul>
+            )}
            </CardContent>
          </Card>
 

@@ -15,9 +15,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     exit: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 },
   };
 
+  const isLoginPage = pathname === "/login" || pathname?.startsWith("/login");
+  const isAuthPage = pathname === "/auth/callback" || pathname?.startsWith("/onboarding");
+
   return (
     <ActiveAccountProvider>
-      <AppHeader />
+      {!isLoginPage && !isAuthPage && <AppHeader />}
       <AnimatePresence mode="wait">
         <motion.main
           key={pathname}
