@@ -17,10 +17,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isLoginPage = pathname === "/login" || pathname?.startsWith("/login");
   const isAuthPage = pathname === "/auth/callback" || pathname?.startsWith("/onboarding");
+  const isHomePage = pathname === "/";
+  const hideHeader = isLoginPage || isAuthPage || isHomePage;
 
   return (
     <ActiveAccountProvider>
-      {!isLoginPage && !isAuthPage && <AppHeader />}
+      {!hideHeader && <AppHeader />}
       <AnimatePresence mode="wait">
         <motion.main
           key={pathname}
