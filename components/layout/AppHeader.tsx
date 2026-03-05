@@ -85,10 +85,9 @@ export function AppHeader() {
     try {
       await supabase.auth.signOut();
     } catch {
-      // ignora erro
-    } finally {
-      window.location.href = "/login";
+      // ignora
     }
+    window.location.href = "/login";
   }
 
   return (

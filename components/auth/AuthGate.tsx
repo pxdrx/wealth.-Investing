@@ -35,7 +35,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Tenta buscar profile com retry — trigger pode ainda estar executando
+        // Retry com backoff — trigger de profiles pode ainda estar executando
         let profile = null;
         for (let attempt = 0; attempt < 5; attempt++) {
           try {
