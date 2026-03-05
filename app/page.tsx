@@ -10,7 +10,7 @@ export default function HomePage() {
           href="/login"
           className="inline-flex items-center justify-center rounded-full bg-foreground px-8 py-3 text-sm font-medium text-background transition-opacity hover:opacity-80"
         >
-          Entrar
+          Onboarding
         </Link>
         <Link
           href="/risk-disclaimer"
