@@ -55,9 +55,20 @@ export default function LoginPage() {
   const router = useRouter();
   const reducedMotion = useReducedMotion();
   const [mode, setMode] = useState<Mode>("signin");
+
+  // signin
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+
+  // signup
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirm, setSignupConfirm] = useState("");
+
+  // magic
+  const [magicEmail, setMagicEmail] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +103,13 @@ export default function LoginPage() {
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const trimmedName = signupName.trim();
+    if (trimmedName.length < 2) { setError("Nome deve ter pelo menos 2 caracteres."); return; }
+    if (!signupEmail.trim()) { setError("Informe um e-mail válido."); return; }
+    if (signupPassword.length < 8) { setError("A senha deve ter no mínimo 8 caracteres."); return; }
+    if (signupPassword !== signupConfirm) { setError("As senhas não coincidem."); return; }
+
     setLoading(true);
     try {
       const redirectTo = typeof window !== "undefined"
@@ -99,11 +117,11 @@ export default function LoginPage() {
         : `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
 
       const { data, error: err } = await supabase.auth.signUp({
-        email,
-        password,
+        email: signupEmail.trim(),
+        password: signupPassword,
         options: {
           emailRedirectTo: redirectTo,
-          data: { display_name: name.trim() || undefined },
+          data: { display_name: trimmedName },
         },
       });
       if (err) { setError(err.message); return; }
@@ -122,7 +140,7 @@ export default function LoginPage() {
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!email.trim()) { setError("Informe o e-mail para enviar o link."); return; }
+    if (!magicEmail.trim()) { setError("Informe o e-mail para enviar o link."); return; }
     setLoading(true);
     try {
       const redirectTo = typeof window !== "undefined"
@@ -130,7 +148,7 @@ export default function LoginPage() {
         : `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
 
       const { error: err } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
+        email: magicEmail.trim(),
         options: { emailRedirectTo: redirectTo },
       });
       if (err) { setError(err.message); return; }
@@ -180,7 +198,6 @@ export default function LoginPage() {
     >
       <LoginBackground className="z-0" />
 
-      {/* Exit overlay */}
       <motion.div
         className="pointer-events-none absolute inset-0 z-20 bg-[#F5F5F7] dark:bg-background"
         initial={{ opacity: 0 }}
@@ -189,7 +206,6 @@ export default function LoginPage() {
         aria-hidden
       />
 
-      {/* Logo + tagline */}
       <motion.div
         className="relative z-10 mb-8 text-center px-4"
         initial={{ opacity: 0, y: reducedMotion ? 0 : -8 }}
@@ -203,7 +219,6 @@ export default function LoginPage() {
         </p>
       </motion.div>
 
-      {/* Card */}
       <AnimatePresence mode="wait" onExitComplete={handleExitComplete}>
         {!isExiting && (
           <motion.div
@@ -238,7 +253,6 @@ export default function LoginPage() {
                 </p>
               )}
 
-              {/* Google OAuth */}
               {!isMagic && (
                 <button
                   type="button"
@@ -259,108 +273,79 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form
-                onSubmit={isSignIn ? handleSignIn : isSignUp ? handleSignUp : handleMagicLink}
-                className={isMagic ? "mt-5 space-y-5" : "space-y-4"}
-              >
-                {isSignUp && (
+              {/* SIGNIN */}
+              {isSignIn && (
+                <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
-                    <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
-                      Seu nome
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Como quer ser chamado"
-                      className="input-ios transition-[border-color,box-shadow] duration-150"
-                    />
+                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
+                    <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
                   </div>
-                )}
-
-                <div>
-                  <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
-                    E-mail
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    placeholder="seu@email.com"
-                    className="input-ios transition-[border-color,box-shadow] duration-150"
-                  />
-                </div>
-
-                {!isMagic && (
                   <div>
-                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
-                      Senha
-                    </label>
-                    <input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      placeholder="••••••••"
-                      className="input-ios transition-[border-color,box-shadow] duration-150"
-                    />
+                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">Senha</label>
+                    <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
                   </div>
-                )}
+                  <Button type="submit" disabled={loading} className="relative w-full overflow-hidden py-3 font-medium">
+                    {loading ? <span className="flex items-center justify-center gap-2"><motion.span animate={reducedMotion ? {} : { rotate: 360 }} transition={reducedMotion ? {} : { repeat: Infinity, duration: 0.7, ease: "linear" }} className="h-4 w-4 rounded-full border-2 border-white border-t-transparent" />Entrando…</span> : "Entrar"}
+                  </Button>
+                </form>
+              )}
 
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="relative w-full overflow-hidden py-3 font-medium"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <motion.span
-                        animate={reducedMotion ? {} : { rotate: 360 }}
-                        transition={reducedMotion ? {} : { repeat: Infinity, duration: 0.7, ease: "linear" }}
-                        className="h-4 w-4 rounded-full border-2 border-white border-t-transparent"
-                      />
-                      {isSignIn && "Entrando…"}
-                      {isSignUp && "Criando conta…"}
-                      {isMagic  && "Enviando…"}
-                    </span>
-                  ) : (
-                    <>
-                      {isSignIn && "Entrar"}
-                      {isSignUp && "Criar conta"}
-                      {isMagic  && "Enviar link"}
-                    </>
-                  )}
-                </Button>
-              </form>
+              {/* SIGNUP */}
+              {isSignUp && (
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div>
+                    <label htmlFor="signup-name" className="mb-1.5 block text-sm font-medium text-foreground">Nome</label>
+                    <input id="signup-name" type="text" value={signupName} onChange={(e) => setSignupName(e.target.value)} required placeholder="Como quer ser chamado" className="input-ios" />
+                  </div>
+                  <div>
+                    <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
+                    <input id="signup-email" type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
+                  </div>
+                  <div>
+                    <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-foreground">Senha <span className="text-muted-foreground font-normal">(mín. 8 caracteres)</span></label>
+                    <input id="signup-password" type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
+                  </div>
+                  <div>
+                    <label htmlFor="signup-confirm" className="mb-1.5 block text-sm font-medium text-foreground">Confirmar senha</label>
+                    <input id="signup-confirm" type="password" value={signupConfirm} onChange={(e) => setSignupConfirm(e.target.value)} required placeholder="••••••••" className="input-ios" />
+                  </div>
+                  <Button type="submit" disabled={loading} className="relative w-full overflow-hidden py-3 font-medium">
+                    {loading ? <span className="flex items-center justify-center gap-2"><motion.span animate={reducedMotion ? {} : { rotate: 360 }} transition={reducedMotion ? {} : { repeat: Infinity, duration: 0.7, ease: "linear" }} className="h-4 w-4 rounded-full border-2 border-white border-t-transparent" />Criando conta…</span> : "Criar conta"}
+                  </Button>
+                </form>
+              )}
+
+              {/* MAGIC */}
+              {isMagic && (
+                <form onSubmit={handleMagicLink} className="mt-5 space-y-5">
+                  <div>
+                    <label htmlFor="magic-email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
+                    <input id="magic-email" type="email" value={magicEmail} onChange={(e) => setMagicEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
+                  </div>
+                  <Button type="submit" disabled={loading} className="relative w-full overflow-hidden py-3 font-medium">
+                    {loading ? <span className="flex items-center justify-center gap-2"><motion.span animate={reducedMotion ? {} : { rotate: 360 }} transition={reducedMotion ? {} : { repeat: Infinity, duration: 0.7, ease: "linear" }} className="h-4 w-4 rounded-full border-2 border-white border-t-transparent" />Enviando…</span> : "Enviar link"}
+                  </Button>
+                </form>
+              )}
 
               <div className="mt-5 flex flex-col items-center gap-2">
                 {isSignIn && (
                   <>
-                    <button type="button" onClick={() => switchMode("magic")}
-                      className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                    <button type="button" onClick={() => switchMode("magic")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
                       Entrar com link mágico
                     </button>
-                    <button type="button" onClick={() => switchMode("signup")}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      Não tem conta?{" "}
-                      <span className="font-medium text-foreground hover:underline">Criar agora</span>
+                    <button type="button" onClick={() => switchMode("signup")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      Não tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
                     </button>
                   </>
                 )}
                 {isSignUp && (
-                  <button type="button" onClick={() => switchMode("signin")}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Já tem conta?{" "}
-                    <span className="font-medium text-foreground hover:underline">Entrar</span>
+                  <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Já tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
                   </button>
                 )}
                 {isMagic && (
-                  <button type="button" onClick={() => switchMode("signin")}
-                    className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                  <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
                     ← Voltar para o login
                   </button>
                 )}
