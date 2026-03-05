@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -95,9 +95,9 @@ export default function LoginPage() {
 
     const trimmedName = signupName.trim();
     if (trimmedName.length < 2) { setError("Nome deve ter pelo menos 2 caracteres."); return; }
-    if (!signupEmail.trim()) { setError("Informe um e-mail válido."); return; }
-    if (signupPassword.length < 8) { setError("A senha deve ter no mínimo 8 caracteres."); return; }
-    if (signupPassword !== signupConfirm) { setError("As senhas não coincidem."); return; }
+    if (!signupEmail.trim()) { setError("Informe um e-mail vÃƒÂ¡lido."); return; }
+    if (signupPassword.length < 8) { setError("A senha deve ter no mÃƒÂ­nimo 8 caracteres."); return; }
+    if (signupPassword !== signupConfirm) { setError("As senhas nÃƒÂ£o coincidem."); return; }
 
     setLoading(true);
     try {
@@ -203,7 +203,7 @@ export default function LoginPage() {
       >
         <BrandMark size="xl" />
         <p className="mt-3 text-base text-muted-foreground leading-relaxed max-w-xs mx-auto">
-          Suas notícias, seu journal, sua wallet,{" "}
+          Suas notÃƒÂ­cias, seu journal, sua wallet,{" "}
           <span className="text-foreground font-medium">seu tudo.</span>
         </p>
       </motion.div>
@@ -214,7 +214,7 @@ export default function LoginPage() {
             <h1 className="text-xl font-semibold tracking-tight text-foreground">
               {isSignIn && "Entrar"}
               {isSignUp && "Criar conta"}
-              {isMagic  && "Link mágico"}
+              {isMagic  && "Link mÃƒÂ¡gico"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {isSignIn && "Acesse sua conta wealth.Investing."}
@@ -261,10 +261,10 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">Senha</label>
-                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
+                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢" className="input-ios" />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
-                  {loading ? "Entrando…" : "Entrar"}
+                  {loading ? "EntrandoÃ¢Â€Â¦" : "Entrar"}
                 </Button>
               </form>
             )}
@@ -280,15 +280,15 @@ export default function LoginPage() {
                   <input id="signup-email" type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
                 </div>
                 <div>
-                  <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-foreground">Senha <span className="text-muted-foreground font-normal">(mín. 8 caracteres)</span></label>
-                  <input id="signup-password" type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required placeholder="••••••••" className="input-ios" />
+                  <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-foreground">Senha <span className="text-muted-foreground font-normal">(mÃƒÂ­n. 8 caracteres)</span></label>
+                  <input id="signup-password" type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required placeholder="Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢" className="input-ios" />
                 </div>
                 <div>
                   <label htmlFor="signup-confirm" className="mb-1.5 block text-sm font-medium text-foreground">Confirmar senha</label>
-                  <input id="signup-confirm" type="password" value={signupConfirm} onChange={(e) => setSignupConfirm(e.target.value)} required placeholder="••••••••" className="input-ios" />
+                  <input id="signup-confirm" type="password" value={signupConfirm} onChange={(e) => setSignupConfirm(e.target.value)} required placeholder="Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢Ã¢Â€Â¢" className="input-ios" />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
-                  {loading ? "Criando conta…" : "Criar conta"}
+                  {loading ? "Criando contaÃ¢Â€Â¦" : "Criar conta"}
                 </Button>
               </form>
             )}
@@ -300,7 +300,7 @@ export default function LoginPage() {
                   <input id="magic-email" type="email" value={magicEmail} onChange={(e) => setMagicEmail(e.target.value)} required placeholder="seu@email.com" className="input-ios" />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full py-3 font-medium">
-                  {loading ? "Enviando…" : "Enviar link"}
+                  {loading ? "EnviandoÃ¢Â€Â¦" : "Enviar link"}
                 </Button>
               </form>
             )}
@@ -309,21 +309,21 @@ export default function LoginPage() {
               {isSignIn && (
                 <>
                   <button type="button" onClick={() => switchMode("magic")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
-                    Entrar com link mágico
+                    Entrar com link mÃƒÂ¡gico
                   </button>
                   <button type="button" onClick={() => switchMode("signup")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Não tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
+                    NÃƒÂ£o tem conta? <span className="font-medium text-foreground hover:underline">Criar agora</span>
                   </button>
                 </>
               )}
               {isSignUp && (
                 <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Já tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
+                  JÃƒÂ¡ tem conta? <span className="font-medium text-foreground hover:underline">Entrar</span>
                 </button>
               )}
               {isMagic && (
                 <button type="button" onClick={() => switchMode("signin")} className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors">
-                  ← Voltar para o login
+                  Ã¢←Â Voltar para o login
                 </button>
               )}
             </div>
@@ -333,3 +333,4 @@ export default function LoginPage() {
     </motion.div>
   );
 }
+
