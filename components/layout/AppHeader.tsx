@@ -154,7 +154,7 @@ export function AppHeader() {
                   <div className="my-1 h-px bg-border/60 mx-2" />
                   <button
                     type="button"
-                    onClick={() => { handleLogout(); setUserMenuOpen(false); }}
+                    onMouseDown={(e) => { e.stopPropagation(); handleLogout(); setUserMenuOpen(false); }}
                     className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors rounded-[8px] mx-1 w-[calc(100%-8px)]"
                   >
                     <LogOut className="h-3.5 w-3.5" />
