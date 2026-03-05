@@ -49,9 +49,14 @@ export async function getMyProfile(): Promise<Profile | null> {
     .from("profiles")
     .select("id, display_name")
     .eq("id", session.user.id)
-    .single();
+    .maybeSingle();
 
   if (error) {
+    // PGRST116 = no rows found — não é erro real
+    if ((error as any).code === "PGRST116") {
+      devLog("getMyProfile", "no profile row");
+      return null;
+    }
     devError("getMyProfile query", error);
     throw error;
   }
