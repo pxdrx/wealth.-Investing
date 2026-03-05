@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, toFriendlyMessage } from "@/lib/profile";
@@ -19,9 +19,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
+    if (hasRun.current) return;
+    hasRun.current = true;
 
     async function run() {
       setError(null);
@@ -35,50 +37,43 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Retry com backoff — trigger de profiles pode ainda estar executando
         let profile = null;
         for (let attempt = 0; attempt < 5; attempt++) {
           try {
             profile = await getMyProfile();
             if (profile?.display_name?.trim()) break;
           } catch {
-            // ignora erro temporário
+            // ignora erro temporario
           }
-          await new Promise((r) => setTimeout(r, attempt * 300));
+          if (attempt < 4) await new Promise((r) => setTimeout(r, attempt * 400));
         }
 
-        if (!cancelled) {
-          if (!profile?.display_name?.trim()) {
-            router.replace("/onboarding");
-            return;
-          }
-          setReady(true);
-          runBootstrapInBackground(data.session.user.id);
+        if (!profile?.display_name?.trim()) {
+          router.replace("/onboarding");
+          return;
         }
+
+        setReady(true);
+        runBootstrapInBackground(data.session.user.id);
       } catch (err) {
         if (process.env.NODE_ENV === "development") {
-          console.error("[AuthGate] session error", err);
+          console.error("[AuthGate] error", err);
         }
-        if (!cancelled) {
-          setError(toFriendlyMessage(err));
-        }
+        setError(toFriendlyMessage(err));
       }
     }
 
     run();
-    return () => { cancelled = true; };
-  }, [router, pathname]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-6">
         <div className="max-w-md text-center space-y-2">
           <p className="text-sm font-medium text-foreground">
-            Não foi possível carregar sua sessão.
+            Nao foi possivel carregar sua sessao.
           </p>
-          <p className="text-sm text-muted-foreground">
-            {error}
-          </p>
+          <p className="text-sm text-muted-foreground">{error}</p>
           <button
             type="button"
             className="mt-2 text-sm font-medium text-primary hover:underline"
@@ -94,7 +89,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (!ready) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <p className="text-muted-foreground">Carregando…</p>
+        <p className="text-muted-foreground">Carregando...</p>
       </div>
     );
   }
