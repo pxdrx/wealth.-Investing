@@ -265,7 +265,7 @@ import { cn } from "@/lib/utils";
              </Button>
            </CardHeader>
            <CardContent>
-            <div className="w-full rounded-2xl border border-border/70 bg-background overflow-hidden">
+           <div className="w-full rounded-2xl border border-border/70 bg-card overflow-hidden">
               <iframe
                 src={
                   "https://s.tradingview.com/embed-widget/market-overview/?locale=br#" +
