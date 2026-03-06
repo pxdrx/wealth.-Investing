@@ -37,7 +37,7 @@ export default function RootLayout({
           mask="fade-center"
           size={20}
           fill="currentColor"
-          className="pointer-events-none fixed opacity-[0.035] dark:opacity-[0.06] text-foreground"
+          className="pointer-events-none fixed opacity-[0.08] dark:opacity-[0.12] text-foreground"
         />
         <ThemeProvider defaultTheme="light" storageKey="trading-dashboard-theme">
           <AppShell>{children}</AppShell>
