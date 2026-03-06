@@ -29,9 +29,14 @@ function UserAvatar({ name }: { name: string }) {
 }
 
 function logout() {
-  supabase.auth.signOut().finally(() => {
-    window.location.href = "/login";
-  });
+  // Limpa toda a sessão do Supabase manualmente
+  const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0] ?? "";
+  const key = `sb-${projectRef}-auth-token`;
+  try {
+    localStorage.removeItem(key);
+    sessionStorage.clear();
+  } catch {}
+  window.location.href = "/login";
 }
 
 export function AppHeader() {
