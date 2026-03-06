@@ -5,7 +5,6 @@ import { useTheme } from "@/components/theme-provider";
 import { supabase } from "@/lib/supabase/client";
 import { upsertMyProfileDisplayName } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
-import { BrandMark } from "@/components/brand/BrandMark";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -53,10 +52,6 @@ export default function AccountPage() {
         <ArrowLeft className="h-4 w-4" />
         Voltar
       </Link>
-
-      <div className="mb-8">
-        <BrandMark size="lg" />
-      </div>
 
       <h1 className="text-2xl font-semibold tracking-tight text-foreground mb-8">Configuracoes</h1>
 
