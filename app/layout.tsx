@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/layout/AppShell";
+import { BGPattern } from "@/components/ui/bg-pattern";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,7 +31,14 @@ export default function RootLayout({
         />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
-      <body className="min-h-screen font-sans antialiased">
+      <body className="relative min-h-screen font-sans antialiased">
+        <BGPattern
+          variant="dots"
+          mask="fade-center"
+          size={20}
+          fill="currentColor"
+          className="pointer-events-none fixed opacity-[0.035] dark:opacity-[0.06] text-foreground"
+        />
         <ThemeProvider defaultTheme="light" storageKey="trading-dashboard-theme">
           <AppShell>{children}</AppShell>
         </ThemeProvider>
