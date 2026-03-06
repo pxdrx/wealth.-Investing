@@ -18,7 +18,7 @@ const navLinks = [
   { href: "/app/alerts", label: "Alerts" },
   { href: "/app/news", label: "News" },
   { href: "/app/journal", label: "Journal" },
-  { href: "/app/settings", label: "Settings" },
+  { href: "/app/settings", label: "Ajustes" },
 ];
 
 /** Avatar com iniciais - cor neutra */
@@ -82,7 +82,12 @@ export function AppHeader() {
   }, [userMenuOpen]);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignora
+    }
+    window.location.href = "/login";
   }
 
   return (

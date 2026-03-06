@@ -11,28 +11,24 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    let mounted = true;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       if (!session) {
-        router.replace("/login");
-      } else {
-        setReady(true);
-        ensureDefaultAccounts(session.user.id).then((r) => {
-          if (!r.ok && typeof sessionStorage !== "undefined") {
-            sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
-          }
-        });
+        window.location.href = "/login";
+        return;
       }
+      setReady(true);
+      ensureDefaultAccounts(session.user.id).then((r) => {
+        if (!r.ok && typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
+        }
+      });
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        setReady(false);
-        router.replace("/login");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [router]);
+    return () => { mounted = false; };
+  }, [pathname]);
 
   if (!ready) {
     return (
