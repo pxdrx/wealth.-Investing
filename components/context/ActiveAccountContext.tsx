@@ -75,29 +75,28 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
     }
 
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      if (!session) {
-        setAccounts([]);
-        setActiveAccountIdState(null);
-        persistId(null);
-        setIsLoading(false);
-        return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (!session) {
+          setAccounts([]);
+          setActiveAccountIdState(null);
+          persistId(null);
+          setIsLoading(false);
+          return;
+        }
+        const list = await listMyAccountsWithProp();
+        if (!mounted) return;
+        applyAccounts(list);
+      } catch {
+        // ignora
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-      const list = await listMyAccountsWithProp();
-      if (!mounted) return;
-      applyAccounts(list);
-      setIsLoading(false);
     }
 
     load();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      load();
-    });
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => { mounted = false; };
   }, []);
 
   const value = useMemo<ActiveAccountContextValue>(

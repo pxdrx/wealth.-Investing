@@ -24,6 +24,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (hasRun.current) return;
     hasRun.current = true;
+    let cancelled = false;
 
     async function run() {
       setError(null);
@@ -53,8 +54,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        setReady(true);
         runBootstrapInBackground(data.session.user.id);
+        // Aguarda bootstrap criar contas antes de liberar a UI
+        await new Promise((r) => setTimeout(r, 1200));
+        if (!cancelled) setReady(true);
       } catch (err) {
         if (process.env.NODE_ENV === "development") {
           console.error("[AuthGate] error", err);
@@ -64,6 +67,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
 
     run();
+    return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
