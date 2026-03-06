@@ -116,17 +116,17 @@
      const stars = Array.from({ length: N_STARS }, () => new Star(rng));
      let W = 0, H = 0, raf = 0;
  
-     function resize() {
-       W = window.innerWidth;
-       H = window.innerHeight;
-       const size = Math.max(W, H);
-       const dpr = window.devicePixelRatio || 1;
-       canvas!.width = size * dpr;
-       canvas!.height = size * dpr;
-       canvas!.style.width = W + "px";
-       canvas!.style.height = H + "px";
-       ctx!.scale(dpr, dpr);
-     }
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas!.width = W * dpr;
+      canvas!.height = H * dpr;
+      canvas!.style.width = W + "px";
+      canvas!.style.height = H + "px";
+      ctx!.setTransform(1, 0, 0, 1, 0, 0);
+      ctx!.scale(dpr, dpr);
+    }
      resize();
      window.addEventListener("resize", resize);
  
@@ -142,15 +142,14 @@
        ctx!.fill();
      }
  
-     function render(ts: number) {
-       const animTime = (ts * 0.001 * 0.067) % 1;
-       const light = canvas!.dataset.light === "true";
-       const size = Math.max(W, H);
- 
-       ctx!.fillStyle = light ? "#f0f0f2" : "#000000";
-       ctx!.fillRect(0, 0, size, size);
-       ctx!.save();
-       ctx!.translate(W / 2, H / 2);
+    function render(ts: number) {
+      const animTime = (ts * 0.001 * 0.067) % 1;
+      const light = canvas!.dataset.light === "true";
+
+      ctx!.fillStyle = light ? "#f0f0f2" : "#000000";
+      ctx!.fillRect(0, 0, W, H);
+      ctx!.save();
+      ctx!.translate(W / 2, H / 2);
  
        const t1 = clamp(mapRange(animTime, 0, 0.57, 0, 1), 0, 1);
        const t2 = clamp(mapRange(animTime, 0.32, 1, 0, 1), 0, 1);
