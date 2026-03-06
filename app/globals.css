@@ -114,3 +114,10 @@
     opacity: var(--placeholder-opacity);
   }
 }
+
+@layer components {
+  /* Garante que bg-card sempre use hsl(var(--card)) mesmo com patterns */
+  .bg-card {
+    background-color: hsl(var(--card)) !important;
+  }
+}
