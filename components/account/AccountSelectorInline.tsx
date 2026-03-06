@@ -73,7 +73,10 @@ export function AccountSelectorInline() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex h-11 items-center gap-2 rounded-full border border-border/80 bg-card px-4 text-sm font-medium shadow-sm transition-all duration-200 hover:border-border hover:shadow-md">
+      <DropdownMenuTrigger
+        className="inline-flex h-11 items-center gap-2 rounded-full border border-border/80 px-4 text-sm font-medium shadow-sm transition-all duration-200 hover:border-border hover:shadow-md"
+        style={{ backgroundColor: "hsl(var(--card))" }}
+      >
         <span className="truncate max-w-[240px]">{formatAccountLabel(active)}</span>
         <ChevronDown className="h-4 w-4 opacity-60" />
       </DropdownMenuTrigger>

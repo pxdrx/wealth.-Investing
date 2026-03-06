@@ -73,9 +73,10 @@ export function ExpandableTabs({
     <div
       ref={outsideClickRef}
       className={cn(
-        "flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-1 shadow-sm",
+        "flex flex-wrap items-center gap-2 rounded-2xl border p-1 shadow-sm",
         className
       )}
+      style={{ backgroundColor: "hsl(var(--card))" }}
     >
       {tabs.map((tab, index) => {
         if (tab.type === "separator") {
