@@ -34,10 +34,10 @@ export default function RootLayout({
       <body className="relative min-h-screen font-sans antialiased">
         <BGPattern
           variant="dots"
-          mask="fade-center"
-          size={20}
+          mask="none"
+          size={24}
           fill="currentColor"
-          className="pointer-events-none fixed opacity-[0.08] dark:opacity-[0.12] text-foreground"
+          className="pointer-events-none fixed inset-0 w-full h-full opacity-[0.07] dark:opacity-[0.12] text-foreground"
         />
         <ThemeProvider defaultTheme="light" storageKey="trading-dashboard-theme">
           <AppShell>{children}</AppShell>
