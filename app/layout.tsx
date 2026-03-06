@@ -34,7 +34,7 @@ export default function RootLayout({
       <body className="relative min-h-screen font-sans antialiased">
         <BGPattern
           variant="dots"
-          mask="fade-edges"
+          mask="fade-center"
           size={24}
           fill="currentColor"
           className="pointer-events-none fixed inset-0 w-full h-full opacity-[0.15] dark:opacity-[0.2] text-foreground !z-0"
