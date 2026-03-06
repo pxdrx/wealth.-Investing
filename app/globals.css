@@ -5,9 +5,9 @@
 @layer base {
   :root {
     /* Layer 0 = fundo; cards acima (branco) */
-    --background: 0 0% 94%;        /* cinza bem claro — layer 0 */
+    --background: 0 0% 91%;        /* cinza mais pronunciado — layer 0 */
     --foreground: 220 16% 8%;
-    --card: 0 0% 100%;             /* branco puro — cards ficam acima */
+    --card: 0 0% 100%;             /* branco puro — cards elevados */
     --card-foreground: 220 16% 8%;
     --primary: 220 12% 12%;
     --primary-foreground: 0 0% 98%;
