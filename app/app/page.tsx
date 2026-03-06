@@ -255,7 +255,7 @@ import { cn } from "@/lib/utils";
        </div>
 
        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-         <Card className="lg:col-span-8">
+         <Card className="lg:col-span-12 w-full">
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
              <CardTitle className="text-base font-medium">
                Watchlist
@@ -265,7 +265,7 @@ import { cn } from "@/lib/utils";
              </Button>
            </CardHeader>
            <CardContent>
-            <div className="rounded-2xl border border-border/70 bg-background overflow-hidden">
+            <div className="w-full rounded-2xl border border-border/70 bg-background overflow-hidden">
               <iframe
                 src={
                   "https://s.tradingview.com/embed-widget/market-overview/?locale=br#" +

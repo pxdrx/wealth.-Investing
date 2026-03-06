@@ -18,7 +18,6 @@ const navLinks = [
   { href: "/app/alerts", label: "Alerts" },
   { href: "/app/news", label: "News" },
   { href: "/app/journal", label: "Journal" },
-  { href: "/app/settings", label: "Ajustes" },
 ];
 
 /** Avatar com iniciais - cor neutra */
@@ -81,13 +80,10 @@ export function AppHeader() {
     return () => document.removeEventListener("mousedown", handler);
   }, [userMenuOpen]);
 
-  async function handleLogout() {
-    try {
-      await supabase.auth.signOut();
-    } catch {
-      // ignora
-    }
-    window.location.href = "/login";
+  function handleLogout() {
+    supabase.auth.signOut().finally(() => {
+      window.location.replace("/login");
+    });
   }
 
   return (
@@ -147,7 +143,7 @@ export function AppHeader() {
                 >
                   <button
                     type="button"
-                    onClick={() => { router.push("/app/settings"); setUserMenuOpen(false); }}
+                    onClick={() => { router.push("/app/account"); setUserMenuOpen(false); }}
                     className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-foreground hover:bg-accent transition-colors rounded-[8px] mx-1 w-[calc(100%-8px)]"
                   >
                     <Settings className="h-3.5 w-3.5 text-muted-foreground" />
@@ -205,7 +201,7 @@ export function AppHeader() {
               <>
                 <button
                   type="button"
-                  onClick={() => { router.push("/app/settings"); setMobileOpen(false); }}
+                  onClick={() => { router.push("/app/account"); setMobileOpen(false); }}
                   className="mt-1 flex items-center gap-2 rounded-input px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                 >
                   <Settings className="h-4 w-4" />
