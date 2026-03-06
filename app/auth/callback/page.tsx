@@ -1,93 +1,61 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { getMyProfile } from "@/lib/profile";
-import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 
-function AuthCallbackContent() {
+export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [error, setError] = useState(false);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    async function finishAuth() {
-      try {
-        const code = searchParams.get("code");
-        const token_hash = searchParams.get("token_hash");
-        const type = searchParams.get("type");
+    if (hasRun.current) return;
+    hasRun.current = true;
 
+    async function handle() {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      const tokenHash = url.searchParams.get("token_hash");
+      const type = url.searchParams.get("type");
+      const next = url.searchParams.get("next") ?? "/app";
+
+      try {
         if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) { setError(true); return; }
-        } else if (token_hash && type) {
-          const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash, type: type as any });
-          if (verifyError) { setError(true); return; }
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        } else if (tokenHash && type) {
+          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any });
+          if (error) throw error;
         } else {
-          // fallback: hash fragment (#access_token) — SDK processa automaticamente
+          // Fallback: aguarda hash fragment ser processado pelo SDK
           await new Promise((r) => setTimeout(r, 500));
           const { data: { session } } = await supabase.auth.getSession();
-          if (!session) { setError(true); return; }
+          if (!session) throw new Error("Sessao nao encontrada");
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user?.id) {
-          ensureDefaultAccounts(session.user.id).then((r) => {
-            if (!r.ok && typeof sessionStorage !== "undefined") {
-              sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
-            }
-          });
-        }
+        // Verifica se precisa de onboarding
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .maybeSingle();
 
-        const profile = await getMyProfile();
         if (!profile?.display_name?.trim()) {
           router.replace("/onboarding");
         } else {
-          router.replace("/app");
+          router.replace(next);
         }
       } catch (err) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[auth/callback] finishAuth error", err);
-        }
-        setError(true);
+        console.error("[auth/callback]", err);
+        router.replace("/login?error=callback");
       }
     }
 
-    finishAuth();
-  }, [router, searchParams]);
-
-  if (error) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-6">
-        <p className="text-center text-muted-foreground">
-          Não foi possível concluir o login.
-        </p>
-        <Link href="/login" className="text-sm font-medium text-primary hover:underline">
-          Voltar para o login
-        </Link>
-      </div>
-    );
-  }
+    handle();
+  }, [router]);
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-6">
-      <p className="text-muted-foreground">Autenticando...</p>
+    <div className="flex min-h-screen items-center justify-center">
+      <p className="text-muted-foreground text-sm">Autenticando...</p>
     </div>
-  );
-}
-
-export default function AuthCallbackPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-6">
-          <p className="text-muted-foreground">Autenticando...</p>
-        </div>
-      }
-    >
-      <AuthCallbackContent />
-    </Suspense>
   );
 }

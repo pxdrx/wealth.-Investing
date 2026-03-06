@@ -17,15 +17,6 @@
  import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
 
-type TvAlertRow = {
-  id: string;
-  symbol: string;
-  alert_type: string | null;
-  message: string | null;
-  timeframe: string | null;
-  created_at: string;
-};
-
  type JournalTradeKpiRow = {
    net_pnl_usd: number | null;
    opened_at: string | null;
@@ -44,9 +35,6 @@ type TvAlertRow = {
    const { activeAccountId } = useActiveAccount();
 
    const [userId, setUserId] = useState<string | null>(null);
-
-   const [alerts, setAlerts] = useState<TvAlertRow[]>([]);
-   const [alertsLoading, setAlertsLoading] = useState(false);
 
    const [journalTrades, setJournalTrades] = useState<JournalTradeKpiRow[]>([]);
    const [journalLoading, setJournalLoading] = useState(false);
@@ -76,44 +64,6 @@ type TvAlertRow = {
        cancelled = true;
      };
    }, []);
-
-   useEffect(() => {
-     if (!userId) {
-       setAlerts([]);
-       return;
-     }
-    let cancelled = false;
-    setAlertsLoading(true);
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from("tv_alerts")
-          .select("id, symbol, alert_type, message, timeframe, created_at")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(5);
-        if (cancelled) return;
-        if (error) {
-          console.warn("[dashboard] tv_alerts error", error.message);
-          setAlerts([]);
-          return;
-        }
-        setAlerts((data ?? []) as TvAlertRow[]);
-      } catch (e) {
-        if (!cancelled) {
-          console.warn("[dashboard] tv_alerts exception", e);
-          setAlerts([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setAlertsLoading(false);
-        }
-      }
-    })();
-     return () => {
-       cancelled = true;
-     };
-   }, [userId]);
 
    useEffect(() => {
      if (!userId) {
@@ -305,63 +255,6 @@ type TvAlertRow = {
        </div>
 
        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-         <Card className="lg:col-span-4">
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-             <CardTitle className="text-base font-medium">
-               Alertas recentes
-             </CardTitle>
-             <Button variant="ghost" size="sm" className="text-muted-foreground -mr-2" asChild>
-               <Link href="/app/alerts">Ver tudo</Link>
-             </Button>
-           </CardHeader>
-           <CardContent>
-             {alertsLoading && (
-               <p className="text-sm text-muted-foreground">
-                 Carregando alertas…
-               </p>
-             )}
-            {!alertsLoading && alerts.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Nenhum alerta recebido ainda.
-              </p>
-            )}
-            {!alertsLoading && alerts.length > 0 && (
-              <ul className="space-y-4">
-                {alerts.map((alert, index) => (
-                  <li key={alert.id}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {alert.symbol}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          <span className="font-medium">
-                            {alert.alert_type || "manual"}
-                          </span>
-                          {alert.timeframe && (
-                            <span className="ml-1">· {alert.timeframe}</span>
-                          )}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {alert.message ?? ""}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="shrink-0 text-[11px]">
-                        {new Date(alert.created_at).toLocaleTimeString("pt-BR", {
-                          timeZone: "America/Sao_Paulo",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Badge>
-                    </div>
-                    {index < alerts.length - 1 && <Separator className="mt-3" />}
-                  </li>
-                ))}
-              </ul>
-            )}
-           </CardContent>
-         </Card>
-
          <Card className="lg:col-span-8">
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
              <CardTitle className="text-base font-medium">

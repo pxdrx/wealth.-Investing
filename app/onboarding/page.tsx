@@ -69,7 +69,7 @@ export default function OnboardingPage() {
       if (process.env.NODE_ENV === "development") {
         console.log("[onboarding] submit: redirecionando para /app");
       }
-      router.replace("/app");
+      window.location.href = "/app";
     } catch (err) {
       const message = err instanceof Error ? err.message : "Falha ao salvar. Tente novamente.";
       if (process.env.NODE_ENV === "development") {

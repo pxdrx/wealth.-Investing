@@ -40,6 +40,11 @@ export default function LoginPage() {
   const [info, setInfo] = useState<string | null>(null);
   const redirectToRef = useRef<"/app" | "/onboarding">("/app");
 
+  const searchParams = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search)
+    : null;
+  const callbackError = searchParams?.get("error");
+
   useEffect(() => {
     if (!isExiting) return;
     const t = setTimeout(() => router.replace(redirectToRef.current), 150);
@@ -180,6 +185,11 @@ export default function LoginPage() {
             </p>
 
             {error && <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">{error}</p>}
+            {callbackError && !error && (
+              <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                Link expirado ou invalido. Solicite um novo.
+              </p>
+            )}
             {info && <p className="mt-4 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400" role="status">{info}</p>}
 
             {!isMagic && (
