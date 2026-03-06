@@ -4,10 +4,10 @@
 
 @layer base {
   :root {
-    /* Apple Pro — #F5F5F7 page, cards elevados e legíveis */
-    --background: 240 6% 97%;
+    /* Layer 0 = fundo; cards acima (branco) */
+    --background: 0 0% 94%;        /* cinza bem claro — layer 0 */
     --foreground: 220 16% 8%;
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;             /* branco puro — cards ficam acima */
     --card-foreground: 220 16% 8%;
     --primary: 220 12% 12%;
     --primary-foreground: 0 0% 98%;
@@ -40,10 +40,10 @@
   }
 
   .dark {
-    /* Dark mode suave — menos contraste */
-    --background: 240 8% 10%;
+    /* Layer 0 = fundo; cards levemente mais claros */
+    --background: 0 0% 7%;         /* quase preto — layer 0 */
     --foreground: 0 0% 94%;
-    --card: 240 8% 12%;
+    --card: 0 0% 11%;              /* levemente mais claro — cards acima */
     --card-foreground: 0 0% 94%;
     --primary: 0 0% 96%;
     --primary-foreground: 240 8% 12%;
