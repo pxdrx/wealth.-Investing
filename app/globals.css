@@ -68,6 +68,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    background-color: hsl(var(--background)) !important;
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.55;
     font-weight: 400;
@@ -119,5 +120,25 @@
   /* Garante que bg-card sempre use hsl(var(--card)) mesmo com patterns */
   .bg-card {
     background-color: hsl(var(--card)) !important;
+  }
+
+  /* Fix: força todas as classes bg-* a usar hsl explícito */
+  .bg-muted {
+    background-color: hsl(var(--muted)) !important;
+  }
+  .bg-popover {
+    background-color: hsl(var(--popover)) !important;
+  }
+  .bg-accent {
+    background-color: hsl(var(--accent)) !important;
+  }
+  .bg-secondary {
+    background-color: hsl(var(--secondary)) !important;
+  }
+  .bg-primary {
+    background-color: hsl(var(--primary)) !important;
+  }
+  .bg-input {
+    background-color: hsl(var(--input)) !important;
   }
 }
