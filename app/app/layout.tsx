@@ -4,7 +4,7 @@ import { BootstrapWarning } from "@/components/auth/BootstrapWarning";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGate>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <BootstrapWarning />
         {children}
       </div>
