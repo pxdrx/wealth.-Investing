@@ -54,10 +54,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        runBootstrapInBackground(data.session.user.id);
-        // Aguarda bootstrap criar contas antes de liberar a UI
-        await new Promise((r) => setTimeout(r, 1200));
         if (!cancelled) setReady(true);
+        runBootstrapInBackground(data.session.user.id);
       } catch (err) {
         if (process.env.NODE_ENV === "development") {
           console.error("[AuthGate] error", err);
