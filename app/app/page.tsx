@@ -1,6 +1,6 @@
  "use client";
 
- import { useEffect, useMemo, useState } from "react";
+ import { useEffect, useMemo, useState, useCallback } from "react";
  import Link from "next/link";
  import {
    Card,
@@ -13,6 +13,7 @@
  import { Separator } from "@/components/ui/separator";
  import { useActiveAccount } from "@/components/context/ActiveAccountContext";
  import { PnlCalendar } from "@/components/journal/PnlCalendar";
+ import { DayDetailModal } from "@/components/journal/DayDetailModal";
  import { supabase } from "@/lib/supabase/client";
  import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
@@ -224,6 +225,14 @@ import { cn } from "@/lib/utils";
        ),
      };
    }, [journalTrades]);
+
+   const [dayModalDate, setDayModalDate] = useState<string | null>(null);
+   const [dayModalOpen, setDayModalOpen] = useState(false);
+
+   const handleDayClick = useCallback((date: string) => {
+     setDayModalDate(date);
+     setDayModalOpen(true);
+   }, []);
 
    const formattedNews = useMemo(() => {
      if (!news) return [];
@@ -492,9 +501,16 @@ import { cn } from "@/lib/utils";
          </Card>
 
          <div className="lg:col-span-12">
-           <PnlCalendar accountId={activeAccountId} allAccounts userId={userId} />
+           <PnlCalendar accountId={activeAccountId} allAccounts userId={userId} onDayClick={handleDayClick} />
          </div>
        </div>
+
+       <DayDetailModal
+         date={dayModalDate}
+         userId={userId}
+         open={dayModalOpen}
+         onOpenChange={setDayModalOpen}
+       />
      </div>
    );
  }

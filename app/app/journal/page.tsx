@@ -13,6 +13,7 @@ import { JournalEquityChart } from "@/components/journal/JournalEquityChart";
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
 import { PnlCalendar } from "@/components/journal/PnlCalendar";
+import { DayDetailModal } from "@/components/journal/DayDetailModal";
 import type { JournalTradeRow, PeriodFilter } from "@/components/journal/types";
 
 type ImportResult = {
@@ -35,7 +36,6 @@ const tabs = [
   { title: "Importar MT5", icon: Upload },
 ];
 
-// índices das seções (sem separadores)
 const SECTION_OVERVIEW = 0;
 const SECTION_TRADES = 1;
 const SECTION_CALENDAR = 3;
@@ -57,6 +57,19 @@ export default function JournalPage() {
   const [selectedTrade, setSelectedTrade] = useState<JournalTradeRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [showImportPanel, setShowImportPanel] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [dayModalDate, setDayModalDate] = useState<string | null>(null);
+  const [dayModalOpen, setDayModalOpen] = useState(false);
+
+  // Get userId
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!cancelled) setUserId(session?.user?.id ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const loadTrades = useCallback(async () => {
     if (!activeAccountId) { setTrades([]); return; }
@@ -142,17 +155,22 @@ export default function JournalPage() {
     setModalOpen(true);
   };
 
+  const handleDayClick = useCallback((date: string) => {
+    setDayModalDate(date);
+    setDayModalOpen(true);
+  }, []);
+
   const hasData = activeAccountId && !loadingTrades && !tradesError;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Journal</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Registro de trades e analise de performance.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Registro de operações e análise de performance.</p>
         </div>
-        <AccountSelectorInline />
+        <AccountSelectorInline showAddButton />
       </div>
 
       {/* Tab bar */}
@@ -164,7 +182,7 @@ export default function JournalPage() {
         />
       </div>
 
-      {/* Import panel — aparece quando clica em Importar MT5 */}
+      {/* Import panel */}
       <AnimatePresence>
         {showImportPanel && (
           <motion.div
@@ -173,11 +191,14 @@ export default function JournalPage() {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden mb-6"
           >
-            <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div
+              className="rounded-xl border border-border/60 p-5 space-y-3"
+              style={{ backgroundColor: "hsl(var(--card))" }}
+            >
               <div>
-                <p className="text-sm font-medium text-foreground">Importar MT5</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Envie o relatorio do MetaTrader 5 em .html ou .xlsx. A conta ativa sera usada.
+                <p className="text-sm font-semibold text-foreground">Importar MT5</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Envie o relatório do MetaTrader 5 (.html ou .xlsx). A conta ativa será usada.
                 </p>
               </div>
               <input
@@ -191,21 +212,23 @@ export default function JournalPage() {
                 variant="outline"
                 disabled={!activeAccountId || uploading}
                 onClick={() => fileInputRef.current?.click()}
+                className="gap-2"
               >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploading ? "Importando..." : "Selecionar arquivo (.html ou .xlsx)"}
+                <Upload className="h-4 w-4" />
+                {uploading ? "Importando..." : "Selecionar arquivo"}
               </Button>
               {error && <p className="text-sm text-destructive">{error}</p>}
               {result && (
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-4 text-sm space-y-1">
-                  <p className="font-medium text-foreground">Resumo da importacao</p>
-                  {result.parser_used && <p className="text-muted-foreground">Parser: <span className="text-foreground font-medium">{result.parser_used === "html" ? "HTML" : "XLSX"}</span></p>}
-                  {result.trades_found != null && <p className="text-muted-foreground">Encontrados: <span className="text-foreground font-medium">{result.trades_found}</span></p>}
-                  <p className="text-muted-foreground">Importados: <span className="text-foreground font-medium">{result.trades_imported}</span></p>
-                  <p className="text-muted-foreground">Duplicados ignorados: <span className="text-foreground font-medium">{result.trades_duplicates_ignored}</span></p>
-                  {(result.trades_failed ?? 0) > 0 && <p className="text-muted-foreground">Falhas: <span className="text-destructive font-medium">{result.trades_failed}</span></p>}
-                  <p className="text-muted-foreground">Payouts: <span className="text-foreground font-medium">{result.payouts_detected}</span></p>
-                  <p className="text-xs text-muted-foreground">Tempo: {result.duration_ms}ms</p>
+                <div className="rounded-lg border border-border/40 p-3 text-sm space-y-1" style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}>
+                  <p className="font-semibold text-foreground text-xs">Resultado da importação</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                    {result.parser_used && <><span className="text-muted-foreground">Parser:</span><span className="font-medium">{result.parser_used === "html" ? "HTML" : "XLSX"}</span></>}
+                    {result.trades_found != null && <><span className="text-muted-foreground">Encontrados:</span><span className="font-medium">{result.trades_found}</span></>}
+                    <span className="text-muted-foreground">Importados:</span><span className="font-medium">{result.trades_imported}</span>
+                    <span className="text-muted-foreground">Duplicados:</span><span className="font-medium">{result.trades_duplicates_ignored}</span>
+                    {(result.trades_failed ?? 0) > 0 && <><span className="text-muted-foreground">Falhas:</span><span className="font-medium text-destructive">{result.trades_failed}</span></>}
+                    <span className="text-muted-foreground">Payouts:</span><span className="font-medium">{result.payouts_detected}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -213,22 +236,29 @@ export default function JournalPage() {
         )}
       </AnimatePresence>
 
-      {/* Sem conta selecionada */}
+      {/* No account selected */}
       {!activeAccountId && (
-        <p className="text-sm text-muted-foreground">Selecione uma conta para ver os dados do journal.</p>
+        <div className="text-center py-16">
+          <p className="text-sm text-muted-foreground">Selecione uma conta para ver os dados do journal.</p>
+          <p className="text-xs text-muted-foreground mt-1">Use o dropdown acima ou clique em + para adicionar uma nova conta.</p>
+        </div>
       )}
 
       {/* Loading */}
       {activeAccountId && loadingTrades && (
-        <p className="text-sm text-muted-foreground">Carregando trades...</p>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-24 rounded-xl bg-muted/10 animate-pulse" />
+          ))}
+        </div>
       )}
 
-      {/* Erro */}
+      {/* Error */}
       {activeAccountId && tradesError && (
         <p className="text-sm text-destructive">{tradesError}</p>
       )}
 
-      {/* Conteúdo das seções */}
+      {/* Tab content */}
       {hasData && (
         <AnimatePresence mode="wait">
           <motion.div
@@ -248,7 +278,11 @@ export default function JournalPage() {
               <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
             )}
             {activeTab === SECTION_CALENDAR && (
-              <PnlCalendar accountId={activeAccountId} />
+              <PnlCalendar
+                accountId={activeAccountId}
+                userId={userId}
+                onDayClick={handleDayClick}
+              />
             )}
             {activeTab === SECTION_STATS && (
               <div className="space-y-6">
@@ -265,6 +299,13 @@ export default function JournalPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         onSaved={loadTrades}
+      />
+
+      <DayDetailModal
+        date={dayModalDate}
+        userId={userId}
+        open={dayModalOpen}
+        onOpenChange={setDayModalOpen}
       />
     </div>
   );

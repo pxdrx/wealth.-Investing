@@ -1,58 +1,65 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PnlCalendarProps {
   accountId: string | null;
-  /** Quando true, usa userId e soma PnL de todas as contas do usuário. */
   allAccounts?: boolean;
-  /** Obrigatório quando allAccounts=true. */
   userId?: string | null;
+  onDayClick?: (date: string, dayData: DayData) => void;
+}
+
+export interface DayData {
+  pnl: number;
+  trades: number;
+  avgRr: number | null;
+}
+
+interface TradeRow {
+  opened_at: string | null;
+  net_pnl_usd: number | null;
+  pnl_usd: number | null;
+  fees_usd: number | null;
 }
 
 const MONTH_NAMES = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-export function PnlCalendar({ accountId, allAccounts = false, userId }: PnlCalendarProps) {
+const DAY_HEADERS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+
+function getNet(r: TradeRow): number {
+  if (typeof r.net_pnl_usd === "number" && !Number.isNaN(r.net_pnl_usd)) return r.net_pnl_usd;
+  return (r.pnl_usd ?? 0) + (r.fees_usd ?? 0);
+}
+
+export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick }: PnlCalendarProps) {
   const now = new Date();
   const [displayMonth, setDisplayMonth] = useState(now.getMonth());
   const [displayYear, setDisplayYear] = useState(now.getFullYear());
-  const [dailyPnl, setDailyPnl] = useState<Record<string, number>>({});
+  const [rawTrades, setRawTrades] = useState<TradeRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [noteDates, setNoteDates] = useState<Set<string>>(new Set());
 
+  // Fetch trades
   useEffect(() => {
     if (allAccounts) {
-      if (!userId || typeof userId !== "string") {
-        setDailyPnl({});
-        return;
-      }
+      if (!userId) { setRawTrades([]); return; }
     } else {
-      if (!accountId || typeof accountId !== "string") {
-        setDailyPnl({});
-        return;
-      }
+      if (!accountId) { setRawTrades([]); return; }
     }
 
     setLoading(true);
     const startIso = new Date(displayYear, displayMonth, 1).toISOString();
     const endIso = new Date(displayYear, displayMonth + 1, 1).toISOString();
 
+    let cancelled = false;
     (async () => {
       try {
         let query = supabase
@@ -68,132 +75,330 @@ export function PnlCalendar({ accountId, allAccounts = false, userId }: PnlCalen
         }
 
         const { data, error } = await query;
-
-        if (error) {
-          setDailyPnl({});
-          return;
-        }
-
-        const byDay: Record<string, number> = {};
-        for (const row of data ?? []) {
-          const r = row as {
-            opened_at: string | null;
-            net_pnl_usd?: number | null;
-            pnl_usd?: number | null;
-            fees_usd?: number | null;
-          };
-          if (!r.opened_at) continue;
-          const d = new Date(r.opened_at);
-          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-            d.getDate(),
-          ).padStart(2, "0")}`;
-          const net =
-            typeof r.net_pnl_usd === "number" && !Number.isNaN(r.net_pnl_usd)
-              ? r.net_pnl_usd
-              : (r.pnl_usd ?? 0) + (r.fees_usd ?? 0);
-          byDay[key] = (byDay[key] ?? 0) + net;
-        }
-        setDailyPnl(byDay);
+        if (cancelled) return;
+        if (error) { setRawTrades([]); return; }
+        setRawTrades((data ?? []) as TradeRow[]);
       } catch {
-        setDailyPnl({});
+        if (!cancelled) setRawTrades([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, [accountId, allAccounts, userId, displayMonth, displayYear]);
 
-  const daysInMonth = useMemo(
-    () => new Date(displayYear, displayMonth + 1, 0).getDate(),
-    [displayMonth, displayYear]
-  );
+  // Fetch day notes for blue dot indicators
+  useEffect(() => {
+    const uid = userId;
+    if (!uid) return;
+
+    let cancelled = false;
+    const startDate = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}-01`;
+    const endDate = displayMonth === 11
+      ? `${displayYear + 1}-01-01`
+      : `${displayYear}-${String(displayMonth + 2).padStart(2, "0")}-01`;
+
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("day_notes")
+          .select("date")
+          .eq("user_id", uid)
+          .gte("date", startDate)
+          .lt("date", endDate);
+
+        if (cancelled) return;
+        const dates = new Set<string>();
+        for (const row of data ?? []) {
+          dates.add((row as { date: string }).date);
+        }
+        setNoteDates(dates);
+      } catch {
+        if (!cancelled) setNoteDates(new Set());
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId, displayMonth, displayYear]);
+
+  // Aggregate by day
+  const dailyData = useMemo(() => {
+    const map: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {};
+    for (const row of rawTrades) {
+      if (!row.opened_at) continue;
+      const d = new Date(row.opened_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (!map[key]) map[key] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
+      const net = getNet(row);
+      map[key].pnl += net;
+      map[key].trades += 1;
+      if (net > 0) map[key].wins += 1;
+      else if (net < 0) map[key].losses += 1;
+    }
+    return map;
+  }, [rawTrades]);
+
+  // Build calendar grid
+  const { weeks, monthStats } = useMemo(() => {
+    const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
+    const firstDayOfWeek = new Date(displayYear, displayMonth, 1).getDay();
+
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const weeksArr: (number | null)[][] = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      weeksArr.push(cells.slice(i, i + 7));
+    }
+
+    let totalPnl = 0, totalTrades = 0, totalWins = 0, totalLosses = 0, tradingDays = 0;
+    for (const v of Object.values(dailyData)) {
+      totalPnl += v.pnl;
+      totalTrades += v.trades;
+      totalWins += v.wins;
+      totalLosses += v.losses;
+      tradingDays += 1;
+    }
+
+    return {
+      weeks: weeksArr,
+      monthStats: { totalPnl, totalTrades, totalWins, totalLosses, tradingDays },
+    };
+  }, [displayMonth, displayYear, dailyData]);
+
+  // Weekly summaries
+  const weeklySummaries = useMemo(() => {
+    return weeks.map((week, wi) => {
+      let pnl = 0, days = 0, trades = 0;
+      for (const day of week) {
+        if (day === null) continue;
+        const key = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const dd = dailyData[key];
+        if (dd) { pnl += dd.pnl; days += 1; trades += dd.trades; }
+      }
+      return { label: `S${wi + 1}`, pnl, days, trades };
+    });
+  }, [weeks, dailyData, displayMonth, displayYear]);
 
   const goPrev = () => {
-    if (displayMonth === 0) {
-      setDisplayMonth(11);
-      setDisplayYear((y) => y - 1);
-    } else {
-      setDisplayMonth((m) => m - 1);
-    }
+    if (displayMonth === 0) { setDisplayMonth(11); setDisplayYear((y) => y - 1); }
+    else setDisplayMonth((m) => m - 1);
   };
-
   const goNext = () => {
-    if (displayMonth === 11) {
-      setDisplayMonth(0);
-      setDisplayYear((y) => y + 1);
-    } else {
-      setDisplayMonth((m) => m + 1);
-    }
+    if (displayMonth === 11) { setDisplayMonth(0); setDisplayYear((y) => y + 1); }
+    else setDisplayMonth((m) => m + 1);
   };
 
-  const monthTitle = `${MONTH_NAMES[displayMonth]} ${displayYear}`;
+  const handleDayClick = (day: number) => {
+    const key = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dd = dailyData[key];
+    onDayClick?.(key, dd ? { pnl: dd.pnl, trades: dd.trades, avgRr: null } : { pnl: 0, trades: 0, avgRr: null });
+  };
+
+  const monthTitle = `${MONTH_NAMES[displayMonth]} De ${displayYear}`;
+
+  const formatPnl = (v: number) => {
+    const abs = Math.abs(v);
+    if (abs >= 1000) return `${v > 0 ? "+" : "-"}$${(abs / 1000).toFixed(1)}k`;
+    return `${v > 0 ? "+" : "-"}$${abs.toFixed(0)}`;
+  };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 shrink-0"
-          onClick={goPrev}
-          aria-label="Mês anterior"
-        >
-          ‹
-        </Button>
-        <CardTitle className="text-base font-medium px-2">{monthTitle}</CardTitle>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 shrink-0"
-          onClick={goNext}
-          aria-label="Próximo mês"
-        >
-          ›
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {loading && <p className="text-sm text-muted-foreground">Carregando PnL diário…</p>}
-        {!loading && daysInMonth > 0 && (
-          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-[11px] text-muted-foreground">
-            {Array.from({ length: daysInMonth }, (_, i) => {
-              const day = i + 1;
-              const key = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const value = dailyPnl[key] ?? 0;
-              let bg = "bg-muted";
-              let text = "text-foreground";
-              if (value > 0) {
-                bg = "bg-emerald-100 dark:bg-emerald-900/40";
-                text = "text-emerald-900 dark:text-emerald-300";
-              } else if (value < 0) {
-                bg = "bg-red-100 dark:bg-red-900/40";
-                text = "text-red-900 dark:text-red-300";
-              }
-              return (
-                <div
-                  key={key}
-                  className={cn(
-                    "flex flex-col items-center justify-center rounded-input border border-border/70 px-1 py-1.5 min-h-[46px]",
-                    bg
-                  )}
-                >
-                  <span className="text-[10px] font-medium text-muted-foreground">{day}</span>
-                  <span className={cn("text-[10px] font-semibold", text)}>
-                    {value === 0 ? "—" : value > 0 ? `+${value.toFixed(0)}` : value.toFixed(0)}
-                  </span>
-                </div>
-              );
-            })}
+    <Card className="overflow-hidden border-border/60">
+      <CardContent className="p-0">
+        {/* Month summary bar */}
+        <div className="px-5 pt-5 pb-4" style={{ backgroundColor: "hsl(var(--card))" }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold tracking-tight text-foreground">Resumo do Mês</h3>
+            <span className={cn(
+              "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+              monthStats.totalPnl >= 0
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                : "bg-red-500/15 text-red-600 dark:text-red-400"
+            )}>
+              {monthStats.totalPnl >= 0 ? "Positivo" : "Negativo"}
+            </span>
           </div>
-        )}
-        {!loading && accountId && Object.keys(dailyPnl).length === 0 && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Nenhum trade importado ainda para este mês na conta selecionada.
-          </p>
-        )}
-        {!loading && !accountId && (
-          <p className="text-sm text-muted-foreground">Selecione uma conta para ver o PnL diário.</p>
-        )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {[
+              { label: "Operações", value: String(monthStats.totalTrades) },
+              { label: "Taxa de Acerto", value: monthStats.totalTrades > 0 ? `${((monthStats.totalWins / monthStats.totalTrades) * 100).toFixed(0)}%` : "—" },
+              {
+                label: "Resultado Total",
+                value: monthStats.totalPnl !== 0 ? `$ ${Math.abs(monthStats.totalPnl).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
+                color: monthStats.totalPnl > 0 ? "text-emerald-600 dark:text-emerald-400" : monthStats.totalPnl < 0 ? "text-red-600 dark:text-red-400" : undefined,
+              },
+              { label: "Dias Operados", value: String(monthStats.tradingDays) },
+              {
+                label: "Média / Op.",
+                value: monthStats.totalTrades > 0
+                  ? `$ ${Math.abs(monthStats.totalPnl / monthStats.totalTrades).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : "—",
+                color: monthStats.totalTrades > 0
+                  ? (monthStats.totalPnl / monthStats.totalTrades) >= 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                  : undefined,
+              },
+            ].map((kpi) => (
+              <div key={kpi.label} className="rounded-lg border border-border/40 px-3 py-2.5" style={{ backgroundColor: "hsl(var(--muted) / 0.15)" }}>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
+                <p className={cn("text-lg font-bold mt-0.5", kpi.color ?? "text-foreground")}>{kpi.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-center gap-5 mt-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Wins: {monthStats.totalWins}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-red-500" /> Losses: {monthStats.totalLosses}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-zinc-400 dark:bg-zinc-600" /> BE: {monthStats.totalTrades - monthStats.totalWins - monthStats.totalLosses}
+            </span>
+          </div>
+        </div>
+
+        {/* Calendar grid */}
+        <div className="px-5 pb-5 pt-3" style={{ backgroundColor: "hsl(var(--card))" }}>
+          {/* Month navigation */}
+          <div className="flex items-center justify-between mb-3">
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-center">
+              <h2 className="text-lg font-bold tracking-tight text-foreground">{monthTitle}</h2>
+              <div className="mx-auto mt-1 h-[2px] w-8 rounded-full bg-blue-500" />
+            </div>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {loading && (
+            <div className="grid grid-cols-8 gap-1">
+              {DAY_HEADERS.map((h) => (
+                <div key={h} className="text-center text-[10px] font-semibold text-muted-foreground py-1.5">{h}</div>
+              ))}
+              <div className="text-center text-[10px] font-semibold text-muted-foreground py-1.5">RESUMO</div>
+              {Array.from({ length: 35 }).map((_, i) => (
+                <div key={`skel-${i}`} className="h-[72px] rounded-md bg-muted/20 animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {!loading && (
+            <div className="grid grid-cols-8 gap-[3px]">
+              {DAY_HEADERS.map((h) => (
+                <div key={h} className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground py-1.5">
+                  {h}
+                </div>
+              ))}
+              <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground py-1.5">
+                RESUMO
+              </div>
+
+              {weeks.map((week, wi) => (
+                <Fragment key={`week-${wi}`}>
+                  {week.map((day, di) => {
+                    if (day === null) {
+                      return <div key={`empty-${wi}-${di}`} className="min-h-[72px]" />;
+                    }
+                    const key = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                    const dd = dailyData[key];
+                    const hasTrades = dd && dd.trades > 0;
+                    const pnl = dd?.pnl ?? 0;
+                    const isProfit = pnl > 0;
+                    const isLoss = pnl < 0;
+                    const hasNote = noteDates.has(key);
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => handleDayClick(day)}
+                        className={cn(
+                          "relative min-h-[72px] rounded-md p-1.5 text-left transition-all duration-150",
+                          "hover:ring-1 hover:ring-blue-500/50 hover:brightness-110",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                          hasTrades && isProfit && "bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/50",
+                          hasTrades && isLoss && "bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/50",
+                          hasTrades && !isProfit && !isLoss && "bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-700/50",
+                          !hasTrades && "border border-transparent hover:border-border/40",
+                        )}
+                      >
+                        <div className="flex items-start justify-between">
+                          <span className={cn(
+                            "text-[10px] font-medium",
+                            hasTrades ? "text-foreground/70" : "text-muted-foreground/50"
+                          )}>{day}</span>
+                          {hasNote && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0 mt-0.5" />
+                          )}
+                        </div>
+                        {hasTrades && (
+                          <div className="mt-0.5">
+                            <p className={cn(
+                              "text-[12px] font-bold leading-tight",
+                              isProfit && "text-emerald-700 dark:text-emerald-400",
+                              isLoss && "text-red-700 dark:text-red-400",
+                              !isProfit && !isLoss && "text-foreground",
+                            )}>
+                              {formatPnl(pnl)}
+                            </p>
+                            <p className="text-[9px] text-muted-foreground mt-0.5">
+                              {dd.trades} trade{dd.trades !== 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {/* Weekly summary */}
+                  <div
+                    key={`summary-${wi}`}
+                    className="min-h-[72px] rounded-md border border-border/20 p-1.5 flex flex-col justify-center"
+                    style={{ backgroundColor: "hsl(var(--muted) / 0.08)" }}
+                  >
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <span className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        weeklySummaries[wi].pnl > 0 ? "bg-emerald-500" : weeklySummaries[wi].pnl < 0 ? "bg-red-500" : "bg-zinc-400"
+                      )} />
+                      <span className="text-[10px] font-semibold text-muted-foreground">{weeklySummaries[wi].label}</span>
+                    </div>
+                    <p className={cn(
+                      "text-[12px] font-bold",
+                      weeklySummaries[wi].pnl > 0 ? "text-emerald-700 dark:text-emerald-400"
+                      : weeklySummaries[wi].pnl < 0 ? "text-red-700 dark:text-red-400"
+                      : "text-muted-foreground"
+                    )}>
+                      {weeklySummaries[wi].trades > 0
+                        ? `$ ${Math.abs(weeklySummaries[wi].pnl).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                        : "—"}
+                    </p>
+                    {weeklySummaries[wi].trades > 0 && (
+                      <p className="text-[9px] text-muted-foreground">
+                        {weeklySummaries[wi].days}d · {weeklySummaries[wi].trades} ops
+                      </p>
+                    )}
+                  </div>
+                </Fragment>
+              ))}
+            </div>
+          )}
+
+          {!loading && !allAccounts && !accountId && (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Selecione uma conta para ver o calendário PnL.
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
