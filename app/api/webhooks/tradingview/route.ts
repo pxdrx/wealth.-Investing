@@ -1,50 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
+
+function timingSafeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error("[webhook] WEBHOOK_SECRET not configured");
+      return NextResponse.json({ ok: false }, { status: 500 });
+    }
+
     const secret = req.headers.get("x-webhook-secret");
-    if (secret !== process.env.WEBHOOK_SECRET) {
+    if (!secret || !timingSafeCompare(secret, webhookSecret)) {
       return NextResponse.json({ ok: false }, { status: 401 });
     }
 
     const body = await req.text();
-    console.log('Webhook body:', body);
 
-    let payload: any = {};
-    try { payload = JSON.parse(body); } catch { payload = { message: body }; }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const { data: users } = await supabase.auth.admin.listUsers();
-    const ownerEmail = process.env.OWNER_EMAIL;
-    const user = users?.users?.find((u) => u.email === ownerEmail);
-    const user_id = user?.id;
-    console.log('user_id:', user_id);
-
-    if (!user_id) {
-      return NextResponse.json({ ok: false, error: 'no user' }, { status: 500 });
+    let payload: Record<string, unknown> = {};
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      payload = { message: body };
     }
 
-    const { error } = await supabase.from('tv_alerts').insert({
-      user_id,
-      symbol: payload.symbol || 'UNKNOWN',
-      alert_type: payload.alert_type || 'manual',
-      timeframe: payload.timeframe || null,
-      message: payload.message || body,
+    // Use configured owner user ID directly instead of enumerating users
+    const ownerId = process.env.WEBHOOK_OWNER_USER_ID;
+    if (!ownerId) {
+      console.error("[webhook] WEBHOOK_OWNER_USER_ID not configured");
+      return NextResponse.json({ ok: false, error: "Webhook not configured" }, { status: 500 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("[webhook] Supabase config missing");
+      return NextResponse.json({ ok: false }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { error } = await supabase.from("tv_alerts").insert({
+      user_id: ownerId,
+      symbol: (payload.symbol as string) || "UNKNOWN",
+      alert_type: (payload.alert_type as string) || "manual",
+      timeframe: (payload.timeframe as string) || null,
+      message: (payload.message as string) || body,
       payload,
     });
 
-    console.log('Insert error:', error);
+    if (error) {
+      console.error("[webhook] Insert error:", error.message);
+      return NextResponse.json({ ok: false }, { status: 500 });
+    }
 
-    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
-
   } catch (err) {
-    console.error('WEBHOOK ERROR:', err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+    console.error("[webhook] Unexpected error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ ok: false }, { status: 500 });
   }
 }

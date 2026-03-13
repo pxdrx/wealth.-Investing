@@ -23,9 +23,9 @@ export default function OnboardingPage() {
     async function gate() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { router.replace("/login?from=" + encodeURIComponent("/onboarding")); return; }
+        if (!session) { window.location.href = "/login?from=" + encodeURIComponent("/onboarding"); return; }
         const profile = await getMyProfile();
-        if (profile?.display_name?.trim()) { router.replace("/app"); return; }
+        if (profile?.display_name?.trim()) { window.location.href = "/app"; return; }
       } catch (err) {
         setError(toFriendlyMessage(err));
       } finally {

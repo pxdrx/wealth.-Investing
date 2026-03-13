@@ -4,33 +4,52 @@
 
 @layer base {
   :root {
-    /* Layer 0 = fundo; cards acima (branco) */
-    --background: 0 0% 91%;        /* cinza mais pronunciado — layer 0 */
-    --foreground: 220 16% 8%;
-    --card: 0 0% 100%;             /* branco puro — cards elevados */
-    --card-foreground: 220 16% 8%;
-    --primary: 220 12% 12%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 5% 93%;
-    --secondary-foreground: 220 12% 18%;
-    --muted: 240 5% 93%;
-    --muted-foreground: 220 5% 50%;
-    --accent: 240 5% 93%;
-    --accent-foreground: 220 12% 18%;
-    --border: 220 11% 87%;
-    --input: 220 10% 89%;
+    /* ── Light theme ── */
+    --background: 0 0% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --input-bg: 240 5% 97%;
-    --ring: 220 12% 18%;
+    --ring: 160 84% 39%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 16% 8%;
-    /* iOS-style radius (20–24px) */
+    --popover-foreground: 222 47% 11%;
+
+    /* ── Landing tokens (light) ── */
+    --landing-bg: 220 14% 97%;
+    --landing-bg-elevated: 0 0% 100%;
+    --landing-bg-tertiary: 220 14% 96%;
+    --landing-border: 220 13% 90%;
+    --landing-border-strong: 220 9% 83%;
+    --landing-text: 222 47% 11%;
+    --landing-text-secondary: 220 9% 35%;
+    --landing-text-muted: 220 9% 58%;
+    --landing-accent: 160 72% 34%;
+    --landing-accent-secondary: 217 60% 50%;
+    --landing-accent-warning: 38 80% 48%;
+    --landing-accent-danger: 0 72% 50%;
+    --landing-grid: 220 13% 92%;
+    --landing-card-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px -4px rgba(0,0,0,0.07);
+    --landing-card-shadow-hover: 0 2px 4px rgba(0,0,0,0.05), 0 8px 24px -4px rgba(0,0,0,0.1);
+
+    /* Radius */
     --radius-card: 22px;
     --radius-modal: 24px;
     --radius-input: 12px;
-    /* Typography — profissional, contraste claro */
-    --tracking-tight: -0.012em;
-    --tracking-tighter: -0.015em;
-    --leading-tight: 1.2;
+
+    /* Typography */
+    --tracking-tight: -0.02em;
+    --tracking-tighter: -0.03em;
+    --leading-tight: 1.15;
     --leading-snug: 1.25;
     --leading-normal: 1.5;
     --leading-relaxed: 1.625;
@@ -40,25 +59,43 @@
   }
 
   .dark {
-    /* Layer 0 = fundo; cards levemente mais claros */
-    --background: 0 0% 7%;         /* quase preto — layer 0 */
-    --foreground: 0 0% 94%;
-    --card: 0 0% 11%;              /* levemente mais claro — cards acima */
-    --card-foreground: 0 0% 94%;
-    --primary: 0 0% 96%;
-    --primary-foreground: 240 8% 12%;
-    --secondary: 240 6% 18%;
-    --secondary-foreground: 0 0% 94%;
-    --muted: 240 6% 18%;
-    --muted-foreground: 240 4% 58%;
-    --accent: 240 6% 18%;
-    --accent-foreground: 0 0% 94%;
-    --border: 240 6% 20%;
-    --input: 240 6% 20%;
-    --input-bg: 240 6% 14%;
-    --ring: 240 4% 60%;
-    --popover: 240 8% 12%;
-    --popover-foreground: 0 0% 94%;
+    /* ── Dark theme ── */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 100%;
+    --primary: 160 100% 45%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 220 9% 64%;
+    --accent: 160 100% 45%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --input-bg: 0 0% 10%;
+    --ring: 160 100% 45%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 100%;
+
+    /* ── Landing tokens (dark) ── */
+    --landing-bg: 0 0% 4%;
+    --landing-bg-elevated: 0 0% 9%;
+    --landing-bg-tertiary: 0 0% 12%;
+    --landing-border: 0 0% 14%;
+    --landing-border-strong: 0 0% 20%;
+    --landing-text: 0 0% 96%;
+    --landing-text-secondary: 0 0% 65%;
+    --landing-text-muted: 0 0% 45%;
+    --landing-accent: 160 80% 42%;
+    --landing-accent-secondary: 217 60% 55%;
+    --landing-accent-warning: 38 80% 50%;
+    --landing-accent-danger: 0 72% 55%;
+    --landing-grid: 0 0% 10%;
+    --landing-card-shadow: none;
+    --landing-card-shadow-hover: none;
+
     --placeholder-opacity: 0.5;
   }
 
@@ -74,7 +111,6 @@
     font-weight: 400;
   }
 
-  /* Hierarchy — títulos 600–700, tracking -0.01 a -0.015em, grafite escuro */
   h1, .text-h1 {
     letter-spacing: var(--tracking-tighter);
     line-height: var(--leading-tight);
@@ -96,16 +132,12 @@
 }
 
 @layer components {
-  /* KPIs e números — destaque visual forte */
   .kpi-value {
     font-weight: 700;
     letter-spacing: 0;
     color: hsl(var(--card-foreground));
   }
-}
 
-@layer components {
-  /* Inputs: bordas sutis, foco com ring discreto, placeholder mais claro */
   .input-ios {
     @apply w-full rounded-[var(--radius-input)] border border-input px-4 py-3 text-foreground outline-none transition-[border-color,box-shadow];
     background-color: hsl(var(--input-bg));
@@ -114,31 +146,38 @@
   .input-ios::placeholder {
     opacity: var(--placeholder-opacity);
   }
-}
 
-@layer components {
-  /* Garante que bg-card sempre use hsl(var(--card)) mesmo com patterns */
-  .bg-card {
-    background-color: hsl(var(--card)) !important;
+  .bg-card { background-color: hsl(var(--card)) !important; }
+  .bg-muted { background-color: hsl(var(--muted)) !important; }
+  .bg-popover { background-color: hsl(var(--popover)) !important; }
+  .bg-accent { background-color: hsl(var(--accent)) !important; }
+  .bg-secondary { background-color: hsl(var(--secondary)) !important; }
+  .bg-primary { background-color: hsl(var(--primary)) !important; }
+  .bg-input { background-color: hsl(var(--input)) !important; }
+
+  .landing-grid-pattern {
+    background-image:
+      linear-gradient(to right, hsl(var(--landing-grid)) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--landing-grid)) 1px, transparent 1px);
+    background-size: 64px 64px;
   }
 
-  /* Fix: força todas as classes bg-* a usar hsl explícito */
-  .bg-muted {
-    background-color: hsl(var(--muted)) !important;
+  .landing-section { @apply py-20 md:py-28 lg:py-32; }
+  .landing-container { @apply mx-auto max-w-[1280px] px-6; }
+
+  /* ── Solid card surfaces ── */
+  .landing-card {
+    background-color: hsl(var(--landing-bg-elevated));
+    border: 1px solid hsl(var(--landing-border));
+    box-shadow: var(--landing-card-shadow);
+    @apply rounded-2xl;
   }
-  .bg-popover {
-    background-color: hsl(var(--popover)) !important;
+  .landing-card-hover {
+    @apply transition-all duration-200;
   }
-  .bg-accent {
-    background-color: hsl(var(--accent)) !important;
-  }
-  .bg-secondary {
-    background-color: hsl(var(--secondary)) !important;
-  }
-  .bg-primary {
-    background-color: hsl(var(--primary)) !important;
-  }
-  .bg-input {
-    background-color: hsl(var(--input)) !important;
+  .landing-card-hover:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--landing-border-strong));
+    box-shadow: var(--landing-card-shadow-hover);
   }
 }

@@ -140,10 +140,10 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
       if (!openedAt || !closedAt) continue;
 
       const closedYear = closedAt ? new Date(closedAt).getFullYear() : 0;
-      if (closedYear < 2020) continue;
+      if (closedYear < 2000) continue;
 
       const pnl_usd = parseNum(cells[13] ?? "0");
-      if (pnl_usd > 50000) continue;
+      if (Math.abs(pnl_usd) > 10_000_000) continue;
 
       const comissao = parseNum(cells[11] ?? "0");
       const swap = parseNum(cells[12] ?? "0");

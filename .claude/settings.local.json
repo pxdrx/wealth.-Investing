@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp:*)",
+      "mcp__stitch__create_project",
+      "mcp__stitch__generate_screen_from_text",
+      "mcp__stitch__list_screens",
+      "mcp__stitch__list_projects",
+      "Bash(curl:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git clone:*)",
+      "Bash(npx antigravity-awesome-skills:*)",
+      "Bash(git config:*)",
+      "Bash(reg add:*)",
+      "Bash(powershell:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.claudeplugins.dev)",
+      "Bash(python3:*)",
+      "Bash(npx nanobanana:*)",
+      "Bash(claude:*)",
+      "Bash(claude plugin:*)",
+      "Bash(echo \"Exit1: $?\")",
+      "Read(//tmp/**)",
+      "Bash(echo \"Exit2: $?\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); mcps=d.get\\(''mcpServers'',{}\\); [print\\(k,'':'', json.dumps\\(v, indent=2\\)\\) for k,v in mcps.items\\(\\) if ''supabase'' in k.lower\\(\\)]\")",
+      "Bash(python:*)",
+      "Bash(where playwright:*)",
+      "Read(//c/Users/phalm/AppData/Roaming/npm/**)",
+      "Read(//c/Users/phalm/.npm/**)",
+      "Read(//c/Users/phalm/**)",
+      "Bash(/c/Users/phalm/AppData/Roaming/npm/playwright-cli:*)",
+      "Bash(npx next:*)",
+      "Bash(node -e \"\nconst { createClient } = require\\('@supabase/supabase-js'\\);\nrequire\\('dotenv'\\).config\\({ path: '.env.local' }\\);\n\nconst supabase = createClient\\(\n  process.env.NEXT_PUBLIC_SUPABASE_URL,\n  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY\n\\);\n\nasync function checkSchema\\(\\) {\n  const tables = ['profiles', 'accounts', 'prop_accounts', 'journal_trades', 'prop_payouts', 'wallet_transactions', 'ingestion_logs', 'tv_alerts'];\n  \n  for \\(const table of tables\\) {\n    const { data, error, status } = await supabase.from\\(table\\).select\\('*'\\).limit\\(0\\);\n    if \\(error\\) {\n      console.log\\('❌', table, '→', error.code, error.message\\);\n    } else {\n      console.log\\('✅', table, '→ exists \\(status', status + '\\)'\\);\n    }\n  }\n\n  // Check specific columns by selecting them\n  console.log\\('\\\\n--- Column checks ---'\\);\n\n  // profiles.display_name\n  const { error: e1 } = await supabase.from\\('profiles'\\).select\\('id, display_name'\\).limit\\(0\\);\n  console.log\\(e1 ? '❌ profiles\\(id,display_name\\): ' + e1.message : '✅ profiles\\(id, display_name\\)'\\);\n\n  // accounts columns\n  const { error: e2 } = await supabase.from\\('accounts'\\).select\\('id, user_id, name, kind, is_active, created_at'\\).limit\\(0\\);\n  console.log\\(e2 ? '❌ accounts cols: ' + e2.message : '✅ accounts\\(id, user_id, name, kind, is_active, created_at\\)'\\);\n\n  // prop_accounts.user_id \\(CRITICAL\\)\n  const { error: e3 } = await supabase.from\\('prop_accounts'\\).select\\('id, account_id, user_id, firm_name, phase, starting_balance_usd, profit_target_percent, max_daily_loss_percent, max_overall_loss_percent'\\).limit\\(0\\);\n  console.log\\(e3 ? '❌ prop_accounts cols: ' + e3.message : '✅ prop_accounts\\(id, account_id, user_id, firm_name, phase, balances, targets\\)'\\);\n\n  // journal_trades with net_pnl_usd\n  const { error: e4 } = await supabase.from\\('journal_trades'\\).select\\('id, user_id, account_id, symbol, category, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, external_source, external_id, context, notes, mistakes'\\).limit\\(0\\);\n  console.log\\(e4 ? '❌ journal_trades cols: ' + e4.message : '✅ journal_trades\\(all expected columns\\)'\\);\n\n  // prop_payouts\n  const { error: e5 } = await supabase.from\\('prop_payouts'\\).select\\('id, user_id, prop_account_id, paid_at, amount_usd, external_source, external_id'\\).limit\\(0\\);\n  console.log\\(e5 ? '❌ prop_payouts cols: ' + e5.message : '✅ prop_payouts\\(all expected columns\\)'\\);\n\n  // wallet_transactions\n  const { error: e6 } = await supabase.from\\('wallet_transactions'\\).select\\('id, user_id, account_id, tx_type, amount_usd, notes'\\).limit\\(0\\);\n  console.log\\(e6 ? '❌ wallet_transactions cols: ' + e6.message : '✅ wallet_transactions\\(all expected columns\\)'\\);\n\n  // ingestion_logs with meta jsonb\n  const { error: e7 } = await supabase.from\\('ingestion_logs'\\).select\\('id, user_id, status, source, items_count, duration_ms, message, meta'\\).limit\\(0\\);\n  console.log\\(e7 ? '❌ ingestion_logs cols: ' + e7.message : '✅ ingestion_logs\\(all expected columns\\)'\\);\n\n  // tv_alerts\n  const { error: e8 } = await supabase.from\\('tv_alerts'\\).select\\('id, user_id, symbol, alert_type, timeframe, message, payload'\\).limit\\(0\\);\n  console.log\\(e8 ? '❌ tv_alerts cols: ' + e8.message : '✅ tv_alerts\\(all expected columns\\)'\\);\n\n  // Check data counts\n  console.log\\('\\\\n--- Data counts ---'\\);\n  const { count: profileCount } = await supabase.from\\('profiles'\\).select\\('*', { count: 'exact', head: true }\\);\n  const { count: accountCount } = await supabase.from\\('accounts'\\).select\\('*', { count: 'exact', head: true }\\);\n  const { count: tradeCount } = await supabase.from\\('journal_trades'\\).select\\('*', { count: 'exact', head: true }\\);\n  const { count: propCount } = await supabase.from\\('prop_accounts'\\).select\\('*', { count: 'exact', head: true }\\);\n  const { count: payoutCount } = await supabase.from\\('prop_payouts'\\).select\\('*', { count: 'exact', head: true }\\);\n  const { count: alertCount } = await supabase.from\\('tv_alerts'\\).select\\('*', { count: 'exact', head: true }\\);\n  const { count: logCount } = await supabase.from\\('ingestion_logs'\\).select\\('*', { count: 'exact', head: true }\\);\n  \n  console.log\\('profiles:', profileCount ?? 0\\);\n  console.log\\('accounts:', accountCount ?? 0\\);\n  console.log\\('prop_accounts:', propCount ?? 0\\);\n  console.log\\('journal_trades:', tradeCount ?? 0\\);\n  console.log\\('prop_payouts:', payoutCount ?? 0\\);\n  console.log\\('tv_alerts:', alertCount ?? 0\\);\n  console.log\\('ingestion_logs:', logCount ?? 0\\);\n}\n\ncheckSchema\\(\\).catch\\(e => console.error\\('FATAL:', e.message\\)\\);\n\" 2>&1)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(find /c/Users/phalm/trading-dashboard/components/journal -type f -name \"*.tsx\" 2>/dev/null | head -20)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

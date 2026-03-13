@@ -31,6 +31,10 @@ export async function POST(request: Request) {
     if (!accountIdParam) {
       return NextResponse.json({ error: "Missing accountId" }, { status: 400 });
     }
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(accountIdParam)) {
+      return NextResponse.json({ error: "Invalid accountId format" }, { status: 400 });
+    }
     accountId = accountIdParam;
 
     const supabase = createSupabaseClientForUser(token);
@@ -61,16 +65,9 @@ export async function POST(request: Request) {
         .eq("user_id", userId)
         .single();
       if (propError) {
-        // Falha clara de compatibilidade de schema (ex.: coluna user_id ausente) ou erro de consulta.
-        const code = (propError as { code?: string }).code;
-        const baseMessage = "Failed to lookup prop account metadata (prop_accounts).";
-        const schemaHint =
-          code === "42703"
-            ? " Verifique se a tabela prop_accounts contém a coluna user_id e está alinhada ao código."
-            : "";
-        console.error("[import-mt5] prop_accounts error:", propError);
+        console.error("[import-mt5] prop_accounts error:", propError.code, propError.message);
         return NextResponse.json(
-          { error: baseMessage + schemaHint },
+          { error: "Failed to process account metadata" },
           { status: 500 }
         );
       }
@@ -253,23 +250,16 @@ export async function POST(request: Request) {
       meta,
     });
 
-    console.log(
-      "[import-mt5]",
-      file.name,
-      "type=" + (file.type ?? "(none)"),
-      "parser=" + parserChosen,
-      "trades_found=" + trades.length,
-      "balance_ops_found=" + balanceOps.length,
-      "imported=" + imported,
-      "duplicates=" + duplicates,
-      "failed=" + failed,
-      "payouts=" + payoutsDetected
-    );
-    if (trades.length > 0) {
-      console.log("[import-mt5] first 3 trades:", JSON.stringify(trades.slice(0, 3).map((t) => ({ external_id: t.external_id, symbol: t.symbol, direction: t.direction, pnl_usd: t.pnl_usd }))));
-    }
-    if (balanceOps.length > 0) {
-      console.log("[import-mt5] first 3 balanceOps:", JSON.stringify(balanceOps.slice(0, 3).map((o) => ({ type: o.type, amount_usd: o.amount_usd, at: o.at }))));
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "[import-mt5]",
+        file.name,
+        "parser=" + parserChosen,
+        "imported=" + imported,
+        "duplicates=" + duplicates,
+        "failed=" + failed,
+        "payouts=" + payoutsDetected
+      );
     }
 
     return NextResponse.json({
@@ -306,8 +296,9 @@ export async function POST(request: Request) {
         }
       } catch (_) {}
     }
-    const errMsg = err instanceof Error ? err.message : "Import failed";
-    const status = errMsg.startsWith("MT5 HTML parse failed") ? 400 : 500;
+    const isParseError = err instanceof Error && err.message.startsWith("MT5 HTML parse failed");
+    const status = isParseError ? 400 : 500;
+    const errMsg = isParseError ? err.message : "Import failed";
     return NextResponse.json({ error: errMsg }, { status });
   }
 }

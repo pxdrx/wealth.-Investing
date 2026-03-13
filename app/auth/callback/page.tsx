@@ -34,15 +34,22 @@ export default function AuthCallbackPage() {
         }
 
         // Verifica se precisa de onboarding
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) throw new Error("Sessão não encontrada após autenticação");
+
         const { data: profile } = await supabase
           .from("profiles")
           .select("display_name")
+          .eq("id", session.user.id)
           .maybeSingle();
 
+        // Validate redirect to prevent open redirect attacks
+        const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/app";
+
         if (!profile?.display_name?.trim()) {
-          router.replace("/onboarding");
+          window.location.href = "/onboarding";
         } else {
-          router.replace(next);
+          window.location.href = safeNext;
         }
       } catch (err) {
         console.error("[auth/callback]", err);

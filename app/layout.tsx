@@ -1,12 +1,33 @@
 import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/layout/AppShell";
 import { BGPattern } from "@/components/ui/bg-pattern";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "wealth. Investing",
-  description: "Seu centro de comando para o mercado financeiro.",
+  title: "wealth.Investing — Consistência baseada em dados para traders",
+  description:
+    "Plataforma de analytics, journaling e gestão de risco para traders que querem consistência, controle e evolução baseada em dados reais.",
+  openGraph: {
+    title: "wealth.Investing — Consistência baseada em dados para traders",
+    description:
+      "Centralize operações, analise padrões e transforme dados em insights acionáveis para operar com disciplina.",
+    type: "website",
+    locale: "pt_BR",
+  },
 };
 
 export default function RootLayout({
@@ -31,7 +52,9 @@ export default function RootLayout({
         />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
-      <body className="relative min-h-screen font-sans antialiased">
+      <body
+        className={`${inter.variable} ${jetbrains.variable} relative min-h-screen font-sans antialiased`}
+      >
         <BGPattern
           variant="dots"
           mask="fade-center"
@@ -39,7 +62,7 @@ export default function RootLayout({
           fill="currentColor"
           className="pointer-events-none fixed inset-0 w-full h-full opacity-[0.15] dark:opacity-[0.2] text-foreground !z-0"
         />
-        <ThemeProvider defaultTheme="light" storageKey="trading-dashboard-theme">
+        <ThemeProvider defaultTheme="dark" storageKey="trading-dashboard-theme">
           <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
