@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -65,6 +65,19 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
   const [newTag, setNewTag] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Track original note state for auto-save on close
+  const originalNote = useRef<{ observation: string; tags: string[] }>({ observation: "", tags: [] });
+
+  const isDirty = (): boolean => {
+    const orig = originalNote.current;
+    if (dayNote.observation !== orig.observation) return true;
+    if (dayNote.tags.length !== orig.tags.length) return true;
+    for (let i = 0; i < dayNote.tags.length; i++) {
+      if (dayNote.tags[i] !== orig.tags[i]) return true;
+    }
+    return false;
+  };
 
   const loadDayData = useCallback(async () => {
     if (!date || !userId) return;
@@ -140,14 +153,14 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
       setAccountSummaries(Array.from(byAccount.values()).sort((a, b) => b.pnl - a.pnl));
 
       if (noteResult) {
-        setDayNote({
-          id: noteResult.id,
-          observation: noteResult.observation ?? "",
-          tags: Array.isArray(noteResult.tags) ? noteResult.tags : [],
-        });
+        const obs = noteResult.observation ?? "";
+        const tgs = Array.isArray(noteResult.tags) ? noteResult.tags : [];
+        setDayNote({ id: noteResult.id, observation: obs, tags: tgs });
+        originalNote.current = { observation: obs, tags: [...tgs] };
         setEditMode(false);
       } else {
         setDayNote({ observation: "", tags: [] });
+        originalNote.current = { observation: "", tags: [] };
         setEditMode(true);
       }
     } catch {
@@ -183,6 +196,7 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
       }
       setSaved(true);
       setEditMode(false);
+      originalNote.current = { observation: dayNote.observation, tags: [...dayNote.tags] };
       onNoteSaved?.();
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -210,6 +224,17 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
     }
   };
 
+  // Auto-save unsaved changes when modal closes
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && editMode && isDirty() && date && userId) {
+      // Fire-and-forget auto-save
+      handleSaveNote().catch((err) => {
+        console.warn("[DayDetailModal] auto-save on close failed:", err);
+      });
+    }
+    onOpenChange(nextOpen);
+  };
+
   const totalPnl = accountSummaries.reduce((sum, a) => sum + a.pnl, 0);
   const totalTrades = accountSummaries.reduce((sum, a) => sum + a.trades, 0);
 
@@ -220,7 +245,7 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
     : "";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto" showClose={true}>
         <DialogHeader>
           <DialogTitle className="capitalize">{formattedDate}</DialogTitle>

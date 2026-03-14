@@ -114,7 +114,8 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
           dates.add((row as { date: string }).date);
         }
         setNoteDates(dates);
-      } catch {
+      } catch (err) {
+        console.warn("[PnlCalendar] Failed to fetch day_notes — table may not exist yet:", err);
         if (!cancelled) setNoteDates(new Set());
       }
     })();

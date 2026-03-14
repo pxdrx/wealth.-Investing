@@ -1,19 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 
+/** Five minutes in milliseconds */
+const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
-  const pathname = usePathname();
+  const sessionRef = useRef<{ expires_at?: number; user_id?: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function gate() {
       try {
+        // Use cached session if token is not expiring soon
+        if (sessionRef.current?.expires_at) {
+          const msUntilExpiry = sessionRef.current.expires_at * 1000 - Date.now();
+          if (msUntilExpiry > REFRESH_THRESHOLD_MS) {
+            setReady(true);
+            return;
+          }
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!mounted) return;
@@ -23,15 +34,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Check token expiration and refresh if needed
+        // Check token expiration and refresh if within threshold
         const expiresAt = session.expires_at;
-        if (expiresAt && expiresAt * 1000 < Date.now()) {
+        if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
           const { data, error } = await supabase.auth.refreshSession();
           if (!mounted) return;
           if (error || !data.session) {
             window.location.href = "/login";
             return;
           }
+          // Cache refreshed session
+          sessionRef.current = {
+            expires_at: data.session.expires_at,
+            user_id: data.session.user.id,
+          };
+        } else {
+          // Cache current session
+          sessionRef.current = {
+            expires_at: session.expires_at,
+            user_id: session.user.id,
+          };
         }
 
         setReady(true);
@@ -62,7 +84,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, [pathname]);
+  }, []);
 
   if (!ready) {
     return (

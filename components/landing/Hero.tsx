@@ -7,7 +7,7 @@ import { HERO } from "@/lib/landing-data";
 export function Hero() {
   return (
     <section className="relative overflow-hidden landing-section" aria-label="Hero">
-      <GridPattern className="opacity-40" />
+      <GridPattern className="opacity-25" />
       <div className="landing-container relative z-10">
         <div className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:gap-16 items-center">
           <div className="max-w-xl">

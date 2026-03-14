@@ -1,33 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import React, { useEffect, useRef, useState, useCallback } from "react"
-
-interface MousePosition {
-  x: number
-  y: number
-}
-
-function useMousePosition(): MousePosition {
-  const [mousePosition, setMousePosition] = useState<MousePosition>({
-    x: 0,
-    y: 0,
-  })
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      setMousePosition({ x: event.clientX, y: event.clientY })
-    }
-
-    window.addEventListener("mousemove", handleMouseMove)
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove)
-    }
-  }, [])
-
-  return mousePosition
-}
+import React, { useEffect, useRef, useCallback } from "react"
 
 interface ParticlesProps {
   className?: string
@@ -86,11 +60,12 @@ const Particles: React.FC<ParticlesProps> = ({
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const context = useRef<CanvasRenderingContext2D | null>(null)
   const circles = useRef<Circle[]>([])
-  const mousePosition = useMousePosition()
+  const mousePosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   const mouse = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   const canvasSize = useRef<{ w: number; h: number }>({ w: 0, h: 0 })
   const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1
   const rafId = useRef<number>(0)
+  const mouseMoveRaf = useRef<number>(0)
 
   const rgb = hexToRgb(color)
 
@@ -251,18 +226,32 @@ const Particles: React.FC<ParticlesProps> = ({
   }, [color, quantity, dpr, clearContext, circleParams, drawCircle, ease, remapValue, staticity, vx, vy])
 
   useEffect(() => {
-    if (canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect()
-      const { w, h } = canvasSize.current
-      const x = mousePosition.x - rect.left - w / 2
-      const y = mousePosition.y - rect.top - h / 2
-      const inside = x < w / 2 && x > -w / 2 && y < h / 2 && y > -h / 2
-      if (inside) {
-        mouse.current.x = x
-        mouse.current.y = y
-      }
+    const handleMouseMove = (event: MouseEvent) => {
+      mousePosition.current.x = event.clientX
+      mousePosition.current.y = event.clientY
+      if (mouseMoveRaf.current) return
+      mouseMoveRaf.current = requestAnimationFrame(() => {
+        mouseMoveRaf.current = 0
+        if (canvasRef.current) {
+          const rect = canvasRef.current.getBoundingClientRect()
+          const { w, h } = canvasSize.current
+          const x = mousePosition.current.x - rect.left - w / 2
+          const y = mousePosition.current.y - rect.top - h / 2
+          const inside = x < w / 2 && x > -w / 2 && y < h / 2 && y > -h / 2
+          if (inside) {
+            mouse.current.x = x
+            mouse.current.y = y
+          }
+        }
+      })
     }
-  }, [mousePosition.x, mousePosition.y])
+
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      if (mouseMoveRaf.current) cancelAnimationFrame(mouseMoveRaf.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (canvasContainerRef.current && canvasRef.current && context.current) {
@@ -288,7 +277,7 @@ const Particles: React.FC<ParticlesProps> = ({
       ref={canvasContainerRef}
       aria-hidden="true"
     >
-      <canvas ref={canvasRef} className="size-full" />
+      <canvas ref={canvasRef} className="size-full pointer-events-none" style={{ willChange: "transform" }} />
     </div>
   )
 }

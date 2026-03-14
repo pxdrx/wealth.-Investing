@@ -27,8 +27,7 @@ const VISUALS = [
 export default function LandingPage() {
   return (
     <div
-      className="min-h-screen"
-      style={{ backgroundColor: "hsl(var(--landing-bg))" }}
+      className="relative min-h-screen"
     >
       <a
         href="#main-content"

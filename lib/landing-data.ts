@@ -116,7 +116,7 @@ export const FEATURES: FeatureData[] = [
           "Gerencie contas pessoais e de mesa proprietária no mesmo painel.",
       },
     ],
-    link: { text: "Saiba mais sobre integrações", href: "#" },
+    link: { text: "Saiba mais sobre integrações", href: "/features/registre" },
   },
   {
     tag: "ANALISE",
@@ -145,7 +145,7 @@ export const FEATURES: FeatureData[] = [
           "Compare a performance real de cada setup. Saiba exatamente qual estratégia sustenta seu P&L.",
       },
     ],
-    link: { text: "Saiba mais sobre analytics", href: "#" },
+    link: { text: "Saiba mais sobre analytics", href: "/features/analise" },
   },
   {
     tag: "EVOLUA",
@@ -174,7 +174,7 @@ export const FEATURES: FeatureData[] = [
           "Documente seus setups com regras claras e compare a execução real vs. o plano.",
       },
     ],
-    link: { text: "Saiba mais sobre journaling", href: "#" },
+    link: { text: "Saiba mais sobre journaling", href: "/features/evolua" },
   },
   {
     tag: "PROTEJA",
@@ -203,7 +203,7 @@ export const FEATURES: FeatureData[] = [
           "Acompanhe drawdown máximo, risco por operação, exposição e consistência da sua gestão de capital.",
       },
     ],
-    link: { text: "Saiba mais sobre gestão de risco", href: "#" },
+    link: { text: "Saiba mais sobre gestão de risco", href: "/features/proteja" },
   },
 ];
 

@@ -1,6 +1,6 @@
  "use client";
 
- import { useEffect, useMemo, useState, useCallback } from "react";
+ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
  import Link from "next/link";
  import {
    Card,
@@ -230,6 +230,26 @@ import { cn } from "@/lib/utils";
    const [dayModalOpen, setDayModalOpen] = useState(false);
    const [noteVersion, setNoteVersion] = useState(0);
 
+   // Lazy-load TradingView iframe via IntersectionObserver
+   const watchlistRef = useRef<HTMLDivElement>(null);
+   const [iframeVisible, setIframeVisible] = useState(false);
+
+   useEffect(() => {
+     const el = watchlistRef.current;
+     if (!el) return;
+     const observer = new IntersectionObserver(
+       ([entry]) => {
+         if (entry.isIntersecting) {
+           setIframeVisible(true);
+           observer.disconnect();
+         }
+       },
+       { rootMargin: "200px" },
+     );
+     observer.observe(el);
+     return () => observer.disconnect();
+   }, []);
+
    const handleDayClick = useCallback((date: string) => {
      setDayModalDate(date);
      setDayModalOpen(true);
@@ -275,77 +295,83 @@ import { cn } from "@/lib/utils";
              </Button>
            </CardHeader>
            <CardContent>
-           <div className="w-full rounded-2xl border border-border/70 bg-card overflow-hidden">
-              <iframe
-                src={
-                  "https://s.tradingview.com/embed-widget/market-overview/?locale=br#" +
-                  encodeURIComponent(
-                    JSON.stringify({
-                      colorTheme: "light",
-                      isTransparent: true,
-                      showSymbolLogo: true,
-                      width: "100%",
-                      height: 500,
-                      tabs: [
-                        {
-                          title: "Forex",
-                          symbols: [
-                            { s: "FX:EURUSD" },
-                            { s: "FX:GBPUSD" },
-                            { s: "FX:USDJPY" },
-                            { s: "FX:USDCAD" },
-                            { s: "FX:AUDUSD" },
-                            { s: "FX:NZDUSD" },
-                            { s: "FX:USDCHF" },
-                          ],
-                        },
-                        {
-                          title: "Índices",
-                          symbols: [
-                            { s: "CME_MINI:NQ1!" },
-                            { s: "CME_MINI:ES1!" },
-                            { s: "CBOT_MINI:YM1!" },
-                            { s: "CBOE:VIX" },
-                          ],
-                        },
-                        {
-                          title: "Commodities",
-                          symbols: [
-                            { s: "TVC:GOLD" },
-                            { s: "TVC:SILVER" },
-                            { s: "TVC:USOIL" },
-                            { s: "TVC:UKBRENT" },
-                            { s: "OANDA:NATGAS" },
-                          ],
-                        },
-                        {
-                          title: "Crypto",
-                          symbols: [
-                            { s: "BITSTAMP:BTCUSD" },
-                            { s: "BITSTAMP:ETHUSD" },
-                            { s: "CRYPTOCAP:TOTAL" },
-                          ],
-                        },
-                        {
-                          title: "Ações",
-                          symbols: [
-                            { s: "NASDAQ:AAPL" },
-                            { s: "NASDAQ:MSFT" },
-                            { s: "NASDAQ:NVDA" },
-                            { s: "NASDAQ:AMZN" },
-                            { s: "NASDAQ:GOOGL" },
-                            { s: "NASDAQ:META" },
-                            { s: "NYSE:TSLA" },
-                            { s: "NYSE:BRK.B" },
-                          ],
-                        },
-                      ],
-                    }),
-                  )
-                }
-                style={{ width: "100%", height: "500px", border: "none" }}
-                loading="lazy"
-              />
+           <div ref={watchlistRef} className="w-full rounded-2xl border border-border/70 bg-card overflow-hidden" style={{ minHeight: "500px" }}>
+              {iframeVisible ? (
+                <iframe
+                  src={
+                    "https://s.tradingview.com/embed-widget/market-overview/?locale=br#" +
+                    encodeURIComponent(
+                      JSON.stringify({
+                        colorTheme: "light",
+                        isTransparent: true,
+                        showSymbolLogo: true,
+                        width: "100%",
+                        height: 500,
+                        tabs: [
+                          {
+                            title: "Forex",
+                            symbols: [
+                              { s: "FX:EURUSD" },
+                              { s: "FX:GBPUSD" },
+                              { s: "FX:USDJPY" },
+                              { s: "FX:USDCAD" },
+                              { s: "FX:AUDUSD" },
+                              { s: "FX:NZDUSD" },
+                              { s: "FX:USDCHF" },
+                            ],
+                          },
+                          {
+                            title: "Índices",
+                            symbols: [
+                              { s: "CME_MINI:NQ1!" },
+                              { s: "CME_MINI:ES1!" },
+                              { s: "CBOT_MINI:YM1!" },
+                              { s: "CBOE:VIX" },
+                            ],
+                          },
+                          {
+                            title: "Commodities",
+                            symbols: [
+                              { s: "TVC:GOLD" },
+                              { s: "TVC:SILVER" },
+                              { s: "TVC:USOIL" },
+                              { s: "TVC:UKBRENT" },
+                              { s: "OANDA:NATGAS" },
+                            ],
+                          },
+                          {
+                            title: "Crypto",
+                            symbols: [
+                              { s: "BITSTAMP:BTCUSD" },
+                              { s: "BITSTAMP:ETHUSD" },
+                              { s: "CRYPTOCAP:TOTAL" },
+                            ],
+                          },
+                          {
+                            title: "Ações",
+                            symbols: [
+                              { s: "NASDAQ:AAPL" },
+                              { s: "NASDAQ:MSFT" },
+                              { s: "NASDAQ:NVDA" },
+                              { s: "NASDAQ:AMZN" },
+                              { s: "NASDAQ:GOOGL" },
+                              { s: "NASDAQ:META" },
+                              { s: "NYSE:TSLA" },
+                              { s: "NYSE:BRK.B" },
+                            ],
+                          },
+                        ],
+                      }),
+                    )
+                  }
+                  style={{ width: "100%", height: "500px", border: "none" }}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex items-center justify-center animate-pulse" style={{ height: "500px", backgroundColor: "hsl(var(--card))" }}>
+                  <p className="text-sm text-muted-foreground">Carregando watchlist...</p>
+                </div>
+              )}
             </div>
            </CardContent>
          </Card>

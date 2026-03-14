@@ -15,8 +15,8 @@ export function ParticlesBackground() {
   return (
     <Particles
       className="fixed inset-0 z-0"
-      quantity={40}
-      staticity={60}
+      quantity={20}
+      staticity={90}
       ease={80}
       size={0.4}
       color={color}
