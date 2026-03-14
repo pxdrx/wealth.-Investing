@@ -49,7 +49,7 @@ interface AccountSelectorInlineProps {
 }
 
 export function AccountSelectorInline({ showAddButton = false }: AccountSelectorInlineProps) {
-  const { accounts, activeAccountId, setActiveAccountId } = useActiveAccount();
+  const { accounts, activeAccountId, setActiveAccountId, refreshAccounts } = useActiveAccount();
   const [addModalOpen, setAddModalOpen] = useState(false);
 
   const sortedAccounts = useMemo(() => {
@@ -70,11 +70,13 @@ export function AccountSelectorInline({ showAddButton = false }: AccountSelector
           >
             {active ? (
               <>
+                {(() => { const Icon = getAccountIcon(active); return <Icon className="h-4 w-4 shrink-0 opacity-60" />; })()}
                 <span className="truncate max-w-[260px]">{formatAccountLabel(active)}</span>
                 <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
               </>
             ) : (
               <>
+                <Wallet className="h-4 w-4 opacity-60 shrink-0" />
                 <span className="text-muted-foreground">Selecionar conta</span>
                 <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
               </>
@@ -128,6 +130,7 @@ export function AccountSelectorInline({ showAddButton = false }: AccountSelector
         open={addModalOpen}
         onOpenChange={setAddModalOpen}
         onAccountCreated={(id) => setActiveAccountId(id)}
+        onRefreshAccounts={refreshAccounts}
       />
     </>
   );

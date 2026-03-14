@@ -56,14 +56,14 @@ export async function POST(request: Request) {
     isPropAccount = (accountRow as { kind: string }).kind === "prop";
 
     // Prop payouts use prop_accounts.id (prop_account_id), not accounts.id.
+    // Note: account ownership already validated above, so only filter by account_id here.
     let propAccountRowId: string | null = null;
     if (isPropAccount) {
       const { data: propRow, error: propError } = await supabase
         .from("prop_accounts")
         .select("id, firm_name")
         .eq("account_id", accountId)
-        .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (propError) {
         console.error("[import-mt5] prop_accounts error:", propError.code, propError.message);
         return NextResponse.json(
@@ -71,8 +71,14 @@ export async function POST(request: Request) {
           { status: 500 }
         );
       }
-      firmName = (propRow as { firm_name?: string } | null)?.firm_name ?? "";
-      propAccountRowId = (propRow as { id?: string } | null)?.id ?? null;
+      if (!propRow) {
+        return NextResponse.json(
+          { error: "Prop account has no corresponding prop_accounts row" },
+          { status: 400 }
+        );
+      }
+      firmName = propRow.firm_name ?? "";
+      propAccountRowId = propRow.id ?? null;
       if (!propAccountRowId) {
         return NextResponse.json(
           { error: "Prop account has no corresponding prop_accounts row" },

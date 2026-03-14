@@ -20,9 +20,10 @@ interface AddAccountModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAccountCreated?: (id: string) => void;
+  onRefreshAccounts?: () => Promise<void>;
 }
 
-type Step = "type" | "firm" | "details" | "status" | "done";
+type Step = "type" | "firm" | "details" | "status" | "done" | "rename";
 
 interface PropFirmPreset {
   id: string;
@@ -107,7 +108,7 @@ const PROP_FIRMS: PropFirmPreset[] = [
 
 const ACCOUNT_SIZES = [5000, 10000, 25000, 50000, 100000, 200000];
 
-export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAccountModalProps) {
+export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefreshAccounts }: AddAccountModalProps) {
   const [step, setStep] = useState<Step>("type");
   const [accountKind, setAccountKind] = useState<AccountKind | null>(null);
   const [selectedFirm, setSelectedFirm] = useState<PropFirmPreset | null>(null);
@@ -120,6 +121,9 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAcc
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdAccountId, setCreatedAccountId] = useState<string | null>(null);
+  const [suggestedName, setSuggestedName] = useState("");
+  const [editableName, setEditableName] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
 
   const reset = () => {
     setStep("type");
@@ -134,6 +138,9 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAcc
     setSaving(false);
     setError(null);
     setCreatedAccountId(null);
+    setSuggestedName("");
+    setEditableName("");
+    setRenameSaving(false);
   };
 
   const handleClose = (v: boolean) => {
@@ -210,7 +217,10 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAcc
       }
 
       setCreatedAccountId(accountId);
+      setSuggestedName(name);
+      setEditableName(name);
       onAccountCreated?.(accountId);
+      await onRefreshAccounts?.();
       setStep("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar conta");
@@ -229,6 +239,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAcc
             {step === "details" && "Detalhes da conta"}
             {step === "status" && "Status da conta"}
             {step === "done" && "Conta criada"}
+            {step === "rename" && "Nome da conta"}
           </DialogTitle>
           <DialogDescription>
             {step === "type" && "Que tipo de conta você quer adicionar?"}
@@ -236,6 +247,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAcc
             {step === "details" && "Configure os detalhes da conta"}
             {step === "status" && "A conta é nova ou já está em uso?"}
             {step === "done" && "Sua conta foi adicionada com sucesso."}
+            {step === "rename" && "Escolha um nome para sua conta"}
           </DialogDescription>
         </DialogHeader>
 
@@ -479,9 +491,13 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAcc
                   : "Sua conta já está selecionada e pronta para uso."}
               </p>
             </div>
+            <Button onClick={() => setStep("rename")} className="w-full">
+              Personalizar nome
+            </Button>
             {isExisting ? (
               <div className="space-y-2">
                 <Button
+                  variant="outline"
                   onClick={() => {
                     handleClose(false);
                     window.location.href = "/app/journal";
@@ -491,15 +507,68 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAcc
                   <Upload className="h-4 w-4" />
                   Importar relatório MT5 (.html)
                 </Button>
-                <Button variant="outline" onClick={() => handleClose(false)} className="w-full">
+                <Button variant="ghost" onClick={() => handleClose(false)} className="w-full">
                   Fechar
                 </Button>
               </div>
             ) : (
-              <Button onClick={() => handleClose(false)} className="w-full">
-                Fechar
+              <Button variant="ghost" onClick={() => handleClose(false)} className="w-full">
+                Manter nome atual
               </Button>
             )}
+          </div>
+        )}
+
+        {/* Step: Rename */}
+        {step === "rename" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome da conta</Label>
+              <Input
+                value={editableName}
+                onChange={(e) => setEditableName(e.target.value)}
+                placeholder={suggestedName}
+              />
+              {suggestedName && editableName !== suggestedName && (
+                <button
+                  type="button"
+                  onClick={() => setEditableName(suggestedName)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Usar sugestão: {suggestedName}
+                </button>
+              )}
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <Button
+              onClick={async () => {
+                if (!createdAccountId || !editableName.trim()) return;
+                setRenameSaving(true);
+                setError(null);
+                try {
+                  const { error: updateError } = await supabase
+                    .from("accounts")
+                    .update({ name: editableName.trim() })
+                    .eq("id", createdAccountId);
+                  if (updateError) throw updateError;
+                  await onRefreshAccounts?.();
+                  handleClose(false);
+                  if (isExisting) {
+                    window.location.href = "/app/journal";
+                  }
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Erro ao renomear");
+                } finally {
+                  setRenameSaving(false);
+                }
+              }}
+              className="w-full"
+              disabled={renameSaving || !editableName.trim()}
+            >
+              {renameSaving ? "Salvando..." : "Salvar nome"}
+            </Button>
           </div>
         )}
       </DialogContent>

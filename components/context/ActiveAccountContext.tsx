@@ -10,6 +10,7 @@ type ActiveAccountContextValue = {
   accounts: AccountWithProp[];
   activeAccountId: string | null;
   setActiveAccountId: (id: string | null) => void;
+  refreshAccounts: () => Promise<void>;
   isLoading: boolean;
 };
 
@@ -56,23 +57,31 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
     persistId(id);
   }, []);
 
+  const applyAccounts = useCallback((list: AccountWithProp[]) => {
+    setAccounts(list);
+    if (list.length === 0) {
+      setActiveAccountIdState(null);
+      persistId(null);
+      return;
+    }
+    const stored = readStoredId();
+    const found = stored && list.some((a) => a.id === stored);
+    const effectiveId = found ? stored : firstActiveAccountId(list);
+    setActiveAccountIdState(effectiveId);
+    persistId(effectiveId);
+  }, []);
+
+  const refreshAccounts = useCallback(async () => {
+    try {
+      const list = await listMyAccountsWithProp();
+      applyAccounts(list);
+    } catch {
+      // ignora
+    }
+  }, [applyAccounts]);
+
   useEffect(() => {
     let mounted = true;
-
-    function applyAccounts(list: AccountWithProp[]) {
-      if (!mounted) return;
-      setAccounts(list);
-      if (list.length === 0) {
-        setActiveAccountIdState(null);
-        persistId(null);
-        return;
-      }
-      const stored = readStoredId();
-      const found = stored && list.some((a) => a.id === stored);
-      const effectiveId = found ? stored : firstActiveAccountId(list);
-      setActiveAccountIdState(effectiveId);
-      persistId(effectiveId);
-    }
 
     async function load() {
       try {
@@ -97,11 +106,11 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
 
     load();
     return () => { mounted = false; };
-  }, []);
+  }, [applyAccounts]);
 
   const value = useMemo<ActiveAccountContextValue>(
-    () => ({ accounts, activeAccountId, setActiveAccountId, isLoading }),
-    [accounts, activeAccountId, setActiveAccountId, isLoading]
+    () => ({ accounts, activeAccountId, setActiveAccountId, refreshAccounts, isLoading }),
+    [accounts, activeAccountId, setActiveAccountId, refreshAccounts, isLoading]
   );
 
   return (
@@ -118,6 +127,7 @@ export function useActiveAccount(): ActiveAccountContextValue {
       accounts: [],
       activeAccountId: null,
       setActiveAccountId: () => {},
+      refreshAccounts: async () => {},
       isLoading: true,
     };
   }
