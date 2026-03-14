@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
-import { X, Save, Tag, FileText } from "lucide-react";
+import { X, Save, Tag, FileText, Pencil } from "lucide-react";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -63,6 +63,8 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const loadDayData = useCallback(async () => {
     if (!date || !userId) return;
@@ -143,8 +145,10 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
           observation: noteResult.observation ?? "",
           tags: Array.isArray(noteResult.tags) ? noteResult.tags : [],
         });
+        setEditMode(false);
       } else {
         setDayNote({ observation: "", tags: [] });
+        setEditMode(true);
       }
     } catch {
       setAccountSummaries([]);
@@ -162,6 +166,7 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
     if (!date || !userId) return;
     setSaving(true);
     setSaved(false);
+    setSaveError(null);
     try {
       if (dayNote.id) {
         await supabase
@@ -177,10 +182,12 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
         if (data) setDayNote((prev) => ({ ...prev, id: (data as { id: string }).id }));
       }
       setSaved(true);
+      setEditMode(false);
       onNoteSaved?.();
       setTimeout(() => setSaved(false), 3000);
-    } catch {
-      // table may not exist
+    } catch (err) {
+      console.warn("[DayDetailModal] save error", err);
+      setSaveError("Erro ao salvar. Tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -281,84 +288,147 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
               </div>
             )}
 
-            {/* Tags */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Etiquetas</h4>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {TAG_PRESETS.map((tag) => (
+            {/* Notes section — View or Edit mode */}
+            {!editMode && dayNote.id ? (
+              /* ---- VIEW MODE ---- */
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Observação</h4>
+                  </div>
                   <button
-                    key={tag}
                     type="button"
-                    onClick={() => toggleTag(tag)}
-                    className={cn(
-                      "rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                      dayNote.tags.includes(tag)
-                        ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500/30"
-                        : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
-                    )}
+                    onClick={() => setEditMode(true)}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
                   >
-                    {tag}
+                    <Pencil className="h-3 w-3" />
+                    Editar
                   </button>
-                ))}
-              </div>
-              {dayNote.tags.filter((t) => !TAG_PRESETS.includes(t)).length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {dayNote.tags.filter((t) => !TAG_PRESETS.includes(t)).map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500/30 px-2 py-1 text-[11px] font-medium"
-                    >
-                      {tag}
-                      <button type="button" onClick={() => toggleTag(tag)} className="hover:text-red-500">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
                 </div>
-              )}
-              <div className="flex gap-1.5">
-                <Input
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomTag())}
-                  placeholder="Tag personalizada..."
-                  className="flex-1 h-7 text-xs"
-                />
-                <Button type="button" variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={addCustomTag}>
-                  +
-                </Button>
-              </div>
-            </div>
 
-            {/* Observation */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Observação</h4>
-              </div>
-              <textarea
-                value={dayNote.observation}
-                onChange={(e) => setDayNote((prev) => ({ ...prev, observation: e.target.value }))}
-                placeholder="Contexto do mercado, lições aprendidas, ajustes para o próximo dia..."
-                rows={3}
-                className="w-full resize-y rounded-lg border border-border/40 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
-              />
-            </div>
+                {/* Tags as read-only badges */}
+                {dayNote.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {dayNote.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 px-2.5 py-0.5 text-[11px] font-medium"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
-            {/* Save */}
-            <Button onClick={handleSaveNote} disabled={saving} className="w-full gap-2" variant={saved ? "outline" : "default"}>
-              {saved ? (
-                <>Salvo</>
-              ) : (
-                <>
-                  <Save className="h-3.5 w-3.5" />
-                  {saving ? "Salvando…" : dayNote.id ? "Atualizar observação" : "Salvar observação"}
-                </>
-              )}
-            </Button>
+                {/* Observation text in a subtle container */}
+                {dayNote.observation && (
+                  <div
+                    className="rounded-lg border border-border/30 px-3.5 py-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap"
+                    style={{ backgroundColor: "hsl(var(--muted) / 0.06)" }}
+                  >
+                    {dayNote.observation}
+                  </div>
+                )}
+
+                {saved && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium text-center">Salvo</p>
+                )}
+              </div>
+            ) : (
+              /* ---- EDIT MODE ---- */
+              <div className="space-y-4">
+                {/* Tags */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Etiquetas</h4>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {TAG_PRESETS.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleTag(tag)}
+                        className={cn(
+                          "rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                          dayNote.tags.includes(tag)
+                            ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500/30"
+                            : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                        )}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                  {dayNote.tags.filter((t) => !TAG_PRESETS.includes(t)).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {dayNote.tags.filter((t) => !TAG_PRESETS.includes(t)).map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500/30 px-2 py-1 text-[11px] font-medium"
+                        >
+                          {tag}
+                          <button type="button" onClick={() => toggleTag(tag)} className="hover:text-red-500">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomTag())}
+                      placeholder="Tag personalizada..."
+                      className="flex-1 h-7 text-xs"
+                    />
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={addCustomTag}>
+                      +
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Observation */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Observação</h4>
+                  </div>
+                  <textarea
+                    value={dayNote.observation}
+                    onChange={(e) => setDayNote((prev) => ({ ...prev, observation: e.target.value }))}
+                    placeholder="Contexto do mercado, lições aprendidas, ajustes para o próximo dia..."
+                    rows={3}
+                    className="w-full resize-y rounded-lg border border-border/40 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                  />
+                </div>
+
+                {saveError && (
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">{saveError}</p>
+                )}
+
+                {/* Save + Cancel */}
+                <div className="flex gap-2">
+                  {dayNote.id && (
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => { setEditMode(false); loadDayData(); }}>
+                      Cancelar
+                    </Button>
+                  )}
+                  <Button onClick={handleSaveNote} disabled={saving} className={cn("gap-2", dayNote.id ? "flex-1" : "w-full")} variant={saved ? "outline" : "default"}>
+                    {saved ? (
+                      <>Salvo</>
+                    ) : (
+                      <>
+                        <Save className="h-3.5 w-3.5" />
+                        {saving ? "Salvando…" : dayNote.id ? "Atualizar observação" : "Salvar observação"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/layout/AppShell";
-import { BGPattern } from "@/components/ui/bg-pattern";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -44,7 +44,9 @@ export default function RootLayout({
               try {
                 const theme = localStorage.getItem('trading-dashboard-theme');
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const resolved = theme === 'dark' || (!theme && prefersDark) ? 'dark' : 'light';
+                const resolved = theme === 'dark' ? 'dark'
+                  : theme === 'light' ? 'light'
+                  : prefersDark ? 'dark' : 'light';
                 document.documentElement.classList.add(resolved);
               } catch {}
             `,
@@ -55,15 +57,10 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrains.variable} relative min-h-screen font-sans antialiased`}
       >
-        <BGPattern
-          variant="dots"
-          mask="fade-center"
-          size={24}
-          fill="currentColor"
-          className="pointer-events-none fixed inset-0 w-full h-full opacity-[0.15] dark:opacity-[0.2] text-foreground !z-0"
-        />
         <ThemeProvider defaultTheme="dark" storageKey="trading-dashboard-theme">
-          <AppShell>{children}</AppShell>
+          <div className="relative z-[1]">
+            <AppShell>{children}</AppShell>
+          </div>
         </ThemeProvider>
       </body>
     </html>

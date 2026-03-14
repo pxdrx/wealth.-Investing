@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand/BrandMark";
-import { LoginBackground } from "@/components/login/LoginBackground";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, toFriendlyMessage } from "@/lib/profile";
+import { GlowyWavesBackground } from "@/components/ui/glowy-waves-background";
 
 const easeApple = [0.16, 1, 0.3, 1] as const;
 type Mode = "signin" | "signup" | "magic";
@@ -127,7 +127,8 @@ export default function LoginPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.45, ease: easeApple }}
     >
-      <LoginBackground className="z-0" />
+      {/* Waves background */}
+      <GlowyWavesBackground />
 
       {/* Fade out overlay on exit */}
       <motion.div

@@ -228,6 +228,7 @@ import { cn } from "@/lib/utils";
 
    const [dayModalDate, setDayModalDate] = useState<string | null>(null);
    const [dayModalOpen, setDayModalOpen] = useState(false);
+   const [noteVersion, setNoteVersion] = useState(0);
 
    const handleDayClick = useCallback((date: string) => {
      setDayModalDate(date);
@@ -501,7 +502,7 @@ import { cn } from "@/lib/utils";
          </Card>
 
          <div className="lg:col-span-12">
-           <PnlCalendar accountId={activeAccountId} allAccounts userId={userId} onDayClick={handleDayClick} />
+           <PnlCalendar accountId={activeAccountId} allAccounts userId={userId} onDayClick={handleDayClick} refreshKey={noteVersion} />
          </div>
        </div>
 
@@ -510,6 +511,7 @@ import { cn } from "@/lib/utils";
          userId={userId}
          open={dayModalOpen}
          onOpenChange={setDayModalOpen}
+         onNoteSaved={() => setNoteVersion((v) => v + 1)}
        />
      </div>
    );
