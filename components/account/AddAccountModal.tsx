@@ -196,12 +196,13 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
 
       const accountId = (accountData as { id: string }).id;
 
-      // If prop, create prop_accounts entry
+      // If prop, create prop_accounts entry (user_id required for RLS)
       if (accountKind === "prop" && selectedFirm) {
         const preset = selectedFirm;
         const { error: propError } = await supabase
           .from("prop_accounts")
           .insert({
+            user_id: session.user.id,
             account_id: accountId,
             firm_name: firmName,
             phase: "phase_1",

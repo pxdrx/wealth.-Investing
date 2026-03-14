@@ -13,7 +13,6 @@
  import { Separator } from "@/components/ui/separator";
  import { useActiveAccount } from "@/components/context/ActiveAccountContext";
  import { PnlCalendar } from "@/components/journal/PnlCalendar";
- import { DayDetailModal } from "@/components/journal/DayDetailModal";
  import { supabase } from "@/lib/supabase/client";
  import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
@@ -226,9 +225,7 @@ import { cn } from "@/lib/utils";
      };
    }, [journalTrades]);
 
-   const [dayModalDate, setDayModalDate] = useState<string | null>(null);
-   const [dayModalOpen, setDayModalOpen] = useState(false);
-   const [noteVersion, setNoteVersion] = useState(0);
+   // Dashboard calendar is read-only (no modal, no notes)
 
    // Lazy-load TradingView iframe via IntersectionObserver
    const watchlistRef = useRef<HTMLDivElement>(null);
@@ -250,9 +247,8 @@ import { cn } from "@/lib/utils";
      return () => observer.disconnect();
    }, []);
 
-   const handleDayClick = useCallback((date: string) => {
-     setDayModalDate(date);
-     setDayModalOpen(true);
+   const handleDayClick = useCallback((_date: string) => {
+     // Dashboard calendar is read-only — no modal opens
    }, []);
 
    const formattedNews = useMemo(() => {
@@ -528,17 +524,11 @@ import { cn } from "@/lib/utils";
          </Card>
 
          <div className="lg:col-span-12">
-           <PnlCalendar accountId={activeAccountId} allAccounts userId={userId} onDayClick={handleDayClick} refreshKey={noteVersion} />
+           <PnlCalendar accountId={activeAccountId} allAccounts userId={userId} onDayClick={handleDayClick} refreshKey={0} />
          </div>
        </div>
 
-       <DayDetailModal
-         date={dayModalDate}
-         userId={userId}
-         open={dayModalOpen}
-         onOpenChange={setDayModalOpen}
-         onNoteSaved={() => setNoteVersion((v) => v + 1)}
-       />
+       {/* Calendar is read-only on dashboard — DayDetailModal only in /app/journal */}
      </div>
    );
  }
