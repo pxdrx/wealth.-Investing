@@ -6,6 +6,17 @@ import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 
 /** Five minutes in milliseconds */
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+/** Timeout for auth operations to prevent infinite hang */
+const AUTH_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Auth timeout")), ms)
+    ),
+  ]);
+}
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -20,12 +31,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         if (sessionRef.current?.expires_at) {
           const msUntilExpiry = sessionRef.current.expires_at * 1000 - Date.now();
           if (msUntilExpiry > REFRESH_THRESHOLD_MS) {
-            setReady(true);
+            if (mounted) setReady(true);
             return;
           }
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          AUTH_TIMEOUT_MS
+        );
 
         if (!mounted) return;
 
@@ -34,29 +48,28 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Check token expiration and refresh if within threshold
+        // Cache current session immediately — only refresh if truly needed
+        sessionRef.current = {
+          expires_at: session.expires_at,
+          user_id: session.user.id,
+        };
+        setReady(true);
+
+        // Refresh token in background if expiring soon (non-blocking)
         const expiresAt = session.expires_at;
         if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
-          const { data, error } = await supabase.auth.refreshSession();
-          if (!mounted) return;
-          if (error || !data.session) {
-            window.location.href = "/login";
-            return;
-          }
-          // Cache refreshed session
-          sessionRef.current = {
-            expires_at: data.session.expires_at,
-            user_id: data.session.user.id,
-          };
-        } else {
-          // Cache current session
-          sessionRef.current = {
-            expires_at: session.expires_at,
-            user_id: session.user.id,
-          };
+          supabase.auth.refreshSession().then(({ data, error }) => {
+            if (!mounted) return;
+            if (error || !data.session) {
+              window.location.href = "/login";
+              return;
+            }
+            sessionRef.current = {
+              expires_at: data.session.expires_at,
+              user_id: data.session.user.id,
+            };
+          });
         }
-
-        setReady(true);
 
         ensureDefaultAccounts(session.user.id).then((r) => {
           if (!r.ok && typeof sessionStorage !== "undefined") {
