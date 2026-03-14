@@ -160,7 +160,7 @@ export default function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.08, ease: easeApple }}
         >
-          <div className="rounded-[22px] border border-border bg-card p-8 shadow-soft dark:shadow-soft-dark">
+          <div className="rounded-[22px] border border-border p-8 shadow-soft dark:shadow-soft-dark" style={{ backgroundColor: "hsl(var(--card))" }}>
 
             {/* Tab bar */}
             <div className="flex items-center gap-1 rounded-[14px] bg-muted/50 p-1 mb-6">

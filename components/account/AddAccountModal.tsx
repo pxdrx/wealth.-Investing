@@ -23,7 +23,7 @@ interface AddAccountModalProps {
   onRefreshAccounts?: () => Promise<void>;
 }
 
-type Step = "type" | "crypto-sub" | "firm" | "details" | "status" | "done" | "rename";
+type Step = "type" | "crypto-sub" | "firm" | "details" | "done" | "rename";
 
 interface PropFirmPreset {
   id: string;
@@ -119,7 +119,6 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
   const [phases, setPhases] = useState(2);
   const [drawdownType, setDrawdownType] = useState<"static" | "trailing">("static");
   const [cryptoSubKind, setCryptoSubKind] = useState<"prop" | "personal" | null>(null);
-  const [isExisting, setIsExisting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdAccountId, setCreatedAccountId] = useState<string | null>(null);
@@ -138,7 +137,6 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
     setPhases(2);
     setDrawdownType("static");
     setCryptoSubKind(null);
-    setIsExisting(false);
     setSaving(false);
     setError(null);
     setCreatedAccountId(null);
@@ -168,10 +166,6 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
   const handleSelectFirm = (firm: PropFirmPreset) => {
     setSelectedFirm(firm);
     setStep("details");
-  };
-
-  const handleGoToStatus = () => {
-    setStep("status");
   };
 
   const handleSave = async () => {
@@ -248,7 +242,6 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
             {step === "crypto-sub" && "Tipo de conta crypto"}
             {step === "firm" && "Mesa proprietária"}
             {step === "details" && "Detalhes da conta"}
-            {step === "status" && "Status da conta"}
             {step === "done" && "Conta criada"}
             {step === "rename" && "Nome da conta"}
           </DialogTitle>
@@ -257,7 +250,6 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
             {step === "crypto-sub" && "Selecione o tipo da sua conta crypto"}
             {step === "firm" && "Selecione sua mesa proprietária"}
             {step === "details" && "Configure os detalhes da conta"}
-            {step === "status" && "A conta é nova ou já está em uso?"}
             {step === "done" && "Sua conta foi adicionada com sucesso."}
             {step === "rename" && "Escolha um nome para sua conta"}
           </DialogDescription>
@@ -499,58 +491,9 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
               </div>
             )}
 
-            <Button onClick={(accountKind === "prop" || cryptoSubKind === "prop") ? handleGoToStatus : handleSave} className="w-full" disabled={saving}>
-              {(accountKind === "prop" || cryptoSubKind === "prop") ? "Próximo" : saving ? "Criando..." : "Criar conta"}
+            <Button onClick={handleSave} className="w-full" disabled={saving}>
+              {saving ? "Criando..." : "Criar conta"}
             </Button>
-          </div>
-        )}
-
-        {/* Step: Status (new vs existing) */}
-        {step === "status" && (
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setStep("details")}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ChevronLeft className="h-3 w-3" /> Voltar
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setIsExisting(false); handleSave(); }}
-              className={cn(
-                "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-all hover:border-blue-500/40",
-                !isExisting ? "border-blue-500/40 bg-blue-500/5" : "border-border/60"
-              )}
-            >
-              <div className="rounded-lg p-2 bg-emerald-500/10">
-                <Check className="h-5 w-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Conta nova</p>
-                <p className="text-xs text-muted-foreground">Vou começar do zero nesta mesa</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setIsExisting(true); handleSave(); }}
-              className={cn(
-                "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-all hover:border-blue-500/40",
-                isExisting ? "border-blue-500/40 bg-blue-500/5" : "border-border/60"
-              )}
-            >
-              <div className="rounded-lg p-2 bg-amber-500/10">
-                <Briefcase className="h-5 w-5 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Conta em uso</p>
-                <p className="text-xs text-muted-foreground">Já tenho trades — vou importar o relatório</p>
-              </div>
-            </button>
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
         )}
 
@@ -562,39 +505,29 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">
-                {isExisting ? "Conta adicionada!" : "Pronto! Sua conta está ativa."}
+                Conta adicionada com sucesso!
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {isExisting
-                  ? "Importe o relatório MT5 (.html) para extrair o histórico de trades."
-                  : "Sua conta já está selecionada e pronta para uso."}
+                Sua conta já está selecionada e pronta para uso. Importe um relatório MT5 no Journal para começar.
               </p>
             </div>
             <Button onClick={() => setStep("rename")} className="w-full">
               Personalizar nome
             </Button>
-            {isExisting ? (
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    handleClose(false);
-                    window.location.href = "/app/journal";
-                  }}
-                  className="w-full gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  Importar relatório MT5 (.html)
-                </Button>
-                <Button variant="ghost" onClick={() => handleClose(false)} className="w-full">
-                  Fechar
-                </Button>
-              </div>
-            ) : (
-              <Button variant="ghost" onClick={() => handleClose(false)} className="w-full">
-                Manter nome atual
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              onClick={() => {
+                handleClose(false);
+                window.location.href = "/app/journal";
+              }}
+              className="w-full gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Importar relatório MT5
+            </Button>
+            <Button variant="ghost" onClick={() => handleClose(false)} className="w-full">
+              Fechar
+            </Button>
           </div>
         )}
 
@@ -634,9 +567,6 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                   if (updateError) throw updateError;
                   await onRefreshAccounts?.();
                   handleClose(false);
-                  if (isExisting) {
-                    window.location.href = "/app/journal";
-                  }
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Erro ao renomear");
                 } finally {
