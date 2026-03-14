@@ -35,7 +35,17 @@
       "mcp__playwright__browser_take_screenshot",
       "Bash(find /c/Users/phalm/trading-dashboard/components/journal -type f -name \"*.tsx\" 2>/dev/null | head -20)",
       "Bash(npm run:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(find /c/Users/phalm/trading-dashboard -type f \\\\\\( -name \"*.png\" -o -name \"*.jpg\" -o -name \"*.jpeg\" -o -name \"*.svg\" -o -name \"*.webp\" \\\\\\) ! -path \"*/node_modules/*\" 2>/dev/null | head -20)",
+      "Bash(find /c/Users/phalm/.claude -name \"*.json\" -type f 2>/dev/null | head -10)",
+      "Bash(grep -r \"stitch\\\\|figma\\\\|generation\\\\|canvas\\\\|draw\" /c/Users/phalm/trading-dashboard/components/landing --include=\"*.tsx\" --include=\"*.ts\" -i 2>/dev/null | head -20)",
+      "Bash(ls -lh /c/Users/phalm/trading-dashboard/*.png 2>/dev/null)",
+      "Bash(wc -l C:\\\\Users\\\\phalm\\\\trading-dashboard\\\\components\\\\landing\\\\*.tsx | tail -1)",
+      "Bash(find /c/Users/phalm/trading-dashboard/components/landing -name \"*.tsx\" -exec wc -l {} + | sort -rn | head -20)",
+      "Bash(grep -r \"import.*gsap\" /c/Users/phalm/trading-dashboard/components /c/Users/phalm/trading-dashboard/app --include=\"*.tsx\" --include=\"*.ts\" 2>/dev/null | head -20)",
+      "Bash(cd C:/Users/phalm/trading-dashboard && npm install 2>&1 | tail -5)"
     ]
   }
 }

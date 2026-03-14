@@ -19,6 +19,7 @@ interface DayDetailModalProps {
   userId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onNoteSaved?: () => void;
 }
 
 interface AccountTradesSummary {
@@ -55,7 +56,7 @@ const TAG_PRESETS = [
   "Sessão NY",
 ];
 
-export function DayDetailModal({ date, userId, open, onOpenChange }: DayDetailModalProps) {
+export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [dayNote, setDayNote] = useState<DayNote>({ observation: "", tags: [] });
@@ -69,8 +70,9 @@ export function DayDetailModal({ date, userId, open, onOpenChange }: DayDetailMo
     setSaved(false);
 
     try {
-      const startOfDay = new Date(date + "T00:00:00.000Z").toISOString();
-      const endOfDay = new Date(date + "T23:59:59.999Z").toISOString();
+      // Use local time to match PnlCalendar's date key logic (which uses getMonth/getDate)
+      const startOfDay = new Date(date + "T00:00:00").toISOString();
+      const endOfDay = new Date(date + "T23:59:59.999").toISOString();
 
       const [tradesRes, accountsRes] = await Promise.all([
         supabase
@@ -175,7 +177,8 @@ export function DayDetailModal({ date, userId, open, onOpenChange }: DayDetailMo
         if (data) setDayNote((prev) => ({ ...prev, id: (data as { id: string }).id }));
       }
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      onNoteSaved?.();
+      setTimeout(() => setSaved(false), 3000);
     } catch {
       // table may not exist
     } finally {
@@ -352,7 +355,7 @@ export function DayDetailModal({ date, userId, open, onOpenChange }: DayDetailMo
               ) : (
                 <>
                   <Save className="h-3.5 w-3.5" />
-                  {saving ? "Salvando…" : "Salvar observação"}
+                  {saving ? "Salvando…" : dayNote.id ? "Atualizar observação" : "Salvar observação"}
                 </>
               )}
             </Button>

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
+import { ListFilter, TrendingUp } from "lucide-react";
 
 const PAGE_SIZE = 15;
 
@@ -61,6 +62,14 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
     return list;
   }, [trades, dateFrom, dateTo, direction, result]);
 
+  // Summary stats
+  const summary = useMemo(() => {
+    const totalPnl = filtered.reduce((sum, t) => sum + getNetPnl(t), 0);
+    const wins = filtered.filter((t) => getNetPnl(t) > 0).length;
+    const winRate = filtered.length > 0 ? (wins / filtered.length) * 100 : 0;
+    return { totalPnl, totalTrades: filtered.length, winRate };
+  }, [filtered]);
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
   const pageTrades = useMemo(
@@ -74,64 +83,76 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
         <CardTitle className="text-base font-medium">Trades</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">De</Label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => {
-                setDateFrom(e.target.value);
-                setPage(0);
-              }}
-              className="w-[140px]"
-            />
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ListFilter className="h-3.5 w-3.5" />
+            Filtros
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Até</Label>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => {
-                setDateTo(e.target.value);
-                setPage(0);
-              }}
-              className="w-[140px]"
-            />
+
+          {/* Direction pills */}
+          <div className="flex rounded-lg border border-border/60 overflow-hidden">
+            {(["all", "buy", "sell"] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => { setDirection(d); setPage(0); }}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  direction === d
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}
+              >
+                {d === "all" ? "Todos" : d === "buy" ? "Buy" : "Sell"}
+              </button>
+            ))}
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Direção</Label>
-            <select
-              value={direction}
-              onChange={(e) => {
-                setDirection(e.target.value as DirectionFilter);
-                setPage(0);
-              }}
-              className="h-10 w-[100px] rounded-input border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="all">Todos</option>
-              <option value="buy">Buy</option>
-              <option value="sell">Sell</option>
-            </select>
+
+          {/* Result pills */}
+          <div className="flex rounded-lg border border-border/60 overflow-hidden">
+            {(["all", "win", "loss"] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => { setResult(r); setPage(0); }}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  result === r
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}
+              >
+                {r === "all" ? "Todos" : r === "win" ? "Win" : "Loss"}
+              </button>
+            ))}
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Resultado</Label>
-            <select
-              value={result}
-              onChange={(e) => {
-                setResult(e.target.value as ResultFilter);
-                setPage(0);
-              }}
-              className="h-10 w-[100px] rounded-input border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="all">Todos</option>
-              <option value="win">Win</option>
-              <option value="loss">Loss</option>
-            </select>
+
+          {/* Date filters */}
+          <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground">De</Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+                className="w-[130px] h-8 text-xs"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground">Até</Label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+                className="w-[130px] h-8 text-xs"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="rounded-input border border-border/80 bg-muted/10 overflow-hidden">
+        {/* Table */}
+        <div className="rounded-input border border-border/80 overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="border-border/60 hover:bg-transparent">
@@ -139,15 +160,15 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 <TableHead>Direção</TableHead>
                 <TableHead>Abertura</TableHead>
                 <TableHead>Fechamento</TableHead>
-                <TableHead>Duração</TableHead>
-                <TableHead className="text-right">PnL bruto</TableHead>
-                <TableHead className="text-right">Fees</TableHead>
+                <TableHead className="hidden lg:table-cell">Duração</TableHead>
+                <TableHead className="text-right hidden lg:table-cell">PnL bruto</TableHead>
+                <TableHead className="text-right hidden lg:table-cell">Fees</TableHead>
                 <TableHead className="text-right">Net PnL</TableHead>
                 <TableHead>Resultado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageTrades.map((t) => {
+              {pageTrades.map((t, idx) => {
                 const gross = t.pnl_usd ?? 0;
                 const fees = t.fees_usd ?? 0;
                 const net = getNetPnl(t);
@@ -157,10 +178,13 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 return (
                   <TableRow
                     key={t.id}
-                    className="cursor-pointer"
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      idx % 2 === 1 && "bg-muted/5"
+                    )}
                     onClick={() => onTradeClick(t)}
                   >
-                    <TableCell className="font-medium">{t.symbol}</TableCell>
+                    <TableCell className="font-semibold text-foreground">{t.symbol}</TableCell>
                     <TableCell>
                       <Badge variant={isBuy ? "default" : "warning"} className="capitalize">
                         {t.direction ?? "—"}
@@ -172,14 +196,14 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {formatDateTime(t.closed_at)}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
                       {formatDuration(t.opened_at, t.closed_at)}
                     </TableCell>
-                    <TableCell className="text-right text-sm">
+                    <TableCell className="text-right text-sm hidden lg:table-cell">
                       {gross >= 0 ? "+" : ""}
                       {gross.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">
+                    <TableCell className="text-right text-xs text-muted-foreground hidden lg:table-cell">
                       {(fees ?? 0).toFixed(2)}
                     </TableCell>
                     <TableCell className={cn("text-right text-sm font-medium", net >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
@@ -198,23 +222,49 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
           </Table>
         </div>
 
+        {/* Empty state */}
         {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            Nenhum trade encontrado com os filtros selecionados.
-          </p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <TrendingUp className="h-10 w-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm font-medium text-muted-foreground">
+              Nenhum trade encontrado
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Ajuste os filtros ou importe um relatório MT5 para começar.
+            </p>
+          </div>
         )}
 
+        {/* Summary footer + pagination */}
         {filtered.length > 0 && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {filtered.length} trade(s) · página {currentPage + 1} de {totalPages}
-            </p>
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            {/* Summary */}
+            <div className="flex items-center gap-4 text-xs">
+              <span className="text-muted-foreground">
+                {summary.totalTrades} trade{summary.totalTrades !== 1 ? "s" : ""}
+              </span>
+              <span className={cn(
+                "font-semibold",
+                summary.totalPnl >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500"
+              )}>
+                {summary.totalPnl >= 0 ? "+" : ""}{summary.totalPnl.toFixed(2)} USD
+              </span>
+              <span className="text-muted-foreground">
+                WR: {summary.winRate.toFixed(0)}%
+              </span>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {currentPage + 1}/{totalPages}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={currentPage === 0}
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
+                className="h-7 text-xs"
               >
                 Anterior
               </Button>
@@ -223,6 +273,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 size="sm"
                 disabled={currentPage >= totalPages - 1}
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                className="h-7 text-xs"
               >
                 Próximo
               </Button>

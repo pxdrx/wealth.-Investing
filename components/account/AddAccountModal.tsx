@@ -13,12 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
-import { Briefcase, Wallet, Bitcoin, Building2, ChevronLeft, Check } from "lucide-react";
+import { Briefcase, Wallet, Bitcoin, Building2, ChevronLeft, Check, Upload } from "lucide-react";
 import type { AccountKind } from "@/lib/accounts";
 
 interface AddAccountModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAccountCreated?: (id: string) => void;
 }
 
 type Step = "type" | "firm" | "details" | "status" | "done";
@@ -106,7 +107,7 @@ const PROP_FIRMS: PropFirmPreset[] = [
 
 const ACCOUNT_SIZES = [5000, 10000, 25000, 50000, 100000, 200000];
 
-export function AddAccountModal({ open, onOpenChange }: AddAccountModalProps) {
+export function AddAccountModal({ open, onOpenChange, onAccountCreated }: AddAccountModalProps) {
   const [step, setStep] = useState<Step>("type");
   const [accountKind, setAccountKind] = useState<AccountKind | null>(null);
   const [selectedFirm, setSelectedFirm] = useState<PropFirmPreset | null>(null);
@@ -118,6 +119,7 @@ export function AddAccountModal({ open, onOpenChange }: AddAccountModalProps) {
   const [isExisting, setIsExisting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdAccountId, setCreatedAccountId] = useState<string | null>(null);
 
   const reset = () => {
     setStep("type");
@@ -131,6 +133,7 @@ export function AddAccountModal({ open, onOpenChange }: AddAccountModalProps) {
     setIsExisting(false);
     setSaving(false);
     setError(null);
+    setCreatedAccountId(null);
   };
 
   const handleClose = (v: boolean) => {
@@ -206,6 +209,8 @@ export function AddAccountModal({ open, onOpenChange }: AddAccountModalProps) {
         if (propError) throw propError;
       }
 
+      setCreatedAccountId(accountId);
+      onAccountCreated?.(accountId);
       setStep("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar conta");
@@ -464,14 +469,37 @@ export function AddAccountModal({ open, onOpenChange }: AddAccountModalProps) {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
               <Check className="h-8 w-8 text-emerald-500" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              {isExisting
-                ? "Conta adicionada. Importe o relatório MT5 para extrair o saldo atual."
-                : "Conta adicionada com sucesso. Recarregue a página para vê-la no dropdown."}
-            </p>
-            <Button onClick={() => { handleClose(false); window.location.reload(); }} className="w-full">
-              Fechar
-            </Button>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {isExisting ? "Conta adicionada!" : "Pronto! Sua conta está ativa."}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isExisting
+                  ? "Importe o relatório MT5 (.html) para extrair o histórico de trades."
+                  : "Sua conta já está selecionada e pronta para uso."}
+              </p>
+            </div>
+            {isExisting ? (
+              <div className="space-y-2">
+                <Button
+                  onClick={() => {
+                    handleClose(false);
+                    window.location.href = "/app/journal";
+                  }}
+                  className="w-full gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Importar relatório MT5 (.html)
+                </Button>
+                <Button variant="outline" onClick={() => handleClose(false)} className="w-full">
+                  Fechar
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => handleClose(false)} className="w-full">
+                Fechar
+              </Button>
+            )}
           </div>
         )}
       </DialogContent>

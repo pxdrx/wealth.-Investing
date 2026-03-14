@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { useInView } from "framer-motion";
 
 interface StatCounterProps {
   value: number;
@@ -17,11 +16,29 @@ export function StatCounter({
   className = "",
 }: StatCounterProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true });
   const [display, setDisplay] = useState("0");
+  const [hasAnimated, setHasAnimated] = useState(false);
 
   useEffect(() => {
-    if (!isInView) return;
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated) {
+          setHasAnimated(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasAnimated]);
+
+  useEffect(() => {
+    if (!hasAnimated) return;
 
     const start = performance.now();
     const isDecimal = value % 1 !== 0;
@@ -39,7 +56,7 @@ export function StatCounter({
     }
 
     requestAnimationFrame(tick);
-  }, [isInView, value, duration]);
+  }, [hasAnimated, value, duration]);
 
   return (
     <span ref={ref} className={className}>

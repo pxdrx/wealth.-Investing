@@ -12,6 +12,7 @@ interface PnlCalendarProps {
   allAccounts?: boolean;
   userId?: string | null;
   onDayClick?: (date: string, dayData: DayData) => void;
+  refreshKey?: number;
 }
 
 export interface DayData {
@@ -39,7 +40,7 @@ function getNet(r: TradeRow): number {
   return (r.pnl_usd ?? 0) + (r.fees_usd ?? 0);
 }
 
-export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick }: PnlCalendarProps) {
+export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick, refreshKey = 0 }: PnlCalendarProps) {
   const now = new Date();
   const [displayMonth, setDisplayMonth] = useState(now.getMonth());
   const [displayYear, setDisplayYear] = useState(now.getFullYear());
@@ -118,7 +119,7 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
       }
     })();
     return () => { cancelled = true; };
-  }, [userId, displayMonth, displayYear]);
+  }, [userId, displayMonth, displayYear, refreshKey]);
 
   // Aggregate by day
   const dailyData = useMemo(() => {

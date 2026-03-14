@@ -1,4 +1,3 @@
-import { AnnouncementBar } from "@/components/landing/AnnouncementBar";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { TrustBar } from "@/components/landing/TrustBar";
@@ -38,7 +37,6 @@ export default function LandingPage() {
         Pular para o conteúdo
       </a>
 
-      <AnnouncementBar />
       <Navbar />
 
       <main id="main-content">

@@ -1,4 +1,4 @@
-import { Logo } from "./Logo";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { FOOTER_COLUMNS, FOOTER_MANIFESTO, FOOTER_LEGAL } from "@/lib/landing-data";
 
 export function Footer() {
@@ -81,9 +81,9 @@ export function Footer() {
           style={{ borderColor: "hsl(var(--landing-border))" }}
         >
           <div className="flex items-center gap-2.5">
-            <Logo size={20} />
+            <BrandMark className="text-xs" />
             <span className="text-xs text-l-text-muted">
-              © 2026 wealth.Investing
+              © 2026
             </span>
           </div>
           <div className="flex items-center gap-4">

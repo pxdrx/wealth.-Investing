@@ -1,7 +1,21 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import {
+  ArrowRight,
+  Link,
+  FileText,
+  Landmark,
+  BarChart3,
+  Flame,
+  TrendingUp,
+  Pencil,
+  Tag,
+  ClipboardList,
+  Shield,
+  Target,
+  BarChart2,
+  Circle,
+} from "lucide-react";
 import { AnimatedSection } from "./AnimatedSection";
 import type { FeatureData } from "@/lib/landing-data";
 
@@ -11,16 +25,23 @@ interface FeatureSectionProps {
   visual: React.ReactNode;
 }
 
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  link: Link,
+  "file-text": FileText,
+  landmark: Landmark,
+  "bar-chart-3": BarChart3,
+  flame: Flame,
+  "trending-up": TrendingUp,
+  pencil: Pencil,
+  tag: Tag,
+  "clipboard-list": ClipboardList,
+  shield: Shield,
+  target: Target,
+  "bar-chart-2": BarChart2,
+};
+
 function getIcon(name: string) {
-  const iconMap: Record<string, keyof typeof LucideIcons> = {
-    link: "Link", "file-text": "FileText", landmark: "Landmark",
-    "bar-chart-3": "BarChart3", flame: "Flame", "trending-up": "TrendingUp",
-    pencil: "Pencil", tag: "Tag", "clipboard-list": "ClipboardList",
-    shield: "Shield", target: "Target", "bar-chart-2": "BarChart2",
-  };
-  const key = iconMap[name] || "Circle";
-  const Icon = LucideIcons[key] as React.ComponentType<{ className?: string }>;
-  return Icon || LucideIcons.Circle;
+  return iconMap[name] || Circle;
 }
 
 export function FeatureSection({ data, reversed, visual }: FeatureSectionProps) {

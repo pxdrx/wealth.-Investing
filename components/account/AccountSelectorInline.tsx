@@ -124,7 +124,11 @@ export function AccountSelectorInline({ showAddButton = false }: AccountSelector
         )}
       </div>
 
-      <AddAccountModal open={addModalOpen} onOpenChange={setAddModalOpen} />
+      <AddAccountModal
+        open={addModalOpen}
+        onOpenChange={setAddModalOpen}
+        onAccountCreated={(id) => setActiveAccountId(id)}
+      />
     </>
   );
 }

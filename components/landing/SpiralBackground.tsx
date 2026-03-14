@@ -6,7 +6,7 @@
  const CAMERA_Z = -400;
  const CAMERA_TRAVEL = 3400;
  const VIEW_ZOOM = 100;
- const N_STARS = 5000;
+ const N_STARS = 1500;
  const TRAIL_LEN = 80;
  const START_DOT_Y = 28;
  
@@ -129,7 +129,15 @@
     }
      resize();
      window.addEventListener("resize", resize);
- 
+
+     // Pause animation when canvas is not visible (saves CPU)
+     let isVisible = true;
+     const observer = new IntersectionObserver(
+       ([entry]) => { isVisible = entry.isIntersecting; },
+       { threshold: 0 }
+     );
+     observer.observe(canvas);
+
      function showDot(pos: { x: number; y: number; z: number }, sizeFactor: number, animTime: number) {
        const t2 = clamp(mapRange(animTime, 0.32, 1, 0, 1), 0, 1);
        const newCamZ = CAMERA_Z + ease(Math.pow(t2, 1.2), 1.8) * CAMERA_TRAVEL;
@@ -143,6 +151,7 @@
      }
  
     function render(ts: number) {
+      if (!isVisible) { raf = requestAnimationFrame(render); return; }
       const animTime = (ts * 0.001 * 0.067) % 1;
       const light = canvas!.dataset.light === "true";
 
@@ -181,6 +190,7 @@
      return () => {
        cancelAnimationFrame(raf);
        window.removeEventListener("resize", resize);
+       observer.disconnect();
      };
    }, []);
  

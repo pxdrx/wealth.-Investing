@@ -9,18 +9,18 @@
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --primary: 160 84% 39%;
+    --primary: 215 25% 15%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 14% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
-    --accent: 160 84% 39%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 215 20% 95%;
+    --accent-foreground: 215 25% 15%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --input-bg: 240 5% 97%;
-    --ring: 160 84% 39%;
+    --ring: 215 20% 65%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
@@ -33,7 +33,7 @@
     --landing-text: 222 47% 11%;
     --landing-text-secondary: 220 9% 35%;
     --landing-text-muted: 220 9% 58%;
-    --landing-accent: 160 72% 34%;
+    --landing-accent: 215 25% 15%;
     --landing-accent-secondary: 217 60% 50%;
     --landing-accent-warning: 38 80% 48%;
     --landing-accent-danger: 0 72% 50%;
@@ -64,18 +64,18 @@
     --foreground: 0 0% 100%;
     --card: 0 0% 8%;
     --card-foreground: 0 0% 100%;
-    --primary: 160 100% 45%;
-    --primary-foreground: 0 0% 4%;
+    --primary: 210 20% 90%;
+    --primary-foreground: 215 25% 8%;
     --secondary: 0 0% 10%;
     --secondary-foreground: 0 0% 100%;
     --muted: 0 0% 10%;
     --muted-foreground: 220 9% 64%;
-    --accent: 160 100% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 215 15% 15%;
+    --accent-foreground: 210 20% 90%;
     --border: 0 0% 15%;
     --input: 0 0% 15%;
     --input-bg: 0 0% 10%;
-    --ring: 160 100% 45%;
+    --ring: 215 20% 55%;
     --popover: 0 0% 8%;
     --popover-foreground: 0 0% 100%;
 
@@ -88,7 +88,7 @@
     --landing-text: 0 0% 96%;
     --landing-text-secondary: 0 0% 65%;
     --landing-text-muted: 0 0% 45%;
-    --landing-accent: 160 80% 42%;
+    --landing-accent: 210 20% 90%;
     --landing-accent-secondary: 217 60% 55%;
     --landing-accent-warning: 38 80% 50%;
     --landing-accent-danger: 0 72% 55%;
@@ -179,5 +179,21 @@
     transform: translateY(-2px);
     border-color: hsl(var(--landing-border-strong));
     box-shadow: var(--landing-card-shadow-hover);
+  }
+
+  /* Hero entry animation — CSS only, no framer-motion needed */
+  .hero-fade-in {
+    animation: heroFadeIn 0.7s ease-out both;
+  }
+}
+
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

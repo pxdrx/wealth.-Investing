@@ -60,6 +60,7 @@ export default function JournalPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [dayModalDate, setDayModalDate] = useState<string | null>(null);
   const [dayModalOpen, setDayModalOpen] = useState(false);
+  const [noteVersion, setNoteVersion] = useState(0);
 
   // Get userId
   useEffect(() => {
@@ -282,6 +283,7 @@ export default function JournalPage() {
                 accountId={activeAccountId}
                 userId={userId}
                 onDayClick={handleDayClick}
+                refreshKey={noteVersion}
               />
             )}
             {activeTab === SECTION_STATS && (
@@ -306,6 +308,7 @@ export default function JournalPage() {
         userId={userId}
         open={dayModalOpen}
         onOpenChange={setDayModalOpen}
+        onNoteSaved={() => setNoteVersion((v) => v + 1)}
       />
     </div>
   );
