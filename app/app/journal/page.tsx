@@ -47,6 +47,7 @@ export default function JournalPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [importStage, setImportStage] = useState<"idle" | "uploading" | "processing" | "done">("idle");
   const [result, setResult] = useState<ImportResult>(null);
   const [error, setError] = useState<string | null>(null);
   const [trades, setTrades] = useState<JournalTradeRow[]>([]);
@@ -110,19 +111,21 @@ export default function JournalPage() {
     setError(null);
     setResult(null);
     setUploading(true);
+    setImportStage("uploading");
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { setError("Sessao invalida. Faca login novamente."); return; }
+      if (!session?.access_token) { setError("Sessao invalida. Faca login novamente."); setImportStage("idle"); return; }
       const formData = new FormData();
       formData.set("file", file);
       formData.set("accountId", activeAccountId);
+      setImportStage("processing");
       const res = await fetch("/api/journal/import-mt5", {
         method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: formData,
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data.error || `Erro ${res.status}`); return; }
+      if (!res.ok) { setError(data.error || `Erro ${res.status}`); setImportStage("idle"); return; }
       setResult({
         parser_used: data.parser_used,
         trades_found: data.trades_found,
@@ -132,9 +135,11 @@ export default function JournalPage() {
         payouts_detected: data.payouts_detected ?? 0,
         duration_ms: data.duration_ms ?? 0,
       });
+      setImportStage("done");
       await loadTrades();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao importar");
+      setImportStage("idle");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -209,29 +214,59 @@ export default function JournalPage() {
                 className="hidden"
                 onChange={(e) => handleImport(e.target.files)}
               />
-              <Button
-                variant="outline"
-                disabled={!activeAccountId || uploading}
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                {uploading ? "Importando..." : "Selecionar arquivo"}
-              </Button>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              {result && (
-                <div className="rounded-lg border border-border/40 p-3 text-sm space-y-1" style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}>
-                  <p className="font-semibold text-foreground text-xs">Resultado da importação</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
-                    {result.parser_used && <><span className="text-muted-foreground">Parser:</span><span className="font-medium">{result.parser_used === "html" ? "HTML" : "XLSX"}</span></>}
-                    {result.trades_found != null && <><span className="text-muted-foreground">Encontrados:</span><span className="font-medium">{result.trades_found}</span></>}
-                    <span className="text-muted-foreground">Importados:</span><span className="font-medium">{result.trades_imported}</span>
-                    <span className="text-muted-foreground">Duplicados:</span><span className="font-medium">{result.trades_duplicates_ignored}</span>
-                    {(result.trades_failed ?? 0) > 0 && <><span className="text-muted-foreground">Falhas:</span><span className="font-medium text-destructive">{result.trades_failed}</span></>}
-                    <span className="text-muted-foreground">Payouts:</span><span className="font-medium">{result.payouts_detected}</span>
+              {importStage === "idle" && (
+                <Button
+                  variant="outline"
+                  disabled={!activeAccountId}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Selecionar arquivo
+                </Button>
+              )}
+
+              {(importStage === "uploading" || importStage === "processing") && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    {importStage === "uploading" ? "Enviando arquivo..." : "Processando trades..."}
                   </div>
+                  <div className="h-2 w-full rounded-full bg-muted/30 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-1000 ease-out"
+                      style={{ width: importStage === "uploading" ? "30%" : "70%", animation: importStage === "processing" ? "pulse 2s ease-in-out infinite" : undefined }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {importStage === "processing" && "Trades antigos são pulados automaticamente. Apenas novos trades são processados."}
+                  </p>
                 </div>
               )}
+
+              {importStage === "done" && result && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    Importação concluída!
+                  </div>
+                  <div className="rounded-lg border border-border/40 p-3 text-sm space-y-1" style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                      {result.trades_found != null && <><span className="text-muted-foreground">Encontrados:</span><span className="font-medium">{result.trades_found}</span></>}
+                      <span className="text-muted-foreground">Importados:</span><span className="font-medium text-emerald-600 dark:text-emerald-400">{result.trades_imported}</span>
+                      <span className="text-muted-foreground">Duplicados:</span><span className="font-medium">{result.trades_duplicates_ignored}</span>
+                      {(result.trades_failed ?? 0) > 0 && <><span className="text-muted-foreground">Falhas:</span><span className="font-medium text-destructive">{result.trades_failed}</span></>}
+                      <span className="text-muted-foreground">Payouts:</span><span className="font-medium">{result.payouts_detected}</span>
+                      <span className="text-muted-foreground">Tempo:</span><span className="font-medium">{((result.duration_ms) / 1000).toFixed(1)}s</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { setImportStage("idle"); setResult(null); }}>
+                    Importar outro arquivo
+                  </Button>
+                </div>
+              )}
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
           </motion.div>
         )}
