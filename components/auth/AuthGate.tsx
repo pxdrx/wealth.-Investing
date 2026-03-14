@@ -6,21 +6,11 @@ import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 
 /** Five minutes in milliseconds */
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
-/** Timeout for auth operations to prevent infinite hang */
-const AUTH_TIMEOUT_MS = 10_000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Auth timeout")), ms)
-    ),
-  ]);
-}
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const sessionRef = useRef<{ expires_at?: number; user_id?: string } | null>(null);
+  const retriesRef = useRef(0);
 
   useEffect(() => {
     let mounted = true;
@@ -36,34 +26,31 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const { data: { session } } = await withTimeout(
-          supabase.auth.getSession(),
-          AUTH_TIMEOUT_MS
-        );
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (!mounted) return;
 
         if (!session) {
-          window.location.href = "/login";
+          // Only redirect if we've never had a session (not a transient issue)
+          if (!sessionRef.current) {
+            window.location.href = "/login";
+          }
           return;
         }
 
-        // Cache current session immediately — only refresh if truly needed
+        // Cache current session and show content immediately
         sessionRef.current = {
           expires_at: session.expires_at,
           user_id: session.user.id,
         };
-        setReady(true);
+        retriesRef.current = 0;
+        if (mounted) setReady(true);
 
-        // Refresh token in background if expiring soon (non-blocking)
+        // Refresh token in background if expiring soon (non-blocking, no redirect on failure)
         const expiresAt = session.expires_at;
         if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
-          supabase.auth.refreshSession().then(({ data, error }) => {
-            if (!mounted) return;
-            if (error || !data.session) {
-              window.location.href = "/login";
-              return;
-            }
+          supabase.auth.refreshSession().then(({ data }) => {
+            if (!mounted || !data.session) return;
             sessionRef.current = {
               expires_at: data.session.expires_at,
               user_id: data.session.user.id,
@@ -77,17 +64,25 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         });
       } catch {
-        if (mounted) window.location.href = "/login";
+        // On error, retry up to 2 times before redirecting
+        if (!mounted) return;
+        retriesRef.current += 1;
+        if (retriesRef.current < 3) {
+          setTimeout(() => { if (mounted) gate(); }, 1000);
+        } else if (!sessionRef.current) {
+          window.location.href = "/login";
+        }
       }
     }
 
     gate();
 
-    // Listen for auth state changes (logout, token refresh)
+    // Only redirect on explicit SIGNED_OUT — ignore transient session nulls
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event) => {
         if (!mounted) return;
-        if (event === "SIGNED_OUT" || !session) {
+        if (event === "SIGNED_OUT") {
+          sessionRef.current = null;
           window.location.href = "/login";
         }
       }
