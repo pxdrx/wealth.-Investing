@@ -43,7 +43,7 @@ const SECTION_STATS = 4;
 const SECTION_IMPORT = 6;
 
 export default function JournalPage() {
-  const { activeAccountId } = useActiveAccount();
+  const { activeAccountId, isLoading: accountsLoading } = useActiveAccount();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -161,7 +161,7 @@ export default function JournalPage() {
     setDayModalOpen(true);
   }, []);
 
-  const hasData = activeAccountId && !loadingTrades && !tradesError;
+  const hasData = activeAccountId && !loadingTrades && !tradesError && !accountsLoading;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -237,16 +237,25 @@ export default function JournalPage() {
         )}
       </AnimatePresence>
 
+      {/* Context loading */}
+      {accountsLoading && (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-24 rounded-xl bg-muted/10 animate-pulse" />
+          ))}
+        </div>
+      )}
+
       {/* No account selected */}
-      {!activeAccountId && (
+      {!accountsLoading && !activeAccountId && (
         <div className="text-center py-16">
           <p className="text-sm text-muted-foreground">Selecione uma conta para ver os dados do journal.</p>
           <p className="text-xs text-muted-foreground mt-1">Use o dropdown acima ou clique em + para adicionar uma nova conta.</p>
         </div>
       )}
 
-      {/* Loading */}
-      {activeAccountId && loadingTrades && (
+      {/* Loading trades */}
+      {!accountsLoading && activeAccountId && loadingTrades && (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-24 rounded-xl bg-muted/10 animate-pulse" />
