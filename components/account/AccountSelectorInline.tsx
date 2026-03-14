@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, Plus, Briefcase, Wallet, Bitcoin } from "lucide-react";
+import { ChevronDown, Plus, Briefcase, Wallet, Bitcoin, Settings } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { AddAccountModal } from "@/components/account/AddAccountModal";
+import { ManageAccountsModal } from "@/components/account/ManageAccountsModal";
 import type { AccountWithProp } from "@/lib/accounts";
 
 function getAccountIcon(account: AccountWithProp) {
@@ -51,6 +52,7 @@ interface AccountSelectorInlineProps {
 export function AccountSelectorInline({ showAddButton = false }: AccountSelectorInlineProps) {
   const { accounts, activeAccountId, setActiveAccountId, refreshAccounts } = useActiveAccount();
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [manageModalOpen, setManageModalOpen] = useState(false);
 
   const sortedAccounts = useMemo(() => {
     return accounts.filter((a) => a.is_active);
@@ -110,6 +112,13 @@ export function AccountSelectorInline({ showAddButton = false }: AccountSelector
                 </div>
               );
             })}
+            <DropdownMenuItem
+              onClick={() => setManageModalOpen(true)}
+              className="cursor-pointer gap-2"
+            >
+              <Settings className="h-4 w-4 shrink-0 opacity-60" />
+              <span>Gerenciar contas</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -131,6 +140,11 @@ export function AccountSelectorInline({ showAddButton = false }: AccountSelector
         onOpenChange={setAddModalOpen}
         onAccountCreated={(id) => setActiveAccountId(id)}
         onRefreshAccounts={refreshAccounts}
+      />
+
+      <ManageAccountsModal
+        open={manageModalOpen}
+        onOpenChange={setManageModalOpen}
       />
     </>
   );
