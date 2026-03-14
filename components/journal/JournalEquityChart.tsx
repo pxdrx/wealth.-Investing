@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { filterTradesByPeriod, getNetPnl } from "./types";
@@ -19,11 +20,17 @@ interface JournalEquityChartProps {
   trades: JournalTradeRow[];
   period: PeriodFilter;
   startingBalanceUsd: number | null;
+  maxOverallLossPercent?: number | null;
+  profitTargetPercent?: number | null;
 }
 
-export function JournalEquityChart({ trades, period, startingBalanceUsd }: JournalEquityChartProps) {
+export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOverallLossPercent, profitTargetPercent }: JournalEquityChartProps) {
   const filtered = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
   const start = startingBalanceUsd ?? 0;
+
+  const isPropAccount = !!(maxOverallLossPercent && profitTargetPercent && start > 0);
+  const ddLimit = isPropAccount ? start * (1 - maxOverallLossPercent! / 100) : null;
+  const targetLimit = isPropAccount ? start * (1 + profitTargetPercent! / 100) : null;
 
   const data = useMemo(() => {
     const points: { date: string; equity: number; fullDate: string }[] = [];
@@ -65,7 +72,12 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd }: Journ
               <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" tickFormatter={(v) => `${v.toFixed(0)}`} />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  className="text-muted-foreground"
+                  tickFormatter={(v: number) => `${v.toFixed(0)}`}
+                  domain={isPropAccount ? [ddLimit! * 0.998, targetLimit! * 1.002] : ["auto", "auto"]}
+                />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
@@ -86,6 +98,32 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd }: Journ
                   dot={{ r: 2 }}
                   activeDot={{ r: 4 }}
                 />
+                {isPropAccount && ddLimit != null && (
+                  <ReferenceLine
+                    y={ddLimit}
+                    stroke="#dc2626"
+                    strokeDasharray="6 3"
+                    strokeWidth={1.5}
+                    label={{ value: `DD ${maxOverallLossPercent}%`, position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }}
+                  />
+                )}
+                {isPropAccount && targetLimit != null && (
+                  <ReferenceLine
+                    y={targetLimit}
+                    stroke="#059669"
+                    strokeDasharray="6 3"
+                    strokeWidth={1.5}
+                    label={{ value: `Meta ${profitTargetPercent}%`, position: "insideTopRight", fontSize: 10, fill: "#059669" }}
+                  />
+                )}
+                {isPropAccount && (
+                  <ReferenceLine
+                    y={start}
+                    stroke="#6b7280"
+                    strokeDasharray="3 3"
+                    strokeWidth={1}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>

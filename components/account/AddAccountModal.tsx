@@ -23,7 +23,7 @@ interface AddAccountModalProps {
   onRefreshAccounts?: () => Promise<void>;
 }
 
-type Step = "type" | "firm" | "details" | "status" | "done" | "rename";
+type Step = "type" | "crypto-sub" | "firm" | "details" | "status" | "done" | "rename";
 
 interface PropFirmPreset {
   id: string;
@@ -117,6 +117,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
   const [balance, setBalance] = useState<number>(50000);
   const [customBalance, setCustomBalance] = useState("");
   const [phases, setPhases] = useState(2);
+  const [drawdownType, setDrawdownType] = useState<"static" | "trailing">("static");
+  const [cryptoSubKind, setCryptoSubKind] = useState<"prop" | "personal" | null>(null);
   const [isExisting, setIsExisting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +136,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
     setBalance(50000);
     setCustomBalance("");
     setPhases(2);
+    setDrawdownType("static");
+    setCryptoSubKind(null);
     setIsExisting(false);
     setSaving(false);
     setError(null);
@@ -152,6 +156,10 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
     setAccountKind(kind);
     if (kind === "prop") {
       setStep("firm");
+    } else if (kind === "crypto") {
+      // Ask if crypto is prop or personal
+      setCryptoSubKind(null);
+      setStep("crypto-sub" as Step);
     } else {
       setStep("details");
     }
@@ -175,7 +183,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
 
       const finalBalance = customBalance ? Number(customBalance) : balance;
       const firmName = selectedFirm?.id === "other" ? customFirmName : selectedFirm?.name ?? "";
-      const name = accountKind === "prop"
+      const isPropFlow = accountKind === "prop" || cryptoSubKind === "prop";
+      const name = isPropFlow
         ? `${firmName} ${finalBalance >= 1000 ? `${(finalBalance / 1000).toFixed(0)}k` : finalBalance}`
         : accountName || (accountKind === "crypto" ? "Crypto" : "Capital Pessoal");
 
@@ -196,8 +205,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
 
       const accountId = (accountData as { id: string }).id;
 
-      // If prop, create prop_accounts entry (user_id required for RLS)
-      if (accountKind === "prop" && selectedFirm) {
+      // If prop flow (including crypto-prop), create prop_accounts entry
+      if (isPropFlow && selectedFirm) {
         const preset = selectedFirm;
         const { error: propError } = await supabase
           .from("prop_accounts")
@@ -236,6 +245,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
         <DialogHeader>
           <DialogTitle>
             {step === "type" && "Nova conta de trading"}
+            {step === "crypto-sub" && "Tipo de conta crypto"}
             {step === "firm" && "Mesa proprietária"}
             {step === "details" && "Detalhes da conta"}
             {step === "status" && "Status da conta"}
@@ -244,6 +254,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
           </DialogTitle>
           <DialogDescription>
             {step === "type" && "Que tipo de conta você quer adicionar?"}
+            {step === "crypto-sub" && "Selecione o tipo da sua conta crypto"}
             {step === "firm" && "Selecione sua mesa proprietária"}
             {step === "details" && "Configure os detalhes da conta"}
             {step === "status" && "A conta é nova ou já está em uso?"}
@@ -276,6 +287,48 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                 </div>
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Step: Crypto Sub-Kind */}
+        {step === "crypto-sub" && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setStep("type")}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2"
+            >
+              <ChevronLeft className="h-3 w-3" /> Voltar
+            </button>
+            <p className="text-sm text-muted-foreground mb-3">Esta conta crypto é de uma mesa proprietária ou capital pessoal?</p>
+            <button
+              type="button"
+              onClick={() => { setCryptoSubKind("prop"); setStep("firm"); }}
+              className="flex w-full items-center gap-4 rounded-xl border border-border/60 p-4 text-left transition-all hover:border-blue-500/40 hover:shadow-sm"
+              style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}
+            >
+              <div className="rounded-lg p-2.5 text-blue-500" style={{ backgroundColor: "hsl(var(--muted) / 0.3)" }}>
+                <Briefcase className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Mesa Proprietária</p>
+                <p className="text-xs text-muted-foreground">TopStep, Apex, mesa de futuros...</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setCryptoSubKind("personal"); setStep("details"); }}
+              className="flex w-full items-center gap-4 rounded-xl border border-border/60 p-4 text-left transition-all hover:border-blue-500/40 hover:shadow-sm"
+              style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}
+            >
+              <div className="rounded-lg p-2.5 text-emerald-500" style={{ backgroundColor: "hsl(var(--muted) / 0.3)" }}>
+                <Wallet className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Capital Pessoal</p>
+                <p className="text-xs text-muted-foreground">Binance, Bybit, carteira pessoal...</p>
+              </div>
+            </button>
           </div>
         )}
 
@@ -321,13 +374,13 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
           <div className="space-y-4">
             <button
               type="button"
-              onClick={() => setStep(accountKind === "prop" ? "firm" : "type")}
+              onClick={() => setStep((accountKind === "prop" || cryptoSubKind === "prop") ? "firm" : accountKind === "crypto" ? "crypto-sub" : "type")}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <ChevronLeft className="h-3 w-3" /> Voltar
             </button>
 
-            {accountKind === "prop" && selectedFirm && (
+            {(accountKind === "prop" || cryptoSubKind === "prop") && selectedFirm && (
               <>
                 {selectedFirm.id === "other" && (
                   <div className="space-y-2">
@@ -389,6 +442,31 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Tipo de drawdown</Label>
+                  <div className="flex gap-2">
+                    {([
+                      { value: "static" as const, label: "Estatico", desc: "DD fixo desde o saldo inicial" },
+                      { value: "trailing" as const, label: "Trailing", desc: "DD acompanha o lucro maximo" },
+                    ]).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setDrawdownType(opt.value)}
+                        className={cn(
+                          "flex-1 rounded-lg border px-3 py-2 text-left transition-all",
+                          drawdownType === opt.value
+                            ? "border-blue-500 bg-blue-500/10"
+                            : "border-border/60 hover:border-border"
+                        )}
+                      >
+                        <p className={cn("text-sm font-medium", drawdownType === opt.value ? "text-blue-500" : "text-muted-foreground")}>{opt.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Preset preview */}
                 <div className="rounded-xl border border-border/40 p-3 space-y-1" style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}>
                   <p className="text-xs font-semibold text-muted-foreground mb-2">Regras aplicadas</p>
@@ -410,7 +488,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
               </>
             )}
 
-            {accountKind !== "prop" && (
+            {accountKind !== "prop" && cryptoSubKind !== "prop" && (
               <div className="space-y-2">
                 <Label>Nome da conta</Label>
                 <Input
@@ -421,8 +499,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
               </div>
             )}
 
-            <Button onClick={accountKind === "prop" ? handleGoToStatus : handleSave} className="w-full" disabled={saving}>
-              {accountKind === "prop" ? "Próximo" : saving ? "Criando..." : "Criar conta"}
+            <Button onClick={(accountKind === "prop" || cryptoSubKind === "prop") ? handleGoToStatus : handleSave} className="w-full" disabled={saving}>
+              {(accountKind === "prop" || cryptoSubKind === "prop") ? "Próximo" : saving ? "Criando..." : "Criar conta"}
             </Button>
           </div>
         )}

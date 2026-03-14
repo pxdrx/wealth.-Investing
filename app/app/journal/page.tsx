@@ -54,6 +54,8 @@ export default function JournalPage() {
   const [loadingTrades, setLoadingTrades] = useState(false);
   const [tradesError, setTradesError] = useState<string | null>(null);
   const [startingBalanceUsd, setStartingBalanceUsd] = useState<number | null>(null);
+  const [maxOverallLossPercent, setMaxOverallLossPercent] = useState<number | null>(null);
+  const [profitTargetPercent, setProfitTargetPercent] = useState<number | null>(null);
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const [selectedTrade, setSelectedTrade] = useState<JournalTradeRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -93,15 +95,22 @@ export default function JournalPage() {
   useEffect(() => { loadTrades(); }, [loadTrades]);
 
   useEffect(() => {
-    if (!activeAccountId) { setStartingBalanceUsd(null); return; }
+    if (!activeAccountId) {
+      setStartingBalanceUsd(null);
+      setMaxOverallLossPercent(null);
+      setProfitTargetPercent(null);
+      return;
+    }
     (async () => {
       const { data } = await supabase
         .from("prop_accounts")
-        .select("starting_balance_usd")
+        .select("starting_balance_usd, max_overall_loss_percent, profit_target_percent")
         .eq("account_id", activeAccountId)
         .maybeSingle();
-      const v = (data as { starting_balance_usd?: number } | null)?.starting_balance_usd;
-      setStartingBalanceUsd(typeof v === "number" ? v : null);
+      const row = data as { starting_balance_usd?: number; max_overall_loss_percent?: number; profit_target_percent?: number } | null;
+      setStartingBalanceUsd(typeof row?.starting_balance_usd === "number" ? row.starting_balance_usd : null);
+      setMaxOverallLossPercent(typeof row?.max_overall_loss_percent === "number" ? row.max_overall_loss_percent : null);
+      setProfitTargetPercent(typeof row?.profit_target_percent === "number" ? row.profit_target_percent : null);
     })();
   }, [activeAccountId]);
 
@@ -316,7 +325,7 @@ export default function JournalPage() {
             {activeTab === SECTION_OVERVIEW && (
               <div className="space-y-6">
                 <JournalKpiCards trades={trades} period={period} onPeriodChange={setPeriod} />
-                <JournalEquityChart trades={trades} period={period} startingBalanceUsd={startingBalanceUsd} />
+                <JournalEquityChart trades={trades} period={period} startingBalanceUsd={startingBalanceUsd} maxOverallLossPercent={maxOverallLossPercent} profitTargetPercent={profitTargetPercent} />
               </div>
             )}
             {activeTab === SECTION_TRADES && (
@@ -333,7 +342,7 @@ export default function JournalPage() {
             {activeTab === SECTION_STATS && (
               <div className="space-y-6">
                 <JournalKpiCards trades={trades} period={period} onPeriodChange={setPeriod} />
-                <JournalEquityChart trades={trades} period={period} startingBalanceUsd={startingBalanceUsd} />
+                <JournalEquityChart trades={trades} period={period} startingBalanceUsd={startingBalanceUsd} maxOverallLossPercent={maxOverallLossPercent} profitTargetPercent={profitTargetPercent} />
               </div>
             )}
           </motion.div>
