@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 
@@ -11,6 +12,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const sessionRef = useRef<{ expires_at?: number; user_id?: string } | null>(null);
   const retriesRef = useRef(0);
+  const bootstrapRanRef = useRef(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     let mounted = true;
@@ -58,11 +61,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           });
         }
 
-        ensureDefaultAccounts(session.user.id).then((r) => {
-          if (!r.ok && typeof sessionStorage !== "undefined") {
-            sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
-          }
-        });
+        // Only run bootstrap once per session
+        if (!bootstrapRanRef.current) {
+          bootstrapRanRef.current = true;
+          ensureDefaultAccounts(session.user.id).then((r) => {
+            if (!r.ok && typeof sessionStorage !== "undefined") {
+              sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
+            }
+          });
+        }
       } catch {
         // On error, retry up to 2 times before redirecting
         if (!mounted) return;
@@ -92,7 +99,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [pathname]);
 
   if (!ready) {
     return (
