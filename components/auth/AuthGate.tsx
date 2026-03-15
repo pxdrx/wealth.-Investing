@@ -34,7 +34,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         if (!session) {
-          // Only redirect if we've never had a session (not a transient issue)
           if (!sessionRef.current) {
             window.location.href = "/login";
           }

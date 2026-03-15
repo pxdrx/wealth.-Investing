@@ -46,46 +46,15 @@ export async function POST(request: Request) {
 
     const { data: accountRow } = await supabase
       .from("accounts")
-      .select("id, kind")
+      .select("id, kind, name")
       .eq("id", accountId)
       .eq("user_id", userId)
       .single();
     if (!accountRow) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
+    const accountName: string = (accountRow as { name?: string }).name ?? "";
     isPropAccount = (accountRow as { kind: string }).kind === "prop";
-
-    // Prop payouts use prop_accounts.id (prop_account_id), not accounts.id.
-    // Note: account ownership already validated above, so only filter by account_id here.
-    let propAccountRowId: string | null = null;
-    if (isPropAccount) {
-      const { data: propRow, error: propError } = await supabase
-        .from("prop_accounts")
-        .select("id, firm_name")
-        .eq("account_id", accountId)
-        .maybeSingle();
-      if (propError) {
-        console.error("[import-mt5] prop_accounts error:", propError.code, propError.message);
-        return NextResponse.json(
-          { error: "Failed to process account metadata" },
-          { status: 500 }
-        );
-      }
-      if (!propRow) {
-        return NextResponse.json(
-          { error: "Prop account has no corresponding prop_accounts row" },
-          { status: 400 }
-        );
-      }
-      firmName = propRow.firm_name ?? "";
-      propAccountRowId = propRow.id ?? null;
-      if (!propAccountRowId) {
-        return NextResponse.json(
-          { error: "Prop account has no corresponding prop_accounts row" },
-          { status: 400 }
-        );
-      }
-    }
 
     const { data: personalRow } = await supabase
       .from("accounts")
@@ -96,6 +65,7 @@ export async function POST(request: Request) {
       .single();
     personalAccountId = (personalRow as { id: string } | null)?.id ?? null;
 
+    // Parse file BEFORE prop_accounts validation so we can use initial deposit for auto-heal
     const buffer = await file.arrayBuffer();
     const isHtml = /\.html?$/i.test(file.name ?? "") || (file.type && file.type.toLowerCase().includes("html"));
     const parserChosen = isHtml ? "html" : "xlsx";
@@ -112,6 +82,64 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: msg }, { status: 400 });
       }
       throw parseErr;
+    }
+
+    // Prop payouts use prop_accounts.id (prop_account_id), not accounts.id.
+    // Auto-heals missing prop_accounts rows using data from the parsed report.
+    let propAccountRowId: string | null = null;
+    if (isPropAccount) {
+      const { data: propRow, error: propError } = await supabase
+        .from("prop_accounts")
+        .select("id, firm_name")
+        .eq("account_id", accountId)
+        .maybeSingle();
+      if (propError) {
+        console.error("[import-mt5] prop_accounts error:", propError.code, propError.message);
+        return NextResponse.json(
+          { error: "Failed to process account metadata" },
+          { status: 500 }
+        );
+      }
+
+      if (propRow && propRow.id) {
+        firmName = propRow.firm_name ?? "";
+        propAccountRowId = propRow.id;
+      } else {
+        // Auto-heal: create missing prop_accounts row from report + account name
+        const initialDeposit = balanceOps.find((op) => op.type === "INITIAL_DEPOSIT");
+        const startingBalance = initialDeposit?.amount_usd ?? 0;
+        const inferredFirm = accountName.split(" ")[0] || "Unknown";
+
+        console.log("[import-mt5] auto-healing missing prop_accounts for:", accountName, "firm:", inferredFirm, "balance:", startingBalance);
+
+        const { data: newPropRow, error: createErr } = await supabase
+          .from("prop_accounts")
+          .insert({
+            user_id: userId,
+            account_id: accountId,
+            firm_name: inferredFirm,
+            phase: "phase_1",
+            starting_balance_usd: startingBalance,
+            profit_target_percent: 10,
+            max_daily_loss_percent: 5,
+            max_overall_loss_percent: 10,
+            reset_timezone: "America/New_York",
+            reset_rule: "daily_close",
+          })
+          .select("id, firm_name")
+          .single();
+
+        if (createErr || !newPropRow) {
+          console.error("[import-mt5] failed to auto-heal prop_accounts:", createErr?.message);
+          return NextResponse.json(
+            { error: "Prop account metadata could not be created automatically" },
+            { status: 500 }
+          );
+        }
+
+        firmName = newPropRow.firm_name ?? inferredFirm;
+        propAccountRowId = newPropRow.id;
+      }
     }
 
     if (isHtml && process.env.NODE_ENV === "development") {

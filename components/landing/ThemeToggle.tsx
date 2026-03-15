@@ -13,11 +13,8 @@ export function ThemeToggle() {
       className="relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-l-tertiary"
       aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
     >
-      {isDark ? (
-        <Moon className="h-4 w-4 text-l-text-secondary" />
-      ) : (
-        <Sun className="h-4 w-4 text-l-text-secondary" />
-      )}
+      <Sun className="h-4 w-4 text-l-text-secondary rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-4 w-4 text-l-text-secondary rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
     </button>
   );
 }

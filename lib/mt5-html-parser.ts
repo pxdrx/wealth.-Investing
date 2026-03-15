@@ -32,7 +32,7 @@ function decodeUtf16Le(buffer: ArrayBuffer): string {
   return new TextDecoder("utf-16le", { fatal: false }).decode(buffer);
 }
 
-/** MT5 report times are UTC+2 (broker server). Convert to UTC then store (equiv. America/Sao_Paulo -3). Offset: -5h */
+/** MT5 report times are UTC+2 (broker server). Convert to UTC then store. Offset: -5h */
 const MT5_TO_UTC_MS = -5 * 60 * 60 * 1000;
 
 /** MT5 date format "2026.02.09 17:45:29" (UTC+2) → ISO in UTC */
@@ -72,6 +72,18 @@ function isNumeric(s: string): boolean {
   return /^-?\d+([.,]\d+)?$/.test(t.replace(/\s/g, ""));
 }
 
+/** Normalize header: trim, lowercase, remove accents, collapse spaces. */
+function normalizeHeader(h: string): string {
+  return (h ?? "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Get cell texts for a row (td, th), trimmed */
 function getRowCells($: cheerio.CheerioAPI, row: cheerio.Cheerio<any>): string[] {
   const cells: string[] = [];
@@ -81,9 +93,79 @@ function getRowCells($: cheerio.CheerioAPI, row: cheerio.Cheerio<any>): string[]
   return cells;
 }
 
+/** Build a name→index map from header cells, with multilingual aliases */
+function buildHtmlHeaderMap(cells: string[]): Map<string, number> {
+  const map = new Map<string, number>();
+
+  for (let i = 0; i < cells.length; i++) {
+    const norm = normalizeHeader(cells[i]);
+    if (!norm) continue;
+
+    // Store the normalized header
+    if (!map.has(norm)) map.set(norm, i);
+
+    // Multilingual aliases (PT + EN)
+    if (norm.includes("horario") || norm.includes("time") || norm.includes("hora") || norm.includes("date")) {
+      // For time columns, we want first=open, second=close
+      if (!map.has("time")) map.set("time", i);
+      else if (!map.has("time2")) map.set("time2", i);
+    }
+    if (norm.includes("position") || norm.includes("posicao") || norm.includes("ticket") || norm === "id") {
+      if (!map.has("position")) map.set("position", i);
+    }
+    if (norm.includes("ativo") || norm.includes("symbol") || norm.includes("simbolo") || norm.includes("instrumento") || norm.includes("instrument")) {
+      if (!map.has("symbol")) map.set("symbol", i);
+    }
+    if (norm.includes("tipo") || norm.includes("type") || norm.includes("direcao") || norm.includes("direction") || norm.includes("action")) {
+      if (!map.has("type")) map.set("type", i);
+    }
+    if (norm.includes("lucro") || norm.includes("profit") || norm.includes("resultado") || norm.includes("result") || norm.includes("ganho")) {
+      if (!map.has("profit")) map.set("profit", i);
+    }
+    if (norm.includes("comissao") || norm.includes("commission") || norm.includes("fee")) {
+      if (!map.has("commission")) map.set("commission", i);
+    }
+    if (norm.includes("swap")) {
+      if (!map.has("swap")) map.set("swap", i);
+    }
+    if (norm.includes("comentario") || norm.includes("comment") || norm.includes("nota") || norm.includes("note") || norm.includes("description")) {
+      if (!map.has("comment")) map.set("comment", i);
+    }
+    if (norm.includes("saldo") || norm.includes("balance")) {
+      if (!map.has("balance")) map.set("balance", i);
+    }
+    if (norm.includes("oferta") || norm.includes("deal") || norm.includes("order")) {
+      if (!map.has("deal")) map.set("deal", i);
+    }
+    if (norm.includes("preco") || norm.includes("price")) {
+      if (!map.has("price")) map.set("price", i);
+      else if (!map.has("price2")) map.set("price2", i);
+    }
+    if (norm.includes("volume") || norm.includes("lots") || norm.includes("lotes")) {
+      if (!map.has("volume")) map.set("volume", i);
+    }
+    if (norm.includes("sl") || norm === "s / l" || norm === "s/l") {
+      if (!map.has("sl")) map.set("sl", i);
+    }
+    if (norm.includes("tp") || norm === "t / p" || norm === "t/p") {
+      if (!map.has("tp")) map.set("tp", i);
+    }
+  }
+
+  return map;
+}
+
+/** Get cell value by alias, or fallback to index */
+function getByAlias(cells: string[], map: Map<string, number>, alias: string, fallbackIdx?: number): string {
+  const idx = map.get(alias);
+  if (idx !== undefined && idx < cells.length) return cells[idx];
+  if (fallbackIdx !== undefined && fallbackIdx < cells.length) return cells[fallbackIdx];
+  return "";
+}
+
 const NEXT_SECTION_KEYS = ["transações", "transacoes", "transactions", "deals", "balance", "total", "subtotal"];
 
-/** True if this row starts the next section (e.g. Transações, Deals, Balance) or is a totals/subtotals row */
+/** True if this row starts the next section or is a totals/subtotals row */
 function isNextSectionOrTotalRow($: cheerio.CheerioAPI, row: cheerio.Cheerio<any>, cells: string[]): boolean {
   let hasSectionTh = false;
   row.find("th").each((_, th) => {
@@ -109,6 +191,7 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
     allRows.push($(el));
   });
 
+  // ── POSITIONS SECTION ──
   let positionsStartRow = -1;
   for (let i = 0; i < allRows.length; i++) {
     const row = allRows[i];
@@ -122,32 +205,44 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
   }
 
   if (positionsStartRow >= 0) {
-    const headerRow = allRows[positionsStartRow];
-    const headerCells = getRowCells($, headerRow);
+    // Build header map from the Positions header row
+    const headerCells = getRowCells($, allRows[positionsStartRow]);
+    const headerMap = buildHtmlHeaderMap(headerCells);
     const dataStart = positionsStartRow + 1;
 
     for (let r = dataStart; r < allRows.length; r++) {
       const cells = getRowCells($, allRows[r]);
       if (isNextSectionOrTotalRow($, allRows[r], cells)) break;
-      if (cells.length < 14) continue;
-      const positionCell = cells[1];
+      if (cells.length < 5) continue;
+
+      // Get position ID — try header map first, fallback to column 1
+      const positionCell = getByAlias(cells, headerMap, "position", 1);
       if (!isNumeric(positionCell)) continue;
-      const tipo = (cells[3] ?? "").toLowerCase();
+
+      // Get type/direction — try header map first, fallback to column 3
+      const tipo = getByAlias(cells, headerMap, "type", 3).toLowerCase();
       if (tipo !== "buy" && tipo !== "sell") continue;
 
-      const openedAt = mt5DateToIso(cells[0] ?? "");
-      const closedAt = mt5DateToIso(cells[9] ?? "");
+      // Get dates — try header map first, fallback to known columns
+      const openedAtRaw = getByAlias(cells, headerMap, "time", 0);
+      const closedAtRaw = getByAlias(cells, headerMap, "time2", 9);
+      const openedAt = mt5DateToIso(openedAtRaw);
+      const closedAt = mt5DateToIso(closedAtRaw);
       if (!openedAt || !closedAt) continue;
 
-      const closedYear = closedAt ? new Date(closedAt).getFullYear() : 0;
+      const closedYear = new Date(closedAt).getFullYear();
       if (closedYear < 2000) continue;
 
-      const pnl_usd = parseNum(cells[13] ?? "0");
+      // Get P&L — try header map first, fallback to column 13
+      const pnl_usd = parseNum(getByAlias(cells, headerMap, "profit", 13));
       if (Math.abs(pnl_usd) > 10_000_000) continue;
 
-      const comissao = parseNum(cells[11] ?? "0");
-      const swap = parseNum(cells[12] ?? "0");
-      const symbol = (cells[2] ?? "").trim();
+      // Get fees
+      const comissao = parseNum(getByAlias(cells, headerMap, "commission", 11));
+      const swap = parseNum(getByAlias(cells, headerMap, "swap", 12));
+
+      // Get symbol — try header map first, fallback to column 2
+      const symbol = getByAlias(cells, headerMap, "symbol", 2).trim();
       if (!symbol) continue;
 
       trades.push({
@@ -163,6 +258,7 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
     }
   }
 
+  // ── TRANSACTIONS SECTION ──
   let transacoesStartRow = -1;
   for (let i = 0; i < allRows.length; i++) {
     const row = allRows[i];
@@ -176,16 +272,27 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
   }
 
   if (transacoesStartRow >= 0) {
+    // Build header map for transactions section
+    const txHeaderCells = getRowCells($, allRows[transacoesStartRow]);
+    const txHeaderMap = buildHtmlHeaderMap(txHeaderCells);
+
     for (let r = transacoesStartRow + 1; r < allRows.length; r++) {
       const cells = getRowCells($, allRows[r]);
       if (cells.length < 5) continue;
-      const tipo = (cells[3] ?? cells[2] ?? "").toLowerCase();
+
+      const tipo = getByAlias(cells, txHeaderMap, "type", 3).toLowerCase() ||
+                   getByAlias(cells, txHeaderMap, "type", 2).toLowerCase();
       if (tipo !== "balance") continue;
-      const comment = (cells[11] ?? cells[10] ?? "").toLowerCase();
-      const amount = parseNum(cells[4] ?? cells[5] ?? "0") || parseNum(cells[6] ?? "0");
-      const atRaw = cells[0] ?? "";
+
+      const comment = getByAlias(cells, txHeaderMap, "comment", 11).toLowerCase() ||
+                      getByAlias(cells, txHeaderMap, "comment", 10).toLowerCase();
+      const amountStr = getByAlias(cells, txHeaderMap, "profit", 4) ||
+                        getByAlias(cells, txHeaderMap, "profit", 5) ||
+                        getByAlias(cells, txHeaderMap, "profit", 6);
+      const amount = parseNum(amountStr);
+      const atRaw = getByAlias(cells, txHeaderMap, "time", 0);
       const at = atRaw ? mt5DateToIso(atRaw) || null : null;
-      const externalId = (cells[1] ?? "").trim() || null;
+      const externalId = getByAlias(cells, txHeaderMap, "deal", 1).trim() || null;
 
       if (comment.includes("initial_deposit") || (comment.includes("deposit") && !comment.includes("withdrawal"))) {
         balanceOps.push({ type: "INITIAL_DEPOSIT", amount_usd: Math.abs(amount), at, external_id: externalId });
