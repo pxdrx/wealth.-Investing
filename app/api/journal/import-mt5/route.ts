@@ -130,9 +130,9 @@ export async function POST(request: Request) {
           .single();
 
         if (createErr || !newPropRow) {
-          console.error("[import-mt5] failed to auto-heal prop_accounts:", createErr?.message);
+          console.error("[import-mt5] failed to auto-heal prop_accounts:", createErr?.code, createErr?.message, createErr?.details);
           return NextResponse.json(
-            { error: "Prop account metadata could not be created automatically" },
+            { error: `Prop account metadata could not be created: ${createErr?.message ?? "unknown error"}` },
             { status: 500 }
           );
         }
