@@ -205,10 +205,23 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
   }
 
   if (positionsStartRow >= 0) {
-    // Build header map from the Positions header row
-    const headerCells = getRowCells($, allRows[positionsStartRow]);
+    // The section title row (e.g. <th colspan>Posições</th>) may not contain
+    // actual column headers. Detect if we need to advance to the next row.
+    let headerRowIdx = positionsStartRow;
+    const sectionCells = getRowCells($, allRows[positionsStartRow]);
+    const nonEmptyCells = sectionCells.filter((c) => c.trim());
+
+    if (nonEmptyCells.length <= 2 && positionsStartRow + 1 < allRows.length) {
+      const nextCells = getRowCells($, allRows[positionsStartRow + 1]);
+      // If next row has many non-numeric cells, it's the real column header row
+      if (nextCells.length >= 5 && !isNumeric(nextCells[0]) && !isNumeric(nextCells[1])) {
+        headerRowIdx = positionsStartRow + 1;
+      }
+    }
+
+    const headerCells = getRowCells($, allRows[headerRowIdx]);
     const headerMap = buildHtmlHeaderMap(headerCells);
-    const dataStart = positionsStartRow + 1;
+    const dataStart = headerRowIdx + 1;
 
     for (let r = dataStart; r < allRows.length; r++) {
       const cells = getRowCells($, allRows[r]);
@@ -224,22 +237,40 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
       if (tipo !== "buy" && tipo !== "sell") continue;
 
       // Get dates — try header map first, fallback to known columns
+      // FTMO 13-col: 0=open_time, 8=close_time; The5ers 14-col: 0=open_time, 9=close_time
       const openedAtRaw = getByAlias(cells, headerMap, "time", 0);
-      const closedAtRaw = getByAlias(cells, headerMap, "time2", 9);
+      let closedAtRaw = getByAlias(cells, headerMap, "time2");
+      if (!closedAtRaw) {
+        // Fallback: scan from column 7 onward for the first valid date-like cell
+        for (let ci = 7; ci < Math.min(cells.length, 11); ci++) {
+          if (mt5DateToIso(cells[ci])) { closedAtRaw = cells[ci]; break; }
+        }
+      }
       const openedAt = mt5DateToIso(openedAtRaw);
-      const closedAt = mt5DateToIso(closedAtRaw);
+      const closedAt = mt5DateToIso(closedAtRaw ?? "");
       if (!openedAt || !closedAt) continue;
 
       const closedYear = new Date(closedAt).getFullYear();
       if (closedYear < 2000) continue;
 
-      // Get P&L — try header map first, fallback to column 13
-      const pnl_usd = parseNum(getByAlias(cells, headerMap, "profit", 13));
+      // Get P&L — try header map first, then scan last few columns for numeric value
+      let pnl_usd = parseNum(getByAlias(cells, headerMap, "profit"));
+      if (!headerMap.has("profit")) {
+        // Fallback: last non-empty numeric cell is usually profit
+        const lastIdx = cells.length - 1;
+        pnl_usd = parseNum(cells[lastIdx] ?? "");
+      }
       if (Math.abs(pnl_usd) > 10_000_000) continue;
 
-      // Get fees
-      const comissao = parseNum(getByAlias(cells, headerMap, "commission", 11));
-      const swap = parseNum(getByAlias(cells, headerMap, "swap", 12));
+      // Get fees — try header map, fallback to columns before profit
+      let comissao = parseNum(getByAlias(cells, headerMap, "commission"));
+      let swap = parseNum(getByAlias(cells, headerMap, "swap"));
+      if (!headerMap.has("commission") && !headerMap.has("swap")) {
+        // Fallback: commission and swap are the 2 columns before profit
+        const profitIdx = cells.length - 1;
+        swap = parseNum(cells[profitIdx - 1] ?? "");
+        comissao = parseNum(cells[profitIdx - 2] ?? "");
+      }
 
       // Get symbol — try header map first, fallback to column 2
       const symbol = getByAlias(cells, headerMap, "symbol", 2).trim();
@@ -272,11 +303,22 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
   }
 
   if (transacoesStartRow >= 0) {
-    // Build header map for transactions section
-    const txHeaderCells = getRowCells($, allRows[transacoesStartRow]);
+    // Same pattern: detect if title row vs column header row
+    let txHeaderRowIdx = transacoesStartRow;
+    const txSectionCells = getRowCells($, allRows[transacoesStartRow]);
+    const txNonEmpty = txSectionCells.filter((c) => c.trim());
+
+    if (txNonEmpty.length <= 2 && transacoesStartRow + 1 < allRows.length) {
+      const txNextCells = getRowCells($, allRows[transacoesStartRow + 1]);
+      if (txNextCells.length >= 5 && !isNumeric(txNextCells[0]) && !isNumeric(txNextCells[1])) {
+        txHeaderRowIdx = transacoesStartRow + 1;
+      }
+    }
+
+    const txHeaderCells = getRowCells($, allRows[txHeaderRowIdx]);
     const txHeaderMap = buildHtmlHeaderMap(txHeaderCells);
 
-    for (let r = transacoesStartRow + 1; r < allRows.length; r++) {
+    for (let r = txHeaderRowIdx + 1; r < allRows.length; r++) {
       const cells = getRowCells($, allRows[r]);
       if (cells.length < 5) continue;
 

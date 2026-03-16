@@ -224,7 +224,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       setSuggestedName(name);
       setEditableName(name);
       onAccountCreated?.(accountId);
-      await onRefreshAccounts?.();
+      // Fire-and-forget: don't await — getSession() inside can deadlock
+      onRefreshAccounts?.().catch(() => {});
       setStep("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar conta");
