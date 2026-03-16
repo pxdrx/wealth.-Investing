@@ -178,9 +178,25 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       const finalBalance = customBalance ? Number(customBalance) : balance;
       const firmName = selectedFirm?.id === "other" ? customFirmName : selectedFirm?.name ?? "";
       const isPropFlow = accountKind === "prop" || cryptoSubKind === "prop";
-      const name = isPropFlow
+      const baseName = isPropFlow
         ? `${firmName} ${finalBalance >= 1000 ? `${(finalBalance / 1000).toFixed(0)}k` : finalBalance}`
         : accountName || (accountKind === "crypto" ? "Crypto" : "Capital Pessoal");
+
+      // Dedup name: if "FTMO 50k" exists, try "FTMO 50k (2)", "FTMO 50k (3)", etc.
+      let name = baseName;
+      const { data: existing } = await supabase
+        .from("accounts")
+        .select("name")
+        .eq("user_id", session.user.id)
+        .like("name", `${baseName}%`);
+      if (existing && existing.length > 0) {
+        const existingNames = new Set(existing.map((r: { name: string }) => r.name));
+        if (existingNames.has(baseName)) {
+          let suffix = 2;
+          while (existingNames.has(`${baseName} (${suffix})`)) suffix++;
+          name = `${baseName} (${suffix})`;
+        }
+      }
 
       // Create account
       const { data: accountData, error: accountError } = await supabase
