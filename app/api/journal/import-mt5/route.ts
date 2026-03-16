@@ -123,7 +123,7 @@ export async function POST(request: Request) {
           max_daily_loss_percent: 5,
           max_overall_loss_percent: 10,
           reset_timezone: "America/New_York",
-          reset_rule: "daily_close",
+          reset_rule: "forex_close",
         };
 
         // Try upsert first (handles race condition where row was created between select and insert)

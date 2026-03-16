@@ -214,7 +214,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
             max_daily_loss_percent: preset.ddDaily,
             max_overall_loss_percent: preset.ddTotal,
             reset_timezone: "America/New_York",
-            reset_rule: "daily_close",
+            reset_rule: "forex_close",
           });
 
         if (propError) throw propError;
