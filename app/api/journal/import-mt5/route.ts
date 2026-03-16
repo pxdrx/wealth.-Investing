@@ -106,39 +106,43 @@ export async function POST(request: Request) {
         propAccountRowId = propRow.id;
       } else {
         // Auto-heal: create missing prop_accounts row from report + account name
+        // Non-blocking — if auto-heal fails, trades are still imported (payouts won't link)
         const initialDeposit = balanceOps.find((op) => op.type === "INITIAL_DEPOSIT");
         const startingBalance = initialDeposit?.amount_usd ?? 0;
         const inferredFirm = accountName.split(" ")[0] || "Unknown";
 
         console.log("[import-mt5] auto-healing missing prop_accounts for:", accountName, "firm:", inferredFirm, "balance:", startingBalance);
 
+        const propPayload = {
+          user_id: userId,
+          account_id: accountId,
+          firm_name: inferredFirm,
+          phase: "phase_1" as const,
+          starting_balance_usd: startingBalance,
+          profit_target_percent: 10,
+          max_daily_loss_percent: 5,
+          max_overall_loss_percent: 10,
+          reset_timezone: "America/New_York",
+          reset_rule: "daily_close",
+        };
+
+        // Try upsert first (handles race condition where row was created between select and insert)
         const { data: newPropRow, error: createErr } = await supabase
           .from("prop_accounts")
-          .insert({
-            user_id: userId,
-            account_id: accountId,
-            firm_name: inferredFirm,
-            phase: "phase_1",
-            starting_balance_usd: startingBalance,
-            profit_target_percent: 10,
-            max_daily_loss_percent: 5,
-            max_overall_loss_percent: 10,
-            reset_timezone: "America/New_York",
-            reset_rule: "daily_close",
-          })
+          .upsert(propPayload, { onConflict: "account_id" })
           .select("id, firm_name")
-          .single();
+          .maybeSingle();
 
         if (createErr || !newPropRow) {
-          console.error("[import-mt5] failed to auto-heal prop_accounts:", createErr?.code, createErr?.message, createErr?.details);
-          return NextResponse.json(
-            { error: `Prop account metadata could not be created: ${createErr?.message ?? "unknown error"}` },
-            { status: 500 }
-          );
+          // Non-blocking: log the error but continue importing trades
+          console.error("[import-mt5] auto-heal prop_accounts failed (non-blocking):", createErr?.code, createErr?.message, createErr?.details, JSON.stringify(createErr?.hint ?? ""));
+          console.warn("[import-mt5] continuing import without prop_accounts metadata — payouts will not be linked");
+          firmName = inferredFirm;
+          // propAccountRowId stays null — payout linking will be skipped
+        } else {
+          firmName = newPropRow.firm_name ?? inferredFirm;
+          propAccountRowId = newPropRow.id;
         }
-
-        firmName = newPropRow.firm_name ?? inferredFirm;
-        propAccountRowId = newPropRow.id;
       }
     }
 

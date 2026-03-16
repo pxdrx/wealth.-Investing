@@ -491,6 +491,10 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
               </div>
             )}
 
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
+
             <Button onClick={handleSave} className="w-full" disabled={saving}>
               {saving ? "Criando..." : "Criar conta"}
             </Button>
