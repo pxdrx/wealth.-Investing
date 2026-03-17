@@ -22,6 +22,7 @@ export interface PropAccountRow {
   max_overall_loss_percent: number;
   reset_timezone: string;
   reset_rule: string;
+  drawdown_type: "static" | "trailing";
 }
 
 export interface AccountWithProp extends Account {
@@ -93,7 +94,7 @@ export async function listMyAccountsWithProp(): Promise<AccountWithProp[]> {
 
   const { data: propRows } = await supabase
     .from("prop_accounts")
-    .select("account_id, firm_name, phase, starting_balance_usd, profit_target_percent, max_daily_loss_percent, max_overall_loss_percent, reset_timezone, reset_rule")
+    .select("account_id, firm_name, phase, starting_balance_usd, profit_target_percent, max_daily_loss_percent, max_overall_loss_percent, reset_timezone, reset_rule, drawdown_type")
     .in("account_id", propIds);
 
   const propByAccountId = new Map<string, PropAccountRow>();

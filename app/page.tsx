@@ -14,6 +14,7 @@ import { MacroIntelligence } from "@/components/landing/MacroIntelligence";
 import { Testimonial } from "@/components/landing/Testimonial";
 import { CTASection } from "@/components/landing/CTASection";
 import { EnterpriseTrust } from "@/components/landing/EnterpriseTrust";
+import { LandingPricing } from "@/components/landing/LandingPricing";
 import { Footer } from "@/components/landing/Footer";
 import { FEATURES, CTA_FINAL } from "@/lib/landing-data";
 
@@ -56,6 +57,7 @@ export default function LandingPage() {
         <MacroIntelligence />
         <Testimonial />
         <EnterpriseTrust />
+        <LandingPricing />
 
         <CTASection
           headline={CTA_FINAL.headline}

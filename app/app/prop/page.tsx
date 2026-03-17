@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -12,8 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
-import { getPropCycleStats, type PropCycleStats } from "@/lib/prop-stats";
+import { getPropCycleStats, getDrawdownStats, type PropCycleStats, type DrawdownStats } from "@/lib/prop-stats";
 import { listMyAccountsWithProp, type PropAccountRow, phaseLabel } from "@/lib/accounts";
+import { checkAndCreateAlerts, type PropAlert } from "@/lib/prop-alerts";
+import { DrawdownBar } from "@/components/prop/DrawdownBar";
+import { StaleBadge } from "@/components/prop/StaleBadge";
+import { supabase } from "@/lib/supabase/client";
 import { AlertCircle, TrendingUp } from "lucide-react";
 
 const RISCO_THRESHOLD_PCT = 70;
@@ -21,7 +25,9 @@ const RISCO_THRESHOLD_PCT = 70;
 interface PropPageData {
   propInfo: PropAccountRow;
   cycleStats: PropCycleStats;
+  drawdownStats: DrawdownStats | null;
   accountName: string;
+  lastTradeAt: string | null;
 }
 
 export default function PropPage() {
@@ -33,8 +39,9 @@ export default function PropPage() {
   const [data, setData] = useState<PropPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<PropAlert[]>([]);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!activeAccountId || !isProp) {
       setLoading(false);
       setData(null);
@@ -44,30 +51,86 @@ export default function PropPage() {
     setLoading(true);
     setError(null);
 
-    Promise.all([
-      listMyAccountsWithProp(),
-      getPropCycleStats(activeAccountId),
-    ])
-      .then(([accountsWithProp, cycleStats]) => {
-        const match = accountsWithProp.find((a) => a.id === activeAccountId);
-        if (!match?.prop) {
-          setError("Dados da conta prop não encontrados.");
-          setData(null);
-          setLoading(false);
-          return;
-        }
-        setData({
-          propInfo: match.prop,
-          cycleStats,
-          accountName: match.name,
-        });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        setError("Sessão inválida");
         setLoading(false);
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Erro inesperado ao carregar dados.");
+        return;
+      }
+      const userId = session.user.id;
+
+      const [accountsWithProp, cycleStats] = await Promise.all([
+        listMyAccountsWithProp(),
+        getPropCycleStats(activeAccountId),
+      ]);
+
+      const match = accountsWithProp.find((a) => a.id === activeAccountId);
+      if (!match?.prop) {
+        setError("Dados da conta prop não encontrados.");
+        setData(null);
         setLoading(false);
+        return;
+      }
+
+      const propInfo = match.prop;
+
+      // Fetch drawdown stats via RPC
+      const drawdownStats = await getDrawdownStats(
+        supabase,
+        activeAccountId,
+        userId,
+        propInfo.max_daily_loss_percent,
+        propInfo.max_overall_loss_percent
+      );
+
+      // Get last trade date for stale badge
+      const { data: lastTrade } = await supabase
+        .from("journal_trades")
+        .select("closed_at")
+        .eq("account_id", activeAccountId)
+        .eq("user_id", userId)
+        .order("closed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const lastTradeAt = (lastTrade as { closed_at?: string } | null)?.closed_at ?? null;
+
+      setData({
+        propInfo,
+        cycleStats,
+        drawdownStats,
+        accountName: match.name,
+        lastTradeAt,
       });
+
+      // Check and create alerts (fire-and-forget for toasts)
+      if (drawdownStats) {
+        checkAndCreateAlerts(
+          supabase,
+          activeAccountId,
+          userId,
+          drawdownStats.dailyDdPct,
+          drawdownStats.overallDdPct,
+          propInfo.max_daily_loss_percent,
+          propInfo.max_overall_loss_percent
+        ).then((newAlerts) => {
+          if (newAlerts.length > 0) {
+            setAlerts((prev) => [...prev, ...newAlerts]);
+          }
+        }).catch(() => {});
+      }
+
+      setLoading(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar dados.");
+      setLoading(false);
+    }
   }, [activeAccountId, isProp]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // ---------- Not a prop account ----------
   if (!isProp) {
@@ -167,7 +230,7 @@ export default function PropPage() {
   }
 
   // ---------- Real data from prop_accounts ----------
-  const { propInfo, cycleStats, accountName } = data;
+  const { propInfo, cycleStats, drawdownStats, accountName, lastTradeAt } = data;
   const startingBalance = propInfo.starting_balance_usd;
   const profitTargetPct = propInfo.profit_target_percent;
   const maxDailyLossPct = propInfo.max_daily_loss_percent;
@@ -180,30 +243,50 @@ export default function PropPage() {
   const profit = cycleStats.profitSinceLastPayout;
   const remainingToTarget = Math.max(0, profitTarget - profit);
 
-  // Daily loss and overall loss tracking from real trades
-  // Note: actual daily loss tracking requires intraday trade data; showing cycle-based risk
-  const overallLossUsed = Math.max(0, -profit); // negative profit = drawdown
+  // Drawdown values from RPC (or fallback to cycle-based)
+  const dailyDdPct = drawdownStats?.dailyDdPct ?? 0;
+  const overallDdPct = drawdownStats?.overallDdPct ?? 0;
+  const overallLossUsed = Math.max(0, -profit);
   const overallDistance = Math.max(0, maxOverallLoss - overallLossUsed);
 
   const metaProgressPct = profitTarget > 0 ? Math.min(100, (profit / profitTarget) * 100) : 0;
-  const overallRiskPct = maxOverallLoss > 0 ? (overallLossUsed / maxOverallLoss) * 100 : 0;
+  const ddTypeLabel = propInfo.drawdown_type === "trailing" ? "Trailing" : "Estático";
 
-  const status: "ok" | "risco" = overallRiskPct >= RISCO_THRESHOLD_PCT ? "risco" : "ok";
+  const status: "ok" | "risco" = overallDdPct >= RISCO_THRESHOLD_PCT ? "risco" : "ok";
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-12" data-account-id={activeAccountId ?? undefined}>
       <p className="text-sm text-muted-foreground mb-1">Conta ativa: {activeName}</p>
-      <div className="mb-10">
-        <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-          Prop
-        </h1>
-        <p className="mt-1 text-muted-foreground leading-relaxed-apple">
-          {propInfo.firm_name} · {phaseLabel(propInfo.phase)} · Saldo inicial ${startingBalance.toLocaleString()}
-        </p>
+      <div className="mb-10 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
+            Prop
+          </h1>
+          <p className="mt-1 text-muted-foreground leading-relaxed-apple">
+            {propInfo.firm_name} · {phaseLabel(propInfo.phase)} · Saldo inicial ${startingBalance.toLocaleString()} · DD {ddTypeLabel}
+          </p>
+        </div>
+        <StaleBadge lastTradeAt={lastTradeAt} />
       </div>
 
+      {/* Alert toasts */}
+      {alerts.length > 0 && (
+        <div className="mb-6 space-y-2">
+          {alerts.map((alert) => (
+            <div
+              key={alert.id}
+              className="flex items-center gap-3 rounded-xl border border-amber-500/30 px-4 py-3"
+              style={{ backgroundColor: "hsl(var(--card))" }}
+            >
+              <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+              <p className="text-sm text-foreground">{alert.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 space-y-6">
           <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0">
               <div>
@@ -267,14 +350,20 @@ export default function PropPage() {
                 <Progress value={Math.max(0, metaProgressPct)} max={100} className="mt-2" />
               </div>
 
-              <div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Risco overall (drawdown vs limite ${maxOverallLoss.toLocaleString()})</span>
-                  <span className="font-medium">
-                    ${overallLossUsed.toLocaleString()} / ${maxOverallLoss.toLocaleString()}
-                  </span>
-                </div>
-                <Progress value={overallRiskPct} max={100} className="mt-2" />
+              <Separator />
+
+              {/* Drawdown bars */}
+              <div className="space-y-4">
+                <DrawdownBar
+                  label="Drawdown Diário"
+                  currentPct={dailyDdPct}
+                  maxPct={maxDailyLossPct}
+                />
+                <DrawdownBar
+                  label="Drawdown Geral"
+                  currentPct={overallDdPct}
+                  maxPct={maxOverallLossPct}
+                />
               </div>
             </CardContent>
           </Card>

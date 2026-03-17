@@ -112,6 +112,32 @@ export function PricingCards() {
     }
   }
 
+  async function handleManageSubscription() {
+    setLoadingTier("free");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+      const res = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingTier(null);
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Toggle */}
@@ -213,13 +239,24 @@ export function PricingCards() {
                     Plano atual
                   </Button>
                 ) : isFree ? (
-                  <Button
-                    className="w-full rounded-full"
-                    variant="outline"
-                    disabled={currentPlan === "free"}
-                  >
-                    {currentPlan === "free" ? "Plano atual" : "Downgrade"}
-                  </Button>
+                  currentPlan === "free" ? (
+                    <Button
+                      className="w-full rounded-full"
+                      variant="outline"
+                      disabled
+                    >
+                      Plano atual
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full rounded-full"
+                      variant="outline"
+                      disabled={loadingTier === "free"}
+                      onClick={handleManageSubscription}
+                    >
+                      {loadingTier === "free" ? "Redirecionando..." : "Gerenciar assinatura"}
+                    </Button>
+                  )
                 ) : (
                   <Button
                     className={cn(

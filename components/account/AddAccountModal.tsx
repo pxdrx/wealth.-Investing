@@ -171,6 +171,13 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+
+    // Safety timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      setSaving(false);
+      setError("Tempo esgotado. Tente novamente.");
+    }, 15000);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) throw new Error("Sessão inválida");
@@ -234,9 +241,14 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
             max_overall_loss_percent: preset.ddTotal,
             reset_timezone: "America/New_York",
             reset_rule: "forex_close",
+            drawdown_type: drawdownType,
           });
 
-        if (propError) throw propError;
+        if (propError) {
+          // Rollback: remove the account we just created
+          await supabase.from("accounts").delete().eq("id", accountId);
+          throw propError;
+        }
       }
 
       setCreatedAccountId(accountId);
@@ -247,8 +259,11 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       onRefreshAccounts?.().catch(() => {});
       setStep("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao criar conta");
+      const msg = e instanceof Error ? e.message : "Erro ao criar conta";
+      console.error("[AddAccountModal] handleSave error:", msg);
+      setError(msg);
     } finally {
+      clearTimeout(timeout);
       setSaving(false);
     }
   };

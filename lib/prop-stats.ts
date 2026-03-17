@@ -1,4 +1,75 @@
+import { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+
+// ── Drawdown Stats (RPC-based) ──────────────────────────────
+
+export interface DrawdownStats {
+  dailyPnl: number;
+  overallPnl: number;
+  highWaterMark: number;
+  startingBalance: number;
+  drawdownType: "static" | "trailing";
+  dailyDdPct: number;
+  overallDdPct: number;
+}
+
+/**
+ * Calls the calc_drawdown Postgres RPC and computes drawdown percentages.
+ * For static: dd% = loss / startingBalance
+ * For trailing: dd% = loss / highWaterMark
+ */
+export async function getDrawdownStats(
+  client: SupabaseClient,
+  accountId: string,
+  userId: string,
+  maxDailyLossPct: number,
+  maxOverallLossPct: number
+): Promise<DrawdownStats | null> {
+  const { data, error } = await client.rpc("calc_drawdown", {
+    p_account_id: accountId,
+    p_user_id: userId,
+  });
+
+  if (error) {
+    console.warn("[prop-stats] calc_drawdown RPC error:", error.message);
+    return null;
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+
+  const dailyPnl = Number(row.daily_pnl) || 0;
+  const overallPnl = Number(row.overall_pnl) || 0;
+  const highWaterMark = Number(row.high_water_mark) || 0;
+  const startingBalance = Number(row.starting_balance) || 0;
+  const drawdownType = (row.drawdown_type as "static" | "trailing") || "static";
+
+  const denominator =
+    drawdownType === "trailing" ? highWaterMark : startingBalance;
+  const safeDenom = denominator > 0 ? denominator : 1;
+
+  // Drawdown is loss as positive %, so negate negative PnL
+  const dailyDdPct =
+    dailyPnl < 0
+      ? Math.min(Math.abs(dailyPnl / safeDenom) * 100, maxDailyLossPct)
+      : 0;
+  const overallDdPct =
+    overallPnl < 0
+      ? Math.min(Math.abs(overallPnl / safeDenom) * 100, maxOverallLossPct)
+      : 0;
+
+  return {
+    dailyPnl,
+    overallPnl,
+    highWaterMark,
+    startingBalance,
+    drawdownType,
+    dailyDdPct,
+    overallDdPct,
+  };
+}
+
+// ── Cycle Stats (legacy) ────────────────────────────────────
 
 export interface PropCycleStats {
   /** Lucro do ciclo atual (após último payout) */
