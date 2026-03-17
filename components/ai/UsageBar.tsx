@@ -25,14 +25,18 @@ export function UsageBar({ used, limit }: UsageBarProps) {
   const color = getBarColor(pct);
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>Uso mensal do AI Coach</span>
-        <span>
-          <span className="font-semibold text-foreground">{used}</span>/{limit} este mês
+    <div
+      className="flex flex-col gap-2 rounded-[16px] border border-border/50 px-4 py-3"
+      style={{ backgroundColor: "hsl(var(--card))" }}
+    >
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground font-medium">Uso mensal do AI Coach</span>
+        <span className="text-muted-foreground">
+          <span className="font-semibold text-foreground">{used}</span>
+          <span className="text-muted-foreground">/{limit} este mês</span>
         </span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted/50">
         <motion.div
           className={`h-full rounded-full ${color}`}
           initial={{ width: 0 }}

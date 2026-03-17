@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { BarChart3, Calendar, MessageCircle } from "lucide-react";
+import { BarChart3, Calendar, MessageCircle, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { getTierLimits } from "@/lib/subscription-shared";
@@ -183,13 +184,20 @@ export default function AICoachPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-          AI Coach
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Análises personalizadas baseadas nos seus dados de trading
-        </p>
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10">
+            <Sparkles className="h-5 w-5 text-blue-500" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
+              AI Coach
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Análises personalizadas baseadas nos seus dados de trading
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Usage bar */}
@@ -214,23 +222,36 @@ export default function AICoachPage() {
         <div className="flex flex-col gap-4">
           {/* Quick action cards */}
           {messages.length === 0 && (
-            <div className="grid gap-4 sm:grid-cols-3 mb-8">
-              {QUICK_ACTIONS.map((action) => (
-                <QuickActionCard
-                  key={action.type}
-                  icon={action.icon}
-                  title={action.title}
-                  description={action.description}
-                  disabled={quotaExhausted || isStreaming || !activeAccountId}
-                  onClick={() => {
-                    setAnalysisType(action.type);
-                    if (action.prompt) {
-                      sendMessage(action.prompt, action.type);
-                    }
-                  }}
-                />
-              ))}
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <p className="text-sm font-medium text-muted-foreground mb-3">Como posso ajudar?</p>
+              <div className="grid gap-3 sm:grid-cols-3 mb-8 items-stretch">
+                {QUICK_ACTIONS.map((action, i) => (
+                  <motion.div
+                    key={action.type}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <QuickActionCard
+                      icon={action.icon}
+                      title={action.title}
+                      description={action.description}
+                      disabled={quotaExhausted || isStreaming || !activeAccountId}
+                      onClick={() => {
+                        setAnalysisType(action.type);
+                        if (action.prompt) {
+                          sendMessage(action.prompt, action.type);
+                        }
+                      }}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
           )}
 
           {/* Messages */}

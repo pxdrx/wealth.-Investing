@@ -2,7 +2,6 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface ChatInputProps {
   onSubmit: (text: string) => void;
@@ -40,7 +39,7 @@ export function ChatInput({ onSubmit, disabled, placeholder }: ChatInputProps) {
 
   return (
     <div
-      className="flex items-end gap-2 rounded-2xl border px-3 py-2"
+      className="flex items-end gap-2 rounded-[22px] border border-border/50 px-4 py-3 transition-colors focus-within:border-blue-500/50"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
       <textarea
@@ -53,15 +52,14 @@ export function ChatInput({ onSubmit, disabled, placeholder }: ChatInputProps) {
         rows={1}
         className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
       />
-      <Button
-        size="icon"
-        variant="ghost"
+      <button
+        type="button"
         onClick={handleSubmit}
         disabled={disabled || !text.trim()}
-        className="shrink-0 h-8 w-8 rounded-full"
+        className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:bg-muted disabled:text-muted-foreground transition-colors"
       >
         <Send className="h-4 w-4" />
-      </Button>
+      </button>
     </div>
   );
 }
