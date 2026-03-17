@@ -18,6 +18,7 @@ const navLinks = [
   { href: "/app/alerts", label: "Alerts" },
   { href: "/app/news", label: "News" },
   { href: "/app/journal", label: "Journal" },
+  { href: "/app/ai-coach", label: "AI Coach" },
   { href: "/app/pricing", label: "Planos" },
 ];
 
