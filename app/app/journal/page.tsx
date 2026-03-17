@@ -337,7 +337,6 @@ export default function JournalPage() {
                   trades={trades as unknown as TradeRow[]}
                   dayNotes={dayNotes}
                   showConsolidatedToggle={false}
-                  showWindowChrome
                 />
               </div>
             )}

@@ -31,5 +31,4 @@ export interface CalendarPnlProps {
   accounts?: { id: string; name: string }[];
   dayNotes?: Record<string, DayNote>;
   showConsolidatedToggle?: boolean;
-  showWindowChrome?: boolean;
 }

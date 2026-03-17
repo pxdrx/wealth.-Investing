@@ -64,7 +64,7 @@ export function CalendarGrid({
           >
             <ChevronLeft className="h-4 w-4" style={{ color: "hsl(var(--landing-text))" }} />
           </button>
-          <span className="text-sm font-semibold" style={{ color: "hsl(var(--landing-text))" }}>
+          <span className="text-sm font-semibold tracking-tight" style={{ color: "hsl(var(--landing-text))" }}>
             {MONTH_NAMES[month]} {year}
           </span>
           <button
@@ -76,13 +76,13 @@ export function CalendarGrid({
           </button>
         </div>
         <span
-          className="font-mono text-xs font-medium"
+          className="text-xs font-semibold tabular-nums"
           style={{
             color:
               monthPnl > 0
-                ? "hsl(var(--landing-accent))"
+                ? "hsl(var(--pnl-positive))"
                 : monthPnl < 0
-                  ? "hsl(var(--landing-accent-danger))"
+                  ? "hsl(var(--pnl-negative))"
                   : "hsl(var(--landing-text-muted))",
           }}
         >
@@ -95,7 +95,7 @@ export function CalendarGrid({
         {DAY_HEADERS.map((label, i) => (
           <div
             key={i}
-            className="py-1 font-mono text-[9px]"
+            className="py-1 text-[9px] font-medium uppercase tracking-wide"
             style={{ color: "hsl(var(--landing-text-muted))" }}
           >
             {label}
@@ -132,27 +132,26 @@ export function CalendarGrid({
               }}
             >
               <span
-                className="font-mono text-[10px]"
+                className="text-[10px] tabular-nums"
                 style={{
                   color: hasTrades
                     ? "hsl(var(--landing-text))"
                     : "hsl(var(--landing-text-muted))",
-                  fontWeight: isSelected ? 700 : 400,
+                  fontWeight: isSelected ? 700 : 500,
                 }}
               >
                 {day}
               </span>
               {hasTrades && pnl !== null && (
                 <span
-                  className="font-mono text-[7px]"
+                  className="text-[7px] font-semibold tabular-nums"
                   style={{
                     color:
                       pnl > 0
-                        ? "hsl(var(--landing-accent))"
+                        ? "hsl(var(--pnl-text-positive))"
                         : pnl < 0
-                          ? "hsl(var(--landing-accent-danger))"
+                          ? "hsl(var(--pnl-text-negative))"
                           : "hsl(var(--landing-text-muted))",
-                    fontWeight: isSelected ? 700 : 400,
                   }}
                 >
                   {formatPnl(pnl)}

@@ -16,7 +16,6 @@ export function CalendarPnl({
   accounts,
   dayNotes,
   showConsolidatedToggle,
-  showWindowChrome,
 }: CalendarPnlProps) {
   const now = new Date();
   const [displayYear, setDisplayYear] = useState(now.getFullYear());
@@ -71,9 +70,9 @@ export function CalendarPnl({
 
   const pnlColor = (value: number) =>
     value > 0
-      ? "hsl(var(--landing-accent))"
+      ? "hsl(var(--pnl-positive))"
       : value < 0
-        ? "hsl(var(--landing-accent-danger))"
+        ? "hsl(var(--pnl-negative))"
         : "hsl(var(--landing-text-muted))";
 
   const title = showConsolidatedToggle ? "Consolidado de Contas" : "Calendario P&L";
@@ -106,58 +105,17 @@ export function CalendarPnl({
 
   return (
     <div className="landing-card overflow-hidden">
-      {/* Window chrome */}
-      {showWindowChrome && (
-        <div
-          className="flex items-center gap-2 px-4 py-2.5 border-b"
-          style={{ borderColor: "hsl(var(--landing-border))" }}
-        >
-          <div className="flex gap-1.5">
-            <div
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: "hsl(0 70% 55% / 0.5)" }}
-            />
-            <div
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: "hsl(42 80% 55% / 0.5)" }}
-            />
-            <div
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: "hsl(220 70% 55% / 0.4)" }}
-            />
-          </div>
-          <span
-            className="ml-2"
-            style={{
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: "10px",
-              color: "hsl(var(--landing-text-muted))",
-            }}
-          >
-            wealth.Investing — {showConsolidatedToggle ? "Dashboard" : "Journal"}
-          </span>
-        </div>
-      )}
-
       {/* KPI Strip */}
       <div className="px-4 md:px-5 pt-4 md:pt-5 pb-3">
         <div className="flex items-baseline justify-between mb-3">
           <h3
-            className="font-semibold"
-            style={{
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: "13px",
-              color: "hsl(var(--landing-text))",
-            }}
+            className="text-sm font-semibold tracking-tight"
+            style={{ color: "hsl(var(--landing-text))" }}
           >
             {title}
           </h3>
           <span
-            style={{
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: "10px",
-              color: "hsl(var(--landing-text-muted))",
-            }}
+            className="text-[11px] text-muted-foreground"
           >
             {MONTH_NAMES[displayMonth]} {displayYear}
           </span>
@@ -173,22 +131,13 @@ export function CalendarPnl({
               }}
             >
               <p
-                className="uppercase tracking-wider mb-1"
-                style={{
-                  fontFamily: "var(--font-mono, monospace)",
-                  fontSize: "8px",
-                  letterSpacing: "0.05em",
-                  color: "hsl(var(--landing-text-muted))",
-                }}
+                className="text-[9px] uppercase tracking-wider mb-1 text-muted-foreground"
               >
                 {kpi.label}
               </p>
               <p
-                className="text-sm font-semibold"
-                style={{
-                  fontFamily: "var(--font-mono, monospace)",
-                  color: kpi.color,
-                }}
+                className="text-sm font-semibold tabular-nums"
+                style={{ color: kpi.color }}
               >
                 {kpi.value}
               </p>

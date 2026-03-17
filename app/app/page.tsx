@@ -294,97 +294,60 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Watchlist */}
-        <Card className="lg:col-span-12 w-full">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle className="text-base font-medium">
-              Watchlist
-            </CardTitle>
-            <Button variant="ghost" size="sm" className="text-muted-foreground -mr-2" asChild>
-              <Link href="/app">Ver tudo</Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div ref={watchlistRef} className="w-full rounded-2xl border border-border/70 bg-card overflow-hidden" style={{ minHeight: "500px" }}>
-              {iframeVisible ? (
-                <iframe
-                  src={
-                    "https://s.tradingview.com/embed-widget/market-overview/?locale=br#" +
-                    encodeURIComponent(
-                      JSON.stringify({
-                        colorTheme: "light",
-                        isTransparent: true,
-                        showSymbolLogo: true,
-                        width: "100%",
-                        height: 500,
-                        tabs: [
-                          {
-                            title: "Forex",
-                            symbols: [
-                              { s: "FX:EURUSD" },
-                              { s: "FX:GBPUSD" },
-                              { s: "FX:USDJPY" },
-                              { s: "FX:USDCAD" },
-                              { s: "FX:AUDUSD" },
-                              { s: "FX:NZDUSD" },
-                              { s: "FX:USDCHF" },
-                            ],
-                          },
-                          {
-                            title: "Índices",
-                            symbols: [
-                              { s: "CME_MINI:NQ1!" },
-                              { s: "CME_MINI:ES1!" },
-                              { s: "CBOT_MINI:YM1!" },
-                              { s: "CBOE:VIX" },
-                            ],
-                          },
-                          {
-                            title: "Commodities",
-                            symbols: [
-                              { s: "TVC:GOLD" },
-                              { s: "TVC:SILVER" },
-                              { s: "TVC:USOIL" },
-                              { s: "TVC:UKBRENT" },
-                              { s: "OANDA:NATGAS" },
-                            ],
-                          },
-                          {
-                            title: "Crypto",
-                            symbols: [
-                              { s: "BITSTAMP:BTCUSD" },
-                              { s: "BITSTAMP:ETHUSD" },
-                              { s: "CRYPTOCAP:TOTAL" },
-                            ],
-                          },
-                          {
-                            title: "Ações",
-                            symbols: [
-                              { s: "NASDAQ:AAPL" },
-                              { s: "NASDAQ:MSFT" },
-                              { s: "NASDAQ:NVDA" },
-                              { s: "NASDAQ:AMZN" },
-                              { s: "NASDAQ:GOOGL" },
-                              { s: "NASDAQ:META" },
-                              { s: "NYSE:TSLA" },
-                              { s: "NYSE:BRK.B" },
-                            ],
-                          },
-                        ],
-                      }),
-                    )
-                  }
-                  style={{ width: "100%", height: "500px", border: "none" }}
-                  loading="lazy"
-                />
-              ) : (
-                <div className="flex items-center justify-center animate-pulse" style={{ height: "500px", backgroundColor: "hsl(var(--card))" }}>
-                  <p className="text-sm text-muted-foreground">Carregando watchlist...</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Watchlist — TradingView Advanced Chart + Ticker Tape */}
+        <div className="lg:col-span-12 flex flex-col gap-3">
+          {/* Ticker tape */}
+          <div className="w-full rounded-2xl border overflow-hidden" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}>
+            <iframe
+              src={
+                "https://s.tradingview.com/embed-widget/ticker-tape/?locale=br#" +
+                encodeURIComponent(
+                  JSON.stringify({
+                    symbols: [
+                      { proName: "FX:EURUSD", title: "EUR/USD" },
+                      { proName: "FX:GBPUSD", title: "GBP/USD" },
+                      { proName: "FX:USDJPY", title: "USD/JPY" },
+                      { proName: "CME_MINI:NQ1!", title: "Nasdaq" },
+                      { proName: "CME_MINI:ES1!", title: "S&P 500" },
+                      { proName: "TVC:GOLD", title: "Ouro" },
+                      { proName: "TVC:USOIL", title: "Petróleo" },
+                      { proName: "BITSTAMP:BTCUSD", title: "Bitcoin" },
+                      { proName: "BITSTAMP:ETHUSD", title: "Ethereum" },
+                    ],
+                    showSymbolLogo: true,
+                    isTransparent: true,
+                    displayMode: "adaptive",
+                    colorTheme: "light",
+                  }),
+                )
+              }
+              style={{ width: "100%", height: "46px", border: "none" }}
+              loading="lazy"
+            />
+          </div>
+
+          {/* Advanced chart */}
+          <div
+            ref={watchlistRef}
+            className="w-full rounded-2xl border overflow-hidden"
+            style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))", minHeight: "500px" }}
+          >
+            {iframeVisible ? (
+              <iframe
+                src={
+                  "https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=FX%3AEURUSD&interval=60&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=America%2FSao_Paulo&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=br&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart&utm_term=FX%3AEURUSD"
+                }
+                style={{ width: "100%", height: "500px", border: "none" }}
+                loading="lazy"
+                allowFullScreen
+              />
+            ) : (
+              <div className="flex items-center justify-center animate-pulse" style={{ height: "500px", backgroundColor: "hsl(var(--card))" }}>
+                <p className="text-sm text-muted-foreground">Carregando gráfico...</p>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Calendar — consolidated PnL */}
         <div className="lg:col-span-12">
@@ -393,7 +356,6 @@ export default function DashboardPage() {
             accounts={Array.from(accountsById.values()).map(a => ({ id: a.id, name: a.name }))}
             dayNotes={dayNotes}
             showConsolidatedToggle
-            showWindowChrome
           />
         </div>
 

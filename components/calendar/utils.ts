@@ -75,10 +75,10 @@ export function aggregateByDay(
  */
 export function cellColor(pnl: number | null): string {
   if (pnl === null) return "transparent";
-  if (pnl > 400) return "hsl(var(--landing-accent) / 0.7)";
-  if (pnl > 0) return "hsl(var(--landing-accent) / 0.35)";
+  if (pnl > 400) return "hsl(var(--pnl-cell-win-strong))";
+  if (pnl > 0) return "hsl(var(--pnl-cell-win))";
   if (pnl === 0) return "hsl(var(--landing-border))";
-  return "hsl(var(--landing-accent-danger) / 0.4)";
+  return "hsl(var(--pnl-cell-loss))";
 }
 
 /**

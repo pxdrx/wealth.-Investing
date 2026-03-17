@@ -36,9 +36,9 @@ export function DayDetailPanel({
 
   const pnlColor = (value: number) =>
     value > 0
-      ? "hsl(var(--landing-accent))"
+      ? "hsl(var(--pnl-positive))"
       : value < 0
-        ? "hsl(var(--landing-accent-danger))"
+        ? "hsl(var(--pnl-negative))"
         : "hsl(var(--landing-text-muted))";
 
   if (!selectedDate) {
@@ -47,14 +47,7 @@ export function DayDetailPanel({
         className="lg:w-[280px] border-t lg:border-t-0 lg:border-l p-4 md:p-5 flex items-center justify-center"
         style={{ borderColor: "hsl(var(--landing-border))" }}
       >
-        <p
-          className="text-xs text-center"
-          style={{
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize: "12px",
-            color: "hsl(var(--landing-text-muted))",
-          }}
-        >
+        <p className="text-xs text-center text-muted-foreground">
           Selecione um dia para ver detalhes.
         </p>
       </div>
@@ -68,22 +61,12 @@ export function DayDetailPanel({
     >
       {/* Header */}
       <div className="flex items-baseline justify-between">
-        <span
-          className="uppercase tracking-wider"
-          style={{
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize: "8px",
-            letterSpacing: "0.05em",
-            color: "hsl(var(--landing-text-muted))",
-          }}
-        >
+        <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
           {formatDateLabel(selectedDate)}
         </span>
         <span
-          className="font-semibold"
+          className="text-base font-semibold tabular-nums"
           style={{
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize: "14px",
             color: dayData ? pnlColor(dayData.totalPnl) : "hsl(var(--landing-text-muted))",
           }}
         >
@@ -95,24 +78,24 @@ export function DayDetailPanel({
       <div className="grid grid-cols-2 gap-2">
         {[
           {
-            label: "TRADES",
+            label: "Trades",
             value: dayData?.tradeCount?.toString() ?? "0",
             color: "hsl(var(--landing-text))",
           },
           {
-            label: "WIN RATE",
+            label: "Win Rate",
             value: `${winRate}%`,
             color: "hsl(var(--landing-text))",
           },
           {
-            label: "MELHOR",
-            value: dayData ? formatPnl(dayData.bestTrade) : "$0",
-            color: "hsl(var(--landing-accent))",
+            label: "Melhor",
+            value: dayData && dayData.bestTrade !== 0 ? formatPnl(dayData.bestTrade) : "$0",
+            color: dayData && dayData.bestTrade > 0 ? "hsl(var(--pnl-positive))" : "hsl(var(--landing-text-muted))",
           },
           {
-            label: "PIOR",
-            value: dayData ? formatPnl(dayData.worstTrade) : "$0",
-            color: "hsl(var(--landing-accent-danger))",
+            label: "Pior",
+            value: dayData && dayData.worstTrade !== 0 ? formatPnl(dayData.worstTrade) : "$0",
+            color: dayData && dayData.worstTrade < 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))",
           },
         ].map((kpi) => (
           <div
@@ -122,24 +105,12 @@ export function DayDetailPanel({
               backgroundColor: "hsl(var(--landing-bg-tertiary))",
             }}
           >
-            <p
-              className="uppercase tracking-wider mb-1"
-              style={{
-                fontFamily: "var(--font-mono, monospace)",
-                fontSize: "8px",
-                letterSpacing: "0.05em",
-                color: "hsl(var(--landing-text-muted))",
-              }}
-            >
+            <p className="text-[9px] uppercase tracking-wider mb-1 text-muted-foreground">
               {kpi.label}
             </p>
             <p
-              className="font-semibold"
-              style={{
-                fontFamily: "var(--font-mono, monospace)",
-                fontSize: "13px",
-                color: kpi.color,
-              }}
+              className="text-[13px] font-semibold tabular-nums"
+              style={{ color: kpi.color }}
             >
               {kpi.value}
             </p>
@@ -149,14 +120,7 @@ export function DayDetailPanel({
 
       {/* No trades message */}
       {dayData?.tradeCount === 0 && (
-        <p
-          className="text-center py-2"
-          style={{
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize: "11px",
-            color: "hsl(var(--landing-text-muted))",
-          }}
-        >
+        <p className="text-center py-2 text-[11px] text-muted-foreground">
           Sem operações neste dia
         </p>
       )}
@@ -164,24 +128,12 @@ export function DayDetailPanel({
       {/* Observations */}
       {dayNote?.observation && (
         <div>
-          <p
-            className="uppercase tracking-wider mb-1.5"
-            style={{
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: "8px",
-              letterSpacing: "0.05em",
-              color: "hsl(var(--landing-text-muted))",
-            }}
-          >
-            OBSERVAÇÕES
+          <p className="text-[9px] uppercase tracking-wider mb-1.5 text-muted-foreground">
+            Observações
           </p>
           <p
-            className="leading-relaxed"
-            style={{
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: "11px",
-              color: "hsl(var(--landing-text))",
-            }}
+            className="text-[11px] leading-relaxed"
+            style={{ color: "hsl(var(--landing-text))" }}
           >
             {dayNote.observation}
           </p>
@@ -206,11 +158,8 @@ export function DayDetailPanel({
               <button
                 key={tab.key}
                 onClick={() => setViewMode(tab.key)}
-                className="flex-1 py-1.5 text-center transition-colors"
+                className="flex-1 py-1.5 text-center text-[10px] font-medium transition-colors"
                 style={{
-                  fontFamily: "var(--font-mono, monospace)",
-                  fontSize: "10px",
-                  letterSpacing: "0.03em",
                   backgroundColor:
                     viewMode === tab.key
                       ? "hsl(var(--landing-text))"
@@ -238,31 +187,18 @@ export function DayDetailPanel({
                 >
                   <div>
                     <p
-                      style={{
-                        fontFamily: "var(--font-mono, monospace)",
-                        fontSize: "11px",
-                        color: "hsl(var(--landing-text))",
-                      }}
+                      className="text-[11px] font-medium"
+                      style={{ color: "hsl(var(--landing-text))" }}
                     >
                       {acc.accountName}
                     </p>
-                    <p
-                      style={{
-                        fontFamily: "var(--font-mono, monospace)",
-                        fontSize: "9px",
-                        color: "hsl(var(--landing-text-muted))",
-                      }}
-                    >
+                    <p className="text-[9px] text-muted-foreground">
                       {acc.trades} trade{acc.trades !== 1 ? "s" : ""}
                     </p>
                   </div>
                   <span
-                    className="font-semibold"
-                    style={{
-                      fontFamily: "var(--font-mono, monospace)",
-                      fontSize: "12px",
-                      color: pnlColor(acc.pnl),
-                    }}
+                    className="text-xs font-semibold tabular-nums"
+                    style={{ color: pnlColor(acc.pnl) }}
                   >
                     {formatPnl(acc.pnl)}
                   </span>
@@ -275,16 +211,8 @@ export function DayDetailPanel({
 
       {/* Execution rating — placeholder */}
       <div>
-        <p
-          className="uppercase tracking-wider mb-2"
-          style={{
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize: "8px",
-            letterSpacing: "0.05em",
-            color: "hsl(var(--landing-text-muted))",
-          }}
-        >
-          EXECUÇÃO
+        <p className="text-[9px] uppercase tracking-wider mb-2 text-muted-foreground">
+          Execução
         </p>
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 5 }).map((_, i) => (
