@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
 import { BrandMark } from "@/components/brand/BrandMark";
+import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 
 const navLinks = [
   { href: "/app", label: "Dashboard" },
@@ -17,6 +18,7 @@ const navLinks = [
   { href: "/app/alerts", label: "Alerts" },
   { href: "/app/news", label: "News" },
   { href: "/app/journal", label: "Journal" },
+  { href: "/app/pricing", label: "Planos" },
 ];
 
 function UserAvatar({ name }: { name: string }) {
@@ -96,11 +98,12 @@ export function AppHeader() {
                 className="inline-flex items-center gap-2 rounded-[22px] border border-border/80 bg-muted/30 pl-1.5 pr-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 max-w-[200px]">
                 <UserAvatar name={displayName ?? "U"} />
                 <span className="truncate">{displayName ?? "Conta"}</span>
+                <SubscriptionBadge />
                 <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", userMenuOpen && "rotate-180")} />
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-44 rounded-[14px] border border-border/60 bg-card shadow-lg py-1.5 z-50">
-                  <Link href="/app/account" onClick={() => setUserMenuOpen(false)}
+                  <Link href="/app/settings" onClick={() => setUserMenuOpen(false)}
                     className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-foreground hover:bg-accent transition-colors rounded-[8px] mx-1" style={{width: "calc(100% - 8px)"}}>
                     <Settings className="h-3.5 w-3.5 text-muted-foreground" />
                     Configurações
@@ -132,7 +135,7 @@ export function AppHeader() {
                 {link.label}
               </Link>
             ))}
-            <Link href="/app/account" onClick={() => setMobileOpen(false)}
+            <Link href="/app/settings" onClick={() => setMobileOpen(false)}
               className="mt-1 flex items-center gap-2 rounded-input px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
               <Settings className="h-4 w-4" />
               Configurações
