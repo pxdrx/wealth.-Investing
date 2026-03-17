@@ -28,11 +28,11 @@ const tiers: TierDef[] = [
     monthlyPrice: 0,
     annualPrice: 0,
     features: [
-      "30 trades/mes",
+      "30 trades/mês",
       "2 contas",
-      "Dashboard basico",
+      "Dashboard básico",
       "Import MT5",
-      "1 consulta AI/mes",
+      "1 consulta AI/mês",
     ],
   },
   {
@@ -48,7 +48,7 @@ const tiers: TierDef[] = [
       "Dashboard completo",
       "Export CSV",
       "cTrader",
-      "10 consultas AI/mes",
+      "10 consultas AI/mês",
     ],
   },
   {
@@ -59,10 +59,10 @@ const tiers: TierDef[] = [
     features: [
       "Tudo do Pro",
       "Contas ilimitadas",
-      "Comparacao de contas",
+      "Comparação de contas",
       "Alertas customizados",
       "5 consultas AI/dia",
-      "Suporte prioritario",
+      "Suporte prioritário",
     ],
   },
 ];
@@ -173,7 +173,7 @@ export function PricingCards() {
 
               <div className="mt-4 flex items-baseline gap-1">
                 {isFree ? (
-                  <span className="text-3xl font-bold tracking-tight">Gratis</span>
+                  <span className="text-3xl font-bold tracking-tight">Grátis</span>
                 ) : (
                   <>
                     <span className="text-sm font-medium text-muted-foreground">R$</span>
@@ -183,7 +183,7 @@ export function PricingCards() {
                       locales="pt-BR"
                       className="text-3xl font-bold tracking-tight"
                     />
-                    <span className="text-sm text-muted-foreground">/mes</span>
+                    <span className="text-sm text-muted-foreground">/mês</span>
                   </>
                 )}
               </div>
@@ -216,9 +216,9 @@ export function PricingCards() {
                   <Button
                     className="w-full rounded-full"
                     variant="outline"
-                    disabled
+                    disabled={currentPlan === "free"}
                   >
-                    Plano atual
+                    {currentPlan === "free" ? "Plano atual" : "Downgrade"}
                   </Button>
                 ) : (
                   <Button
@@ -232,7 +232,11 @@ export function PricingCards() {
                     disabled={loadingTier === tier.id}
                     onClick={() => handleSubscribe(tier.id)}
                   >
-                    {loadingTier === tier.id ? "Redirecionando..." : "Assinar"}
+                    {loadingTier === tier.id
+                      ? "Redirecionando..."
+                      : currentPlan === tier.id
+                        ? "Trocar período"
+                        : "Assinar"}
                   </Button>
                 )}
               </div>
