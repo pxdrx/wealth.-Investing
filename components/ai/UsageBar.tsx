@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 
-const easeApple = [0.16, 1, 0.3, 1];
+const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 interface UsageBarProps {
   used: number;
