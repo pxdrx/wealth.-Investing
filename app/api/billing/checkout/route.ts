@@ -14,7 +14,14 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
 
     const body = await req.json();
-    const planInterval = body.plan as PlanInterval;
+    // Support both "pro_monthly" and { plan: "pro", interval: "month" } formats
+    let planInterval: PlanInterval;
+    if (body.interval) {
+      const suffix = body.interval === "year" ? "annual" : "monthly";
+      planInterval = `${body.plan}_${suffix}` as PlanInterval;
+    } else {
+      planInterval = body.plan as PlanInterval;
+    }
     const priceId = PRICE_IDS[planInterval];
     if (!priceId) return NextResponse.json({ ok: false, error: "Invalid plan" }, { status: 400 });
 
