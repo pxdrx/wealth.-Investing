@@ -3,7 +3,6 @@
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion } from "framer-motion";
-import { Bot } from "lucide-react";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -20,31 +19,24 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
     >
-      {/* Assistant avatar */}
-      {!isUser && (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-500/10 mt-1">
-          <Bot className="h-4 w-4 text-blue-500" />
-        </div>
-      )}
-
       <div
-        className={`max-w-[80%] rounded-[22px] px-4 py-3 text-sm ${
+        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
           isUser
-            ? "bg-blue-600 text-white"
+            ? "rounded-br-md bg-muted/50 text-foreground"
             : isError
-              ? "border border-red-500/30 text-foreground"
-              : "border border-border/30 text-foreground"
+              ? "rounded-bl-md border border-red-500/30"
+              : "rounded-bl-md border border-border/40"
         }`}
-        style={!isUser ? { backgroundColor: isError ? "hsl(var(--card))" : "hsl(var(--card))" } : undefined}
+        style={!isUser ? { backgroundColor: "hsl(var(--background))" } : undefined}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap">{content}</p>
+          <p className="whitespace-pre-wrap text-sm">{content}</p>
         ) : isError ? (
-          <p className="text-red-400 text-sm">{content.replace("_Erro:", "").replace("_", "").trim() || content}</p>
+          <p className="text-red-400 text-sm">{content.replace(/_Erro:|_/g, "").trim() || content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-strong:text-foreground">
             <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
             {isStreaming && (
               <motion.span

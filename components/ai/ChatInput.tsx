@@ -38,10 +38,7 @@ export function ChatInput({ onSubmit, disabled, placeholder }: ChatInputProps) {
   );
 
   return (
-    <div
-      className="flex items-end gap-2 rounded-[22px] border border-border/50 px-4 py-3 transition-colors focus-within:border-blue-500/50"
-      style={{ backgroundColor: "hsl(var(--card))" }}
-    >
+    <div className="flex items-end gap-2 rounded-2xl border border-border/40 px-4 py-3 transition-colors focus-within:border-blue-500/50 bg-background">
       <textarea
         ref={textareaRef}
         value={text}

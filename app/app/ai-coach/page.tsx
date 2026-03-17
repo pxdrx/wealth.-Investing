@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { BarChart3, Calendar, MessageCircle, Sparkles } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper } from "lucide-react";
 import { motion } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { getTierLimits } from "@/lib/subscription-shared";
-import { UsageBar } from "@/components/ai/UsageBar";
-import { QuickActionCard } from "@/components/ai/QuickActionCard";
 import { ChatMessage } from "@/components/ai/ChatMessage";
 import { ChatInput } from "@/components/ai/ChatInput";
 import { supabase } from "@/lib/supabase/client";
@@ -17,6 +14,8 @@ interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const QUICK_ACTIONS = [
   {
@@ -42,6 +41,12 @@ const QUICK_ACTIONS = [
   },
 ];
 
+const DATA_SOURCES = [
+  { icon: BarChart3, label: "Seus trades" },
+  { icon: Users, label: "Comunidade" },
+  { icon: Newspaper, label: "Notícias" },
+];
+
 export default function AICoachPage() {
   const { activeAccountId } = useActiveAccount();
   const { plan } = useSubscription();
@@ -56,6 +61,9 @@ export default function AICoachPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const quotaExhausted = usageCount >= limits.aiCoachMonthly;
+  const usagePct = limits.aiCoachMonthly > 0
+    ? Math.min(100, (usageCount / limits.aiCoachMonthly) * 100)
+    : 0;
 
   // Load current usage
   useEffect(() => {
@@ -183,118 +191,161 @@ export default function AICoachPage() {
   }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType]);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10">
-            <Sparkles className="h-5 w-5 text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-              AI Coach
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Análises personalizadas baseadas nos seus dados de trading
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Usage bar */}
-      {usageLoaded && (
-        <div className="mb-6">
-          <UsageBar used={usageCount} limit={limits.aiCoachMonthly} />
-        </div>
-      )}
-
-      {/* No account selected */}
-      {!activeAccountId && (
-        <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
-          <CardContent className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              Selecione uma conta para usar o AI Coach.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {activeAccountId && (
-        <div className="flex flex-col gap-4">
-          {/* Quick action cards */}
-          {messages.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <p className="text-sm font-medium text-muted-foreground mb-3">Como posso ajudar?</p>
-              <div className="grid gap-3 sm:grid-cols-3 mb-8 items-stretch">
-                {QUICK_ACTIONS.map((action, i) => (
-                  <motion.div
-                    key={action.type}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    <QuickActionCard
-                      icon={action.icon}
-                      title={action.title}
-                      description={action.description}
-                      disabled={quotaExhausted || isStreaming || !activeAccountId}
-                      onClick={() => {
-                        setAnalysisType(action.type);
-                        if (action.prompt) {
-                          sendMessage(action.prompt, action.type);
-                        }
-                      }}
-                    />
-                  </motion.div>
-                ))}
+    <main className="mx-auto max-w-4xl px-6 py-10">
+      {/* Main card container — matches landing page mockup */}
+      <div
+        className="rounded-[22px] border border-border/50 overflow-hidden"
+        style={{ backgroundColor: "hsl(var(--card))" }}
+      >
+        {/* ── Header bar ── */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
+              <Brain className="h-4.5 w-4.5 text-blue-500" />
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-foreground">AI Coach</span>
+              <div className="flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                <span className="text-[10px] text-muted-foreground">Online</span>
               </div>
-            </motion.div>
-          )}
+            </div>
+          </div>
 
-          {/* Messages */}
-          {messages.length > 0 && (
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-              {messages.map((msg, i) => (
-                <ChatMessage
-                  key={i}
-                  role={msg.role}
-                  content={msg.content}
-                  isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
+          {/* Usage indicator */}
+          {usageLoaded && (
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-16 rounded-full overflow-hidden bg-muted/50">
+                <motion.div
+                  className={`h-full rounded-full ${usagePct >= 90 ? "bg-red-500" : usagePct >= 70 ? "bg-amber-500" : "bg-green-500"}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${usagePct}%` }}
+                  transition={{ duration: 0.6, ease: easeApple }}
                 />
-              ))}
-              <div ref={messagesEndRef} />
+              </div>
+              <span className="text-[10px] text-muted-foreground tabular-nums">
+                {usageCount}/{limits.aiCoachMonthly}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Data sources strip ── */}
+        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border/30">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground shrink-0 font-medium">
+            Fontes:
+          </span>
+          {DATA_SOURCES.map((src) => (
+            <div
+              key={src.label}
+              className="flex items-center gap-1 shrink-0 rounded-md px-2 py-0.5 bg-muted/30"
+            >
+              <src.icon className="h-2.5 w-2.5 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">{src.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Content area ── */}
+        <div className="flex flex-col min-h-[400px]">
+          {/* No account selected */}
+          {!activeAccountId && (
+            <div className="flex-1 flex items-center justify-center p-8">
+              <p className="text-sm text-muted-foreground">
+                Selecione uma conta para usar o AI Coach.
+              </p>
             </div>
           )}
 
-          {/* Quota exhausted */}
-          {quotaExhausted && (
-            <Card className="rounded-[22px] border-amber-500/30" style={{ backgroundColor: "hsl(var(--card))" }}>
-              <CardContent className="flex flex-col items-center gap-3 py-6">
-                <p className="text-sm text-foreground text-center">
-                  Você usou todas as {limits.aiCoachMonthly} análises do plano {plan}.
-                  Faça upgrade para continuar usando o AI Coach.
-                </p>
-                <a
-                  href="/app/pricing"
-                  className="rounded-full bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+          {activeAccountId && (
+            <div className="flex flex-col flex-1">
+              {/* Quick action cards — empty state */}
+              {messages.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: easeApple }}
+                  className="flex-1 flex flex-col justify-center p-6"
                 >
-                  Fazer upgrade
-                </a>
-              </CardContent>
-            </Card>
-          )}
+                  <p className="text-xs font-medium text-muted-foreground mb-3">Como posso ajudar?</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {QUICK_ACTIONS.map((action, i) => {
+                      const Icon = action.icon;
+                      return (
+                        <motion.button
+                          key={action.type}
+                          type="button"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: i * 0.08, ease: easeApple }}
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          whileTap={{ scale: 0.98 }}
+                          disabled={quotaExhausted || isStreaming}
+                          onClick={() => {
+                            setAnalysisType(action.type);
+                            if (action.prompt) {
+                              sendMessage(action.prompt, action.type);
+                            }
+                          }}
+                          className="flex flex-col items-start gap-3 rounded-2xl border border-border/40 p-4 text-left transition-all hover:border-border/80 hover:shadow-soft disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: "hsl(var(--background))" }}
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+                            <Icon className="h-4 w-4 text-blue-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{action.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
 
-          {/* Chat input */}
-          <ChatInput
-            onSubmit={(text) => sendMessage(text)}
-            disabled={quotaExhausted || isStreaming}
-            placeholder={quotaExhausted ? "Limite mensal atingido" : "Pergunte ao AI Coach..."}
-          />
+              {/* Messages */}
+              {messages.length > 0 && (
+                <div className="flex-1 space-y-4 p-5 overflow-y-auto max-h-[55vh]">
+                  {messages.map((msg, i) => (
+                    <ChatMessage
+                      key={i}
+                      role={msg.role}
+                      content={msg.content}
+                      isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
+                    />
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+
+              {/* Quota exhausted */}
+              {quotaExhausted && (
+                <div className="flex flex-col items-center gap-3 p-6 border-t border-border/30">
+                  <p className="text-sm text-foreground text-center">
+                    Você usou todas as {limits.aiCoachMonthly} análises do plano {plan}.
+                  </p>
+                  <a
+                    href="/app/pricing"
+                    className="rounded-full bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                  >
+                    Fazer upgrade
+                  </a>
+                </div>
+              )}
+
+              {/* Chat input — inside card */}
+              <div className="border-t border-border/30 p-4">
+                <ChatInput
+                  onSubmit={(text) => sendMessage(text)}
+                  disabled={quotaExhausted || isStreaming}
+                  placeholder={quotaExhausted ? "Limite mensal atingido" : "Pergunte ao AI Coach..."}
+                />
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </main>
   );
 }
