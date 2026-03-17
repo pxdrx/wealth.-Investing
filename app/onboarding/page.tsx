@@ -2,22 +2,69 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { LoginBackground } from "@/components/login/LoginBackground";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, toFriendlyMessage, upsertMyProfileDisplayName } from "@/lib/profile";
+import {
+  Briefcase,
+  Wallet,
+  Bitcoin,
+  Layers,
+  ArrowLeft,
+  ArrowRight,
+  FileSpreadsheet,
+  Sparkles,
+} from "lucide-react";
 
 const easeApple = [0.16, 1, 0.3, 1] as const;
 const MIN_LENGTH = 2;
 const MAX_LENGTH = 20;
+const TOTAL_STEPS = 4;
+
+type TraderProfile = "prop" | "personal" | "crypto" | "mix";
+
+const PROFILE_OPTIONS: { value: TraderProfile; label: string; icon: React.ElementType }[] = [
+  { value: "prop", label: "Mesa Proprietária", icon: Briefcase },
+  { value: "personal", label: "Capital Pessoal", icon: Wallet },
+  { value: "crypto", label: "Crypto", icon: Bitcoin },
+  { value: "mix", label: "Mix de tudo", icon: Layers },
+];
+
+const FIRMS = ["FTMO", "The5ers", "FundedNext", "MyForexFunds", "Outro"];
+
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 80 : -80,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -80 : 80,
+    opacity: 0,
+  }),
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(1);
+
+  // Step 1
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Step 2
+  const [traderProfile, setTraderProfile] = useState<TraderProfile | null>(null);
+
+  // Step 3
+  const [selectedFirm, setSelectedFirm] = useState<string | null>(null);
 
   useEffect(() => {
     async function gate() {
@@ -35,8 +82,27 @@ export default function OnboardingPage() {
     gate();
   }, [router]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function goNext() {
+    setDirection(1);
+    // If step 2 selected personal or crypto, skip step 3
+    if (step === 2 && traderProfile !== "prop" && traderProfile !== "mix") {
+      setStep(4);
+    } else {
+      setStep((s) => Math.min(s + 1, TOTAL_STEPS));
+    }
+  }
+
+  function goBack() {
+    setDirection(-1);
+    // If on step 4 and profile is personal/crypto, go back to step 2 (skipped 3)
+    if (step === 4 && traderProfile !== "prop" && traderProfile !== "mix") {
+      setStep(2);
+    } else {
+      setStep((s) => Math.max(s - 1, 1));
+    }
+  }
+
+  async function handleSaveName() {
     setError(null);
     const trimmed = displayName.trim();
     if (trimmed.length < MIN_LENGTH) { setError(`Mínimo ${MIN_LENGTH} caracteres.`); return; }
@@ -45,7 +111,7 @@ export default function OnboardingPage() {
     try {
       const result = await upsertMyProfileDisplayName(trimmed);
       if (result.error) { setError(result.error.message); return; }
-      window.location.href = "/app";
+      goNext();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao salvar. Tente novamente.");
     } finally {
@@ -53,7 +119,16 @@ export default function OnboardingPage() {
     }
   }
 
-  const isValid = displayName.trim().length >= MIN_LENGTH;
+  async function handleStep1Submit(e: React.FormEvent) {
+    e.preventDefault();
+    await handleSaveName();
+  }
+
+  function handleFinish() {
+    window.location.href = "/app";
+  }
+
+  const isNameValid = displayName.trim().length >= MIN_LENGTH;
 
   if (checking) {
     return (
@@ -90,58 +165,275 @@ export default function OnboardingPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.08, ease: easeApple }}
       >
-        <div className="rounded-[22px] border border-border bg-card p-8 shadow-soft dark:shadow-soft-dark">
-
-          {/* Step dots */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-1.5 w-6 rounded-full bg-foreground" />
-            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
-            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
+        <div
+          className="rounded-[22px] border border-border bg-card p-8 shadow-soft dark:shadow-soft-dark overflow-hidden"
+          style={{ backgroundColor: "hsl(var(--card))" }}
+        >
+          {/* Progress bar */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                Passo {step} de {TOTAL_STEPS}
+              </span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-muted-foreground/15">
+              <motion.div
+                className="h-1.5 rounded-full bg-foreground"
+                initial={false}
+                animate={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+                transition={{ duration: 0.4, ease: easeApple }}
+              />
+            </div>
           </div>
 
-          <p className="text-xs font-medium text-muted-foreground mb-1">
-            Bem-vindo ao wealth.Investing
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-tight mb-6">
-            Como quer ser<br />chamado?
-          </h1>
+          <AnimatePresence mode="wait" custom={direction}>
+            {/* Step 1 — Nome */}
+            {step === 1 && (
+              <motion.div
+                key="step-1"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: easeApple }}
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Bem-vindo ao wealth.Investing
+                </p>
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-tight mb-6">
+                  Como quer ser<br />chamado?
+                </h1>
 
-          {error && (
-            <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          )}
+                {error && (
+                  <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                    {error}
+                  </p>
+                )}
 
-          <form onSubmit={handleSubmit} className="space-y-2">
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Seu nome de exibição
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Ex: Pedro"
-              maxLength={MAX_LENGTH}
-              autoComplete="nickname"
-              autoFocus
-              className="input-ios text-base"
-            />
-            <p className="text-xs text-muted-foreground pb-4">
-              Mínimo {MIN_LENGTH} caracteres. Pode alterar depois em Configurações.
-            </p>
-            <button
-              type="submit"
-              disabled={loading || !isValid}
-              className={[
-                "w-full rounded-[14px] py-3.5 text-sm font-semibold transition-all duration-200",
-                isValid && !loading
-                  ? "bg-foreground text-background hover:opacity-90 cursor-pointer"
-                  : "bg-foreground/20 text-foreground/40 cursor-not-allowed",
-              ].join(" ")}
-            >
-              {loading ? "Salvando..." : "Começar →"}
-            </button>
-          </form>
+                <form onSubmit={handleStep1Submit} className="space-y-2">
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Seu nome de exibição
+                  </label>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Ex: Pedro"
+                    maxLength={MAX_LENGTH}
+                    autoComplete="nickname"
+                    autoFocus
+                    className="input-ios text-base"
+                  />
+                  <p className="text-xs text-muted-foreground pb-4">
+                    Mínimo {MIN_LENGTH} caracteres. Pode alterar depois em Configurações.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={loading || !isNameValid}
+                    className={[
+                      "w-full rounded-[14px] py-3.5 text-sm font-semibold transition-all duration-200",
+                      isNameValid && !loading
+                        ? "bg-foreground text-background hover:opacity-90 cursor-pointer"
+                        : "bg-foreground/20 text-foreground/40 cursor-not-allowed",
+                    ].join(" ")}
+                  >
+                    {loading ? "Salvando..." : "Continuar →"}
+                  </button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Step 2 — Perfil */}
+            {step === 2 && (
+              <motion.div
+                key="step-2"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: easeApple }}
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Seu perfil
+                </p>
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-tight mb-6">
+                  O que melhor<br />descreve você?
+                </h1>
+
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {PROFILE_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const selected = traderProfile === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setTraderProfile(opt.value)}
+                        className={[
+                          "flex flex-col items-center gap-2.5 rounded-[16px] border p-4 transition-all duration-200 cursor-pointer",
+                          selected
+                            ? "border-foreground bg-foreground/5 ring-1 ring-foreground/20"
+                            : "border-border hover:border-foreground/30 hover:bg-foreground/[0.02]",
+                        ].join(" ")}
+                      >
+                        <Icon
+                          size={24}
+                          className={selected ? "text-foreground" : "text-muted-foreground"}
+                        />
+                        <span
+                          className={[
+                            "text-sm font-medium",
+                            selected ? "text-foreground" : "text-muted-foreground",
+                          ].join(" ")}
+                        >
+                          {opt.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="flex items-center justify-center gap-1.5 rounded-[14px] border border-border px-4 py-3.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all duration-200 cursor-pointer"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={!traderProfile}
+                    className={[
+                      "flex-1 rounded-[14px] py-3.5 text-sm font-semibold transition-all duration-200",
+                      traderProfile
+                        ? "bg-foreground text-background hover:opacity-90 cursor-pointer"
+                        : "bg-foreground/20 text-foreground/40 cursor-not-allowed",
+                    ].join(" ")}
+                  >
+                    Continuar →
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 3 — Contas (prop firms) */}
+            {step === 3 && (
+              <motion.div
+                key="step-3"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: easeApple }}
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Suas contas
+                </p>
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-tight mb-6">
+                  Qual firma você<br />opera?
+                </h1>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {FIRMS.map((firm) => {
+                    const selected = selectedFirm === firm;
+                    return (
+                      <button
+                        key={firm}
+                        type="button"
+                        onClick={() => setSelectedFirm(selected ? null : firm)}
+                        className={[
+                          "rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-200 cursor-pointer border",
+                          selected
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+                        ].join(" ")}
+                      >
+                        {firm}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="mb-4 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  Não sei, configurar depois
+                </button>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="flex items-center justify-center gap-1.5 rounded-[14px] border border-border px-4 py-3.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all duration-200 cursor-pointer"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="flex-1 rounded-[14px] py-3.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 cursor-pointer transition-all duration-200"
+                  >
+                    Continuar →
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 4 — Import */}
+            {step === 4 && (
+              <motion.div
+                key="step-4"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: easeApple }}
+              >
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Quase lá
+                </p>
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-tight mb-6">
+                  Importe seu primeiro<br />relatório MT5
+                </h1>
+
+                <div className="flex flex-col items-center justify-center rounded-[16px] border border-dashed border-border p-8 mb-6">
+                  <FileSpreadsheet size={40} className="text-muted-foreground/50 mb-3" />
+                  <p className="text-sm text-muted-foreground text-center mb-1">
+                    Arraste um arquivo XLSX ou HTML
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 text-center">
+                    Disponível em breve no dashboard
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="flex items-center justify-center gap-1.5 rounded-[14px] border border-border px-4 py-3.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all duration-200 cursor-pointer"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFinish}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-[14px] py-3.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 cursor-pointer transition-all duration-200"
+                  >
+                    <Sparkles size={16} />
+                    Explorar primeiro
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </motion.div>
