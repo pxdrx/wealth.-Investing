@@ -1,0 +1,106 @@
+"use client";
+
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { fetchMySubscription, getTierLimits, isProOrAbove, isElite } from "@/lib/subscription";
+import type { Plan, SubscriptionRow, TierLimits } from "@/lib/subscription";
+import { supabase } from "@/lib/supabase/client";
+
+interface SubscriptionContextValue {
+  plan: Plan;
+  status: string;
+  subscription: SubscriptionRow | null;
+  limits: TierLimits;
+  isProOrAbove: boolean;
+  isElite: boolean;
+  isLoading: boolean;
+  refreshSubscription: () => Promise<void>;
+}
+
+const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
+
+export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
+  const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const sub = await fetchMySubscription();
+      setSubscription(sub);
+    } catch {
+      // ignore
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+      if (session) await load();
+      else setIsLoading(false);
+    }
+
+    init();
+
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event) => {
+      if (!mounted) return;
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") load();
+      else if (event === "SIGNED_OUT") {
+        setSubscription(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      authSub.unsubscribe();
+    };
+  }, [load]);
+
+  // Poll every 5 min to catch webhook updates
+  useEffect(() => {
+    const interval = setInterval(load, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  const plan: Plan = (subscription?.status === "active" || subscription?.status === "trialing")
+    ? (subscription?.plan ?? "free")
+    : "free";
+
+  const value = useMemo<SubscriptionContextValue>(() => ({
+    plan,
+    status: subscription?.status ?? "active",
+    subscription,
+    limits: getTierLimits(plan),
+    isProOrAbove: isProOrAbove(plan),
+    isElite: isElite(plan),
+    isLoading,
+    refreshSubscription: load,
+  }), [plan, subscription, isLoading, load]);
+
+  return (
+    <SubscriptionContext.Provider value={value}>
+      {children}
+    </SubscriptionContext.Provider>
+  );
+}
+
+export function useSubscription(): SubscriptionContextValue {
+  const ctx = useContext(SubscriptionContext);
+  if (!ctx) {
+    return {
+      plan: "free",
+      status: "active",
+      subscription: null,
+      limits: getTierLimits("free"),
+      isProOrAbove: false,
+      isElite: false,
+      isLoading: true,
+      refreshSubscription: async () => {},
+    };
+  }
+  return ctx;
+}
