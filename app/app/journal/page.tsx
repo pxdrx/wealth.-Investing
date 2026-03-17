@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, Calendar, BarChart2, Upload } from "lucide-react";
+import { LayoutDashboard, TrendingUp, BarChart2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
@@ -12,8 +12,8 @@ import { JournalKpiCards } from "@/components/journal/JournalKpiCards";
 import { JournalEquityChart } from "@/components/journal/JournalEquityChart";
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
-import { PnlCalendar } from "@/components/journal/PnlCalendar";
-import { DayDetailModal } from "@/components/journal/DayDetailModal";
+import { CalendarPnl } from "@/components/calendar/CalendarPnl";
+import type { TradeRow, DayNote } from "@/components/calendar/types";
 import type { JournalTradeRow, PeriodFilter } from "@/components/journal/types";
 
 type ImportResult = {
@@ -30,7 +30,6 @@ const tabs = [
   { title: "Visao Geral", icon: LayoutDashboard },
   { title: "Trades", icon: TrendingUp },
   { type: "separator" as const },
-  { title: "Calendario", icon: Calendar },
   { title: "Estatisticas", icon: BarChart2 },
   { type: "separator" as const },
   { title: "Importar MT5", icon: Upload },
@@ -38,9 +37,8 @@ const tabs = [
 
 const SECTION_OVERVIEW = 0;
 const SECTION_TRADES = 1;
-const SECTION_CALENDAR = 3;
-const SECTION_STATS = 4;
-const SECTION_IMPORT = 6;
+const SECTION_STATS = 3;
+const SECTION_IMPORT = 5;
 
 export default function JournalPage() {
   const { activeAccountId, isLoading: accountsLoading } = useActiveAccount();
@@ -61,9 +59,7 @@ export default function JournalPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [showImportPanel, setShowImportPanel] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [dayModalDate, setDayModalDate] = useState<string | null>(null);
-  const [dayModalOpen, setDayModalOpen] = useState(false);
-  const [noteVersion, setNoteVersion] = useState(0);
+  const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
 
   // Get userId
   useEffect(() => {
@@ -93,6 +89,22 @@ export default function JournalPage() {
   }, [activeAccountId]);
 
   useEffect(() => { loadTrades(); }, [loadTrades]);
+
+  // Fetch day_notes for CalendarPnl
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const { data: notesData } = await supabase
+        .from("day_notes")
+        .select("date, observation, tags")
+        .eq("user_id", userId);
+      const notesMap: Record<string, DayNote> = {};
+      notesData?.forEach((n: { date: string; observation: string | null; tags: string[] | null }) => {
+        notesMap[n.date] = { observation: n.observation ?? "", tags: n.tags };
+      });
+      setDayNotes(notesMap);
+    })();
+  }, [userId]);
 
   useEffect(() => {
     if (!activeAccountId) {
@@ -169,11 +181,6 @@ export default function JournalPage() {
     setSelectedTrade(trade);
     setModalOpen(true);
   };
-
-  const handleDayClick = useCallback((date: string) => {
-    setDayModalDate(date);
-    setDayModalOpen(true);
-  }, []);
 
   const hasData = activeAccountId && !loadingTrades && !tradesError && !accountsLoading;
 
@@ -326,18 +333,16 @@ export default function JournalPage() {
               <div className="space-y-6">
                 <JournalKpiCards trades={trades} period={period} onPeriodChange={setPeriod} />
                 <JournalEquityChart trades={trades} period={period} startingBalanceUsd={startingBalanceUsd} maxOverallLossPercent={maxOverallLossPercent} profitTargetPercent={profitTargetPercent} />
+                <CalendarPnl
+                  trades={trades as unknown as TradeRow[]}
+                  dayNotes={dayNotes}
+                  showConsolidatedToggle={false}
+                  showWindowChrome
+                />
               </div>
             )}
             {activeTab === SECTION_TRADES && (
               <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
-            )}
-            {activeTab === SECTION_CALENDAR && (
-              <PnlCalendar
-                accountId={activeAccountId}
-                userId={userId}
-                onDayClick={handleDayClick}
-                refreshKey={noteVersion}
-              />
             )}
             {activeTab === SECTION_STATS && (
               <div className="space-y-6">
@@ -356,13 +361,6 @@ export default function JournalPage() {
         onSaved={loadTrades}
       />
 
-      <DayDetailModal
-        date={dayModalDate}
-        userId={userId}
-        open={dayModalOpen}
-        onOpenChange={setDayModalOpen}
-        onNoteSaved={() => setNoteVersion((v) => v + 1)}
-      />
     </div>
   );
 }
