@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Evita perda de formatação/CSS após mudanças: desativa cache do webpack no dev
@@ -23,4 +25,7 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  hideSourceMaps: true,
+});
