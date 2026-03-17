@@ -37,13 +37,15 @@ export async function POST(req: NextRequest) {
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("[webhook] Supabase config missing");
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("[webhook] Supabase config missing (NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)");
       return NextResponse.json({ ok: false }, { status: 500 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Use service_role key to bypass RLS — this is a server-side webhook route
+    // already validated by timing-safe secret comparison above
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { error } = await supabase.from("tv_alerts").insert({
       user_id: ownerId,

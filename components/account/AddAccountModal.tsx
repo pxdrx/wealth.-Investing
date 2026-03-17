@@ -198,13 +198,16 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
         }
       }
 
+      // If crypto account is being created as a prop sub-kind, store as "prop" in DB
+      const effectiveKind = (accountKind === "crypto" && cryptoSubKind === "prop") ? "prop" : accountKind;
+
       // Create account
       const { data: accountData, error: accountError } = await supabase
         .from("accounts")
         .insert({
           user_id: session.user.id,
           name,
-          kind: accountKind,
+          kind: effectiveKind,
           is_active: true,
         })
         .select("id")
@@ -346,7 +349,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
           <div className="space-y-2">
             <button
               type="button"
-              onClick={() => setStep("type")}
+              onClick={() => setStep(cryptoSubKind === "prop" ? "crypto-sub" : "type")}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2"
             >
               <ChevronLeft className="h-3 w-3" /> Voltar
@@ -586,7 +589,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                     .update({ name: editableName.trim() })
                     .eq("id", createdAccountId);
                   if (updateError) throw updateError;
-                  await onRefreshAccounts?.();
+                  // Fire-and-forget: don't await — getSession() inside can deadlock
+                  onRefreshAccounts?.().catch(() => {});
                   handleClose(false);
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Erro ao renomear");

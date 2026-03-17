@@ -54,10 +54,16 @@ function mt5DateToIso(s: string): string {
     const adjusted = new Date(date.getTime() + MT5_TO_UTC_MS);
     return adjusted.toISOString();
   }
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return "";
-  const adjusted = new Date(d.getTime() + MT5_TO_UTC_MS);
-  return adjusted.toISOString();
+  // Only try native Date parsing if the string looks like a date (contains separators
+  // and has at least year-month-day). Avoid false positives like "5084.10" (a price).
+  if (/^\d{4}[-/.]?\d{2}[-/.]?\d{2}/.test(raw) && raw.length >= 8) {
+    const d = new Date(raw);
+    if (!isNaN(d.getTime()) && d.getFullYear() >= 2000 && d.getFullYear() <= 2100) {
+      const adjusted = new Date(d.getTime() + MT5_TO_UTC_MS);
+      return adjusted.toISOString();
+    }
+  }
+  return "";
 }
 
 function parseNum(s: string): number {
@@ -91,6 +97,70 @@ function getRowCells($: cheerio.CheerioAPI, row: cheerio.Cheerio<any>): string[]
     cells.push(($(el).text() ?? "").trim().replace(/\u00A0/g, " "));
   });
   return cells;
+}
+
+/**
+ * MT5 HTML reports often have colspan on header/data cells causing cell count
+ * mismatches between header and data rows. When data rows have more cells than
+ * the header, columns after the mismatch point are shifted.
+ *
+ * This function detects the offset by finding the first extra empty cell in the
+ * data row that doesn't exist in the header, then adjusts the header map indices
+ * for all columns after that point.
+ */
+function adjustHeaderMapForDataRow(
+  headerMap: Map<string, number>,
+  headerCellCount: number,
+  firstDataRow: string[],
+): Map<string, number> {
+  const diff = firstDataRow.length - headerCellCount;
+  if (diff <= 0) return headerMap; // No adjustment needed
+
+  // Find where the shift starts: look for empty cells in data that don't correspond
+  // to expected header positions. In MT5 reports, the extra cell is typically an empty
+  // filler cell with colspan inserted after the "type" column (buy/sell).
+  let shiftStartIdx = -1;
+  for (let i = 0; i < firstDataRow.length; i++) {
+    // Find first empty cell that follows a buy/sell cell
+    if (firstDataRow[i].trim() === "" && i > 0) {
+      const prevText = firstDataRow[i - 1].trim().toLowerCase();
+      if (prevText === "buy" || prevText === "sell") {
+        shiftStartIdx = i;
+        break;
+      }
+    }
+  }
+
+  // If we couldn't find the shift point, try a simpler heuristic:
+  // the shift happens at the first position where header expects a non-empty value
+  // but data has an empty cell
+  if (shiftStartIdx < 0) {
+    for (let i = 0; i < headerCellCount && i < firstDataRow.length; i++) {
+      const headerIdx = i;
+      // Check if this header position has a mapped column
+      let isMapped = false;
+      headerMap.forEach((idx) => {
+        if (idx === headerIdx) isMapped = true;
+      });
+      if (isMapped && firstDataRow[i].trim() === "" && i > 2) {
+        shiftStartIdx = i;
+        break;
+      }
+    }
+  }
+
+  if (shiftStartIdx < 0) return headerMap; // Can't determine shift point
+
+  // Create adjusted map: indices >= shiftStartIdx get shifted by diff
+  const adjusted = new Map<string, number>();
+  headerMap.forEach((idx, key) => {
+    if (idx >= shiftStartIdx) {
+      adjusted.set(key, idx + diff);
+    } else {
+      adjusted.set(key, idx);
+    }
+  });
+  return adjusted;
 }
 
 /** Build a name→index map from header cells, with multilingual aliases */
@@ -163,18 +233,27 @@ function getByAlias(cells: string[], map: Map<string, number>, alias: string, fa
   return "";
 }
 
-const NEXT_SECTION_KEYS = ["transações", "transacoes", "transactions", "deals", "balance", "total", "subtotal"];
+const NEXT_SECTION_KEYS = [
+  "transações", "transacoes", "transactions", "deals", "balance", "total", "subtotal",
+  "ordens", "orders", "posições abertas", "posicoes abertas", "open positions",
+  "exposição", "exposicao", "exposure",
+  "posições compradas", "posicoes compradas", "posições vendidas", "posicoes vendidas",
+];
 
 /** True if this row starts the next section or is a totals/subtotals row */
 function isNextSectionOrTotalRow($: cheerio.CheerioAPI, row: cheerio.Cheerio<any>, cells: string[]): boolean {
+  // Check <th> elements for section markers
   let hasSectionTh = false;
   row.find("th").each((_, th) => {
-    const t = ($(th).text() ?? "").trim().toLowerCase();
+    const t = normalizeHeader($(th).text());
     if (NEXT_SECTION_KEYS.some((k) => t === k || t.includes(k))) hasSectionTh = true;
   });
   if (hasSectionTh) return true;
-  const rowText = cells.join(" ").toLowerCase();
-  if (NEXT_SECTION_KEYS.some((k) => rowText === k || rowText.startsWith(k + " ") || cells[0]?.toLowerCase() === k)) {
+
+  // Check cell text content
+  const rowText = cells.join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const cell0 = (cells[0] ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (NEXT_SECTION_KEYS.some((k) => rowText === k || rowText.startsWith(k + " ") || cell0 === k)) {
     return true;
   }
   return false;
@@ -220,8 +299,14 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
     }
 
     const headerCells = getRowCells($, allRows[headerRowIdx]);
-    const headerMap = buildHtmlHeaderMap(headerCells);
+    let headerMap = buildHtmlHeaderMap(headerCells);
     const dataStart = headerRowIdx + 1;
+
+    // Adjust header map if data rows have more cells than header (colspan mismatch)
+    if (dataStart < allRows.length) {
+      const firstDataCells = getRowCells($, allRows[dataStart]);
+      headerMap = adjustHeaderMapForDataRow(headerMap, headerCells.length, firstDataCells);
+    }
 
     for (let r = dataStart; r < allRows.length; r++) {
       const cells = getRowCells($, allRows[r]);
@@ -320,6 +405,7 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
 
     for (let r = txHeaderRowIdx + 1; r < allRows.length; r++) {
       const cells = getRowCells($, allRows[r]);
+      if (isNextSectionOrTotalRow($, allRows[r], cells)) break;
       if (cells.length < 5) continue;
 
       const tipo = getByAlias(cells, txHeaderMap, "type", 3).toLowerCase() ||
@@ -336,16 +422,17 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
       const at = atRaw ? mt5DateToIso(atRaw) || null : null;
       const externalId = getByAlias(cells, txHeaderMap, "deal", 1).trim() || null;
 
-      if (comment.includes("initial_deposit") || (comment.includes("deposit") && !comment.includes("withdrawal"))) {
+      if (comment.includes("initial_deposit") || comment.includes("initial account balance") ||
+          comment.includes("saldo inicial") || (comment.includes("deposit") && !comment.includes("withdrawal"))) {
         balanceOps.push({ type: "INITIAL_DEPOSIT", amount_usd: Math.abs(amount), at, external_id: externalId });
-      } else if (comment.includes("withdrawal") || comment.includes("withdraw")) {
+      } else if (comment.includes("withdrawal") || comment.includes("withdraw") || comment.includes("saque")) {
         balanceOps.push({ type: "WITHDRAWAL", amount_usd: Math.abs(amount), at, external_id: externalId });
       }
     }
   }
 
-  if (trades.length === 0) {
-    throw new Error("MT5 HTML parse failed: no trades found in Positions section");
+  if (trades.length === 0 && positionsStartRow < 0) {
+    throw new Error("MT5 HTML parse failed: no Positions section found in report");
   }
 
   return { trades, balanceOps };

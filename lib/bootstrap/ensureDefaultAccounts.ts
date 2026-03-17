@@ -81,7 +81,7 @@ export async function ensureDefaultAccounts(userId: string): Promise<{ ok: boole
         is_active: "is_active" in def ? def.is_active : true,
       })
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (insertAcc) {
       console.warn("[bootstrap] Could not insert account:", def.name, insertAcc.message);
