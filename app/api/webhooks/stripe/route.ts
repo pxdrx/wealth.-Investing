@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { stripe, planFromPriceId } from "@/lib/stripe";
+import { getStripe, planFromPriceId } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 
 /** Extract current_period_end from a subscription object.
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     console.error("[stripe-webhook] Signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
         if (!userId) break;
 
-        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        const sub = await getStripe().subscriptions.retrieve(subscriptionId);
         const priceId = sub.items.data[0]?.price.id;
         const plan = planFromPriceId(priceId ?? "") ?? "pro";
 
