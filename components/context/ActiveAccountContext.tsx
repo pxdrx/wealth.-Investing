@@ -105,7 +105,23 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
     }
 
     load();
-    return () => { mounted = false; };
+
+    // Re-fetch accounts when auth state changes (fixes race condition after login redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!mounted) return;
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        load();
+      } else if (event === "SIGNED_OUT") {
+        setAccounts([]);
+        setActiveAccountIdState(null);
+        persistId(null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [applyAccounts]);
 
   const value = useMemo<ActiveAccountContextValue>(
