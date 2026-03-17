@@ -209,29 +209,29 @@ export const FEATURES: FeatureData[] = [
 
 /* ── AI Assistant section ────────────────────────────────────── */
 export const AI_SECTION = {
-  label: "INTELIGÊNCIA ARTIFICIAL",
+  label: "AI COACH",
   number: "05",
-  headline: "Seu copiloto de trading, disponível 24/7",
+  headline: "Um analista de mercado que conhece cada trade seu",
   description:
-    "A wealth.Investing integra inteligência artificial diretamente na plataforma. Não é um chatbot genérico — é um assistente treinado no contexto das suas operações, métricas e histórico real.",
+    "Não é um chatbot genérico. O AI Coach cruza suas estatísticas pessoais com contexto macroeconômico e o sentimento dos traders lucrativos da plataforma para te orientar com dados reais.",
   features: [
     {
       icon: "message-circle",
-      title: "Revisão operacional assistida",
+      title: "Análise com 4 fontes de dados",
       description:
-        "Peça análises das suas operações do dia, semana ou mês. A IA identifica padrões, erros recorrentes e sugere ajustes no processo.",
+        "Suas métricas pessoais, headlines macro, sentimento dos traders lucrativos da plataforma e padrões históricos — tudo cruzado em cada resposta.",
     },
     {
       icon: "brain",
-      title: "Interpretação de métricas",
+      title: "Discorda quando precisa",
       description:
-        "Não entende o que seu profit factor está dizendo? Pergunte. A IA explica cada métrica no contexto real do seu operacional.",
+        "Se seus dados mostram que você perde no horário que está operando, o Coach vai te dizer. Orientação honesta, sempre fundamentada em dados.",
     },
     {
       icon: "compass",
-      title: "Suporte contínuo à plataforma",
+      title: "Inteligência coletiva",
       description:
-        "Dúvidas sobre como configurar alertas, importar trades ou organizar tags? O assistente guia você em tempo real.",
+        "Saiba o que os traders lucrativos da plataforma estão operando. Sentimento agregado e anônimo que complementa sua análise.",
     },
   ],
 } as const;
