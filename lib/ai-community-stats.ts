@@ -65,8 +65,8 @@ export async function getCommunityIntelligence(): Promise<CommunitySymbolSentime
 
   // Step 3: Aggregate sentiment per symbol (only profitable traders)
   const symbolSentiment = new Map<string, { longs: Set<string>; shorts: Set<string> }>();
-  for (const t of recentTrades as { user_id: string; symbol: string; direction: string }[]) {
-    if (!profitableUserIds.has(t.user_id)) continue;
+  (recentTrades as { user_id: string; symbol: string; direction: string }[]).forEach((t) => {
+    if (!profitableUserIds.has(t.user_id)) return;
 
     if (!symbolSentiment.has(t.symbol)) {
       symbolSentiment.set(t.symbol, { longs: new Set(), shorts: new Set() });
@@ -77,21 +77,22 @@ export async function getCommunityIntelligence(): Promise<CommunitySymbolSentime
     } else {
       entry.shorts.add(t.user_id);
     }
-  }
+  });
 
   // Step 4: Build output, filter min 5 traders, sort by trader count
-  const result: CommunitySymbolSentiment[] = [];
-  for (const [symbol, { longs, shorts }] of symbolSentiment) {
-    const allTraders = new Set([...longs, ...shorts]);
-    if (allTraders.size < 5) continue;
-    const total = allTraders.size;
-    result.push({
-      symbol,
-      longPct: Math.round((longs.size / total) * 100),
-      shortPct: Math.round((shorts.size / total) * 100),
-      traderCount: total,
-    });
-  }
+  const result: CommunitySymbolSentiment[] = Array.from(symbolSentiment.entries())
+    .reduce<CommunitySymbolSentiment[]>((acc, [symbol, { longs, shorts }]) => {
+      const allTraders = new Set([...Array.from(longs), ...Array.from(shorts)]);
+      if (allTraders.size < 5) return acc;
+      const total = allTraders.size;
+      acc.push({
+        symbol,
+        longPct: Math.round((longs.size / total) * 100),
+        shortPct: Math.round((shorts.size / total) * 100),
+        traderCount: total,
+      });
+      return acc;
+    }, []);
   result.sort((a, b) => b.traderCount - a.traderCount);
 
   cachedSentiment = result.slice(0, 10);

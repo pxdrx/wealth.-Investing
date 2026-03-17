@@ -158,8 +158,8 @@ export async function POST(req: NextRequest) {
 
   const accountName = (account as { name?: string } | null)?.name ?? "Conta";
 
-  let personalStats;
-  let communitySentiment;
+  let personalStats: Awaited<ReturnType<typeof getPersonalTradeStats>>;
+  let communitySentiment: Awaited<ReturnType<typeof getCommunityIntelligence>>;
   let newsHeadlines: string[] = [];
 
   try {
