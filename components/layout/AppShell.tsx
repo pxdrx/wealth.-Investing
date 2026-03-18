@@ -11,7 +11,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname === "/login" ||
     pathname?.startsWith("/login") ||
     pathname === "/auth/callback" ||
-    pathname?.startsWith("/onboarding");
+    pathname?.startsWith("/onboarding") ||
+    pathname?.startsWith("/features") ||
+    pathname === "/manifesto" ||
+    pathname === "/academy" ||
+    pathname === "/changelog" ||
+    pathname === "/blog" ||
+    pathname === "/risk-disclaimer";
 
   return (
     <ActiveAccountProvider>

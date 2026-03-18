@@ -329,13 +329,13 @@ export interface FooterProductLink {
 }
 
 export const FOOTER_PRODUCT_LINKS: FooterProductLink[] = [
-  { label: "Dashboard", hrefAuth: "/app", hrefGuest: "#precos" },
-  { label: "Journal", hrefAuth: "/app/journal", hrefGuest: "#precos" },
-  { label: "Analytics", hrefAuth: "/app", hrefGuest: "#precos" },
-  { label: "Calendário", hrefAuth: "/app/journal?tab=calendar", hrefGuest: "#precos" },
-  { label: "Gestão de Risco", hrefAuth: "/app/alerts", hrefGuest: "#precos" },
-  { label: "Multi-conta", hrefAuth: "/app/manage-accounts", hrefGuest: "#precos" },
-  { label: "Preços", hrefAuth: "/app/pricing", hrefGuest: "#precos" },
+  { label: "Dashboard", hrefAuth: "/app", hrefGuest: "/login" },
+  { label: "Journal", hrefAuth: "/app/journal", hrefGuest: "/login" },
+  { label: "Analytics", hrefAuth: "/app/reports", hrefGuest: "/login" },
+  { label: "Calendário", hrefAuth: "/app/journal?tab=calendar", hrefGuest: "/login" },
+  { label: "Gestão de Risco", hrefAuth: "/app/alerts", hrefGuest: "/login" },
+  { label: "Multi-conta", hrefAuth: "/app/manage-accounts", hrefGuest: "/login" },
+  { label: "Preços", hrefAuth: "/app/pricing", hrefGuest: "/login" },
 ];
 
 export const FOOTER_RESOURCE_LINKS = [

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, BarChart2, Upload } from "lucide-react";
+import { LayoutDashboard, TrendingUp, BarChart2, Upload, Eye, EyeOff } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
@@ -19,6 +19,7 @@ import type { TradeRow, DayNote } from "@/components/calendar/types";
 import type { JournalTradeRow, PeriodFilter } from "@/components/journal/types";
 import { computeTiltmeter } from "@/lib/psychology-tags";
 import { TiltmeterGauge } from "@/components/dashboard/TiltmeterGauge";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 
 type ImportFlowState = "idle" | "previewing" | "importing" | "done";
 
@@ -303,6 +304,7 @@ export default function JournalPage() {
   };
 
   const hasData = activeAccountId && !loadingTrades && !tradesError && !accountsLoading;
+  const { hidden: valuesHidden, toggle: toggleValues } = usePrivacy();
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -316,6 +318,14 @@ export default function JournalPage() {
           {trades.length > 0 && (
             <TiltmeterGauge result={computeTiltmeter(trades)} size="sm" />
           )}
+          <button
+            onClick={toggleValues}
+            className="group relative flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
+            title={valuesHidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
+          >
+            {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <span>{valuesHidden ? "Mostrar" : "Ocultar"}</span>
+          </button>
         </div>
         <AccountSelectorInline showAddButton />
       </div>

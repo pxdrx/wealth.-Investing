@@ -18,7 +18,11 @@ import {
   Banknote,
   PlusCircle,
   ArrowRightLeft,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { usePrivacy } from "@/components/context/PrivacyContext";
+import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 
 interface WalletTransaction {
   id: string;
@@ -100,6 +104,7 @@ export default function WalletPage() {
   const [accountMap, setAccountMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { hidden, toggle } = usePrivacy();
 
   useEffect(() => {
     async function fetchData() {
@@ -212,13 +217,23 @@ export default function WalletPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-12">
       {/* Header */}
-      <div className="mb-10">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Carteira
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Consolidado de todas as contas
-        </p>
+      <div className="mb-10 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Carteira
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Consolidado de todas as contas
+          </p>
+        </div>
+        <button
+          onClick={toggle}
+          className="group relative flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
+          title={hidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
+        >
+          {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          <span>{hidden ? "Mostrar" : "Ocultar"}</span>
+        </button>
       </div>
 
       {/* Total Balance Card */}
@@ -233,15 +248,12 @@ export default function WalletPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p
-            className={`text-3xl font-semibold tracking-tight ${
-              totalBalance >= 0
-                ? "text-emerald-700 dark:text-emerald-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {formatCurrency(totalBalance)}
-          </p>
+          <MoneyDisplay
+            value={totalBalance}
+            colorize
+            showSign
+            className="text-3xl font-semibold tracking-tight"
+          />
           <p className="mt-1 text-xs text-muted-foreground">
             {transactions.length}{" "}
             {transactions.length === 1 ? "transação" : "transações"} registradas
@@ -315,16 +327,12 @@ export default function WalletPage() {
                     </p>
                   </div>
                 </div>
-                <p
-                  className={`text-sm font-medium tabular-nums ${
-                    tx.amount_usd >= 0
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {tx.amount_usd >= 0 ? "+" : ""}
-                  {formatCurrency(tx.amount_usd)}
-                </p>
+                <MoneyDisplay
+                  value={tx.amount_usd}
+                  showSign
+                  colorize
+                  className="text-sm font-medium tabular-nums"
+                />
               </div>
             ))}
           </CardContent>

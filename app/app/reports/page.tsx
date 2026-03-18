@@ -18,7 +18,8 @@ import {
   HourHeatmap,
 } from "@/components/reports/BreakdownCharts";
 import { MfeMaeScatter, ExitEfficiencyChart, MfeMaeDistribution } from "@/components/reports/MfeMaeScatter";
-import { BarChart3, TrendingUp, PieChart, Brain, Target } from "lucide-react";
+import { BarChart3, TrendingUp, PieChart, Brain, Target, Eye, EyeOff } from "lucide-react";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 
 type PeriodKey = "7d" | "30d" | "90d" | "ytd" | "all";
 type TabKey = "overview" | "breakdowns" | "mfe-mae" | "psicologia";
@@ -104,6 +105,7 @@ export default function ReportsPage() {
   const filtered = useMemo(() => filterByPeriod(trades, period), [trades, period]);
   const analytics = useMemo(() => computeTradeAnalytics(filtered), [filtered]);
   const pnls = useMemo(() => filtered.map(getNetPnl), [filtered]);
+  const { hidden: valuesHidden, toggle: toggleValues } = usePrivacy();
 
   if (loading) {
     return (
@@ -137,6 +139,14 @@ export default function ReportsPage() {
               {analytics.totalTrades} trades analisados
             </p>
           </div>
+          <button
+            onClick={toggleValues}
+            className="group relative flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
+            title={valuesHidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
+          >
+            {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <span>{valuesHidden ? "Mostrar" : "Ocultar"}</span>
+          </button>
         </div>
 
         {/* Period selector */}
