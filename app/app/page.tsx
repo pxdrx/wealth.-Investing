@@ -11,14 +11,36 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
+  TrendingUp,
+  Flame,
+  Trophy,
+  Sparkles,
+} from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { PrivacyProvider, usePrivacy } from "@/components/context/PrivacyContext";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
 import { JournalBriefing } from "@/components/dashboard/JournalBriefing";
 import { AccountsOverview } from "@/components/dashboard/AccountsOverview";
 import { PaywallGate } from "@/components/billing/PaywallGate";
+import { EquityCurveMini } from "@/components/dashboard/EquityCurveMini";
+import { SessionHeatmap } from "@/components/dashboard/SessionHeatmap";
+import { TiltmeterGauge } from "@/components/dashboard/TiltmeterGauge";
+import {
+  WidgetRenderer,
+  DEFAULT_LAYOUT,
+  mergeLayout,
+  type DashboardLayout,
+} from "@/components/dashboard/WidgetRenderer";
+import { computeTiltmeter, type TiltmeterResult } from "@/lib/psychology-tags";
+import { formatPnl } from "@/components/calendar/utils";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
+import type { JournalTradeRow } from "@/components/journal/types";
 import { supabase } from "@/lib/supabase/client";
 import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
@@ -68,6 +90,8 @@ export default function DashboardPage() {
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsError, setNewsError] = useState<string | null>(null);
 
+  const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -83,6 +107,18 @@ export default function DashboardPage() {
       }
       setUserId(session?.user?.id ?? null);
       setSessionChecked(true);
+
+      // Load dashboard layout from profile
+      if (session?.user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("dashboard_layout")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (!cancelled && profile?.dashboard_layout) {
+          setDashboardLayout(mergeLayout(profile.dashboard_layout as DashboardLayout));
+        }
+      }
     })();
     return () => {
       cancelled = true;
@@ -338,6 +374,7 @@ export default function DashboardPage() {
       formattedNews={formattedNews}
       newsLoading={newsLoading}
       newsError={newsError}
+      dashboardLayout={dashboardLayout}
     />
     </PrivacyProvider>
   );
@@ -389,6 +426,7 @@ function DashboardContent({
   formattedNews,
   newsLoading,
   newsError,
+  dashboardLayout,
 }: {
   activeAccountId: string | null;
   journalTrades: JournalTradeKpiRow[];
@@ -402,6 +440,7 @@ function DashboardContent({
   formattedNews: (NewsItem & { timeLabel: string })[];
   newsLoading: boolean;
   newsError: string | null;
+  dashboardLayout: DashboardLayout;
 }) {
   const { hidden, toggle } = usePrivacy();
   const [chartExpanded, setChartExpanded] = useState(false);
@@ -523,132 +562,457 @@ function DashboardContent({
           </div>
         </div>
 
-        {/* Calendar — consolidated PnL */}
-        <div className="lg:col-span-12">
-          <CalendarPnl
-            trades={journalTrades as unknown as TradeRow[]}
-            accounts={Array.from(accountsById.values()).map(a => ({ id: a.id, name: a.name }))}
-            dayNotes={dayNotes}
-            showConsolidatedToggle
-          />
-        </div>
-
-        {/* Journal Briefing — premium KPI card */}
-        <div className="lg:col-span-12">
-          <JournalBriefing
-            trades={journalTrades as unknown as TradeRow[]}
-            accounts={Array.from(accountsById.values()).map(a => ({ id: a.id, name: a.name }))}
-          />
-        </div>
-
-        {/* Accounts Overview — Pro+ */}
-        <div className="lg:col-span-12">
-          <PaywallGate requiredPlan="pro">
-            <AccountsOverview
-              accounts={Array.from(accountsById.values()).map((a) => ({
-                id: a.id,
-                name: a.name,
-                kind: a.kind,
-                is_active: a.is_active,
-              }))}
-              propAccounts={propAccounts}
-              trades={journalTrades
-                .filter(
-                  (t) =>
-                    t.account_id !== null &&
-                    t.opened_at !== null &&
-                    t.direction !== null
-                )
-                .map((t) => ({
-                  account_id: t.account_id!,
-                  pnl_usd: t.net_pnl_usd ?? 0,
-                  net_pnl_usd: t.net_pnl_usd ?? 0,
-                  direction: t.direction!,
-                  opened_at: t.opened_at!,
-                }))}
-              propPayoutsTotal={propPayoutsTotal}
-            />
-          </PaywallGate>
-        </div>
-
-        {/* News */}
-        <Card className="lg:col-span-12">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle className="text-base font-medium">
-              News
-            </CardTitle>
-            <Button variant="ghost" size="sm" className="text-muted-foreground -mr-2" asChild>
-              <Link href="/app/news">Ver tudo</Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {newsLoading && (
-              <ul className="space-y-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <li key={`news-skel-${i}`} className="space-y-2">
-                    <div className="h-4 w-full rounded bg-muted animate-pulse" />
-                    <div className="h-3 w-32 rounded bg-muted animate-pulse" />
-                  </li>
-                ))}
-              </ul>
-            )}
-            {!newsLoading && formattedNews.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Nenhuma notícia disponível no momento.
-              </p>
-            )}
-            {!newsLoading && formattedNews.length > 0 && (
-              <ul className="space-y-4">
-                {formattedNews.map((item, i) => (
-                  <li key={`${item.title}-${i}`}>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block hover:underline-offset-2 hover:underline"
-                    >
-                      <p className="text-sm font-medium text-foreground leading-snug">
-                        {item.title}
-                      </p>
-                    </a>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{item.source}</span>
-                      {item.timeLabel && <span>· {item.timeLabel} BRT</span>}
-                      <Badge
-                        variant={
-                          item.impact === "HIGH"
-                            ? "destructive"
-                            : item.impact === "MEDIUM"
-                            ? "outline"
-                            : "secondary"
-                        }
-                        className={cn(
-                          "ml-auto text-[10px] font-semibold",
-                          item.impact === "HIGH"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-100"
-                            : item.impact === "MEDIUM"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-100"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {item.impact}
-                      </Badge>
-                    </div>
-                    {i < formattedNews.length - 1 && <Separator className="mt-3" />}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {newsError && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                {newsError}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        {/* ═══════════ Dynamic Widget System ═══════════ */}
+        <WidgetRenderer
+          layout={dashboardLayout}
+          registry={buildWidgetRegistry({
+            journalTrades,
+            accountsById,
+            dayNotes,
+            propAccounts,
+            propPayoutsTotal,
+            formattedNews,
+            newsLoading,
+            newsError,
+          })}
+        />
       </div>
     </div>
   );
 }
 
 type NewsItemWithLabel = NewsItem & { timeLabel: string };
+
+// ─── Widget Registry Builder ────────────────────────────────────
+
+interface WidgetRegistryInput {
+  journalTrades: JournalTradeKpiRow[];
+  accountsById: Map<string, Account>;
+  dayNotes: Record<string, DayNote>;
+  propAccounts: PropAccountRow[];
+  propPayoutsTotal: number;
+  formattedNews: NewsItemWithLabel[];
+  newsLoading: boolean;
+  newsError: string | null;
+}
+
+function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.ReactNode> {
+  const {
+    journalTrades,
+    accountsById,
+    dayNotes,
+    propAccounts,
+    propPayoutsTotal,
+    formattedNews,
+    newsLoading,
+    newsError,
+  } = input;
+
+  const accountsList = Array.from(accountsById.values());
+  const accountsSimple = accountsList.map((a) => ({ id: a.id, name: a.name }));
+
+  return {
+    // ── Calendar ──
+    calendar: (
+      <CalendarPnl
+        trades={journalTrades as unknown as TradeRow[]}
+        accounts={accountsSimple}
+        dayNotes={dayNotes}
+        showConsolidatedToggle
+      />
+    ),
+
+    // ── KPI / Journal Briefing ──
+    kpi: (
+      <JournalBriefing
+        trades={journalTrades as unknown as TradeRow[]}
+        accounts={accountsSimple}
+      />
+    ),
+
+    // ── Accounts Overview ──
+    accounts: (
+      <AccountsOverview
+        accounts={accountsList.map((a) => ({
+          id: a.id,
+          name: a.name,
+          kind: a.kind,
+          is_active: a.is_active,
+        }))}
+        propAccounts={propAccounts}
+        trades={journalTrades
+          .filter(
+            (t) =>
+              t.account_id !== null &&
+              t.opened_at !== null &&
+              t.direction !== null
+          )
+          .map((t) => ({
+            account_id: t.account_id!,
+            pnl_usd: t.net_pnl_usd ?? 0,
+            net_pnl_usd: t.net_pnl_usd ?? 0,
+            direction: t.direction!,
+            opened_at: t.opened_at!,
+          }))}
+        propPayoutsTotal={propPayoutsTotal}
+      />
+    ),
+
+    // ── News ──
+    news: <NewsWidget items={formattedNews} loading={newsLoading} error={newsError} />,
+
+    // ── Equity Curve Mini ──
+    "equity-mini": <EquityCurveMini trades={journalTrades} />,
+
+    // ── Session Heatmap ──
+    "session-heatmap": <SessionHeatmap trades={journalTrades} />,
+
+    // ── Tiltmeter ──
+    tiltmeter: <TiltmeterWidget trades={journalTrades as unknown as JournalTradeRow[]} />,
+
+    // ── Top Symbols ──
+    "top-symbols": <TopSymbolsWidget trades={journalTrades} />,
+
+    // ── Streaks ──
+    streaks: <StreaksWidget trades={journalTrades} />,
+
+    // ── AI Insight ──
+    "ai-insight": <AiInsightWidget />,
+  };
+}
+
+// ─── News Widget (extracted from inline) ────────────────────────
+
+function NewsWidget({
+  items,
+  loading,
+  error,
+}: {
+  items: NewsItemWithLabel[];
+  loading: boolean;
+  error: string | null;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle className="text-base font-medium">News</CardTitle>
+        <Button variant="ghost" size="sm" className="text-muted-foreground -mr-2" asChild>
+          <Link href="/app/news">Ver tudo</Link>
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {loading && (
+          <ul className="space-y-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <li key={`news-skel-${i}`} className="space-y-2">
+                <div className="h-4 w-full rounded bg-muted animate-pulse" />
+                <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+              </li>
+            ))}
+          </ul>
+        )}
+        {!loading && items.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma notícia disponível no momento.
+          </p>
+        )}
+        {!loading && items.length > 0 && (
+          <ul className="space-y-4">
+            {items.map((item, i) => (
+              <li key={`${item.title}-${i}`}>
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block hover:underline-offset-2 hover:underline"
+                >
+                  <p className="text-sm font-medium text-foreground leading-snug">
+                    {item.title}
+                  </p>
+                </a>
+                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{item.source}</span>
+                  {item.timeLabel && <span>· {item.timeLabel} BRT</span>}
+                  <Badge
+                    variant={
+                      item.impact === "HIGH"
+                        ? "destructive"
+                        : item.impact === "MEDIUM"
+                          ? "outline"
+                          : "secondary"
+                    }
+                    className={cn(
+                      "ml-auto text-[10px] font-semibold",
+                      item.impact === "HIGH"
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-100"
+                        : item.impact === "MEDIUM"
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-100"
+                          : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {item.impact}
+                  </Badge>
+                </div>
+                {i < items.length - 1 && <Separator className="mt-3" />}
+              </li>
+            ))}
+          </ul>
+        )}
+        {error && (
+          <p className="mt-3 text-xs text-muted-foreground">{error}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Tiltmeter Widget ───────────────────────────────────────────
+
+function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
+  const result = useMemo(() => computeTiltmeter(trades), [trades]);
+
+  return (
+    <div
+      className="rounded-[22px] border overflow-hidden"
+      style={{
+        borderColor: "hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+      }}
+    >
+      <div
+        className="px-5 py-3.5 border-b"
+        style={{ borderColor: "hsl(var(--border))" }}
+      >
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          Tiltmeter
+        </h3>
+      </div>
+      <div className="flex items-center justify-center py-6">
+        <TiltmeterGauge result={result} size="md" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Top Symbols Widget ─────────────────────────────────────────
+
+function TopSymbolsWidget({
+  trades,
+}: {
+  trades: JournalTradeKpiRow[];
+}) {
+  const { mask } = usePrivacy();
+
+  const topSymbols = useMemo(() => {
+    const bySymbol = new Map<string, { pnl: number; count: number }>();
+    for (const t of trades) {
+      if (!t.symbol) continue;
+      const sym = t.symbol;
+      const cur = bySymbol.get(sym) ?? { pnl: 0, count: 0 };
+      cur.pnl += t.net_pnl_usd ?? 0;
+      cur.count += 1;
+      bySymbol.set(sym, cur);
+    }
+    return Array.from(bySymbol.entries())
+      .map(([symbol, stats]) => ({ symbol, ...stats }))
+      .sort((a, b) => b.pnl - a.pnl)
+      .slice(0, 5);
+  }, [trades]);
+
+  return (
+    <div
+      className="rounded-[22px] border overflow-hidden"
+      style={{
+        borderColor: "hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-5 py-3.5 border-b"
+        style={{ borderColor: "hsl(var(--border))" }}
+      >
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          Top Ativos
+        </h3>
+        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="px-5 py-3">
+        {topSymbols.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center">
+            Nenhum ativo registrado.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {topSymbols.map((s, idx) => (
+              <li key={s.symbol} className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[10px] font-medium text-muted-foreground w-4 text-right">
+                    {idx + 1}
+                  </span>
+                  <span className="text-sm font-medium text-foreground">
+                    {s.symbol}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {mask(`${s.count}`)} trades
+                  </span>
+                </div>
+                <span
+                  className="text-sm font-semibold tabular-nums"
+                  style={{
+                    color:
+                      s.pnl > 0
+                        ? "hsl(var(--pnl-positive))"
+                        : s.pnl < 0
+                          ? "hsl(var(--pnl-negative))"
+                          : "hsl(var(--muted-foreground))",
+                  }}
+                >
+                  {mask(formatPnl(s.pnl))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Streaks Widget ─────────────────────────────────────────────
+
+function StreaksWidget({
+  trades,
+}: {
+  trades: JournalTradeKpiRow[];
+}) {
+  const { mask } = usePrivacy();
+
+  const streakData = useMemo(() => {
+    // Sort trades by date ascending
+    const sorted = [...trades]
+      .filter((t) => t.opened_at)
+      .sort((a, b) => a.opened_at!.localeCompare(b.opened_at!));
+
+    let currentStreak = 0;
+    let currentType: "W" | "L" = "W";
+    let maxWin = 0;
+    let maxLoss = 0;
+    let tempStreak = 0;
+    let tempType: "W" | "L" | null = null;
+
+    for (const t of sorted) {
+      const net = t.net_pnl_usd ?? 0;
+      const type: "W" | "L" = net >= 0 ? "W" : "L";
+
+      if (type === tempType) {
+        tempStreak += 1;
+      } else {
+        tempType = type;
+        tempStreak = 1;
+      }
+
+      if (type === "W" && tempStreak > maxWin) maxWin = tempStreak;
+      if (type === "L" && tempStreak > maxLoss) maxLoss = tempStreak;
+
+      currentStreak = tempStreak;
+      currentType = type;
+    }
+
+    return { currentStreak, currentType, maxWin, maxLoss };
+  }, [trades]);
+
+  const isWin = streakData.currentType === "W";
+
+  return (
+    <div
+      className="rounded-[22px] border overflow-hidden"
+      style={{
+        borderColor: "hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-5 py-3.5 border-b"
+        style={{ borderColor: "hsl(var(--border))" }}
+      >
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          Sequencias
+        </h3>
+        <Flame className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="grid grid-cols-3 divide-x" style={{ borderColor: "hsl(var(--border))" }}>
+        <div className="px-4 py-4 text-center">
+          <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground mb-1">
+            Atual
+          </p>
+          <p
+            className="text-lg font-bold tabular-nums"
+            style={{
+              color: isWin ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))",
+            }}
+          >
+            {mask(`${streakData.currentStreak}${streakData.currentType}`)}
+          </p>
+        </div>
+        <div className="px-4 py-4 text-center">
+          <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground mb-1">
+            Max Win
+          </p>
+          <p
+            className="text-lg font-bold tabular-nums"
+            style={{ color: "hsl(var(--pnl-positive))" }}
+          >
+            {mask(`${streakData.maxWin}W`)}
+          </p>
+        </div>
+        <div className="px-4 py-4 text-center">
+          <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground mb-1">
+            Max Loss
+          </p>
+          <p
+            className="text-lg font-bold tabular-nums"
+            style={{ color: "hsl(var(--pnl-negative))" }}
+          >
+            {mask(`${streakData.maxLoss}L`)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AI Insight Widget ──────────────────────────────────────────
+
+function AiInsightWidget() {
+  return (
+    <div
+      className="rounded-[22px] border overflow-hidden"
+      style={{
+        borderColor: "hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-5 py-3.5 border-b"
+        style={{ borderColor: "hsl(var(--border))" }}
+      >
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          AI Coach
+        </h3>
+        <Sparkles className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="px-5 py-6 text-center">
+        <p className="text-sm text-muted-foreground mb-3">
+          Converse com o AI Coach para insights personalizados sobre seus trades.
+        </p>
+        <Link
+          href="/app/ai-coach"
+          className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+        >
+          <Sparkles className="h-4 w-4" />
+          Abrir AI Coach
+        </Link>
+      </div>
+    </div>
+  );
+}
