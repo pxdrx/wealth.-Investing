@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { usePrivacy } from "@/components/context/PrivacyContext";
+import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 
 interface AccountsOverviewProps {
   accounts: Array<{
@@ -28,24 +28,9 @@ interface AccountsOverviewProps {
   propPayoutsTotal: number;
 }
 
-function formatCurrency(value: number, mask: boolean): string {
-  if (mask) return "••••";
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
-}
-
-function pnlColor(v: number): string {
-  if (v > 0) return "hsl(var(--pnl-positive))";
-  if (v < 0) return "hsl(var(--pnl-negative))";
-  return "hsl(var(--muted-foreground))";
 }
 
 function isCurrentMonth(dateStr: string): boolean {
@@ -60,8 +45,6 @@ export function AccountsOverview({
   trades,
   propPayoutsTotal,
 }: AccountsOverviewProps) {
-  const { hidden } = usePrivacy();
-
   const propAccountMap = useMemo(() => {
     const map = new Map<string, (typeof propAccounts)[0]>();
     for (const pa of propAccounts) map.set(pa.account_id, pa);
@@ -197,23 +180,19 @@ export function AccountsOverview({
   const kpis = [
     {
       label: "Capital Total Funded",
-      value: formatCurrency(capitalFunded, hidden),
-      color: undefined,
+      render: <MoneyDisplay value={capitalFunded} className="text-2xl font-bold tabular-nums leading-tight" />,
     },
     {
       label: "Total Sacado",
-      value: formatCurrency(propPayoutsTotal, hidden),
-      color: undefined,
+      render: <MoneyDisplay value={propPayoutsTotal} className="text-2xl font-bold tabular-nums leading-tight" />,
     },
     {
       label: "P&L Mês",
-      value: hidden ? "••••" : (pnlMes >= 0 ? "+" : "") + formatCurrency(pnlMes, false),
-      color: pnlColor(pnlMes),
+      render: <MoneyDisplay value={pnlMes} showSign colorize className="text-2xl font-bold tabular-nums leading-tight" />,
     },
     {
       label: "Contas Ativas",
-      value: String(contasAtivas),
-      color: undefined,
+      render: <span className="text-2xl font-bold tabular-nums leading-tight">{contasAtivas}</span>,
     },
   ];
 
@@ -230,12 +209,7 @@ export function AccountsOverview({
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
               {kpi.label}
             </p>
-            <p
-              className="text-2xl font-bold tabular-nums leading-tight"
-              style={kpi.color ? { color: kpi.color } : undefined}
-            >
-              {kpi.value}
-            </p>
+            {kpi.render}
           </div>
         ))}
       </div>
@@ -306,19 +280,8 @@ export function AccountsOverview({
                       </td>
 
                       {/* P&L Mês */}
-                      <td
-                        className="px-4 py-3 text-right tabular-nums font-medium"
-                        style={{ color: pnlColor(pnl) }}
-                      >
-                        {hidden
-                          ? "••••"
-                          : (pnl >= 0 ? "+" : "") +
-                            new Intl.NumberFormat("pt-BR", {
-                              style: "currency",
-                              currency: "USD",
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0,
-                            }).format(pnl)}
+                      <td className="px-4 py-3 text-right tabular-nums font-medium">
+                        <MoneyDisplay value={pnl} showSign colorize />
                       </td>
 
                       {/* DD Diário */}
