@@ -16,6 +16,8 @@ import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { PrivacyProvider, usePrivacy } from "@/components/context/PrivacyContext";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
 import { JournalBriefing } from "@/components/dashboard/JournalBriefing";
+import { AccountsOverview } from "@/components/dashboard/AccountsOverview";
+import { PaywallGate } from "@/components/billing/PaywallGate";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
 import { supabase } from "@/lib/supabase/client";
 import type { Account } from "@/lib/accounts";
@@ -38,6 +40,15 @@ type NewsItem = {
   impact: "HIGH" | "MEDIUM" | "LOW";
 };
 
+type PropAccountRow = {
+  account_id: string;
+  firm_name: string;
+  phase: string;
+  starting_balance_usd: number;
+  daily_dd_limit?: number;
+  max_dd_limit?: number;
+};
+
 export default function DashboardPage() {
   const { activeAccountId } = useActiveAccount();
 
@@ -48,6 +59,9 @@ export default function DashboardPage() {
 
   const [accountsById, setAccountsById] = useState<Map<string, Account>>(new Map());
   const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
+
+  const [propAccounts, setPropAccounts] = useState<PropAccountRow[]>([]);
+  const [propPayoutsTotal, setPropPayoutsTotal] = useState<number>(0);
 
   const [news, setNews] = useState<NewsItem[] | null>(null);
   const [newsLoading, setNewsLoading] = useState(false);
@@ -107,6 +121,29 @@ export default function DashboardPage() {
           accountsMap.set(acc.id, acc);
         }
         setAccountsById(accountsMap);
+
+        // Fetch prop_accounts and prop_payouts
+        const accountIds = (accountsRes.data ?? []).map((a) => a.id);
+        if (accountIds.length > 0) {
+          const [propAccountsRes, propPayoutsRes] = await Promise.all([
+            supabase
+              .from("prop_accounts")
+              .select("account_id, firm_name, phase, starting_balance_usd, daily_dd_limit, max_dd_limit")
+              .in("account_id", accountIds),
+            supabase
+              .from("prop_payouts")
+              .select("amount_usd")
+              .in("account_id", accountIds),
+          ]);
+          if (!cancelled) {
+            setPropAccounts((propAccountsRes.data ?? []) as PropAccountRow[]);
+            const total = (propPayoutsRes.data ?? []).reduce(
+              (sum, row) => sum + (row.amount_usd ?? 0),
+              0
+            );
+            setPropPayoutsTotal(total);
+          }
+        }
 
         // Fetch day notes for calendar
         const { data: notesData } = await supabase
@@ -291,6 +328,8 @@ export default function DashboardPage() {
       journalTrades={journalTrades}
       accountsById={accountsById}
       dayNotes={dayNotes}
+      propAccounts={propAccounts}
+      propPayoutsTotal={propPayoutsTotal}
       watchlistRef={watchlistRef}
       iframeVisible={iframeVisible}
       formattedNews={formattedNews}
@@ -306,6 +345,8 @@ function DashboardContent({
   journalTrades,
   accountsById,
   dayNotes,
+  propAccounts,
+  propPayoutsTotal,
   watchlistRef,
   iframeVisible,
   formattedNews,
@@ -316,6 +357,8 @@ function DashboardContent({
   journalTrades: JournalTradeKpiRow[];
   accountsById: Map<string, Account>;
   dayNotes: Record<string, DayNote>;
+  propAccounts: PropAccountRow[];
+  propPayoutsTotal: number;
   watchlistRef: React.RefObject<HTMLDivElement>;
   iframeVisible: boolean;
   formattedNews: (NewsItem & { timeLabel: string })[];
@@ -433,6 +476,36 @@ function DashboardContent({
             trades={journalTrades as unknown as TradeRow[]}
             accounts={Array.from(accountsById.values()).map(a => ({ id: a.id, name: a.name }))}
           />
+        </div>
+
+        {/* Accounts Overview — Pro+ */}
+        <div className="lg:col-span-12">
+          <PaywallGate requiredPlan="pro">
+            <AccountsOverview
+              accounts={Array.from(accountsById.values()).map((a) => ({
+                id: a.id,
+                name: a.name,
+                kind: a.kind,
+                is_active: a.is_active,
+              }))}
+              propAccounts={propAccounts}
+              trades={journalTrades
+                .filter(
+                  (t) =>
+                    t.account_id !== null &&
+                    t.opened_at !== null &&
+                    t.direction !== null
+                )
+                .map((t) => ({
+                  account_id: t.account_id!,
+                  pnl_usd: t.net_pnl_usd ?? 0,
+                  net_pnl_usd: t.net_pnl_usd ?? 0,
+                  direction: t.direction!,
+                  opened_at: t.opened_at!,
+                }))}
+              propPayoutsTotal={propPayoutsTotal}
+            />
+          </PaywallGate>
         </div>
 
         {/* News */}
