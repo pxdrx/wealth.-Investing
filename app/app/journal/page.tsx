@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LayoutDashboard, TrendingUp, BarChart2, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
@@ -13,18 +12,40 @@ import { JournalEquityChart } from "@/components/journal/JournalEquityChart";
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
+import { ImportDropZone } from "@/components/journal/ImportDropZone";
+import { ImportPreview } from "@/components/journal/ImportPreview";
+import { ImportResult } from "@/components/journal/ImportResult";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
 import type { JournalTradeRow, PeriodFilter } from "@/components/journal/types";
 
-type ImportResult = {
-  parser_used?: string;
-  trades_found?: number;
-  trades_imported: number;
-  trades_duplicates_ignored: number;
-  trades_failed?: number;
-  payouts_detected: number;
-  duration_ms: number;
-} | null;
+type ImportFlowState = "idle" | "previewing" | "importing" | "done";
+
+interface PreviewTrade {
+  symbol: string;
+  direction: "buy" | "sell";
+  lots: number;
+  pnl: number;
+  date: string;
+}
+
+interface PreviewData {
+  fileName: string;
+  totalTrades: number;
+  payouts: number;
+  trades: PreviewTrade[];
+  raw: Record<string, unknown>;
+}
+
+interface ImportResultData {
+  fileName: string;
+  imported: number;
+  duplicates: number;
+  failed: number;
+  importedAt: string;
+  duration: string;
+  duplicateDetails?: Array<{ symbol: string; direction: string; date: string }>;
+  skippedDetails?: Array<{ line: number; reason: string; data?: string }>;
+}
 
 const tabs = [
   { title: "Visao Geral", icon: LayoutDashboard },
@@ -42,12 +63,12 @@ const SECTION_IMPORT = 5;
 
 export default function JournalPage() {
   const { activeAccountId, isLoading: accountsLoading } = useActiveAccount();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [importStage, setImportStage] = useState<"idle" | "uploading" | "processing" | "done">("idle");
-  const [result, setResult] = useState<ImportResult>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [importFlowState, setImportFlowState] = useState<ImportFlowState>("idle");
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [importResultData, setImportResultData] = useState<ImportResultData | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isImportLoading, setIsImportLoading] = useState(false);
   const [trades, setTrades] = useState<JournalTradeRow[]>([]);
   const [loadingTrades, setLoadingTrades] = useState(false);
   const [tradesError, setTradesError] = useState<string | null>(null);
@@ -60,6 +81,7 @@ export default function JournalPage() {
   const [showImportPanel, setShowImportPanel] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // Get userId
   useEffect(() => {
@@ -126,45 +148,141 @@ export default function JournalPage() {
     })();
   }, [activeAccountId]);
 
-  async function handleImport(files: FileList | null) {
-    const file = files?.[0];
-    if (!file || !activeAccountId) return;
-    setError(null);
-    setResult(null);
-    setUploading(true);
-    setImportStage("uploading");
+  async function handleFileSelected(file: File) {
+    if (!activeAccountId) return;
+    setImportError(null);
+    setIsImportLoading(true);
+    setImportFlowState("previewing");
+    setPendingFile(file);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { setError("Sessao invalida. Faca login novamente."); setImportStage("idle"); return; }
+      if (!session?.access_token) {
+        setImportError("Sessão inválida. Faça login novamente.");
+        setImportFlowState("idle");
+        return;
+      }
       const formData = new FormData();
       formData.set("file", file);
       formData.set("accountId", activeAccountId);
-      setImportStage("processing");
+      const res = await fetch("/api/journal/import-mt5?preview=true", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setImportError(data.error || `Erro ${res.status}`);
+        setImportFlowState("idle");
+        return;
+      }
+      // Map API preview response to PreviewData shape
+      const rawTrades = (data.preview_trades ?? data.trades ?? []) as Array<Record<string, unknown>>;
+      const previewTrades: PreviewTrade[] = rawTrades.map((t) => ({
+        symbol: String(t.symbol ?? ""),
+        direction: (t.direction === "sell" ? "sell" : "buy") as "buy" | "sell",
+        lots: typeof t.lots === "number" ? t.lots : parseFloat(String(t.lots ?? "0")) || 0,
+        pnl: typeof t.pnl_usd === "number" ? t.pnl_usd : parseFloat(String(t.pnl_usd ?? t.pnl ?? "0")) || 0,
+        date: (() => {
+          const raw = t.opened_at ?? t.date;
+          if (!raw) return "";
+          try { return new Date(String(raw)).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); } catch { return String(raw).slice(0, 10); }
+        })(),
+      }));
+      setPreviewData({
+        fileName: file.name,
+        totalTrades: data.trades_found ?? rawTrades.length,
+        payouts: data.payouts_detected ?? 0,
+        trades: previewTrades,
+        raw: data as Record<string, unknown>,
+      });
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : "Falha ao fazer preview");
+      setImportFlowState("idle");
+    } finally {
+      setIsImportLoading(false);
+    }
+  }
+
+  async function handleConfirm() {
+    if (!pendingFile || !activeAccountId) return;
+    setImportError(null);
+    setIsImportLoading(true);
+    setImportFlowState("importing");
+    const startTime = Date.now();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setImportError("Sessão inválida. Faça login novamente.");
+        setImportFlowState("idle");
+        return;
+      }
+      const formData = new FormData();
+      formData.set("file", pendingFile);
+      formData.set("accountId", activeAccountId);
       const res = await fetch("/api/journal/import-mt5", {
         method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: formData,
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data.error || `Erro ${res.status}`); setImportStage("idle"); return; }
-      setResult({
-        parser_used: data.parser_used,
-        trades_found: data.trades_found,
-        trades_imported: data.trades_imported ?? 0,
-        trades_duplicates_ignored: data.trades_duplicates_ignored ?? 0,
-        trades_failed: data.trades_failed ?? 0,
-        payouts_detected: data.payouts_detected ?? 0,
-        duration_ms: data.duration_ms ?? 0,
+      const durationMs = Date.now() - startTime;
+      if (!res.ok) {
+        setImportError(data.error || `Erro ${res.status}`);
+        setImportFlowState("idle");
+        return;
+      }
+      const importedAt = new Date().toLocaleString("pt-BR");
+      const duration = durationMs >= 1000 ? `${(durationMs / 1000).toFixed(1)}s` : `${durationMs}ms`;
+      // Map duplicate_details from API
+      const rawDupDetails = (data.duplicate_details ?? []) as Array<Record<string, unknown>>;
+      const duplicateDetails = rawDupDetails.map((d) => ({
+        symbol: String(d.symbol ?? ""),
+        direction: String(d.direction ?? ""),
+        date: (() => {
+          const raw = d.opened_at ?? d.date;
+          if (!raw) return "";
+          try { return new Date(String(raw)).toLocaleDateString("pt-BR"); } catch { return String(raw).slice(0, 10); }
+        })(),
+      }));
+      const rawSkipped = (data.skipped_details ?? []) as Array<Record<string, unknown>>;
+      const skippedDetails = rawSkipped.map((s) => ({
+        line: typeof s.line === "number" ? s.line : parseInt(String(s.line ?? "0"), 10) || 0,
+        reason: String(s.reason ?? ""),
+        data: s.data != null ? String(s.data) : undefined,
+      }));
+      setImportResultData({
+        fileName: pendingFile.name,
+        imported: data.trades_imported ?? 0,
+        duplicates: data.trades_duplicates_ignored ?? 0,
+        failed: data.trades_failed ?? 0,
+        importedAt,
+        duration,
+        duplicateDetails,
+        skippedDetails,
       });
-      setImportStage("done");
+      setImportFlowState("done");
       await loadTrades();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao importar");
-      setImportStage("idle");
+      setImportError(e instanceof Error ? e.message : "Falha ao importar");
+      setImportFlowState("idle");
     } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setIsImportLoading(false);
     }
+  }
+
+  function handleImportReset() {
+    setImportFlowState("idle");
+    setPreviewData(null);
+    setImportResultData(null);
+    setPendingFile(null);
+    setImportError(null);
+  }
+
+  function handleImportCancel() {
+    setImportFlowState("idle");
+    setPreviewData(null);
+    setPendingFile(null);
+    setImportError(null);
   }
 
   function handleTabChange(index: number | null) {
@@ -214,7 +332,7 @@ export default function JournalPage() {
             className="overflow-hidden mb-6"
           >
             <div
-              className="rounded-xl border border-border/60 p-5 space-y-3"
+              className="rounded-xl border border-border/60 p-5 space-y-4"
               style={{ backgroundColor: "hsl(var(--card))" }}
             >
               <div>
@@ -223,66 +341,67 @@ export default function JournalPage() {
                   Envie o relatório do MetaTrader 5 (.html ou .xlsx). A conta ativa será usada.
                 </p>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".html,.htm,text/html,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                className="hidden"
-                onChange={(e) => handleImport(e.target.files)}
-              />
-              {importStage === "idle" && (
-                <Button
-                  variant="outline"
+
+              {importFlowState === "idle" && (
+                <ImportDropZone
+                  onFileSelected={handleFileSelected}
+                  compact
                   disabled={!activeAccountId}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  Selecionar arquivo
-                </Button>
+                />
               )}
 
-              {(importStage === "uploading" || importStage === "processing") && (
-                <div className="space-y-2">
+              {importFlowState === "previewing" && previewData && (
+                <ImportPreview
+                  fileName={previewData.fileName}
+                  totalTrades={previewData.totalTrades}
+                  payouts={previewData.payouts}
+                  trades={previewData.trades}
+                  compact
+                  onConfirm={handleConfirm}
+                  onCancel={handleImportCancel}
+                  loading={isImportLoading}
+                />
+              )}
+
+              {importFlowState === "previewing" && isImportLoading && !previewData && (
+                <div className="space-y-2 py-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    {importStage === "uploading" ? "Enviando arquivo..." : "Processando trades..."}
+                    Analisando arquivo...
+                  </div>
+                </div>
+              )}
+
+              {importFlowState === "importing" && (
+                <div className="space-y-2 py-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    Importando trades...
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted/30 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-1000 ease-out"
-                      style={{ width: importStage === "uploading" ? "30%" : "70%", animation: importStage === "processing" ? "pulse 2s ease-in-out infinite" : undefined }}
-                    />
+                    <div className="h-full rounded-full bg-primary animate-pulse" style={{ width: "70%" }} />
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    {importStage === "processing" && "Trades antigos são pulados automaticamente. Apenas novos trades são processados."}
+                    Trades antigos são pulados automaticamente. Apenas novos trades são processados.
                   </p>
                 </div>
               )}
 
-              {importStage === "done" && result && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    Importação concluída!
-                  </div>
-                  <div className="rounded-lg border border-border/40 p-3 text-sm space-y-1" style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
-                      {result.trades_found != null && <><span className="text-muted-foreground">Encontrados:</span><span className="font-medium">{result.trades_found}</span></>}
-                      <span className="text-muted-foreground">Importados:</span><span className="font-medium text-emerald-600 dark:text-emerald-400">{result.trades_imported}</span>
-                      <span className="text-muted-foreground">Duplicados:</span><span className="font-medium">{result.trades_duplicates_ignored}</span>
-                      {(result.trades_failed ?? 0) > 0 && <><span className="text-muted-foreground">Falhas:</span><span className="font-medium text-destructive">{result.trades_failed}</span></>}
-                      <span className="text-muted-foreground">Payouts:</span><span className="font-medium">{result.payouts_detected}</span>
-                      <span className="text-muted-foreground">Tempo:</span><span className="font-medium">{((result.duration_ms) / 1000).toFixed(1)}s</span>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => { setImportStage("idle"); setResult(null); }}>
-                    Importar outro arquivo
-                  </Button>
-                </div>
+              {importFlowState === "done" && importResultData && (
+                <ImportResult
+                  fileName={importResultData.fileName}
+                  imported={importResultData.imported}
+                  duplicates={importResultData.duplicates}
+                  failed={importResultData.failed}
+                  importedAt={importResultData.importedAt}
+                  duration={importResultData.duration}
+                  duplicateDetails={importResultData.duplicateDetails}
+                  skippedDetails={importResultData.skippedDetails}
+                  onReset={handleImportReset}
+                />
               )}
 
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              {importError && <p className="text-sm text-destructive">{importError}</p>}
             </div>
           </motion.div>
         )}
