@@ -16,7 +16,9 @@ export function StatCounter({
   className = "",
 }: StatCounterProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [display, setDisplay] = useState("0");
+  const isDecimal = value % 1 !== 0;
+  const finalDisplay = isDecimal ? value.toFixed(1) : Math.round(value).toString();
+  const [display, setDisplay] = useState(finalDisplay);
   const [hasAnimated, setHasAnimated] = useState(false);
 
   useEffect(() => {
@@ -40,8 +42,9 @@ export function StatCounter({
   useEffect(() => {
     if (!hasAnimated) return;
 
+    // Reset to 0 to start the count-up animation
+    setDisplay("0");
     const start = performance.now();
-    const isDecimal = value % 1 !== 0;
 
     function tick(now: number) {
       const elapsed = now - start;

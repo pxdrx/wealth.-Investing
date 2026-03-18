@@ -38,7 +38,7 @@ export function TrustBar() {
             </svg>
           ))}
           <span className="ml-2 font-mono text-xs text-l-text-muted">
-            4.8/5 [PLACEHOLDER]
+            4.8/5 de satisfação dos usuários
           </span>
         </div>
       </AnimatedSection>

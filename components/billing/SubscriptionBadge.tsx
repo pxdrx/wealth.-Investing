@@ -16,7 +16,14 @@ const PLAN_LABELS = {
 } as const;
 
 export function SubscriptionBadge({ className }: { className?: string }) {
-  const { plan } = useSubscription();
+  const { plan, isLoading } = useSubscription();
+
+  if (isLoading) {
+    return (
+      <span className={cn("rounded-full px-2.5 py-0.5 h-5 w-10 bg-muted animate-pulse inline-block", className)} />
+    );
+  }
+
   return (
     <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", PLAN_STYLES[plan], className)}>
       {PLAN_LABELS[plan]}

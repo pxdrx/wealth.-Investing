@@ -49,7 +49,7 @@ export function FeatureSection({ data, reversed, visual }: FeatureSectionProps) 
   const visualOrder = reversed ? "lg:order-1" : "lg:order-2";
 
   return (
-    <section className="landing-section" aria-label={data.tag} id="recursos">
+    <section className="landing-section" aria-label={data.tag} id={data.tag.toLowerCase()}>
       <div className="landing-container">
         <div className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:gap-16 items-center">
           <AnimatedSection className={textOrder}>

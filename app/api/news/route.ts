@@ -71,12 +71,17 @@ export async function GET() {
   const url = new URL("https://newsapi.org/v2/everything");
   url.searchParams.set(
     "q",
-    'forex OR gold OR "federal reserve" OR trump OR economy',
+    '(forex OR "stock market" OR "federal reserve" OR "interest rate" OR "wall street" OR "S&P 500" OR nasdaq OR "crude oil" OR gold OR inflation OR "central bank" OR FOMC OR ECB OR treasury OR "bond yield") AND (market OR trading OR finance OR economy OR investor)',
   );
   url.searchParams.set("language", "en");
   url.searchParams.set("sortBy", "publishedAt");
-  url.searchParams.set("pageSize", "10");
+  url.searchParams.set("pageSize", "20");
   url.searchParams.set("apiKey", apiKey);
+  // Restrict to known financial news domains
+  url.searchParams.set(
+    "domains",
+    "reuters.com,bloomberg.com,cnbc.com,wsj.com,ft.com,marketwatch.com,investing.com,forexlive.com,fxstreet.com,dailyfx.com,finance.yahoo.com,seekingalpha.com,thestreet.com,barrons.com",
+  );
 
   try {
     const res = await fetch(url.toString(), {
@@ -93,7 +98,20 @@ export async function GET() {
     const json = (await res.json()) as NewsApiResponse;
     const articles = json.articles ?? [];
 
-    const items = articles.map((a) => {
+    // Filter out non-financial articles that may have slipped through
+    const EXCLUDE_KEYWORDS = [
+      "oscar", "grammy", "nfl", "nba", "mlb", "nhl", "super bowl",
+      "kardashian", "celebrity", "entertainment", "movie", "album",
+      "concert", "gaming", "esports", "reality tv", "netflix series",
+      "tiktok trend", "instagram", "youtube",
+    ];
+
+    const filtered = articles.filter((a) => {
+      const text = [a.title, a.description].filter(Boolean).join(" ").toLowerCase();
+      return !EXCLUDE_KEYWORDS.some((kw) => text.includes(kw));
+    });
+
+    const items = filtered.slice(0, 10).map((a) => {
       const impact = classifyImpact(a);
       return {
         title: a.title,

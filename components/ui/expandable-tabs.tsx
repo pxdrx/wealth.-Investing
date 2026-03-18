@@ -92,6 +92,7 @@ export function ExpandableTabs({
             custom={selected === index}
             onClick={() => handleSelect(index)}
             transition={transition}
+            title={tab.title}
             className={cn(
               "relative flex items-center rounded-xl px-2 py-2 text-sm font-medium transition-colors duration-300",
               selected === index

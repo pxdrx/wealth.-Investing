@@ -41,7 +41,7 @@ export function AnimatedSection({
       ref={ref as React.RefObject<HTMLDivElement>}
       className={className}
       style={{
-        opacity: isVisible ? 1 : 0,
+        opacity: isVisible ? 1 : 0.01,
         transform: isVisible ? "translateY(0)" : "translateY(24px)",
         transition: `opacity 0.6s ease-out ${delay}s, transform 0.6s ease-out ${delay}s`,
         willChange: isVisible ? "auto" : "opacity, transform",

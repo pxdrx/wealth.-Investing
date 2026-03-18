@@ -47,6 +47,7 @@ export function AppHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasSession, setHasSession] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -54,11 +55,13 @@ export function AppHeader() {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
       setHasSession(!!session);
-      if (!session) { setDisplayName(null); return; }
+      if (!session) { setDisplayName(null); setProfileLoading(false); return; }
       try {
         const profile = await getMyProfile();
         setDisplayName(profile?.display_name?.trim() ?? null);
-      } catch {}
+      } catch {} finally {
+        setProfileLoading(false);
+      }
     }
     load();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => load());
@@ -93,7 +96,14 @@ export function AppHeader() {
             ))}
           </nav>
           {hasSession && <div className="h-5 w-px bg-border/60 mx-1" />}
-          {hasSession && (
+          {hasSession && profileLoading && (
+            <div className="inline-flex items-center gap-2 rounded-[22px] border border-border/80 bg-muted/30 pl-1.5 pr-3 py-1.5">
+              <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+              <div className="h-4 w-20 rounded bg-muted animate-pulse" />
+              <div className="h-5 w-10 rounded-full bg-muted animate-pulse" />
+            </div>
+          )}
+          {hasSession && !profileLoading && (
             <div className="relative" ref={menuRef}>
               <button type="button" onClick={() => setUserMenuOpen((v) => !v)}
                 className="inline-flex items-center gap-2 rounded-[22px] border border-border/80 bg-muted/30 pl-1.5 pr-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 max-w-[200px]">

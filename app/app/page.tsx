@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { PrivacyProvider, usePrivacy } from "@/components/context/PrivacyContext";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
@@ -53,9 +53,10 @@ export default function DashboardPage() {
   const { activeAccountId } = useActiveAccount();
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   const [journalTrades, setJournalTrades] = useState<JournalTradeKpiRow[]>([]);
-  const [journalLoading, setJournalLoading] = useState(false);
+  const [journalLoading, setJournalLoading] = useState(true);
 
   const [accountsById, setAccountsById] = useState<Map<string, Account>>(new Map());
   const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
@@ -81,6 +82,7 @@ export default function DashboardPage() {
         return;
       }
       setUserId(session?.user?.id ?? null);
+      setSessionChecked(true);
     })();
     return () => {
       cancelled = true;
@@ -326,6 +328,7 @@ export default function DashboardPage() {
     <DashboardContent
       activeAccountId={activeAccountId}
       journalTrades={journalTrades}
+      journalLoading={journalLoading || !sessionChecked}
       accountsById={accountsById}
       dayNotes={dayNotes}
       propAccounts={propAccounts}
@@ -340,9 +343,43 @@ export default function DashboardPage() {
   );
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="mx-auto max-w-7xl px-6 py-12">
+      <div className="mb-10">
+        <div className="h-7 w-40 rounded-lg bg-muted animate-pulse" />
+        <div className="mt-2 h-4 w-72 rounded-lg bg-muted animate-pulse" />
+      </div>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+        {/* Ticker tape skeleton */}
+        <div className="lg:col-span-12">
+          <div className="h-[46px] w-full rounded-xl bg-muted animate-pulse" />
+        </div>
+        {/* Chart skeleton */}
+        <div className="lg:col-span-12">
+          <div className="h-[300px] w-full rounded-xl bg-muted animate-pulse" />
+        </div>
+        {/* Calendar skeleton */}
+        <div className="lg:col-span-12">
+          <div className="h-[320px] w-full rounded-xl bg-muted animate-pulse" />
+        </div>
+        {/* KPI cards skeleton */}
+        <div className="lg:col-span-12">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-24 rounded-[22px] bg-muted animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DashboardContent({
   activeAccountId,
   journalTrades,
+  journalLoading,
   accountsById,
   dayNotes,
   propAccounts,
@@ -355,6 +392,7 @@ function DashboardContent({
 }: {
   activeAccountId: string | null;
   journalTrades: JournalTradeKpiRow[];
+  journalLoading: boolean;
   accountsById: Map<string, Account>;
   dayNotes: Record<string, DayNote>;
   propAccounts: PropAccountRow[];
@@ -366,6 +404,11 @@ function DashboardContent({
   newsError: string | null;
 }) {
   const { hidden, toggle } = usePrivacy();
+  const [chartExpanded, setChartExpanded] = useState(false);
+
+  if (journalLoading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-12" data-account-id={activeAccountId ?? undefined}>
@@ -380,11 +423,14 @@ function DashboardContent({
         </div>
         <button
           onClick={toggle}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
-          title={hidden ? "Mostrar valores" : "Ocultar valores"}
+          className="group relative flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
+          title={hidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
         >
           {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          <span className="hidden sm:inline">{hidden ? "Mostrar" : "Ocultar"}</span>
+          <span>{hidden ? "Mostrar" : "Ocultar"}</span>
+          <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1 text-[11px] font-medium text-background opacity-0 transition-opacity group-hover:opacity-100">
+            {hidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
+          </span>
         </button>
       </div>
 
@@ -426,36 +472,53 @@ function DashboardContent({
             />
           </div>
 
-          {/* Advanced chart with full tools */}
+          {/* Advanced chart with full tools — collapsible */}
           <div
             ref={watchlistRef}
             className="w-full rounded-xl border overflow-hidden"
             style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
           >
-            {iframeVisible ? (
-              <iframe
-                src={
-                  "https://s.tradingview.com/widgetembed/?frameElementId=tradingview_advanced&symbol=FX%3AEURUSD&interval=60" +
-                  "&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6" +
-                  "&hide_legend=0&hide_volume=0" +
-                  "&studies=%5B%22MAExp%4050%22%2C%22MAExp%40200%22%5D" +
-                  "&theme=light&style=1&timezone=America%2FSao_Paulo" +
-                  "&withdateranges=1&allow_symbol_change=1" +
-                  "&watchlist=FX%3AEURUSD%2CFX%3AGBPUSD%2CFX%3AUSDJPY%2CFX%3AUSDCAD%2COANDA%3AXAUUSD%2CCOINBASE%3ABTCUSD%2CPEPPERSTONE%3ANAS100%2CPEPPERSTONE%3AUS500" +
-                  "&details=1&calendar=1&hotlist=1" +
-                  "&locale=br"
-                }
-                style={{ width: "100%", height: "560px", border: "none" }}
-                loading="lazy"
-                allowFullScreen
-              />
-            ) : (
-              <div
-                className="flex items-center justify-center animate-pulse"
-                style={{ height: "560px", backgroundColor: "hsl(var(--card))" }}
-              >
-                <p className="text-sm text-muted-foreground">Carregando gráfico...</p>
-              </div>
+            <button
+              type="button"
+              onClick={() => setChartExpanded((v) => !v)}
+              className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+            >
+              <span className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                Gráfico Avançado
+              </span>
+              {chartExpanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+            {chartExpanded && (
+              iframeVisible ? (
+                <iframe
+                  src={
+                    "https://s.tradingview.com/widgetembed/?frameElementId=tradingview_advanced&symbol=FX%3AEURUSD&interval=60" +
+                    "&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6" +
+                    "&hide_legend=0&hide_volume=0" +
+                    "&studies=%5B%22MAExp%4050%22%2C%22MAExp%40200%22%5D" +
+                    "&theme=light&style=1&timezone=America%2FSao_Paulo" +
+                    "&withdateranges=1&allow_symbol_change=1" +
+                    "&watchlist=FX%3AEURUSD%2CFX%3AGBPUSD%2CFX%3AUSDJPY%2CFX%3AUSDCAD%2COANDA%3AXAUUSD%2CCOINBASE%3ABTCUSD%2CPEPPERSTONE%3ANAS100%2CPEPPERSTONE%3AUS500" +
+                    "&details=1&calendar=1&hotlist=1" +
+                    "&locale=br"
+                  }
+                  style={{ width: "100%", height: "500px", border: "none" }}
+                  loading="lazy"
+                  allowFullScreen
+                />
+              ) : (
+                <div
+                  className="flex items-center justify-center animate-pulse"
+                  style={{ height: "500px", backgroundColor: "hsl(var(--card))" }}
+                >
+                  <p className="text-sm text-muted-foreground">Carregando gráfico...</p>
+                </div>
+              )
             )}
           </div>
         </div>

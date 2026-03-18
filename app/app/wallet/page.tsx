@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
 import {
   Wallet,
@@ -14,6 +16,8 @@ import {
   ArrowUpRight,
   AlertCircle,
   Banknote,
+  PlusCircle,
+  ArrowRightLeft,
 } from "lucide-react";
 
 interface WalletTransaction {
@@ -247,17 +251,37 @@ export default function WalletPage() {
 
       {/* Transactions List */}
       {transactions.length === 0 ? (
-        <Card
-          className="rounded-[22px]"
-          style={{ backgroundColor: "hsl(var(--card))" }}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Banknote className="mb-3 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              Nenhuma transação registrada
-            </p>
-          </CardContent>
-        </Card>
+          <Card
+            className="rounded-[22px]"
+            style={{ backgroundColor: "hsl(var(--card))" }}
+          >
+            <CardContent className="flex flex-col items-center justify-center py-20 px-6 text-center">
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-muted/40">
+                <ArrowRightLeft className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                Sua carteira está vazia
+              </h2>
+              <p className="mt-2 max-w-sm text-sm text-muted-foreground leading-relaxed">
+                A carteira consolida payouts, saques, depósitos e transferências de todas as suas contas. Registre sua primeira transação para começar.
+              </p>
+              <Button
+                className="mt-6 rounded-full gap-2"
+                onClick={() => {
+                  /* TODO: open add transaction flow */
+                }}
+              >
+                <PlusCircle className="h-4 w-4" />
+                Registrar primeira transação
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
       ) : (
         <Card
           className="rounded-[22px]"

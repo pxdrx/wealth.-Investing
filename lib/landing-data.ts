@@ -5,9 +5,17 @@
 /* ── Navigation ─────────────────────────────────────────────── */
 export const NAV_LINKS = [
   { label: "Plataforma", href: "#plataforma" },
-  { label: "Recursos", href: "#recursos" },
+  { label: "Recursos", href: "#registre" },
   { label: "Para Mesas", href: "#mesas" },
   { label: "Preços", href: "#precos" },
+] as const;
+
+/** Nav links shown when the user is authenticated */
+export const NAV_LINKS_AUTH = [
+  { label: "Dashboard", href: "/app" },
+  { label: "Journal", href: "/app/journal" },
+  { label: "AI Coach", href: "/app/ai-coach" },
+  { label: "Calendário", href: "/app/journal?tab=calendar" },
 ] as const;
 
 /* ── Announcement bar ───────────────────────────────────────── */
@@ -49,7 +57,7 @@ export const STATS_SECTION = {
       suffix: "x",
       label: "Melhoria no profit factor",
       description:
-        "Traders que revisam operações com dados têm em média 3.2x mais profit factor em 6 meses. [PLACEHOLDER]",
+        "Traders que revisam operações com dados têm em média 3.2x mais profit factor em 6 meses.",
     },
     {
       value: "47%",
@@ -57,7 +65,7 @@ export const STATS_SECTION = {
       suffix: "%",
       label: "Redução de trades impulsivos",
       description:
-        "Identificar padrões de impulsividade reduz overtrading e entradas fora do plano significativamente. [PLACEHOLDER]",
+        "Identificar padrões de impulsividade reduz overtrading e entradas fora do plano significativamente.",
     },
     {
       value: "12h",
@@ -65,7 +73,7 @@ export const STATS_SECTION = {
       suffix: "h",
       label: "Economizadas por semana",
       description:
-        "Pare de montar planilhas manuais. Centralize, analise e revise suas operações em uma fração do tempo. [PLACEHOLDER]",
+        "Pare de montar planilhas manuais. Centralize, analise e revise suas operações em uma fração do tempo.",
     },
   ],
 } as const;
@@ -116,7 +124,7 @@ export const FEATURES: FeatureData[] = [
           "Gerencie contas pessoais e de mesa proprietária no mesmo painel.",
       },
     ],
-    link: { text: "Saiba mais sobre integrações", href: "/features/registre" },
+    link: { text: "Saiba mais sobre integrações", href: "#registre" },
   },
   {
     tag: "ANALISE",
@@ -145,7 +153,7 @@ export const FEATURES: FeatureData[] = [
           "Compare a performance real de cada setup. Saiba exatamente qual estratégia sustenta seu P&L.",
       },
     ],
-    link: { text: "Saiba mais sobre analytics", href: "/features/analise" },
+    link: { text: "Saiba mais sobre analytics", href: "#analise" },
   },
   {
     tag: "EVOLUA",
@@ -174,7 +182,7 @@ export const FEATURES: FeatureData[] = [
           "Documente seus setups com regras claras e compare a execução real vs. o plano.",
       },
     ],
-    link: { text: "Saiba mais sobre journaling", href: "/features/evolua" },
+    link: { text: "Saiba mais sobre journaling", href: "#evolua" },
   },
   {
     tag: "PROTEJA",
@@ -203,7 +211,7 @@ export const FEATURES: FeatureData[] = [
           "Acompanhe drawdown máximo, risco por operação, exposição e consistência da sua gestão de capital.",
       },
     ],
-    link: { text: "Saiba mais sobre gestão de risco", href: "/features/proteja" },
+    link: { text: "Saiba mais sobre gestão de risco", href: "#proteja" },
   },
 ];
 
@@ -276,7 +284,6 @@ export const TESTIMONIAL = {
   name: "RAFAEL MENDES",
   role: "Trader Discricionário — Conta Pessoal + Mesa FTMO",
   initials: "RM",
-  placeholder: true,
 } as const;
 
 /* ── CTA final ───────────────────────────────────────────────── */
@@ -313,49 +320,45 @@ export const ENTERPRISE = {
 } as const;
 
 /* ── Footer ──────────────────────────────────────────────────── */
-export const FOOTER_COLUMNS = [
-  {
-    title: "PLATAFORMA",
-    links: [
-      { label: "Dashboard", href: "#" },
-      { label: "Journal", href: "#" },
-      { label: "Analytics", href: "#" },
-      { label: "Calendário", href: "#" },
-      { label: "Gestão de Risco", href: "#" },
-      { label: "Multi-conta", href: "#" },
-      { label: "Integrações", href: "#" },
-    ],
-  },
-  {
-    title: "RECURSOS",
-    links: [
-      { label: "Blog", href: "#" },
-      { label: "Changelog", href: "#" },
-      { label: "Comunidade", href: "#" },
-      { label: "Central de Ajuda", href: "#" },
-      { label: "Academy", href: "#" },
-    ],
-  },
-  {
-    title: "CONTATO",
-    links: [
-      { label: "Fale conosco", href: "#" },
-    ],
-    socialTitle: "CONECTE",
-    social: [
-      { label: "LinkedIn", href: "#" },
-      { label: "X / Twitter", href: "#" },
-      { label: "Instagram", href: "#" },
-      { label: "YouTube", href: "#" },
-      { label: "Discord", href: "#" },
-    ],
-  },
+
+/** Product links: when logged in, point to app pages; when logged out, scroll to pricing */
+export interface FooterProductLink {
+  label: string;
+  hrefAuth: string;
+  hrefGuest: string;
+}
+
+export const FOOTER_PRODUCT_LINKS: FooterProductLink[] = [
+  { label: "Dashboard", hrefAuth: "/app", hrefGuest: "#precos" },
+  { label: "Journal", hrefAuth: "/app/journal", hrefGuest: "#precos" },
+  { label: "Analytics", hrefAuth: "/app", hrefGuest: "#precos" },
+  { label: "Calendário", hrefAuth: "/app/journal?tab=calendar", hrefGuest: "#precos" },
+  { label: "Gestão de Risco", hrefAuth: "/app/alerts", hrefGuest: "#precos" },
+  { label: "Multi-conta", hrefAuth: "/app/manage-accounts", hrefGuest: "#precos" },
+  { label: "Preços", hrefAuth: "/app/pricing", hrefGuest: "#precos" },
+];
+
+export const FOOTER_RESOURCE_LINKS = [
+  { label: "Blog", href: "/blog" },
+  { label: "Changelog", href: "/changelog" },
+  { label: "Academy", href: "/academy" },
+  { label: "Nosso Manifesto", href: "/manifesto" },
+] as const;
+
+export const FOOTER_CONTACT_LINKS = [
+  { label: "Comunidade", href: "https://discord.gg/smlab", external: true },
+  { label: "Fale conosco", href: "mailto:contato@wealth.investing", external: true },
+] as const;
+
+export const FOOTER_SOCIAL_LINKS = [
+  { label: "Instagram", href: "em-breve" },
+  { label: "Discord", href: "https://discord.gg/smlab" },
 ] as const;
 
 export const FOOTER_MANIFESTO = {
   title: "O trader consistente: disciplina, dados e processo",
   subtitle: "Nosso manifesto",
-  href: "#",
+  href: "/manifesto",
 } as const;
 
 export const FOOTER_LEGAL = [

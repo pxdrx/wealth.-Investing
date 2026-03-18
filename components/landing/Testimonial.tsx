@@ -18,9 +18,6 @@ export function Testimonial() {
               <div className="text-xs text-l-text-muted">{TESTIMONIAL.role}</div>
             </div>
           </div>
-          {TESTIMONIAL.placeholder && (
-            <p className="mt-4 text-[10px] text-l-text-muted/50 font-mono">[PLACEHOLDER]</p>
-          )}
         </div>
       </AnimatedSection>
     </section>
