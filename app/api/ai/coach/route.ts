@@ -5,7 +5,9 @@ import { getTierLimits } from "@/lib/subscription-shared";
 import type { Plan } from "@/lib/subscription-shared";
 import { getPersonalTradeStats } from "@/lib/ai-stats";
 import { getCommunityIntelligence } from "@/lib/ai-community-stats";
-import { buildSystemPrompt } from "@/lib/ai-prompts";
+import { buildSystemPrompt, formatPsychologyProfile } from "@/lib/ai-prompts";
+import { computeTradeAnalytics } from "@/lib/trade-analytics";
+import type { JournalTradeRow } from "@/components/journal/types";
 
 // Lazy-init to prevent build-time crash if ANTHROPIC_API_KEY is missing
 let _anthropic: Anthropic | null = null;
@@ -33,6 +35,7 @@ interface CoachRequestBody {
   type: "session" | "weekly" | "chat";
   messages: { role: "user" | "assistant"; content: string }[];
   account_id: string;
+  enriched?: boolean;
 }
 
 const VALID_TYPES = new Set(["session", "weekly", "chat"]);
@@ -188,6 +191,29 @@ export async function POST(req: NextRequest) {
     }
   } catch {}
 
+  // 6b. If enriched mode, fetch full trade data for analytics + psychology
+  let tradeAnalytics: ReturnType<typeof computeTradeAnalytics> | null = null;
+  let psychologyProfile: string | null = null;
+
+  if (body.enriched) {
+    try {
+      const { data: allTrades } = await supabase
+        .from("journal_trades")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
+        .eq("user_id", userId)
+        .eq("account_id", body.account_id)
+        .order("closed_at", { ascending: true });
+
+      if (allTrades && allTrades.length > 0) {
+        const trades = allTrades as JournalTradeRow[];
+        tradeAnalytics = computeTradeAnalytics(trades);
+        psychologyProfile = formatPsychologyProfile(trades);
+      }
+    } catch (err) {
+      console.warn("[ai-coach] enriched data fetch error:", err);
+    }
+  }
+
   // 7. Build system prompt
   const systemPrompt = buildSystemPrompt({
     personalStats,
@@ -195,6 +221,8 @@ export async function POST(req: NextRequest) {
     communitySentiment: communitySentiment ?? [],
     analysisType: body.type,
     accountName,
+    tradeAnalytics,
+    psychologyProfile,
   });
 
   // 8. Stream from Anthropic

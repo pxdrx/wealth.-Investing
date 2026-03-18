@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper } from "lucide-react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb } from "lucide-react";
 import { motion } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useSubscription } from "@/components/context/SubscriptionContext";
@@ -9,6 +9,9 @@ import { getTierLimits } from "@/lib/subscription-shared";
 import { ChatMessage } from "@/components/ai/ChatMessage";
 import { ChatInput } from "@/components/ai/ChatInput";
 import { supabase } from "@/lib/supabase/client";
+import { computeTradeAnalytics } from "@/lib/trade-analytics";
+import { formatPsychologyProfile } from "@/lib/ai-prompts";
+import type { JournalTradeRow } from "@/components/journal/types";
 
 interface Message {
   role: "user" | "assistant";
@@ -47,6 +50,14 @@ const DATA_SOURCES = [
   { icon: Newspaper, label: "Notícias" },
 ];
 
+const INSIGHT_BUTTONS = [
+  { icon: TrendingUp, label: "Qual meu melhor par?", prompt: "Qual e meu melhor par de trading? Analise win rate, P&L total e consistencia por simbolo." },
+  { icon: Clock, label: "Qual meu pior horario?", prompt: "Qual e meu pior horario de trading? Analise performance por hora e sessao. Devo evitar algum horario?" },
+  { icon: Shield, label: "Como esta minha disciplina?", prompt: "Como esta minha disciplina de trading? Analise meu perfil psicologico, emocoes e impacto no resultado." },
+  { icon: FileText, label: "Resumo da semana", prompt: "Faca um resumo completo da minha semana de trading com base nos dados disponiveis. Destaque pontos fortes e fracos." },
+  { icon: Lightbulb, label: "O que posso melhorar?", prompt: "Com base em todos os meus dados, quais sao as 3 principais coisas que posso melhorar no meu trading?" },
+];
+
 export default function AICoachPage() {
   const { activeAccountId } = useActiveAccount();
   const { plan } = useSubscription();
@@ -57,6 +68,9 @@ export default function AICoachPage() {
   const [usageCount, setUsageCount] = useState(0);
   const [usageLoaded, setUsageLoaded] = useState(false);
   const [analysisType, setAnalysisType] = useState<"session" | "weekly" | "chat">("chat");
+  const [dataMode, setDataMode] = useState(false);
+  const [trades, setTrades] = useState<JournalTradeRow[]>([]);
+  const [tradesLoaded, setTradesLoaded] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,6 +96,34 @@ export default function AICoachPage() {
     }
     loadUsage();
   }, []);
+
+  // Load trades when data mode is activated
+  useEffect(() => {
+    if (!dataMode || !activeAccountId || tradesLoaded) return;
+    async function loadTrades() {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user?.id) return;
+      const { data } = await supabase
+        .from("journal_trades")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
+        .eq("user_id", session.session.user.id)
+        .eq("account_id", activeAccountId)
+        .order("closed_at", { ascending: true });
+      if (data) setTrades(data as JournalTradeRow[]);
+      setTradesLoaded(true);
+    }
+    loadTrades();
+  }, [dataMode, activeAccountId, tradesLoaded]);
+
+  const tradeAnalytics = useMemo(() => {
+    if (trades.length === 0) return null;
+    return computeTradeAnalytics(trades);
+  }, [trades]);
+
+  const psychologyProfile = useMemo(() => {
+    if (trades.length === 0) return null;
+    return formatPsychologyProfile(trades);
+  }, [trades]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -117,6 +159,7 @@ export default function AICoachPage() {
           type: currentType,
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
           account_id: activeAccountId,
+          ...(dataMode && tradeAnalytics ? { enriched: true } : {}),
         }),
         signal: controller.signal,
       });
@@ -244,6 +287,12 @@ export default function AICoachPage() {
               <span className="text-[10px] text-muted-foreground">{src.label}</span>
             </div>
           ))}
+          {dataMode && (
+            <div className="flex items-center gap-1 shrink-0 rounded-md px-2 py-0.5 bg-blue-500/10">
+              <Sparkles className="h-2.5 w-2.5 text-blue-500" />
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Analytics</span>
+            </div>
+          )}
         </div>
 
         {/* ── Content area ── */}
@@ -300,6 +349,66 @@ export default function AICoachPage() {
                         </motion.button>
                       );
                     })}
+                  </div>
+
+                  {/* Analisar Meus Dados section */}
+                  <div className="mt-6 border-t border-border/30 pt-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-blue-500" />
+                        <p className="text-xs font-medium text-muted-foreground">Analisar Meus Dados</p>
+                      </div>
+                      {!dataMode && (
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setDataMode(true)}
+                          className="rounded-full bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
+                        >
+                          Ativar
+                        </motion.button>
+                      )}
+                      {dataMode && (
+                        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                          {tradesLoaded ? `${trades.length} trades carregados` : "Carregando..."}
+                        </span>
+                      )}
+                    </div>
+
+                    {dataMode && tradesLoaded && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, ease: easeApple }}
+                        className="flex flex-wrap gap-2"
+                      >
+                        {INSIGHT_BUTTONS.map((btn, i) => {
+                          const Icon = btn.icon;
+                          return (
+                            <motion.button
+                              key={i}
+                              type="button"
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.2, delay: i * 0.05, ease: easeApple }}
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.97 }}
+                              disabled={quotaExhausted || isStreaming}
+                              onClick={() => {
+                                setAnalysisType("chat");
+                                sendMessage(btn.prompt, "chat");
+                              }}
+                              className="flex items-center gap-1.5 rounded-full border border-border/40 px-3 py-1.5 text-[11px] font-medium text-foreground hover:border-blue-300 hover:bg-blue-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              style={{ backgroundColor: "hsl(var(--background))" }}
+                            >
+                              <Icon className="h-3 w-3 text-blue-500" />
+                              {btn.label}
+                            </motion.button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
                   </div>
                 </motion.div>
               )}
