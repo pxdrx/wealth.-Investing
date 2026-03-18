@@ -138,7 +138,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
   const recentTrades = useMemo(() => {
     return [...filteredTrades]
       .sort((a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime())
-      .slice(0, 5);
+      .slice(0, 8);
   }, [filteredTrades]);
 
   const selectedAccountName = selectedAccountId
@@ -291,7 +291,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
           </div>
 
           {equityData.length >= 2 ? (
-            <div className="flex-1 min-h-[160px]">
+            <div className="flex-1 min-h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={equityData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                   <defs>
@@ -345,7 +345,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center min-h-[160px]">
+            <div className="flex-1 flex items-center justify-center min-h-[220px]">
               <span className="text-xs text-muted-foreground">Dados insuficientes</span>
             </div>
           )}
