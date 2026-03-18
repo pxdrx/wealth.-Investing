@@ -1,7 +1,7 @@
 # Phase 3 — High Impact Features — Design Spec
 
 > **Date:** 2026-03-18
-> **Status:** Draft
+> **Status:** Approved (with reviewer fixes applied)
 > **Author:** Claude (brainstorming session with user)
 
 ---
@@ -49,11 +49,10 @@ Each feature lives where it makes contextual sense:
 - **AI Coach:** Dollar values in AI responses (best-effort via CSS)
 
 ### Implementation
-- `ValuesVisibilityContext` (React Context) wrapping `AuthGate`
-- `useValuesVisibility()` hook returning `{ hidden: boolean, toggle: () => void }`
-- `<MoneyDisplay value={123.45} />` component that respects the context
-- Persisted in `localStorage('wealth-hide-values')`
-- Existing `AccountsOverview` `hidden` boolean migrated to use the global context
+- **Extend existing `PrivacyContext`** (`components/context/PrivacyContext.tsx`) — do NOT create a new context
+- Add `localStorage('wealth-hide-values')` persistence to existing PrivacyContext (currently not persisted)
+- `<MoneyDisplay value={123.45} />` component that consumes `usePrivacy()` from existing context
+- Existing `AccountsOverview` `hidden` boolean migrated to use the global MoneyDisplay
 
 ---
 
@@ -188,10 +187,11 @@ ALTER TABLE journal_trades ADD COLUMN management_rating SMALLINT;
 **Calculation:**
 ```
 emotion_score = emotion.sentiment  // +1, 0, or -1
-discipline_score = discipline.sentiment  // +1 or -1
+discipline_score = discipline.sentiment  // +1 or -1 (no neutral — absence of tag = skip)
 sub_ratings_score = (entry_rating + exit_rating + management_rating) / 3  // -1 to +1
 
-trade_tilt = (emotion_score + discipline_score + sub_ratings_score) / 3
+// Only average components that are present (handles missing tags gracefully)
+trade_tilt = AVG(non-null components of [emotion_score, discipline_score, sub_ratings_score])
 rolling_tilt = AVG(last 10 trades' trade_tilt)
 ```
 
@@ -280,9 +280,10 @@ interface AIQueryContext {
 
 ### Macro Economic Correlation
 
-**Data source:** Extend `/api/news` or new `/api/macro-calendar` endpoint
+**Data source:** New `/api/macro-calendar` endpoint (service-role INSERT)
 - Forex Factory RSS / Investing.com calendar (free tier)
 - Store in new `macro_events` table: `{ date, event_name, currency, impact (high/medium/low), actual, forecast }`
+- **Write path:** `/api/macro-calendar` route uses service-role key to INSERT events. Called on-demand when AI Q&A needs macro context (fetches + caches for 24h). No cron needed.
 - Correlate trader's daily PnL with macro events in the same week
 
 **Insight examples:**
@@ -407,7 +408,7 @@ Only shown when at least 10 trades have MFE/MAE data. Otherwise, shows empty sta
 
 ### Persistence
 - New column in `profiles` table: `dashboard_layout JSONB`
-- Schema: `{ widgets: [{ id: string, visible: boolean, order: number }] }`
+- Schema: `{ version: 1, widgets: [{ id: string, visible: boolean, order: number }] }`
 - Default layout for new users (the 4 Free widgets)
 - Falls back to default if `dashboard_layout` is null
 
@@ -474,13 +475,15 @@ CREATE INDEX idx_macro_events_date ON macro_events (date);
 ALTER TABLE macro_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can read macro events"
   ON macro_events FOR SELECT USING (true);
+CREATE POLICY "Service role can insert macro events"
+  ON macro_events FOR INSERT WITH CHECK (true);
 ```
 
 ### New Files
 
 | File | Purpose |
 |------|---------|
-| `lib/trade-analytics.ts` | Pure functions for all 17+ metrics |
+| `lib/trade-analytics.ts` | Extended metrics (consolidates with existing `lib/ai-stats.ts` — reuse shared computations, add new metrics like Sharpe, Sortino, drawdown, Kelly) |
 | `lib/psychology-tags.ts` | Tag definitions, Tiltmeter calculation |
 | `lib/macro-events.ts` | Macro event fetching and correlation |
 | `app/app/reports/page.tsx` | Reports page (tabs: Overview, Breakdowns, MFE/MAE, Psicologia) |
@@ -496,7 +499,7 @@ CREATE POLICY "Anyone can read macro events"
 | `components/dashboard/EquityCurveMini.tsx` | Sparkline equity curve widget |
 | `components/dashboard/WidgetRenderer.tsx` | Widget layout engine |
 | `components/ui/MoneyDisplay.tsx` | Value visibility-aware money formatter |
-| `components/ui/ValuesVisibilityToggle.tsx` | Eye icon toggle button |
+| ~~`components/ui/ValuesVisibilityToggle.tsx`~~ | ~~Eye icon toggle button~~ (NOT needed — toggle added directly in AppHeader using existing PrivacyContext) |
 
 ---
 

@@ -66,7 +66,7 @@ Phase 3.1 (Foundation)
 | File | Changes |
 |------|---------|
 | `components/layout/AppHeader.tsx` | Add global value visibility toggle (Eye icon already imported) |
-| `components/context/ActiveAccountContext.tsx` | No changes needed — PrivacyContext already separate |
+| `components/context/PrivacyContext.tsx` | Add localStorage persistence for hide-values preference |
 | `components/journal/TradeDetailModal.tsx` | Add PsychologySection, MFE/MAE fields |
 | `components/journal/types.ts` | Extend JournalTradeRow with new fields |
 | `components/dashboard/AccountsOverview.tsx` | Migrate from local mask to global MoneyDisplay |
@@ -136,9 +136,14 @@ export function MoneyDisplay({
 }
 ```
 
-- [ ] **Step 2: Verify PrivacyContext exists and has `hidden` property**
+- [ ] **Step 2: Verify PrivacyContext and add localStorage persistence (C2 fix)**
 
 Read `components/context/PrivacyContext.tsx` to confirm the interface. The dashboard page already uses `usePrivacy()`. If the property is named differently (e.g., `isPrivate`, `mask`), update MoneyDisplay accordingly.
+
+**Critical:** If PrivacyContext does NOT persist to localStorage, add it now:
+- On mount, read `localStorage.getItem('wealth-hide-values')`
+- On toggle, write `localStorage.setItem('wealth-hide-values', String(newValue))`
+- This ensures the preference survives page refreshes.
 
 - [ ] **Step 3: Run build**
 
@@ -311,7 +316,14 @@ git commit -m "docs: add Phase 3 database migration reference"
 ### Task 5: Trade Analytics Library
 
 **Files:**
-- Create: `lib/trade-analytics.ts`
+- Create: `lib/trade-analytics.ts` (new metrics: Sharpe, Sortino, drawdown, Kelly, curves, breakdowns)
+- Modify: `lib/ai-stats.ts` (import shared helpers from trade-analytics to avoid duplication)
+
+**IMPORTANT (C4 fix):** `lib/ai-stats.ts` already computes winRate, profitFactor, bySymbol, bySession, byDay, streaks. `trade-analytics.ts` must NOT duplicate these — it should either import from ai-stats or extract shared helpers into both. The recommended approach: `trade-analytics.ts` is the comprehensive module that EXTENDS the existing computations. After creating it, refactor `ai-stats.ts` to delegate to `trade-analytics.ts` for shared metrics.
+
+**Sharpe/Sortino guard:** Require minimum 20 trading days before computing. Return `null` if insufficient data.
+
+**Custom tags limit:** Max 10 custom tags per trade, max 50 chars each.
 
 - [ ] **Step 1: Define the TradeAnalytics interface**
 
