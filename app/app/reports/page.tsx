@@ -17,6 +17,7 @@ import {
   SessionBreakdown,
   HourHeatmap,
 } from "@/components/reports/BreakdownCharts";
+import { MfeMaeScatter, ExitEfficiencyChart, MfeMaeDistribution } from "@/components/reports/MfeMaeScatter";
 import { BarChart3, TrendingUp, PieChart, Brain, Target } from "lucide-react";
 
 type PeriodKey = "7d" | "30d" | "90d" | "ytd" | "all";
@@ -239,17 +240,40 @@ export default function ReportsPage() {
             </div>
           )}
 
-          {/* MFE/MAE Placeholder */}
+          {/* MFE/MAE Tab */}
           {tab === "mfe-mae" && (
-            <div
-              className="rounded-[22px] p-10 text-center isolate"
-              style={{ backgroundColor: "hsl(var(--card))" }}
-            >
-              <Target className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-lg font-semibold mb-1">MFE/MAE Analysis</h3>
-              <p className="text-sm text-muted-foreground">
-                Analise de Maximum Favorable/Adverse Excursion sera adicionada em breve.
-              </p>
+            <div className="space-y-6">
+              {/* Metric cards */}
+              {(() => {
+                const withMfe = filtered.filter((t) => t.mfe_usd != null && t.mfe_usd > 0 && getNetPnl(t) > 0);
+                const avgExitEff = withMfe.length > 0
+                  ? withMfe.reduce((s, t) => s + (getNetPnl(t) / (t.mfe_usd ?? 1)) * 100, 0) / withMfe.length
+                  : null;
+                const withMae = filtered.filter((t) => t.mae_usd != null);
+                const avgMae = withMae.length > 0
+                  ? withMae.reduce((s, t) => s + Math.abs(t.mae_usd ?? 0), 0) / withMae.length
+                  : null;
+                const leftOnTable = withMfe.length > 0
+                  ? withMfe.reduce((s, t) => s + ((t.mfe_usd ?? 0) - getNetPnl(t)), 0) / withMfe.length
+                  : null;
+
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <MetricCard label="Eficiencia de Saida" value={avgExitEff} format="percent" description="PnL / MFE (wins)" />
+                    <MetricCard label="Stop Otimo (MAE medio)" value={avgMae} format="currency" description="Baseado no MAE medio" />
+                    <MetricCard label="Lucro Nao Capturado" value={leftOnTable} format="currency" description="MFE - PnL (wins)" />
+                  </div>
+                );
+              })()}
+
+              {/* Scatter plots */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <MfeMaeScatter trades={filtered} type="mae-vs-pnl" />
+                <MfeMaeScatter trades={filtered} type="mfe-vs-pnl" />
+              </div>
+
+              <ExitEfficiencyChart trades={filtered} />
+              <MfeMaeDistribution trades={filtered} />
             </div>
           )}
 
