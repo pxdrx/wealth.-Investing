@@ -40,9 +40,8 @@
     --pnl-positive: 152 40% 38%;
     --pnl-positive-light: 152 35% 48%;
     --pnl-negative: 4 50% 52%;
-    --pnl-cell-win-strong: 152 35% 55% / 0.22;
-    --pnl-cell-win: 152 30% 55% / 0.12;
-    --pnl-cell-loss: 4 45% 55% / 0.14;
+    --pnl-cell-win: 152 32% 55% / 0.18;
+    --pnl-cell-loss: 4 45% 55% / 0.16;
     --pnl-text-positive: 152 40% 34%;
     --pnl-text-negative: 4 50% 48%;
     --landing-grid: 220 13% 92%;
@@ -103,9 +102,8 @@
     --pnl-positive: 152 40% 60%;
     --pnl-positive-light: 152 35% 65%;
     --pnl-negative: 4 45% 62%;
-    --pnl-cell-win-strong: 152 35% 55% / 0.18;
-    --pnl-cell-win: 152 30% 55% / 0.10;
-    --pnl-cell-loss: 4 40% 55% / 0.12;
+    --pnl-cell-win: 152 32% 55% / 0.15;
+    --pnl-cell-loss: 4 42% 55% / 0.13;
     --pnl-text-positive: 152 40% 62%;
     --pnl-text-negative: 4 45% 60%;
     --landing-grid: 0 0% 10%;

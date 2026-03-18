@@ -427,8 +427,8 @@ function DashboardContent({
           />
         </div>
 
-        {/* Journal Briefing — premium KPI card */}
-        <div className="lg:col-span-12">
+        {/* Journal Briefing + News — side by side */}
+        <div className="lg:col-span-7">
           <JournalBriefing
             trades={journalTrades as unknown as TradeRow[]}
             accounts={Array.from(accountsById.values()).map(a => ({ id: a.id, name: a.name }))}
@@ -436,7 +436,7 @@ function DashboardContent({
         </div>
 
         {/* News */}
-        <Card className="lg:col-span-12">
+        <Card className="lg:col-span-5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="text-base font-medium">
               News

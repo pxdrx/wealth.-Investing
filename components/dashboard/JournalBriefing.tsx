@@ -7,6 +7,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
+  YAxis,
 } from "recharts";
 import type { TradeRow } from "@/components/calendar/types";
 import {
@@ -121,6 +123,17 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
       return { date: d.date, value: cumulative };
     });
   }, [dailyData]);
+
+  // Calculate the gradient split offset (0-1) for the zero line
+  const gradientOffset = useMemo(() => {
+    if (equityData.length === 0) return 0.5;
+    const values = equityData.map((d) => d.value);
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    if (max <= 0) return 0; // all negative
+    if (min >= 0) return 1; // all positive
+    return max / (max - min);
+  }, [equityData]);
 
   const recentTrades = useMemo(() => {
     return [...filteredTrades]
@@ -282,9 +295,17 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={equityData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                   <defs>
-                    <linearGradient id="equityGradBriefing" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--pnl-positive))" stopOpacity={0.2} />
-                      <stop offset="100%" stopColor="hsl(var(--pnl-positive))" stopOpacity={0.02} />
+                    <linearGradient id="equityStrokeSplit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset={0} stopColor="hsl(var(--pnl-positive))" />
+                      <stop offset={gradientOffset} stopColor="hsl(var(--pnl-positive))" />
+                      <stop offset={gradientOffset} stopColor="hsl(var(--pnl-negative))" />
+                      <stop offset={1} stopColor="hsl(var(--pnl-negative))" />
+                    </linearGradient>
+                    <linearGradient id="equityFillSplit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset={0} stopColor="hsl(var(--pnl-positive))" stopOpacity={0.15} />
+                      <stop offset={gradientOffset} stopColor="hsl(var(--pnl-positive))" stopOpacity={0.02} />
+                      <stop offset={gradientOffset} stopColor="hsl(var(--pnl-negative))" stopOpacity={0.02} />
+                      <stop offset={1} stopColor="hsl(var(--pnl-negative))" stopOpacity={0.15} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -293,6 +314,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                     strokeOpacity={0.5}
                     vertical={false}
                   />
+                  <YAxis hide domain={["auto", "auto"]} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
@@ -304,12 +326,18 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                     labelStyle={{ color: "hsl(var(--muted-foreground))", fontSize: "10px" }}
                     formatter={(value: number) => [formatPnl(value), "P&L"]}
                   />
+                  <ReferenceLine
+                    y={0}
+                    stroke="hsl(var(--border))"
+                    strokeDasharray="4 4"
+                    strokeOpacity={0.8}
+                  />
                   <Area
                     type="monotone"
                     dataKey="value"
-                    stroke="hsl(var(--pnl-positive))"
+                    stroke="url(#equityStrokeSplit)"
                     strokeWidth={1.5}
-                    fill="url(#equityGradBriefing)"
+                    fill="url(#equityFillSplit)"
                     dot={false}
                     activeDot={{ r: 3, strokeWidth: 1.5, fill: "hsl(var(--card))" }}
                   />
