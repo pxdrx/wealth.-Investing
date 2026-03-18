@@ -23,7 +23,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
-import { PrivacyProvider, usePrivacy } from "@/components/context/PrivacyContext";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
 import { JournalBriefing } from "@/components/dashboard/JournalBriefing";
 import { AccountsOverview } from "@/components/dashboard/AccountsOverview";
@@ -360,7 +360,6 @@ export default function DashboardPage() {
   }, [news]);
 
   return (
-    <PrivacyProvider>
     <DashboardContent
       activeAccountId={activeAccountId}
       journalTrades={journalTrades}
@@ -376,7 +375,6 @@ export default function DashboardPage() {
       newsError={newsError}
       dashboardLayout={dashboardLayout}
     />
-    </PrivacyProvider>
   );
 }
 

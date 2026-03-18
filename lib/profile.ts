@@ -46,6 +46,7 @@ export async function getMyProfile(): Promise<Profile | null> {
     return null;
   }
 
+  // First try with dashboard_layout; if column doesn't exist, retry without it
   const { data, error } = await supabase
     .from("profiles")
     .select("id, display_name, dashboard_layout")
@@ -53,7 +54,21 @@ export async function getMyProfile(): Promise<Profile | null> {
     .maybeSingle();
 
   if (error) {
-    // PGRST116 = no rows found — não é erro real
+    // Column doesn't exist yet — fallback without dashboard_layout
+    if (error.message?.includes("dashboard_layout") || error.code === "42703") {
+      devLog("getMyProfile", "dashboard_layout column not found, retrying");
+      const { data: d2, error: e2 } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      if (e2 && (e2 as any).code !== "PGRST116") {
+        devError("getMyProfile fallback", e2);
+        throw e2;
+      }
+      if (!d2) return null;
+      return { ...(d2 as { id: string; display_name: string | null }), dashboard_layout: null };
+    }
     if ((error as any).code === "PGRST116") {
       devLog("getMyProfile", "no profile row");
       return null;

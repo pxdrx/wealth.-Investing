@@ -61,17 +61,24 @@ export default function SettingsPage() {
   useEffect(() => {
     let mounted = true;
     async function load() {
-      const [profile, { data: { session } }] = await Promise.all([
-        getMyProfile(),
-        supabase.auth.getSession(),
-      ]);
-      if (!mounted) return;
-      if (profile) {
-        setDisplayName(profile.display_name ?? "");
-        setDashLayout(mergeLayout(profile.dashboard_layout));
+      try {
+        const [profile, { data: { session } }] = await Promise.all([
+          getMyProfile(),
+          supabase.auth.getSession(),
+        ]);
+        if (!mounted) return;
+        if (profile) {
+          setDisplayName(profile.display_name ?? "");
+          if (profile.dashboard_layout) {
+            setDashLayout(mergeLayout(profile.dashboard_layout));
+          }
+        }
+        if (session?.user?.email) setEmail(session.user.email);
+      } catch (err) {
+        console.error("[settings] failed to load profile:", err);
+      } finally {
+        if (mounted) setProfileLoading(false);
       }
-      if (session?.user?.email) setEmail(session.user.email);
-      setProfileLoading(false);
     }
     load();
     return () => {
@@ -91,7 +98,7 @@ export default function SettingsPage() {
       const { error } = await supabase
         .from("profiles")
         .update({ display_name: displayName.trim() })
-        .eq("user_id", session.user.id);
+        .eq("id", session.user.id);
       if (error) throw error;
       setSaveMsg({ type: "success", text: "Perfil salvo com sucesso!" });
     } catch (err: unknown) {
