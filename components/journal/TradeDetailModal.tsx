@@ -17,6 +17,8 @@ import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { supabase } from "@/lib/supabase/client";
 import { X } from "lucide-react";
+import { PsychologySection } from "./PsychologySection";
+import { validateCustomTags } from "@/lib/psychology-tags";
 
 interface TradeDetailModalProps {
   trade: JournalTradeRow | null;
@@ -33,6 +35,19 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  // Psychology fields
+  const [emotion, setEmotion] = useState<string | null>(null);
+  const [discipline, setDiscipline] = useState<string | null>(null);
+  const [setupQuality, setSetupQuality] = useState<string | null>(null);
+  const [entryRating, setEntryRating] = useState<number | null>(null);
+  const [exitRating, setExitRating] = useState<number | null>(null);
+  const [managementRating, setManagementRating] = useState<number | null>(null);
+  const [customTags, setCustomTags] = useState<string[]>([]);
+
+  // MFE/MAE fields
+  const [mfeUsd, setMfeUsd] = useState<string>("");
+  const [maeUsd, setMaeUsd] = useState<string>("");
+
   useEffect(() => {
     if (trade) {
       setContext(trade.context ?? "");
@@ -40,6 +55,17 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
       setMistakes(Array.isArray(trade.mistakes) ? [...trade.mistakes] : []);
       setNewMistake("");
       setToast(null);
+      // Psychology
+      setEmotion(trade.emotion ?? null);
+      setDiscipline(trade.discipline ?? null);
+      setSetupQuality(trade.setup_quality ?? null);
+      setEntryRating(trade.entry_rating ?? null);
+      setExitRating(trade.exit_rating ?? null);
+      setManagementRating(trade.management_rating ?? null);
+      setCustomTags(Array.isArray(trade.custom_tags) ? [...trade.custom_tags] : []);
+      // MFE/MAE
+      setMfeUsd(trade.mfe_usd != null ? String(trade.mfe_usd) : "");
+      setMaeUsd(trade.mae_usd != null ? String(trade.mae_usd) : "");
     }
   }, [trade]);
 
@@ -60,12 +86,25 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
     setSaving(true);
     setToast(null);
     try {
+      const validatedTags = validateCustomTags(customTags);
+      const parsedMfe = mfeUsd !== "" ? parseFloat(mfeUsd) : null;
+      const parsedMae = maeUsd !== "" ? parseFloat(maeUsd) : null;
+
       const { error } = await supabase
         .from("journal_trades")
         .update({
           context: context || null,
           notes: notes || null,
           mistakes: mistakes.length ? mistakes : null,
+          emotion: emotion || null,
+          discipline: discipline || null,
+          setup_quality: setupQuality || null,
+          entry_rating: entryRating,
+          exit_rating: exitRating,
+          management_rating: managementRating,
+          custom_tags: validatedTags.length ? validatedTags : null,
+          mfe_usd: parsedMfe != null && !Number.isNaN(parsedMfe) ? parsedMfe : null,
+          mae_usd: parsedMae != null && !Number.isNaN(parsedMae) ? parsedMae : null,
         })
         .eq("id", trade.id);
 
@@ -91,7 +130,7 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg" showClose={true}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" showClose={true}>
         <DialogHeader>
           <DialogTitle>Detalhe do trade</DialogTitle>
         </DialogHeader>
@@ -169,6 +208,48 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
               className="input-ios w-full resize-y rounded-input border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
+
+          {/* MFE / MAE */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">MFE (USD)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={mfeUsd}
+                onChange={(e) => setMfeUsd(e.target.value)}
+                placeholder="Max Favorable Excursion"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">MAE (USD)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={maeUsd}
+                onChange={(e) => setMaeUsd(e.target.value)}
+                placeholder="Max Adverse Excursion"
+              />
+            </div>
+          </div>
+
+          {/* Psychology Section */}
+          <PsychologySection
+            emotion={emotion}
+            onEmotionChange={setEmotion}
+            discipline={discipline}
+            onDisciplineChange={setDiscipline}
+            setupQuality={setupQuality}
+            onSetupQualityChange={setSetupQuality}
+            entryRating={entryRating}
+            onEntryRatingChange={setEntryRating}
+            exitRating={exitRating}
+            onExitRatingChange={setExitRating}
+            managementRating={managementRating}
+            onManagementRatingChange={setManagementRating}
+            customTags={customTags}
+            onCustomTagsChange={setCustomTags}
+          />
 
           <div className="space-y-2">
             <Label>Erros cometidos</Label>
