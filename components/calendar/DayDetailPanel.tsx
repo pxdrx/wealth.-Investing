@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { DayData, DayNote } from "./types";
 import { formatPnl } from "./utils";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 
 interface DayDetailPanelProps {
   selectedDate: string | null;
@@ -25,6 +26,7 @@ export function DayDetailPanel({
   dayNote,
   showConsolidatedToggle,
 }: DayDetailPanelProps) {
+  const { mask } = usePrivacy();
   const [viewMode, setViewMode] = useState<"consolidated" | "per-account">(
     "consolidated"
   );
@@ -70,7 +72,7 @@ export function DayDetailPanel({
             color: dayData ? pnlColor(dayData.totalPnl) : "hsl(var(--landing-text-muted))",
           }}
         >
-          {dayData ? formatPnl(dayData.totalPnl) : "$0"}
+          {mask(dayData ? formatPnl(dayData.totalPnl) : "$0")}
         </span>
       </div>
 
@@ -112,7 +114,7 @@ export function DayDetailPanel({
               className="text-[13px] font-semibold tabular-nums"
               style={{ color: kpi.color }}
             >
-              {kpi.value}
+              {mask(kpi.value)}
             </p>
           </div>
         ))}
@@ -200,7 +202,7 @@ export function DayDetailPanel({
                     className="text-xs font-semibold tabular-nums"
                     style={{ color: pnlColor(acc.pnl) }}
                   >
-                    {formatPnl(acc.pnl)}
+                    {mask(formatPnl(acc.pnl))}
                   </span>
                 </div>
               ))}

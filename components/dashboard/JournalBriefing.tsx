@@ -5,6 +5,8 @@ import {
   AreaChart,
   Area,
   ResponsiveContainer,
+  CartesianGrid,
+  Tooltip,
 } from "recharts";
 import type { TradeRow } from "@/components/calendar/types";
 import {
@@ -12,6 +14,7 @@ import {
   calculateStreak,
   formatPnl,
 } from "@/components/calendar/utils";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 
 interface JournalBriefingProps {
   trades: TradeRow[];
@@ -36,9 +39,9 @@ function timeAgo(dateStr: string): string {
 }
 
 export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
+  const { mask } = usePrivacy();
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
-  // Filter trades by selected account
   const filteredTrades = useMemo(() => {
     if (!selectedAccountId) return trades;
     return trades.filter((t) => t.account_id === selectedAccountId);
@@ -74,7 +77,6 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
       daysOp += 1;
     });
 
-    // Calculate avg win/loss from filtered trades
     for (const t of filteredTrades) {
       const dateKey = t.opened_at.slice(0, 10);
       if (!dateKey.startsWith(prefix)) continue;
@@ -130,6 +132,8 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
     ? accounts?.find((a) => a.id === selectedAccountId)?.name ?? "Conta"
     : "Todas as contas";
 
+  const v = (val: string) => mask(val);
+
   return (
     <div
       className="rounded-2xl border overflow-hidden"
@@ -138,7 +142,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
         backgroundColor: "hsl(var(--card))",
       }}
     >
-      {/* Header with account selector */}
+      {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-3.5 border-b"
         style={{ borderColor: "hsl(var(--border))" }}
@@ -161,20 +165,19 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
         </select>
       </div>
 
-      {/* 3-section body */}
+      {/* Top: KPIs + Equity side by side */}
       <div className="flex flex-col lg:flex-row">
-        {/* Section A — Performance Pulse */}
+        {/* KPIs */}
         <div className="flex-[4] p-5">
           <p className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground mb-3">
             Performance Mensal — {selectedAccountName}
           </p>
 
-          {/* Large P&L */}
           <p
             className="text-2xl font-bold tabular-nums mb-4"
             style={{ color: pnlColor(kpis.totalPnl) }}
           >
-            {formatPnl(kpis.totalPnl)}
+            {v(formatPnl(kpis.totalPnl))}
           </p>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
@@ -193,14 +196,14 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                   />
                 </div>
                 <span className="text-xs font-semibold tabular-nums text-foreground">
-                  {(kpis.winRate * 100).toFixed(0)}%
+                  {v(`${(kpis.winRate * 100).toFixed(0)}%`)}
                 </span>
               </div>
             </KpiRow>
 
             <KpiRow label="Payoff">
               <span className="text-xs font-semibold tabular-nums text-foreground">
-                {kpis.payoff}
+                {v(kpis.payoff)}
               </span>
             </KpiRow>
 
@@ -209,7 +212,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                 className="text-xs font-semibold tabular-nums"
                 style={{ color: pnlColor(kpis.expectativaRaw) }}
               >
-                {kpis.expectativa}
+                {v(kpis.expectativa)}
               </span>
             </KpiRow>
 
@@ -218,7 +221,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                 className="text-xs font-semibold tabular-nums"
                 style={{ color: kpis.bestTrade > 0 ? "hsl(var(--pnl-positive))" : undefined }}
               >
-                {formatPnl(kpis.bestTrade)}
+                {v(formatPnl(kpis.bestTrade))}
               </span>
             </KpiRow>
 
@@ -227,13 +230,13 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                 className="text-xs font-semibold tabular-nums"
                 style={{ color: kpis.worstTrade < 0 ? "hsl(var(--pnl-negative))" : undefined }}
               >
-                {formatPnl(kpis.worstTrade)}
+                {v(formatPnl(kpis.worstTrade))}
               </span>
             </KpiRow>
 
             <KpiRow label="Dias Op.">
               <span className="text-xs font-semibold tabular-nums text-foreground">
-                {kpis.daysOp}/{kpis.daysInMonth}
+                {v(`${kpis.daysOp}/${kpis.daysInMonth}`)}
               </span>
             </KpiRow>
 
@@ -242,13 +245,13 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                 className="text-xs font-semibold tabular-nums"
                 style={{ color: streak.type === "W" ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))" }}
               >
-                {streak.count}{streak.type}
+                {v(`${streak.count}${streak.type}`)}
               </span>
             </KpiRow>
 
             <KpiRow label="Total Trades">
               <span className="text-xs font-semibold tabular-nums text-foreground">
-                {kpis.totalTrades}
+                {v(kpis.totalTrades.toString())}
               </span>
             </KpiRow>
           </div>
@@ -258,112 +261,120 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
         <div className="hidden lg:block w-px" style={{ backgroundColor: "hsl(var(--border))" }} />
         <div className="lg:hidden h-px" style={{ backgroundColor: "hsl(var(--border))" }} />
 
-        {/* Section B — Equity Sparkline */}
-        <div className="flex-[3] p-5 flex flex-col">
-          <p className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground mb-3">
-            Curva de Equity (30d)
-          </p>
+        {/* Equity Chart — expanded */}
+        <div className="flex-[5] p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground">
+              Curva de Equity (30d)
+            </p>
+            {equityData.length >= 2 && (
+              <span
+                className="text-xs font-semibold tabular-nums"
+                style={{ color: pnlColor(equityData[equityData.length - 1]?.value ?? 0) }}
+              >
+                {v(formatPnl(equityData[equityData.length - 1]?.value ?? 0))}
+              </span>
+            )}
+          </div>
 
           {equityData.length >= 2 ? (
-            <>
-              <div className="flex-1 min-h-[100px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={equityData} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
-                    <defs>
-                      <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--pnl-positive))" stopOpacity={0.25} />
-                        <stop offset="100%" stopColor="hsl(var(--pnl-positive))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="hsl(var(--pnl-positive))"
-                      strokeWidth={1.5}
-                      fill="url(#equityGrad)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex justify-between mt-2">
-                <span className="text-[10px] text-muted-foreground tabular-nums">
-                  {formatPnl(equityData[0].value)}
-                </span>
-                <span
-                  className="text-[10px] font-semibold tabular-nums"
-                  style={{ color: "hsl(var(--pnl-positive))" }}
-                >
-                  {formatPnl(equityData[equityData.length - 1].value)}
-                </span>
-              </div>
-            </>
+            <div className="flex-1 min-h-[160px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={equityData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                  <defs>
+                    <linearGradient id="equityGradBriefing" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--pnl-positive))" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="hsl(var(--pnl-positive))" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    strokeOpacity={0.5}
+                    vertical={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      borderColor: "hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      padding: "6px 10px",
+                    }}
+                    labelStyle={{ color: "hsl(var(--muted-foreground))", fontSize: "10px" }}
+                    formatter={(value: number) => [formatPnl(value), "P&L"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="hsl(var(--pnl-positive))"
+                    strokeWidth={1.5}
+                    fill="url(#equityGradBriefing)"
+                    dot={false}
+                    activeDot={{ r: 3, strokeWidth: 1.5, fill: "hsl(var(--card))" }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center min-h-[160px]">
               <span className="text-xs text-muted-foreground">Dados insuficientes</span>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Divider */}
-        <div className="hidden lg:block w-px" style={{ backgroundColor: "hsl(var(--border))" }} />
-        <div className="lg:hidden h-px" style={{ backgroundColor: "hsl(var(--border))" }} />
+      {/* Bottom: Recent trades */}
+      <div
+        className="border-t px-5 py-4"
+        style={{ borderColor: "hsl(var(--border))" }}
+      >
+        <p className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground mb-3">
+          Últimas Trades
+        </p>
 
-        {/* Section C — Recent Activity */}
-        <div className="flex-[3] p-5">
-          <p className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground mb-3">
-            Últimas Trades
-          </p>
-
-          {recentTrades.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              {recentTrades.map((t) => {
-                const isLong = t.direction?.toLowerCase() === "buy" || t.direction?.toLowerCase() === "long";
-                return (
-                  <div
-                    key={t.id}
-                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2"
-                    style={{ backgroundColor: "hsl(var(--muted) / 0.5)" }}
+        {recentTrades.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {recentTrades.map((t) => {
+              const isLong = t.direction?.toLowerCase() === "buy" || t.direction?.toLowerCase() === "long";
+              return (
+                <div
+                  key={t.id}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 min-w-[140px] flex-1"
+                  style={{ backgroundColor: "hsl(var(--muted) / 0.4)" }}
+                >
+                  <span
+                    className="inline-flex items-center justify-center rounded-md w-5 h-5 text-[9px] font-bold shrink-0"
+                    style={{
+                      backgroundColor: isLong
+                        ? "hsl(var(--pnl-positive) / 0.12)"
+                        : "hsl(var(--pnl-negative) / 0.12)",
+                      color: isLong ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))",
+                    }}
                   >
-                    {/* Direction badge */}
-                    <span
-                      className="inline-flex items-center justify-center rounded-md w-5 h-5 text-[9px] font-bold"
-                      style={{
-                        backgroundColor: isLong
-                          ? "hsl(var(--pnl-positive) / 0.15)"
-                          : "hsl(var(--pnl-negative) / 0.15)",
-                        color: isLong ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))",
-                      }}
-                    >
-                      {isLong ? "\u25B2" : "\u25BC"}
-                    </span>
-
-                    {/* Symbol */}
-                    <span className="text-xs font-medium text-foreground flex-1 truncate">
+                    {isLong ? "\u25B2" : "\u25BC"}
+                  </span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] font-medium text-foreground truncate">
                       {t.symbol}
                     </span>
-
-                    {/* P&L */}
-                    <span
-                      className="text-xs font-semibold tabular-nums"
-                      style={{ color: pnlColor(t.net_pnl_usd) }}
-                    >
-                      {formatPnl(t.net_pnl_usd)}
-                    </span>
-
-                    {/* Time ago */}
                     <span className="text-[10px] text-muted-foreground">
                       {timeAgo(t.opened_at)}
                     </span>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <span className="text-xs text-muted-foreground">Nenhuma trade registrada.</span>
-            </div>
-          )}
-        </div>
+                  <span
+                    className="text-xs font-semibold tabular-nums ml-auto"
+                    style={{ color: pnlColor(t.net_pnl_usd) }}
+                  >
+                    {v(formatPnl(t.net_pnl_usd))}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Nenhuma trade registrada.</p>
+        )}
       </div>
     </div>
   );

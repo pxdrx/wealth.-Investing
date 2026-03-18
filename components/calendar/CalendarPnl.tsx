@@ -5,6 +5,7 @@ import type { CalendarPnlProps, DayData } from "./types";
 import { aggregateByDay, formatPnl } from "./utils";
 import { CalendarGrid } from "./CalendarGrid";
 import { DayDetailPanel } from "./DayDetailPanel";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -75,6 +76,7 @@ export function CalendarPnl({
         ? "hsl(var(--pnl-negative))"
         : "hsl(var(--landing-text-muted))";
 
+  const { mask } = usePrivacy();
   const title = showConsolidatedToggle ? "Consolidado de Contas" : "Calendario P&L";
 
   const selectedDayData = selectedDate ? dailyData.get(selectedDate) ?? null : null;
@@ -139,7 +141,7 @@ export function CalendarPnl({
                 className="text-sm font-semibold tabular-nums"
                 style={{ color: kpi.color }}
               >
-                {kpi.value}
+                {mask(kpi.value)}
               </p>
             </div>
           ))}

@@ -11,7 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Eye, EyeOff } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
+import { PrivacyProvider, usePrivacy } from "@/components/context/PrivacyContext";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
 import { JournalBriefing } from "@/components/dashboard/JournalBriefing";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
@@ -283,21 +285,74 @@ export default function DashboardPage() {
   }, [news]);
 
   return (
+    <PrivacyProvider>
+    <DashboardContent
+      activeAccountId={activeAccountId}
+      journalTrades={journalTrades}
+      accountsById={accountsById}
+      dayNotes={dayNotes}
+      watchlistRef={watchlistRef}
+      iframeVisible={iframeVisible}
+      formattedNews={formattedNews}
+      newsLoading={newsLoading}
+      newsError={newsError}
+    />
+    </PrivacyProvider>
+  );
+}
+
+function DashboardContent({
+  activeAccountId,
+  journalTrades,
+  accountsById,
+  dayNotes,
+  watchlistRef,
+  iframeVisible,
+  formattedNews,
+  newsLoading,
+  newsError,
+}: {
+  activeAccountId: string | null;
+  journalTrades: JournalTradeKpiRow[];
+  accountsById: Map<string, Account>;
+  dayNotes: Record<string, DayNote>;
+  watchlistRef: React.RefObject<HTMLDivElement>;
+  iframeVisible: boolean;
+  formattedNews: (NewsItem & { timeLabel: string })[];
+  newsLoading: boolean;
+  newsError: string | null;
+}) {
+  const { hidden, toggle } = usePrivacy();
+
+  return (
     <div className="mx-auto max-w-7xl px-6 py-12" data-account-id={activeAccountId ?? undefined}>
-      <div className="mb-10">
-        <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-          Dashboard
-        </h1>
-        <p className="mt-1 text-muted-foreground leading-relaxed-apple">
-          Visão geral do seu gabinete de negociação.
-        </p>
+      <div className="mb-10 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-muted-foreground leading-relaxed-apple">
+            Visão geral do seu gabinete de negociação.
+          </p>
+        </div>
+        <button
+          onClick={toggle}
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
+          title={hidden ? "Mostrar valores" : "Ocultar valores"}
+        >
+          {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          <span className="hidden sm:inline">{hidden ? "Mostrar" : "Ocultar"}</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Watchlist — TradingView Advanced Chart + Ticker Tape */}
+        {/* TradingView Advanced Chart */}
         <div className="lg:col-span-12 flex flex-col gap-3">
           {/* Ticker tape */}
-          <div className="w-full rounded-2xl border overflow-hidden" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}>
+          <div
+            className="w-full rounded-xl border overflow-hidden"
+            style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
+          >
             <iframe
               src={
                 "https://s.tradingview.com/embed-widget/ticker-tape/?locale=br#" +
@@ -307,12 +362,14 @@ export default function DashboardPage() {
                       { proName: "FX:EURUSD", title: "EUR/USD" },
                       { proName: "FX:GBPUSD", title: "GBP/USD" },
                       { proName: "FX:USDJPY", title: "USD/JPY" },
-                      { proName: "CME_MINI:NQ1!", title: "Nasdaq" },
-                      { proName: "CME_MINI:ES1!", title: "S&P 500" },
-                      { proName: "TVC:GOLD", title: "Ouro" },
-                      { proName: "TVC:USOIL", title: "Petróleo" },
-                      { proName: "BITSTAMP:BTCUSD", title: "Bitcoin" },
-                      { proName: "BITSTAMP:ETHUSD", title: "Ethereum" },
+                      { proName: "PEPPERSTONE:NAS100", title: "Nasdaq 100" },
+                      { proName: "PEPPERSTONE:US500", title: "S&P 500" },
+                      { proName: "PEPPERSTONE:US30", title: "Dow Jones" },
+                      { proName: "OANDA:XAUUSD", title: "Ouro" },
+                      { proName: "OANDA:WTICOUSD", title: "WTI Oil" },
+                      { proName: "OANDA:NATGASUSD", title: "Gás Natural" },
+                      { proName: "COINBASE:BTCUSD", title: "Bitcoin" },
+                      { proName: "COINBASE:ETHUSD", title: "Ethereum" },
                     ],
                     showSymbolLogo: true,
                     isTransparent: true,
@@ -326,23 +383,34 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Advanced chart */}
+          {/* Advanced chart with full tools */}
           <div
             ref={watchlistRef}
-            className="w-full rounded-2xl border overflow-hidden"
-            style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))", minHeight: "500px" }}
+            className="w-full rounded-xl border overflow-hidden"
+            style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
           >
             {iframeVisible ? (
               <iframe
                 src={
-                  "https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=FX%3AEURUSD&interval=60&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=America%2FSao_Paulo&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=br&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart&utm_term=FX%3AEURUSD"
+                  "https://s.tradingview.com/widgetembed/?frameElementId=tradingview_advanced&symbol=FX%3AEURUSD&interval=60" +
+                  "&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6" +
+                  "&hide_legend=0&hide_volume=0" +
+                  "&studies=%5B%22MAExp%4050%22%2C%22MAExp%40200%22%5D" +
+                  "&theme=light&style=1&timezone=America%2FSao_Paulo" +
+                  "&withdateranges=1&allow_symbol_change=1" +
+                  "&watchlist=FX%3AEURUSD%2CFX%3AGBPUSD%2CFX%3AUSDJPY%2CFX%3AUSDCAD%2COANDA%3AXAUUSD%2CCOINBASE%3ABTCUSD%2CPEPPERSTONE%3ANAS100%2CPEPPERSTONE%3AUS500" +
+                  "&details=1&calendar=1&hotlist=1" +
+                  "&locale=br"
                 }
-                style={{ width: "100%", height: "500px", border: "none" }}
+                style={{ width: "100%", height: "560px", border: "none" }}
                 loading="lazy"
                 allowFullScreen
               />
             ) : (
-              <div className="flex items-center justify-center animate-pulse" style={{ height: "500px", backgroundColor: "hsl(var(--card))" }}>
+              <div
+                className="flex items-center justify-center animate-pulse"
+                style={{ height: "560px", backgroundColor: "hsl(var(--card))" }}
+              >
                 <p className="text-sm text-muted-foreground">Carregando gráfico...</p>
               </div>
             )}
@@ -446,3 +514,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+type NewsItemWithLabel = NewsItem & { timeLabel: string };

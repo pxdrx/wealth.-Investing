@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DayData } from "./types";
 import { cellColor, formatPnl, getMonthDays } from "./utils";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 
 interface CalendarGridProps {
   year: number;
@@ -42,6 +43,7 @@ export function CalendarGrid({
   onNextMonth,
   monthPnl,
 }: CalendarGridProps) {
+  const { mask } = usePrivacy();
   const { firstDay, daysInMonth } = getMonthDays(year, month);
 
   const cells: (number | null)[] = [];
@@ -86,7 +88,7 @@ export function CalendarGrid({
                   : "hsl(var(--landing-text-muted))",
           }}
         >
-          P&L: {formatPnl(monthPnl)}
+          P&L: {mask(formatPnl(monthPnl))}
         </span>
       </div>
 
@@ -154,7 +156,7 @@ export function CalendarGrid({
                           : "hsl(var(--landing-text-muted))",
                   }}
                 >
-                  {formatPnl(pnl)}
+                  {mask(formatPnl(pnl))}
                 </span>
               )}
             </button>
