@@ -71,6 +71,12 @@ export default function SettingsPage() {
           setDisplayName(profile.display_name ?? "");
           if (profile.dashboard_layout) {
             setDashLayout(mergeLayout(profile.dashboard_layout));
+          } else if (session?.user?.id) {
+            // Fallback: load from localStorage
+            try {
+              const stored = localStorage.getItem(`wealth-dash-layout-${session.user.id}`);
+              if (stored) setDashLayout(mergeLayout(JSON.parse(stored)));
+            } catch {}
           }
         }
         if (session?.user?.email) setEmail(session.user.email);
@@ -182,14 +188,29 @@ export default function SettingsPage() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) throw new Error("Sessão expirada");
+
+      // Always save to localStorage as reliable fallback
+      const storageKey = `wealth-dash-layout-${session.user.id}`;
+      try { localStorage.setItem(storageKey, JSON.stringify(dashLayout)); } catch {}
+
+      // Try saving to DB
       const { error } = await supabase
         .from("profiles")
         .update({ dashboard_layout: dashLayout as unknown as Record<string, unknown> })
         .eq("id", session.user.id);
-      if (error) throw error;
+      if (error) {
+        console.error("[settings] dashboard_layout save error:", error);
+        // If column doesn't exist, localStorage is enough
+        if (error.message?.includes("dashboard_layout") || error.code === "42703") {
+          setDashMsg({ type: "success", text: "Layout salvo localmente!" });
+          return;
+        }
+        throw error;
+      }
       setDashMsg({ type: "success", text: "Layout salvo com sucesso!" });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao salvar layout";
+      console.error("[settings] save layout:", err);
       setDashMsg({ type: "error", text: msg });
     } finally {
       setDashSaving(false);

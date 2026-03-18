@@ -108,15 +108,25 @@ export default function DashboardPage() {
       setUserId(session?.user?.id ?? null);
       setSessionChecked(true);
 
-      // Load dashboard layout from profile
+      // Load dashboard layout from profile (DB first, localStorage fallback)
       if (session?.user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("dashboard_layout")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        if (!cancelled && profile?.dashboard_layout) {
-          setDashboardLayout(mergeLayout(profile.dashboard_layout as DashboardLayout));
+        let loaded = false;
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("dashboard_layout")
+            .eq("id", session.user.id)
+            .maybeSingle();
+          if (!cancelled && profile?.dashboard_layout) {
+            setDashboardLayout(mergeLayout(profile.dashboard_layout as DashboardLayout));
+            loaded = true;
+          }
+        } catch {}
+        if (!loaded && !cancelled) {
+          try {
+            const stored = localStorage.getItem(`wealth-dash-layout-${session.user.id}`);
+            if (stored) setDashboardLayout(mergeLayout(JSON.parse(stored)));
+          } catch {}
         }
       }
     })();
