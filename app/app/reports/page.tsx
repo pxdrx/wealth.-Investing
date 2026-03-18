@@ -18,8 +18,26 @@ import {
   HourHeatmap,
 } from "@/components/reports/BreakdownCharts";
 import { MfeMaeScatter, ExitEfficiencyChart, MfeMaeDistribution } from "@/components/reports/MfeMaeScatter";
-import { BarChart3, TrendingUp, PieChart, Brain, Target, Eye, EyeOff } from "lucide-react";
+import { BarChart3, TrendingUp, PieChart, Brain, Target, Eye, EyeOff, Globe } from "lucide-react";
 import { usePrivacy } from "@/components/context/PrivacyContext";
+
+const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
+  { value: "UTC", label: "UTC" },
+  { value: "America/Sao_Paulo", label: "São Paulo (BRT)" },
+  { value: "America/New_York", label: "New York (EST)" },
+  { value: "America/Chicago", label: "Chicago (CST)" },
+  { value: "Europe/London", label: "London (GMT)" },
+  { value: "Europe/Berlin", label: "Berlin (CET)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+  { value: "Asia/Shanghai", label: "Shanghai (CST)" },
+  { value: "Asia/Dubai", label: "Dubai (GST)" },
+  { value: "Australia/Sydney", label: "Sydney (AEST)" },
+];
+
+function getStoredTimezone(): string {
+  if (typeof window === "undefined") return "America/Sao_Paulo";
+  return localStorage.getItem("wealth-reports-timezone") || "America/Sao_Paulo";
+}
 
 type PeriodKey = "7d" | "30d" | "90d" | "ytd" | "all";
 type TabKey = "overview" | "breakdowns" | "mfe-mae" | "psicologia";
@@ -33,7 +51,7 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
 ];
 
 const TAB_OPTIONS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-  { key: "overview", label: "Visao Geral", icon: <TrendingUp className="w-4 h-4" /> },
+  { key: "overview", label: "Visão Geral", icon: <TrendingUp className="w-4 h-4" /> },
   { key: "breakdowns", label: "Detalhamento", icon: <PieChart className="w-4 h-4" /> },
   { key: "mfe-mae", label: "MFE/MAE", icon: <Target className="w-4 h-4" /> },
   { key: "psicologia", label: "Psicologia", icon: <Brain className="w-4 h-4" /> },
@@ -72,6 +90,12 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodKey>("all");
   const [tab, setTab] = useState<TabKey>("overview");
+  const [timeZone, setTimeZone] = useState<string>(getStoredTimezone);
+
+  const handleTimezoneChange = (tz: string) => {
+    setTimeZone(tz);
+    localStorage.setItem("wealth-reports-timezone", tz);
+  };
 
   useEffect(() => {
     async function load() {
@@ -103,7 +127,7 @@ export default function ReportsPage() {
   }, [activeAccountId]);
 
   const filtered = useMemo(() => filterByPeriod(trades, period), [trades, period]);
-  const analytics = useMemo(() => computeTradeAnalytics(filtered), [filtered]);
+  const analytics = useMemo(() => computeTradeAnalytics(filtered, timeZone), [filtered, timeZone]);
   const pnls = useMemo(() => filtered.map(getNetPnl), [filtered]);
   const { hidden: valuesHidden, toggle: toggleValues } = usePrivacy();
 
@@ -149,21 +173,38 @@ export default function ReportsPage() {
           </button>
         </div>
 
-        {/* Period selector */}
-        <div className="flex gap-1 rounded-full p-1" style={{ backgroundColor: "hsl(var(--muted))" }}>
-          {PERIOD_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setPeriod(opt.key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                period === opt.key
-                  ? "bg-white dark:bg-zinc-800 shadow-sm"
-                  : "hover:bg-white/50 dark:hover:bg-zinc-700/50"
-              }`}
+        {/* Period selector + Timezone */}
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+          <div className="flex gap-1 rounded-full p-1" style={{ backgroundColor: "hsl(var(--muted))" }}>
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setPeriod(opt.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                  period === opt.key
+                    ? "bg-white dark:bg-zinc-800 shadow-sm"
+                    : "hover:bg-white/50 dark:hover:bg-zinc-700/50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            <select
+              value={timeZone}
+              onChange={(e) => handleTimezoneChange(e.target.value)}
+              className="text-xs font-medium rounded-full border px-2.5 py-1.5 bg-transparent text-foreground outline-none cursor-pointer"
+              style={{ borderColor: "hsl(var(--border))" }}
             >
-              {opt.label}
-            </button>
-          ))}
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -191,7 +232,7 @@ export default function ReportsPage() {
           style={{ backgroundColor: "hsl(var(--card))" }}
         >
           <BarChart3 className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">Nenhum trade encontrado para o periodo selecionado.</p>
+          <p className="text-muted-foreground">Nenhum trade encontrado para o período selecionado.</p>
         </div>
       ) : (
         <>
@@ -200,29 +241,29 @@ export default function ReportsPage() {
             <div className="space-y-6">
               {/* KPI Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard label="P&L Liquido" value={analytics.netPnl} format="currency" colorize />
+                <MetricCard label="P&L Líquido" value={analytics.netPnl} format="currency" colorize />
                 <MetricCard label="Win Rate" value={analytics.winRate} format="percent" />
                 <MetricCard label="Profit Factor" value={analytics.profitFactor === Infinity ? null : analytics.profitFactor} format="ratio" description={analytics.profitFactor === Infinity ? "Sem perdas" : undefined} />
                 <MetricCard label="Expectancy" value={analytics.expectancy} format="currency" colorize />
-                <MetricCard label="Media Ganho" value={analytics.avgWin} format="currency" />
-                <MetricCard label="Media Perda" value={-analytics.avgLoss} format="currency" colorize />
+                <MetricCard label="Média Ganho" value={analytics.avgWin} format="currency" />
+                <MetricCard label="Média Perda" value={-analytics.avgLoss} format="currency" colorize />
                 <MetricCard label="Payoff Ratio" value={analytics.payoffRatio} format="ratio" />
                 <MetricCard label="Max Drawdown" value={-analytics.maxDrawdown} format="percent" colorize />
                 <MetricCard label="Sharpe Ratio" value={analytics.sharpeRatio} format="ratio" description={analytics.sharpeRatio === null ? "Min. 20 dias" : undefined} />
                 <MetricCard label="Sortino Ratio" value={analytics.sortinoRatio} format="ratio" description={analytics.sortinoRatio === null ? "Min. 20 dias" : undefined} />
-                <MetricCard label="Kelly (Half)" value={analytics.kellyCriterion * 100} format="percent" description="Fracao otima de risco" />
+                <MetricCard label="Kelly (Half)" value={analytics.kellyCriterion * 100} format="percent" description="Fração ótima de risco" />
                 <MetricCard label="Recovery Factor" value={analytics.recoveryFactor} format="ratio" />
                 <MetricCard label="Melhor Dia" value={analytics.bestDay?.pnl ?? null} format="currency" colorize description={analytics.bestDay?.date} />
                 <MetricCard label="Pior Dia" value={analytics.worstDay?.pnl ?? null} format="currency" colorize description={analytics.worstDay?.date} />
-                <MetricCard label="Duracao Media" value={analytics.avgTradeDuration} format="duration" />
+                <MetricCard label="Duração Média" value={analytics.avgTradeDuration} format="duration" />
                 <MetricCard label="Trades/Semana" value={analytics.tradesPerWeek} format="number" />
               </div>
 
               {/* Streaks */}
               <div className="grid grid-cols-3 gap-4">
                 <MetricCard label="Streak Atual" value={analytics.streaks.current} format="number" colorize />
-                <MetricCard label="Maior Sequencia Wins" value={analytics.streaks.longestWin} format="number" />
-                <MetricCard label="Maior Sequencia Losses" value={-analytics.streaks.longestLoss} format="number" colorize />
+                <MetricCard label="Maior Sequência Wins" value={analytics.streaks.longestWin} format="number" />
+                <MetricCard label="Maior Sequência Losses" value={-analytics.streaks.longestLoss} format="number" colorize />
               </div>
 
               {/* Charts */}
@@ -269,9 +310,9 @@ export default function ReportsPage() {
 
                 return (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <MetricCard label="Eficiencia de Saida" value={avgExitEff} format="percent" description="PnL / MFE (wins)" />
-                    <MetricCard label="Stop Otimo (MAE medio)" value={avgMae} format="currency" description="Baseado no MAE medio" />
-                    <MetricCard label="Lucro Nao Capturado" value={leftOnTable} format="currency" description="MFE - PnL (wins)" />
+                    <MetricCard label="Eficiência de Saída" value={avgExitEff} format="percent" description="PnL / MFE (wins)" />
+                    <MetricCard label="Stop Ótimo (MAE médio)" value={avgMae} format="currency" description="Baseado no MAE médio" />
+                    <MetricCard label="Lucro Não Capturado" value={leftOnTable} format="currency" description="MFE - PnL (wins)" />
                   </div>
                 );
               })()}
@@ -296,7 +337,7 @@ export default function ReportsPage() {
               <Brain className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
               <h3 className="text-lg font-semibold mb-1">Psicologia de Trading</h3>
               <p className="text-sm text-muted-foreground">
-                Tags de emocao e disciplina por trade serao adicionadas em breve.
+                Tags de emoção e disciplina por trade serão adicionadas em breve.
               </p>
             </div>
           )}

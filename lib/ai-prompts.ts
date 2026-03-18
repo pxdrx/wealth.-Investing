@@ -116,7 +116,7 @@ export function formatTradeAnalytics(analytics: TradeAnalytics): string {
     "## ANALYTICS COMPLETO",
     "",
     `- Total trades: **${analytics.totalTrades}**`,
-    `- P&L liquido: **$${analytics.netPnl.toFixed(2)}**`,
+    `- P&L líquido: **$${analytics.netPnl.toFixed(2)}**`,
     `- Win rate: **${analytics.winRate.toFixed(1)}%**`,
     `- Profit factor: **${analytics.profitFactor === Infinity ? "Infinito (sem perdas)" : analytics.profitFactor.toFixed(2)}**`,
     `- Expectancy: **$${analytics.expectancy.toFixed(2)}** por trade`,
@@ -126,9 +126,9 @@ export function formatTradeAnalytics(analytics: TradeAnalytics): string {
     `- Sortino ratio: **${analytics.sortinoRatio?.toFixed(2) ?? "N/A"}**`,
     `- Kelly (half): **${(analytics.kellyCriterion * 100).toFixed(1)}%**`,
     `- Recovery factor: **${analytics.recoveryFactor.toFixed(2)}**`,
-    `- Media ganho: **$${analytics.avgWin.toFixed(2)}**`,
-    `- Media perda: **$${analytics.avgLoss.toFixed(2)}**`,
-    `- Duracao media: **${Math.round(analytics.avgTradeDuration)} min**`,
+    `- Média ganho: **$${analytics.avgWin.toFixed(2)}**`,
+    `- Média perda: **$${analytics.avgLoss.toFixed(2)}**`,
+    `- Duração média: **${Math.round(analytics.avgTradeDuration)} min**`,
     `- Trades/semana: **${analytics.tradesPerWeek.toFixed(1)}**`,
   ];
 
@@ -139,19 +139,19 @@ export function formatTradeAnalytics(analytics: TradeAnalytics): string {
     lines.push(`- Pior dia: **${analytics.worstDay.date}** ($${analytics.worstDay.pnl.toFixed(2)})`);
   }
 
-  lines.push("", "### Top simbolos");
+  lines.push("", "### Top símbolos");
   for (const s of analytics.bySymbol.slice(0, 8)) {
     lines.push(`- ${s.symbol}: ${s.tradeCount} trades, WR ${s.winRate.toFixed(1)}%, total $${s.totalPnl.toFixed(2)}`);
   }
 
-  lines.push("", "### Por sessao");
+  lines.push("", "### Por sessão");
   for (const s of analytics.bySession) {
     lines.push(`- ${s.session}: ${s.tradeCount} trades, WR ${s.winRate.toFixed(1)}%, total $${s.totalPnl.toFixed(2)}`);
   }
 
   lines.push("", "### Por dia da semana");
   for (const d of analytics.byDayOfWeek) {
-    lines.push(`- ${d.day}: ${d.tradeCount} trades, WR ${d.winRate.toFixed(1)}%, media $${d.avgPnl.toFixed(2)}`);
+    lines.push(`- ${d.day}: ${d.tradeCount} trades, WR ${d.winRate.toFixed(1)}%, média $${d.avgPnl.toFixed(2)}`);
   }
 
   lines.push("", "### Por hora (top 5 por volume)");
@@ -194,12 +194,12 @@ export function formatPsychologyProfile(trades: JournalTradeRow[]): string {
   const tiltScore = withEmotion.length > 0 ? (negCount / withEmotion.length) * 100 : 0;
 
   const lines: string[] = [
-    "## PERFIL PSICOLOGICO",
+    "## PERFIL PSICOLÓGICO",
     "",
-    `- Trades com emocao registrada: **${withEmotion.length}** de ${trades.length}`,
-    `- Tilt score: **${tiltScore.toFixed(1)}%** (% de trades com emocoes negativas)`,
+    `- Trades com emoção registrada: **${withEmotion.length}** de ${trades.length}`,
+    `- Tilt score: **${tiltScore.toFixed(1)}%** (% de trades com emoções negativas)`,
     "",
-    "### Por emocao",
+    "### Por emoção",
   ];
 
   Array.from(emotionMap.entries()).forEach(([emotion, stats]) => {

@@ -51,10 +51,10 @@ interface ImportResultData {
 }
 
 const tabs = [
-  { title: "Visao Geral", icon: LayoutDashboard },
+  { title: "Visão Geral", icon: LayoutDashboard },
   { title: "Trades", icon: TrendingUp },
   { type: "separator" as const },
-  { title: "Estatisticas", icon: BarChart2 },
+  { title: "Estatísticas", icon: BarChart2 },
   { type: "separator" as const },
   { title: "Importar MT5", icon: Upload },
 ];

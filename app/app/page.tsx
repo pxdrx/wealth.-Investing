@@ -936,7 +936,7 @@ function StreaksWidget({
         style={{ borderColor: "hsl(var(--border))" }}
       >
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
-          Sequencias
+          Sequências
         </h3>
         <Flame className="h-4 w-4 text-muted-foreground" />
       </div>

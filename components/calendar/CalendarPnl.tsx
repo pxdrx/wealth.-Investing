@@ -85,7 +85,7 @@ export function CalendarPnl({
         : "hsl(var(--landing-text-muted))";
 
   const { mask } = usePrivacy();
-  const title = showConsolidatedToggle ? "Consolidado de Contas" : "Calendario P&L";
+  const title = showConsolidatedToggle ? "Consolidado de Contas" : "Calendário P&L";
 
   const selectedDayData = selectedDate ? dailyData.get(selectedDate) ?? null : null;
   const selectedDayNote = selectedDate && dayNotes ? dayNotes[selectedDate] ?? null : null;

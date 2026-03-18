@@ -52,7 +52,7 @@ export interface PersonalTradeStats {
   recentTrades: { symbol: string; direction: string; pnl: number; date: string }[];
 }
 
-const DAY_NAMES = ["Domingo", "Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado"];
+const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 export async function getPersonalTradeStats(
   client: SupabaseClient,

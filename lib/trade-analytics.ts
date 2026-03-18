@@ -8,7 +8,7 @@ export function getSession(utcHour: number): string {
   return "Other";
 }
 
-const DAY_NAMES = ["Domingo", "Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado"];
+const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 // ── Interfaces ──────────────────────────────────────────────────────
 
@@ -148,7 +148,30 @@ function totalPnlOf(trades: JournalTradeRow[]): number {
 
 // ── Main computation ────────────────────────────────────────────────
 
-export function computeTradeAnalytics(trades: JournalTradeRow[]): TradeAnalytics {
+function toLocalDateStr(isoDate: string, timeZone: string): string {
+  const d = new Date(isoDate);
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d);
+  const y = parts.find((p) => p.type === "year")!.value;
+  const m = parts.find((p) => p.type === "month")!.value;
+  const day = parts.find((p) => p.type === "day")!.value;
+  return `${y}-${m}-${day}`;
+}
+
+function toLocalDayOfWeek(isoDate: string, timeZone: string): number {
+  const d = new Date(isoDate);
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(d);
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return map[weekday] ?? 0;
+}
+
+function toLocalHour(isoDate: string, timeZone: string): number {
+  const d = new Date(isoDate);
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", hour12: false }).formatToParts(d);
+  return Number(parts.find((p) => p.type === "hour")!.value);
+}
+
+export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: string): TradeAnalytics {
+  const tz = timeZone || "America/Sao_Paulo";
   const sorted = [...trades].sort(
     (a, b) => new Date(a.closed_at).getTime() - new Date(b.closed_at).getTime()
   );
@@ -176,7 +199,7 @@ export function computeTradeAnalytics(trades: JournalTradeRow[]): TradeAnalytics
   const expectancy = totalTrades > 0 ? netPnl / totalTrades : 0;
 
   // ── Daily PnL ──
-  const dailyMap = groupBy(sorted, (t) => t.closed_at.slice(0, 10));
+  const dailyMap = groupBy(sorted, (t) => toLocalDateStr(t.closed_at, tz));
   const dailyPnl: DailyPnlPoint[] = Array.from(dailyMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, tds]) => ({
@@ -297,7 +320,7 @@ export function computeTradeAnalytics(trades: JournalTradeRow[]): TradeAnalytics
 
   // ── By Day of Week ──
   const byDayOfWeek: DayOfWeekBreakdownItem[] = Array.from(
-    groupBy(sorted, (t) => String(new Date(t.opened_at).getDay())).entries()
+    groupBy(sorted, (t) => String(toLocalDayOfWeek(t.opened_at, tz))).entries()
   )
     .sort(([a], [b]) => Number(a) - Number(b))
     .map(([dayIdx, tds]) => ({
@@ -322,7 +345,7 @@ export function computeTradeAnalytics(trades: JournalTradeRow[]): TradeAnalytics
 
   // ── By Hour ──
   const byHour: HourBreakdownItem[] = Array.from(
-    groupBy(sorted, (t) => String(new Date(t.opened_at).getUTCHours())).entries()
+    groupBy(sorted, (t) => String(toLocalHour(t.opened_at, tz))).entries()
   )
     .sort(([a], [b]) => Number(a) - Number(b))
     .map(([hour, tds]) => ({
