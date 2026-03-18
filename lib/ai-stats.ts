@@ -1,4 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { getSession, calcStreaks } from "@/lib/trade-analytics";
+import { JournalTradeRow } from "@/components/journal/types";
 
 export interface TradeRow {
   symbol: string;
@@ -50,35 +52,7 @@ export interface PersonalTradeStats {
   recentTrades: { symbol: string; direction: string; pnl: number; date: string }[];
 }
 
-function getSession(utcHour: number): string {
-  if (utcHour >= 23 || utcHour < 4) return "Tokyo";
-  if (utcHour >= 7 && utcHour < 12) return "London";
-  if (utcHour >= 13 && utcHour < 18) return "New York";
-  return "Other";
-}
-
-const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-
-function calcStreaks(trades: TradeRow[]): { current: number; longestWin: number; longestLoss: number } {
-  let longestWin = 0;
-  let longestLoss = 0;
-  let streak = 0;
-
-  const sorted = [...trades].sort((a, b) => new Date(a.closed_at).getTime() - new Date(b.closed_at).getTime());
-
-  for (const t of sorted) {
-    const win = t.net_pnl_usd > 0;
-    if (win) {
-      streak = streak > 0 ? streak + 1 : 1;
-      longestWin = Math.max(longestWin, streak);
-    } else {
-      streak = streak < 0 ? streak - 1 : -1;
-      longestLoss = Math.max(longestLoss, Math.abs(streak));
-    }
-  }
-  const current = streak;
-  return { current, longestWin, longestLoss };
-}
+const DAY_NAMES = ["Domingo", "Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado"];
 
 export async function getPersonalTradeStats(
   client: SupabaseClient,
@@ -197,7 +171,18 @@ export async function getPersonalTradeStats(
       date: new Date(t.closed_at).toLocaleDateString("pt-BR"),
     }));
 
-  const streaks = calcStreaks(typedTrades);
+  const journalTrades: JournalTradeRow[] = typedTrades.map((t) => ({
+    id: "",
+    symbol: t.symbol,
+    direction: t.direction,
+    opened_at: t.opened_at,
+    closed_at: t.closed_at,
+    pnl_usd: t.pnl_usd,
+    fees_usd: t.fees_usd,
+    net_pnl_usd: t.net_pnl_usd,
+    category: null,
+  }));
+  const streaks = calcStreaks(journalTrades);
 
   return {
     totalTrades,
