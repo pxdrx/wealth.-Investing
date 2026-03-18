@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     // Parse file
     const buffer = await file.arrayBuffer();
 
-    let trades: Array<{ external_id: string; symbol: string; direction: string; opened_at: string; closed_at: string; pnl_usd: number; fees_usd: number; lots?: number; category?: string }>;
+    let trades: Array<{ external_id: string; external_source?: string; symbol: string; direction: string; opened_at: string; closed_at: string; pnl_usd: number; fees_usd?: number; lots?: number; category?: string; commission?: number; swap?: number }>;
     let balanceOps: Array<{ type: string; amount_usd: number; at?: string | null; external_id?: string | null }>;
 
     try {
@@ -89,9 +89,17 @@ export async function POST(request: Request) {
         // cTrader CSV parser — will be implemented in a later task
         try {
           const { parseCtraderCsv } = await import("@/lib/ctrader-parser");
-          const result = parseCtraderCsv(buffer);
-          trades = result.trades;
-          balanceOps = result.balanceOps;
+          const result = parseCtraderCsv(Buffer.from(buffer));
+          trades = result.trades.map((t) => ({
+            ...t,
+            fees_usd: (t.commission ?? 0) + (t.swap ?? 0),
+          }));
+          balanceOps = result.payouts.map((p) => ({
+            type: "WITHDRAWAL",
+            amount_usd: p.amount_usd,
+            at: p.paid_at,
+            external_id: null,
+          }));
         } catch (importErr) {
           const msg = importErr instanceof Error ? importErr.message : String(importErr);
           if (msg.includes("Cannot find module") || msg.includes("Module not found")) {
@@ -242,7 +250,7 @@ export async function POST(request: Request) {
       .select("closed_at")
       .eq("user_id", userId)
       .eq("account_id", accountId)
-      .eq("external_source", "mt5")
+      .eq("external_source", isCsv ? "ctrader" : "mt5")
       .order("closed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -266,7 +274,7 @@ export async function POST(request: Request) {
         .select("id")
         .eq("user_id", userId)
         .eq("account_id", accountId)
-        .eq("external_source", "mt5")
+        .eq("external_source", t.external_source ?? (isCsv ? "ctrader" : "mt5"))
         .eq("external_id", t.external_id)
         .maybeSingle();
 
@@ -280,7 +288,8 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const category = (t as { category?: string }).category ?? inferCategory(t.symbol);
+      const tradeSource = t.external_source ?? (isCsv ? "ctrader" : "mt5");
+      const category = t.category ?? inferCategory(t.symbol);
       const { error } = await supabase.from("journal_trades").insert({
         user_id: userId,
         account_id: accountId,
@@ -290,8 +299,8 @@ export async function POST(request: Request) {
         opened_at: t.opened_at,
         closed_at: t.closed_at,
         pnl_usd: t.pnl_usd,
-        fees_usd: t.fees_usd,
-        external_source: "mt5",
+        fees_usd: t.fees_usd ?? 0,
+        external_source: tradeSource,
         external_id: t.external_id,
       });
 
@@ -331,7 +340,7 @@ export async function POST(request: Request) {
             .from("prop_payouts")
             .select("id")
             .eq("prop_account_id", propAccountRowId)
-            .eq("external_source", "mt5")
+            .eq("external_source", isCsv ? "ctrader" : "mt5")
             .eq("external_id", op.external_id)
             .maybeSingle();
           existing = data;
@@ -353,7 +362,7 @@ export async function POST(request: Request) {
           prop_account_id: propAccountRowId,
           paid_at: paidAt,
           amount_usd: op.amount_usd,
-          external_source: "mt5",
+          external_source: isCsv ? "ctrader" : "mt5",
           external_id: externalId,
         });
 
