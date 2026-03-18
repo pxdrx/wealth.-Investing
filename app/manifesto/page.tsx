@@ -25,10 +25,10 @@ const SECTIONS = [
     icon: Target,
     label: "O PROBLEMA",
     number: "01",
-    headline: "A maioria dos traders falha. Mas n\u00e3o por falta de habilidade.",
+    headline: "A maioria dos traders falha. Mas não por falta de habilidade.",
     paragraphs: [
-      "Eles operam sem dados. Repetem os mesmos erros semana ap\u00f3s semana. N\u00e3o t\u00eam sistema de revis\u00e3o. N\u00e3o sabem quais setups realmente sustentam seu P&L \u2014 e quais est\u00e3o destruindo seu capital silenciosamente.",
-      "Planilhas manuais, prints de gr\u00e1fico no WhatsApp, anota\u00e7\u00f5es em caderno. A maioria das ferramentas dispon\u00edveis foram feitas para hedge funds com or\u00e7amentos milion\u00e1rios \u2014 n\u00e3o para o trader independente que precisa de clareza para evoluir.",
+      "Eles operam sem dados. Repetem os mesmos erros semana após semana. Não têm sistema de revisão. Não sabem quais setups realmente sustentam seu P&L — e quais estão destruindo seu capital silenciosamente.",
+      "Planilhas manuais, prints de gráfico no WhatsApp, anotações em caderno. A maioria das ferramentas disponíveis foi feita para hedge funds com orçamentos milionários — não para o trader independente que precisa de clareza para evoluir.",
     ],
     accent: "from-red-500/20 to-orange-500/20",
     accentDark: "dark:from-red-500/10 dark:to-orange-500/10",
@@ -36,12 +36,12 @@ const SECTIONS = [
   {
     id: "missao",
     icon: Compass,
-    label: "NOSSA MISS\u00c3O",
+    label: "NOSSA MISSÃO",
     number: "02",
-    headline: "Democratizar as ferramentas que antes s\u00f3 os profissionais tinham.",
+    headline: "Democratizar as ferramentas que antes só os profissionais tinham.",
     paragraphs: [
-      "A wealth.Investing nasceu de uma frustra\u00e7\u00e3o real: por que ferramentas profissionais de an\u00e1lise de performance s\u00e3o inacess\u00edveis para a maioria dos traders?",
-      "Nossa miss\u00e3o \u00e9 simples: dar a cada trader \u2014 independente do tamanho da conta \u2014 as mesmas ferramentas de an\u00e1lise, gest\u00e3o de risco e intelig\u00eancia que os melhores fundos do mundo usam. Sem planilhas. Sem complexidade desnecess\u00e1ria.",
+      "A wealth.Investing nasceu de uma frustração real: por que as ferramentas profissionais de análise de performance são inacessíveis para a maioria dos traders?",
+      "Nossa missão é simples: dar a cada trader — independentemente do tamanho da conta — as mesmas ferramentas de análise, gestão de risco e inteligência que os melhores fundos do mundo usam. Sem planilhas. Sem complexidade desnecessária.",
     ],
     accent: "from-blue-500/20 to-indigo-500/20",
     accentDark: "dark:from-blue-500/10 dark:to-indigo-500/10",
@@ -51,14 +51,14 @@ const SECTIONS = [
     icon: Heart,
     label: "O QUE NOS MOVE",
     number: "03",
-    headline: "Acreditamos que todo trader merece ferramentas que inspiram disciplina.",
+    headline: "Acreditamos que todo trader merece ferramentas que inspirem disciplina.",
     paragraphs: [
-      "N\u00e3o basta ter dados \u2014 \u00e9 preciso que a experi\u00eancia de us\u00e1-los seja bonita, intuitiva e prazerosa. Quando a ferramenta \u00e9 boa, voc\u00ea quer us\u00e1-la. E quando voc\u00ea usa, voc\u00ea melhora.",
+      "Não basta ter dados — é preciso que a experiência de usá-los seja bonita, intuitiva e prazerosa. Quando a ferramenta é boa, você quer usá-la. E quando você usa, você melhora.",
     ],
     bullets: [
-      { icon: BarChart3, text: "Analytics inteligentes que revelam padr\u00f5es ocultos" },
+      { icon: BarChart3, text: "Analytics inteligentes que revelam padrões ocultos" },
       { icon: Brain, text: "AI Coach que conhece cada trade seu" },
-      { icon: Shield, text: "Gest\u00e3o de risco integrada a mesas propriet\u00e1rias" },
+      { icon: Shield, text: "Gestão de risco integrada às mesas proprietárias" },
       { icon: Sparkles, text: "Design premium que voc\u00ea tem prazer em usar" },
     ],
     accent: "from-purple-500/20 to-pink-500/20",
@@ -67,12 +67,12 @@ const SECTIONS = [
   {
     id: "para-quem",
     icon: Users,
-    label: "PARA QUEM CONSTRU\u00cdMOS",
+    label: "PARA QUEM CONSTRUÍMOS",
     number: "04",
-    headline: "Para o trader que leva a s\u00e9rio sua evolu\u00e7\u00e3o.",
+    headline: "Para o trader que leva a sério a sua evolução.",
     paragraphs: [
-      "O prop trader que estuda depois do expediente e precisa de cada dado para passar a avalia\u00e7\u00e3o. O day trader que sabe que disciplina \u00e9 mais importante que estrat\u00e9gia. O swing trader que quer entender seus padr\u00f5es de longo prazo.",
-      "Se voc\u00ea acredita que consist\u00eancia se constr\u00f3i com dados, processo e revis\u00e3o \u2014 a wealth.Investing foi feita para voc\u00ea.",
+      "O prop trader que estuda depois do expediente e precisa de cada dado para passar na avaliação. O day trader que sabe que disciplina é mais importante que estratégia. O swing trader que quer entender seus padrões de longo prazo.",
+      "Se você acredita que consistência se constrói com dados, processo e revisão — a wealth.Investing foi feita para você.",
     ],
     accent: "from-emerald-500/20 to-teal-500/20",
     accentDark: "dark:from-emerald-500/10 dark:to-teal-500/10",
@@ -84,8 +84,8 @@ const SECTIONS = [
     number: "05",
     headline: "Nunca vamos parar de melhorar.",
     paragraphs: [
-      "Cada feature \u00e9 desenhada para te ajudar a operar melhor \u2014 n\u00e3o apenas rastrear trades. Ouvimos nossos usu\u00e1rios obsessivamente. Iteramos toda semana. Publicamos changelog aberto.",
-      "Nosso compromisso: construir a melhor plataforma de journaling e an\u00e1lise de performance para traders independentes do Brasil e do mundo.",
+      "Cada feature é desenhada para te ajudar a operar melhor — não apenas rastrear trades. Ouvimos nossos usuários obsessivamente. Iteramos toda semana. Publicamos changelog aberto.",
+      "Nosso compromisso: construir a melhor plataforma de journaling e análise de performance para traders independentes do Brasil e do mundo.",
     ],
     accent: "from-amber-500/20 to-yellow-500/20",
     accentDark: "dark:from-amber-500/10 dark:to-yellow-500/10",
@@ -95,20 +95,20 @@ const SECTIONS = [
 /* ── Values grid ────────────────────────────────────────────── */
 const VALUES = [
   {
-    title: "Transpar\u00eancia",
-    description: "Changelog aberto, roadmap p\u00fablico, comunica\u00e7\u00e3o honesta.",
+    title: "Transparência",
+    description: "Changelog aberto, roadmap público, comunicação honesta.",
   },
   {
-    title: "Obsess\u00e3o pelo usu\u00e1rio",
+    title: "Obsessão pelo usuário",
     description: "Cada pixel, cada feature existe para resolver um problema real.",
   },
   {
-    title: "Dados > Opini\u00e3o",
-    description: "Decis\u00f5es baseadas em evid\u00eancia, no trading e no produto.",
+    title: "Dados > Opinião",
+    description: "Decisões baseadas em evidência, no trading e no produto.",
   },
   {
     title: "Acessibilidade",
-    description: "Ferramentas profissionais a pre\u00e7os que qualquer trader pode pagar.",
+    description: "Ferramentas profissionais a preços que qualquer trader pode pagar.",
   },
 ] as const;
 
@@ -185,7 +185,7 @@ export default function ManifestoPage() {
               className="hero-fade-in max-w-2xl text-base sm:text-lg md:text-xl leading-relaxed text-white/55 mb-12"
               style={{ animationDelay: "0.2s" }}
             >
-              A hist\u00f3ria de por que constru\u00edmos a wealth.Investing \u2014 e a vis\u00e3o
+              A história de por que construímos a wealth.Investing — e a visão
               que nos guia todos os dias.
             </p>
 
@@ -198,7 +198,7 @@ export default function ManifestoPage() {
                 }
                 className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-medium text-white/80 backdrop-blur-sm transition-all hover:bg-white/10 hover:border-white/25"
               >
-                Conhe\u00e7a nossa hist\u00f3ria
+                Conheça nossa história
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </button>
             </div>
@@ -311,7 +311,7 @@ export default function ManifestoPage() {
                 NOSSOS VALORES
               </span>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter-apple text-l-text">
-                Os princ\u00edpios que guiam cada decis\u00e3o
+                Os princípios que guiam cada decisão
               </h2>
             </AnimatedSection>
 
@@ -373,10 +373,10 @@ export default function ManifestoPage() {
               </div>
 
             <h2 className="mx-auto max-w-2xl text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter-apple text-white mb-6 leading-[1.1]">
-              Pronto para transformar seus dados em consist\u00eancia?
+              Pronto para transformar seus dados em consistência?
             </h2>
             <p className="mx-auto max-w-lg text-base text-white/50 mb-10 leading-relaxed">
-              Junte-se a traders que est\u00e3o usando dados, processo e revis\u00e3o
+              Junte-se a traders que estão usando dados, processo e revisão
               para evoluir todos os dias.
             </p>
             <a
@@ -387,7 +387,7 @@ export default function ManifestoPage() {
                   "linear-gradient(135deg, hsl(217 70% 55%), hsl(250 60% 60%))",
               }}
             >
-              Junte-se a n\u00f3s
+              Junte-se a nós
               <ArrowRight className="h-4 w-4" />
             </a>
             </div>

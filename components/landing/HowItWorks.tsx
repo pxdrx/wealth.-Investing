@@ -21,7 +21,7 @@ export function HowItWorks() {
         <div className="grid gap-8 md:grid-cols-3">
           {STATS_SECTION.stats.map((stat, i) => (
             <AnimatedSection key={stat.label} delay={i * 0.1}>
-              <div className="landing-card landing-card-hover p-8">
+              <div className="landing-card landing-card-hover p-8 h-full">
                 <div className="flex items-start justify-between mb-4">
                   <span className="font-mono text-4xl md:text-5xl font-bold text-l-text">
                     <StatCounter value={stat.numericValue} suffix={stat.suffix} />
