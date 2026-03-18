@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase/client";
 export type Profile = {
   id: string;
   display_name: string | null;
+  dashboard_layout: import("@/components/dashboard/WidgetRenderer").DashboardLayout | null;
 };
 
 /** Converte erros de rede/Supabase em mensagem legível para o usuário. */
@@ -47,7 +48,7 @@ export async function getMyProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name")
+    .select("id, display_name, dashboard_layout")
     .eq("id", session.user.id)
     .maybeSingle();
 

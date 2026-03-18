@@ -17,8 +17,18 @@ import {
   AlertTriangle,
   Trash2,
   X,
+  ChevronUp,
+  ChevronDown,
+  RotateCcw,
+  LayoutDashboard,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  DEFAULT_LAYOUT,
+  WIDGET_LABELS,
+  mergeLayout,
+  type DashboardLayout,
+} from "@/components/dashboard/WidgetRenderer";
 
 export default function SettingsPage() {
   // ── Profile state ──
@@ -42,6 +52,11 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
+  // ── Dashboard layout ──
+  const [dashLayout, setDashLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT);
+  const [dashSaving, setDashSaving] = useState(false);
+  const [dashMsg, setDashMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   // ── Load profile + email ──
   useEffect(() => {
     let mounted = true;
@@ -51,7 +66,10 @@ export default function SettingsPage() {
         supabase.auth.getSession(),
       ]);
       if (!mounted) return;
-      if (profile) setDisplayName(profile.display_name ?? "");
+      if (profile) {
+        setDisplayName(profile.display_name ?? "");
+        setDashLayout(mergeLayout(profile.dashboard_layout));
+      }
       if (session?.user?.email) setEmail(session.user.email);
       setProfileLoading(false);
     }
@@ -122,6 +140,58 @@ export default function SettingsPage() {
       year: "numeric",
     });
   };
+
+  // ── Dashboard layout helpers ──
+  const toggleWidget = useCallback((id: string) => {
+    setDashLayout((prev) => ({
+      ...prev,
+      widgets: prev.widgets.map((w) =>
+        w.id === id ? { ...w, visible: !w.visible } : w
+      ),
+    }));
+  }, []);
+
+  const moveWidget = useCallback((id: string, direction: "up" | "down") => {
+    setDashLayout((prev) => {
+      const widgets = [...prev.widgets].sort((a, b) => a.order - b.order);
+      const idx = widgets.findIndex((w) => w.id === id);
+      if (idx === -1) return prev;
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= widgets.length) return prev;
+
+      const tempOrder = widgets[idx].order;
+      widgets[idx] = { ...widgets[idx], order: widgets[swapIdx].order };
+      widgets[swapIdx] = { ...widgets[swapIdx], order: tempOrder };
+
+      return { ...prev, widgets };
+    });
+  }, []);
+
+  const handleSaveDashLayout = useCallback(async () => {
+    setDashSaving(true);
+    setDashMsg(null);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ dashboard_layout: dashLayout as unknown as Record<string, unknown> })
+        .eq("id", session.user.id);
+      if (error) throw error;
+      setDashMsg({ type: "success", text: "Layout salvo com sucesso!" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao salvar layout";
+      setDashMsg({ type: "error", text: msg });
+    } finally {
+      setDashSaving(false);
+    }
+  }, [dashLayout]);
+
+  const resetDashLayout = useCallback(() => {
+    setDashLayout(DEFAULT_LAYOUT);
+  }, []);
 
   const cardStyle = { backgroundColor: "hsl(var(--card))" };
 
@@ -269,7 +339,99 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* ═══════════ 4. Danger Zone ═══════════ */}
+        {/* ═══════════ 4. Dashboard ═══════════ */}
+        <Card className="rounded-[22px] p-6" style={cardStyle}>
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+            Dashboard
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Escolha quais widgets exibir e a ordem de apresentação.
+          </p>
+
+          <div className="mt-4 space-y-2">
+            {[...dashLayout.widgets]
+              .sort((a, b) => a.order - b.order)
+              .map((w, idx, arr) => {
+                const label = WIDGET_LABELS[w.id];
+                if (!label) return null;
+                return (
+                  <div
+                    key={w.id}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/40"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={w.visible}
+                      onChange={() => toggleWidget(w.id)}
+                      className="h-4 w-4 rounded border-border accent-blue-600"
+                    />
+                    <span className="flex-1 text-sm font-medium text-foreground">
+                      {label.titlePtBr}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
+                      {label.tier}
+                    </span>
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => moveWidget(w.id, "up")}
+                        disabled={idx === 0}
+                        className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveWidget(w.id, "down")}
+                        disabled={idx === arr.length - 1}
+                        className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <Button
+              onClick={handleSaveDashLayout}
+              disabled={dashSaving}
+              className="rounded-full"
+            >
+              {dashSaving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Salvar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={resetDashLayout}
+              className="rounded-full"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Restaurar padrão
+            </Button>
+
+            {dashMsg && (
+              <span
+                className={
+                  dashMsg.type === "success"
+                    ? "text-sm text-green-600"
+                    : "text-sm text-red-500"
+                }
+              >
+                {dashMsg.text}
+              </span>
+            )}
+          </div>
+        </Card>
+
+        {/* ═══════════ 5. Danger Zone ═══════════ */}
         <Card
           className="rounded-[22px] border-red-500/30 p-6"
           style={cardStyle}
