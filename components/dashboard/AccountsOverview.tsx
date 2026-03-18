@@ -60,7 +60,7 @@ export function AccountsOverview({
   trades,
   propPayoutsTotal,
 }: AccountsOverviewProps) {
-  const { mask } = usePrivacy();
+  const { hidden } = usePrivacy();
 
   const propAccountMap = useMemo(() => {
     const map = new Map<string, (typeof propAccounts)[0]>();
@@ -197,17 +197,17 @@ export function AccountsOverview({
   const kpis = [
     {
       label: "Capital Total Funded",
-      value: formatCurrency(capitalFunded, mask),
+      value: formatCurrency(capitalFunded, hidden),
       color: undefined,
     },
     {
       label: "Total Sacado",
-      value: formatCurrency(propPayoutsTotal, mask),
+      value: formatCurrency(propPayoutsTotal, hidden),
       color: undefined,
     },
     {
       label: "P&L Mês",
-      value: mask ? "••••" : (pnlMes >= 0 ? "+" : "") + formatCurrency(pnlMes, false),
+      value: hidden ? "••••" : (pnlMes >= 0 ? "+" : "") + formatCurrency(pnlMes, false),
       color: pnlColor(pnlMes),
     },
     {
@@ -310,7 +310,7 @@ export function AccountsOverview({
                         className="px-4 py-3 text-right tabular-nums font-medium"
                         style={{ color: pnlColor(pnl) }}
                       >
-                        {mask
+                        {hidden
                           ? "••••"
                           : (pnl >= 0 ? "+" : "") +
                             new Intl.NumberFormat("pt-BR", {
