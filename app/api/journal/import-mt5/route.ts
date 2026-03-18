@@ -6,8 +6,23 @@ import { inferCategory } from "@/lib/trading/category";
 
 export const runtime = "nodejs";
 
+interface SkippedDetail {
+  line: number;
+  reason: string;
+  data: string;
+}
+
+interface DuplicateDetail {
+  symbol: string;
+  direction: string;
+  date: string;
+}
+
 export async function POST(request: Request) {
   const start = Date.now();
+  const url = new URL(request.url);
+  const isPreview = url.searchParams.get("preview") === "true";
+
   const auth = request.headers.get("Authorization");
   const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
   if (!token) {
@@ -44,6 +59,78 @@ export async function POST(request: Request) {
     }
     userId = user.id;
 
+    // Detect format from file extension
+    const fileName = (file.name ?? "").toLowerCase();
+    const isCsv = /\.csv$/i.test(fileName);
+    const isHtml = /\.html?$/i.test(fileName) || (file.type && file.type.toLowerCase().includes("html"));
+    const isXlsx = /\.xlsx?$/i.test(fileName);
+
+    if (!isCsv && !isHtml && !isXlsx) {
+      return NextResponse.json({ ok: false, error: "Formato não suportado" }, { status: 400 });
+    }
+
+    let parserChosen: string;
+    if (isCsv) {
+      parserChosen = "ctrader_csv";
+    } else if (isHtml) {
+      parserChosen = "html";
+    } else {
+      parserChosen = "xlsx";
+    }
+
+    // Parse file
+    const buffer = await file.arrayBuffer();
+
+    let trades: Array<{ external_id: string; symbol: string; direction: string; opened_at: string; closed_at: string; pnl_usd: number; fees_usd: number; lots?: number; category?: string }>;
+    let balanceOps: Array<{ type: string; amount_usd: number; at?: string | null; external_id?: string | null }>;
+
+    try {
+      if (isCsv) {
+        // cTrader CSV parser — will be implemented in a later task
+        try {
+          const { parseCtraderCsv } = await import("@/lib/ctrader-parser");
+          const result = parseCtraderCsv(buffer);
+          trades = result.trades;
+          balanceOps = result.balanceOps;
+        } catch (importErr) {
+          const msg = importErr instanceof Error ? importErr.message : String(importErr);
+          if (msg.includes("Cannot find module") || msg.includes("Module not found")) {
+            return NextResponse.json({ ok: false, error: "Parser cTrader CSV não disponível ainda" }, { status: 400 });
+          }
+          throw importErr;
+        }
+      } else {
+        const result = isHtml ? parseMt5Html(buffer) : parseMt5Xlsx(buffer);
+        trades = result.trades;
+        balanceOps = result.balanceOps;
+      }
+    } catch (parseErr) {
+      const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+      if (msg.startsWith("MT5 HTML parse failed")) {
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+      throw parseErr;
+    }
+
+    // ── PREVIEW MODE ──
+    if (isPreview) {
+      const sample = trades.slice(0, 5).map((t) => ({
+        symbol: t.symbol,
+        direction: t.direction,
+        lots: (t as { lots?: number }).lots ?? 0,
+        pnl: t.pnl_usd,
+        date: new Date(t.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      }));
+
+      return NextResponse.json({
+        ok: true,
+        preview: true,
+        trades_found: trades.length,
+        payouts: balanceOps.filter((op) => op.type === "WITHDRAWAL").length,
+        sample,
+      });
+    }
+
     const { data: accountRow } = await supabase
       .from("accounts")
       .select("id, kind, name")
@@ -64,25 +151,6 @@ export async function POST(request: Request) {
       .limit(1)
       .single();
     personalAccountId = (personalRow as { id: string } | null)?.id ?? null;
-
-    // Parse file BEFORE prop_accounts validation so we can use initial deposit for auto-heal
-    const buffer = await file.arrayBuffer();
-    const isHtml = /\.html?$/i.test(file.name ?? "") || (file.type && file.type.toLowerCase().includes("html"));
-    const parserChosen = isHtml ? "html" : "xlsx";
-
-    let trades: Array<{ external_id: string; symbol: string; direction: string; opened_at: string; closed_at: string; pnl_usd: number; fees_usd: number; category?: string }>;
-    let balanceOps: Array<{ type: string; amount_usd: number; at?: string | null; external_id?: string | null }>;
-    try {
-      const result = isHtml ? parseMt5Html(buffer) : parseMt5Xlsx(buffer);
-      trades = result.trades;
-      balanceOps = result.balanceOps;
-    } catch (parseErr) {
-      const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-      if (msg.startsWith("MT5 HTML parse failed")) {
-        return NextResponse.json({ error: msg }, { status: 400 });
-      }
-      throw parseErr;
-    }
 
     // Prop payouts use prop_accounts.id (prop_account_id), not accounts.id.
     // Auto-heals missing prop_accounts rows using data from the parsed report.
@@ -157,7 +225,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const sourceLabel = isHtml ? "mt5_html" : "mt5_xlsx";
+    const sourceLabel = isCsv ? "ctrader_csv" : isHtml ? "mt5_html" : "mt5_xlsx";
 
     let imported = 0;
     let duplicates = 0;
@@ -165,6 +233,8 @@ export async function POST(request: Request) {
     let skippedOld = 0;
     let payoutsDetected = 0;
     let payoutsWithoutWalletDeposit = 0;
+    const skippedDetails: SkippedDetail[] = [];
+    const duplicateDetails: DuplicateDetail[] = [];
 
     // Optimization: find the latest imported trade for this account to skip old trades
     const { data: latestTrade } = await supabase
@@ -187,7 +257,10 @@ export async function POST(request: Request) {
 
     // Idempotent import for new trades only
     // net_pnl_usd is generated by the DB — do not send it on insert.
-    for (const t of newTrades) {
+    for (let i = 0; i < newTrades.length; i++) {
+      const t = newTrades[i];
+      const lineNum = i + 1;
+
       const { data: existing } = await supabase
         .from("journal_trades")
         .select("id")
@@ -199,6 +272,11 @@ export async function POST(request: Request) {
 
       if (existing) {
         duplicates += 1;
+        duplicateDetails.push({
+          symbol: t.symbol,
+          direction: t.direction,
+          date: new Date(t.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        });
         continue;
       }
 
@@ -220,8 +298,15 @@ export async function POST(request: Request) {
       if (error) {
         if (error.code === "23505") {
           duplicates += 1;
+          duplicateDetails.push({
+            symbol: t.symbol,
+            direction: t.direction,
+            date: new Date(t.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          });
         } else {
           failed += 1;
+          const reason = error.message ?? "Insert error";
+          skippedDetails.push({ line: lineNum, reason, data: t.symbol });
           console.warn("[import-mt5] trade insert error:", error.message);
         }
       } else {
@@ -334,6 +419,8 @@ export async function POST(request: Request) {
       failed,
       payouts_detected: payoutsDetected,
       duration_ms: durationMs,
+      skipped_details: skippedDetails,
+      duplicate_details: duplicateDetails,
     });
   } catch (err) {
     const durationMs = Date.now() - start;
