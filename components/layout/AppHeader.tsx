@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Menu, X, LogOut, Settings, ChevronDown } from "lucide-react";
+import { Menu, X, LogOut, Settings, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
@@ -18,6 +19,7 @@ const navLinks = [
   { href: "/app/alerts", label: "Alerts" },
   { href: "/app/news", label: "News" },
   { href: "/app/journal", label: "Journal" },
+  { href: "/app/reports", label: "Relatórios" },
   { href: "/app/ai-coach", label: "AI Coach" },
   { href: "/app/pricing", label: "Planos" },
 ];
@@ -50,6 +52,7 @@ export function AppHeader() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { hidden: valuesHidden, toggle: toggleValues } = usePrivacy();
 
   useEffect(() => {
     async function load() {
@@ -129,6 +132,16 @@ export function AppHeader() {
               )}
             </div>
           )}
+          {hasSession && (
+            <button
+              type="button"
+              onClick={toggleValues}
+              className="rounded-full p-2 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title={valuesHidden ? "Mostrar valores" : "Ocultar valores"}
+            >
+              {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          )}
           <ThemeToggle />
         </div>
         <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 ml-auto"
@@ -157,7 +170,17 @@ export function AppHeader() {
               Sair
             </button>
           </nav>
-          <div className="flex items-center justify-end px-6 pb-4">
+          <div className="flex items-center justify-end gap-2 px-6 pb-4">
+            {hasSession && (
+              <button
+                type="button"
+                onClick={toggleValues}
+                className="rounded-full p-2 hover:bg-muted transition-colors text-muted-foreground"
+                title={valuesHidden ? "Mostrar valores" : "Ocultar valores"}
+              >
+                {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            )}
             <ThemeToggle />
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 interface PrivacyContextType {
   hidden: boolean;
@@ -15,12 +15,24 @@ const PrivacyContext = createContext<PrivacyContextType>({
 });
 
 const MASK = "••••";
+const STORAGE_KEY = "wealth-hide-values";
 
 export function PrivacyProvider({ children }: { children: React.ReactNode }) {
   const [hidden, setHidden] = useState(false);
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored === "true") setHidden(true);
+    } catch {}
+  }, []);
+
   const toggle = useCallback(() => {
-    setHidden((h) => !h);
+    setHidden((h) => {
+      const next = !h;
+      try { localStorage.setItem(STORAGE_KEY, String(next)); } catch {}
+      return next;
+    });
   }, []);
 
   const mask = useCallback(

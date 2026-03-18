@@ -13,6 +13,17 @@ export interface JournalTradeRow {
   context?: string | null;
   notes?: string | null;
   mistakes?: string[] | null;
+  // Psychology tags (Phase 3)
+  emotion?: string | null;
+  discipline?: string | null;
+  setup_quality?: string | null;
+  custom_tags?: string[] | null;
+  entry_rating?: number | null;
+  exit_rating?: number | null;
+  management_rating?: number | null;
+  // MFE/MAE (Phase 3)
+  mfe_usd?: number | null;
+  mae_usd?: number | null;
 }
 
 export function getNetPnl(row: JournalTradeRow): number {
