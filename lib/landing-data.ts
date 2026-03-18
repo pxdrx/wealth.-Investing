@@ -4,10 +4,10 @@
 
 /* ── Navigation ─────────────────────────────────────────────── */
 export const NAV_LINKS = [
-  { label: "Plataforma", href: "#plataforma" },
-  { label: "Recursos", href: "#registre" },
-  { label: "Para Mesas", href: "#mesas" },
-  { label: "Preços", href: "#precos" },
+  { label: "Plataforma", href: "#plataforma", modal: "plataforma" as const },
+  { label: "Recursos", href: "#registre", modal: "recursos" as const },
+  { label: "Para Mesas", href: "#mesas", modal: "mesas" as const },
+  { label: "Preços", href: "/#precos", modal: null },
 ] as const;
 
 /** Nav links shown when the user is authenticated */

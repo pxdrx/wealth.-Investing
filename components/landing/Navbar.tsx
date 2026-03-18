@@ -7,6 +7,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { NAV_LINKS, NAV_LINKS_AUTH } from "@/lib/landing-data";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
+import { NavModals, type NavModal } from "./NavModals";
 
 function UserAvatar({ name }: { name: string }) {
   const initials =
@@ -31,6 +32,7 @@ function UserAvatar({ name }: { name: string }) {
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navModal, setNavModal] = useState<NavModal>(null);
   // null = still loading (neutral state), true/false = resolved
   const [authState, setAuthState] = useState<boolean | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -83,15 +85,29 @@ export function Navbar() {
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-1">
-          {links.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              className="px-3.5 py-2 text-sm text-l-text-secondary hover:text-l-text transition-colors rounded-lg"
-            >
-              {link.label}
-            </a>
-          ))}
+          {links.map((link) => {
+            const modal = "modal" in link ? link.modal : null;
+            if (modal) {
+              return (
+                <button
+                  key={link.label}
+                  onClick={() => setNavModal(modal)}
+                  className="px-3.5 py-2 text-sm text-l-text-secondary hover:text-l-text transition-colors rounded-lg"
+                >
+                  {link.label}
+                </button>
+              );
+            }
+            return (
+              <a
+                key={link.label}
+                href={link.href}
+                className="px-3.5 py-2 text-sm text-l-text-secondary hover:text-l-text transition-colors rounded-lg"
+              >
+                {link.label}
+              </a>
+            );
+          })}
         </div>
 
         {/* Right side */}
@@ -176,16 +192,30 @@ export function Navbar() {
         }}
       >
         <div className="flex flex-col gap-1 p-4">
-          {links.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              className="px-3 py-2.5 text-sm text-l-text-secondary hover:text-l-text rounded-lg"
-              onClick={() => setMobileOpen(false)}
-            >
-              {link.label}
-            </a>
-          ))}
+          {links.map((link) => {
+            const modal = "modal" in link ? link.modal : null;
+            if (modal) {
+              return (
+                <button
+                  key={link.label}
+                  onClick={() => { setMobileOpen(false); setNavModal(modal); }}
+                  className="px-3 py-2.5 text-sm text-l-text-secondary hover:text-l-text rounded-lg text-left"
+                >
+                  {link.label}
+                </button>
+              );
+            }
+            return (
+              <a
+                key={link.label}
+                href={link.href}
+                className="px-3 py-2.5 text-sm text-l-text-secondary hover:text-l-text rounded-lg"
+                onClick={() => setMobileOpen(false)}
+              >
+                {link.label}
+              </a>
+            );
+          })}
           <hr
             className="my-2"
             style={{ borderColor: "hsl(var(--landing-border))" }}
@@ -235,6 +265,7 @@ export function Navbar() {
           )}
         </div>
       </div>
+      <NavModals open={navModal} onOpenChange={setNavModal} />
     </nav>
   );
 }
