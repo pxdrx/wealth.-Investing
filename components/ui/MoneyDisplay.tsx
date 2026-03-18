@@ -27,7 +27,8 @@ export function MoneyDisplay({
   const { hidden } = usePrivacy();
 
   if (hidden) {
-    return <span className={className}>$•••••</span>;
+    const prefix = currency === "BRL" ? "R$" : "$";
+    return <span className={className}>{prefix} •••••</span>;
   }
 
   const abs = Math.abs(value);
