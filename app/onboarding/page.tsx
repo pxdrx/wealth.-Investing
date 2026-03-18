@@ -13,10 +13,11 @@ import {
   Bitcoin,
   Layers,
   ArrowLeft,
-  ArrowRight,
-  FileSpreadsheet,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
+import { ImportDropZone } from "@/components/journal/ImportDropZone";
+import { ImportPreview } from "@/components/journal/ImportPreview";
 
 const easeApple = [0.16, 1, 0.3, 1] as const;
 const MIN_LENGTH = 2;
@@ -65,6 +66,17 @@ export default function OnboardingPage() {
 
   // Step 3
   const [selectedFirm, setSelectedFirm] = useState<string | null>(null);
+
+  // Step 4 — Import
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [previewData, setPreviewData] = useState<{
+    fileName: string;
+    totalTrades: number;
+    payouts: number;
+    trades: { symbol: string; direction: "buy" | "sell"; lots: number; pnl: number; date: string }[];
+  } | null>(null);
+  const [importState, setImportState] = useState<"idle" | "previewing" | "importing" | "success" | "error">("idle");
+  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     async function gate() {
@@ -126,6 +138,84 @@ export default function OnboardingPage() {
 
   function handleFinish() {
     window.location.href = "/app";
+  }
+
+  async function handleFileSelected(file: File) {
+    setImportFile(file);
+    setImportError(null);
+    setImportState("previewing");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { window.location.href = "/login"; return; }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/journal/import-mt5?preview=true", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error ?? "Falha ao processar arquivo");
+
+      setPreviewData({
+        fileName: file.name,
+        totalTrades: json.trades_found,
+        payouts: json.payouts,
+        trades: json.sample,
+      });
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Erro ao processar arquivo");
+      setImportState("error");
+      setImportFile(null);
+    }
+  }
+
+  async function handleImportConfirm() {
+    if (!importFile) return;
+    setImportState("importing");
+    setImportError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { window.location.href = "/login"; return; }
+
+      // Fetch first account
+      const { data: accounts } = await supabase
+        .from("accounts")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: true })
+        .limit(1);
+
+      const accountId = accounts?.[0]?.id;
+      if (!accountId) throw new Error("Nenhuma conta encontrada. Tente novamente.");
+
+      const formData = new FormData();
+      formData.append("file", importFile);
+      formData.append("accountId", accountId);
+
+      const res = await fetch("/api/journal/import-mt5", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error ?? "Falha ao importar");
+
+      setImportState("success");
+      setTimeout(() => { window.location.href = "/app?imported=true"; }, 1500);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Erro ao importar");
+      setImportState("error");
+    }
+  }
+
+  function handleImportCancel() {
+    setImportFile(null);
+    setPreviewData(null);
+    setImportState("idle");
+    setImportError(null);
   }
 
   const isNameValid = displayName.trim().length >= MIN_LENGTH;
@@ -404,28 +494,66 @@ export default function OnboardingPage() {
                   Importe seu primeiro<br />relatório MT5
                 </h1>
 
-                <div className="flex flex-col items-center justify-center rounded-[16px] border border-dashed border-border p-8 mb-6">
-                  <FileSpreadsheet size={40} className="text-muted-foreground/50 mb-3" />
-                  <p className="text-sm text-muted-foreground text-center mb-1">
-                    Arraste um arquivo XLSX ou HTML
-                  </p>
-                  <p className="text-xs text-muted-foreground/60 text-center">
-                    Disponível em breve no dashboard
-                  </p>
-                </div>
+                {/* Success state */}
+                {importState === "success" && (
+                  <div className="flex flex-col items-center justify-center py-6 mb-6 gap-3">
+                    <CheckCircle2 size={40} className="text-green-500" />
+                    <p className="text-sm font-semibold text-foreground">Importado com sucesso!</p>
+                    <p className="text-xs text-muted-foreground">Redirecionando para o dashboard...</p>
+                  </div>
+                )}
+
+                {/* Error state */}
+                {importState === "error" && importError && (
+                  <div className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {importError}
+                  </div>
+                )}
+
+                {/* Preview state */}
+                {previewData && importState !== "success" && (
+                  <div className="mb-4">
+                    <ImportPreview
+                      fileName={previewData.fileName}
+                      totalTrades={previewData.totalTrades}
+                      payouts={previewData.payouts}
+                      trades={previewData.trades}
+                      compact
+                      onConfirm={handleImportConfirm}
+                      onCancel={handleImportCancel}
+                      loading={importState === "importing"}
+                    />
+                  </div>
+                )}
+
+                {/* Drop zone — shown when no preview/success */}
+                {!previewData && importState !== "success" && (
+                  <div className="mb-4">
+                    <ImportDropZone
+                      onFileSelected={handleFileSelected}
+                      compact
+                      disabled={importState === "previewing"}
+                    />
+                    {importState === "previewing" && (
+                      <p className="mt-2 text-center text-xs text-muted-foreground">Processando arquivo...</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={goBack}
-                    className="flex items-center justify-center gap-1.5 rounded-[14px] border border-border px-4 py-3.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all duration-200 cursor-pointer"
+                    disabled={importState === "importing" || importState === "success"}
+                    className="flex items-center justify-center gap-1.5 rounded-[14px] border border-border px-4 py-3.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <ArrowLeft size={16} />
                   </button>
                   <button
                     type="button"
                     onClick={handleFinish}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-[14px] py-3.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 cursor-pointer transition-all duration-200"
+                    disabled={importState === "importing" || importState === "success"}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-[14px] py-3.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 cursor-pointer transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Sparkles size={16} />
                     Explorar primeiro
