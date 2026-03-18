@@ -32,6 +32,8 @@ export function aggregateByDay(
         losses: 0,
         bestTrade: -Infinity,
         worstTrade: Infinity,
+        totalWinAmount: 0,
+        totalLossAmount: 0,
       };
       if (accounts) {
         day.byAccount = {};
@@ -41,8 +43,8 @@ export function aggregateByDay(
 
     day.totalPnl += pnl;
     day.tradeCount += 1;
-    if (pnl > 0) day.wins += 1;
-    if (pnl < 0) day.losses += 1;
+    if (pnl > 0) { day.wins += 1; day.totalWinAmount += pnl; }
+    if (pnl < 0) { day.losses += 1; day.totalLossAmount += Math.abs(pnl); }
     if (pnl > day.bestTrade) day.bestTrade = pnl;
     if (pnl < day.worstTrade) day.worstTrade = pnl;
 

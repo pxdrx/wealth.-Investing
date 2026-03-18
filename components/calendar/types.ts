@@ -6,6 +6,8 @@ export interface DayData {
   losses: number;
   bestTrade: number;
   worstTrade: number;
+  totalWinAmount: number;
+  totalLossAmount: number;
   byAccount?: Record<
     string,
     { accountName: string; pnl: number; trades: number }

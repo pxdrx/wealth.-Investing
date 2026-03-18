@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { DayData, DayNote } from "./types";
 import { formatPnl } from "./utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
@@ -31,10 +31,15 @@ export function DayDetailPanel({
     "consolidated"
   );
 
-  const winRate =
-    dayData && dayData.tradeCount > 0
-      ? Math.round((dayData.wins / dayData.tradeCount) * 100)
-      : 0;
+  const avgRR = useMemo(() => {
+    if (!dayData || dayData.wins === 0 || dayData.losses === 0) {
+      if (dayData && dayData.wins > 0 && dayData.losses === 0) return Infinity;
+      return 0;
+    }
+    const avgWin = dayData.totalWinAmount / dayData.wins;
+    const avgLoss = dayData.totalLossAmount / dayData.losses;
+    return avgLoss > 0 ? avgWin / avgLoss : 0;
+  }, [dayData]);
 
   const pnlColor = (value: number) =>
     value > 0
@@ -85,8 +90,8 @@ export function DayDetailPanel({
             color: "hsl(var(--landing-text))",
           },
           {
-            label: "Win Rate",
-            value: `${winRate}%`,
+            label: "RR Médio",
+            value: avgRR === Infinity ? "∞" : avgRR > 0 ? avgRR.toFixed(2) : "0",
             color: "hsl(var(--landing-text))",
           },
           {

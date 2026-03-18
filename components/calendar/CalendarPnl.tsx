@@ -34,6 +34,9 @@ export function CalendarPnl({
     let totalPnl = 0;
     let totalTrades = 0;
     let totalWins = 0;
+    let totalWinAmount = 0;
+    let totalLossAmount = 0;
+    let totalLosses = 0;
     let daysOperated = 0;
 
     dailyData.forEach((day: DayData) => {
@@ -41,12 +44,17 @@ export function CalendarPnl({
         totalPnl += day.totalPnl;
         totalTrades += day.tradeCount;
         totalWins += day.wins;
+        totalLosses += day.losses;
+        totalWinAmount += day.totalWinAmount;
+        totalLossAmount += day.totalLossAmount;
         daysOperated += 1;
       }
     });
 
-    const winRate = totalTrades > 0 ? Math.round((totalWins / totalTrades) * 100) : 0;
-    return { totalPnl, totalTrades, winRate, daysOperated };
+    const avgWin = totalWins > 0 ? totalWinAmount / totalWins : 0;
+    const avgLoss = totalLosses > 0 ? totalLossAmount / totalLosses : 0;
+    const avgRR = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? Infinity : 0);
+    return { totalPnl, totalTrades, avgRR, daysOperated };
   }, [dailyData, displayYear, displayMonth]);
 
   const handlePrevMonth = () => {
@@ -89,8 +97,8 @@ export function CalendarPnl({
       color: pnlColor(monthStats.totalPnl),
     },
     {
-      label: "WIN RATE",
-      value: `${monthStats.winRate}%`,
+      label: "RR MÉDIO",
+      value: monthStats.avgRR === Infinity ? "∞" : monthStats.avgRR > 0 ? monthStats.avgRR.toFixed(2) : "0",
       color: "hsl(var(--landing-text))",
     },
     {
