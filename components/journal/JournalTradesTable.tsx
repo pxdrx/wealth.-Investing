@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { ListFilter, TrendingUp } from "lucide-react";
+import { getEmotionTag, getDisciplineTag } from "@/lib/psychology-tags";
 
 const PAGE_SIZE = 15;
 
@@ -165,6 +166,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 <TableHead className="text-right hidden lg:table-cell">Fees</TableHead>
                 <TableHead className="text-right">Net PnL</TableHead>
                 <TableHead>Resultado</TableHead>
+                <TableHead className="hidden xl:table-cell">Tags</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -214,6 +216,26 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                       <Badge variant={isWin ? "success" : "destructive"}>
                         {isWin ? "Win" : "Loss"}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {t.emotion && (() => {
+                          const tag = getEmotionTag(t.emotion);
+                          return tag ? (
+                            <span className="inline-flex items-center gap-0.5 rounded-full border border-border/40 px-1.5 py-0.5 text-[10px]" title={tag.labelPtBr}>
+                              {tag.icon}
+                            </span>
+                          ) : null;
+                        })()}
+                        {t.discipline && (() => {
+                          const tag = getDisciplineTag(t.discipline);
+                          return tag ? (
+                            <span className="inline-flex items-center gap-0.5 rounded-full border border-border/40 px-1.5 py-0.5 text-[10px]" title={tag.labelPtBr}>
+                              {tag.icon}
+                            </span>
+                          ) : null;
+                        })()}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

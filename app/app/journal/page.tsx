@@ -17,6 +17,8 @@ import { ImportPreview } from "@/components/journal/ImportPreview";
 import { ImportResult } from "@/components/journal/ImportResult";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
 import type { JournalTradeRow, PeriodFilter } from "@/components/journal/types";
+import { computeTiltmeter } from "@/lib/psychology-tags";
+import { TiltmeterGauge } from "@/components/dashboard/TiltmeterGauge";
 
 type ImportFlowState = "idle" | "previewing" | "importing" | "done";
 
@@ -100,7 +102,7 @@ export default function JournalPage() {
     try {
       const { data, error: err } = await supabase
         .from("journal_trades")
-        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, notes, mistakes")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, notes, mistakes, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
         .eq("account_id", activeAccountId)
         .order("opened_at", { ascending: true });
       if (err) { setTradesError(err.message); setTrades([]); }
@@ -306,9 +308,14 @@ export default function JournalPage() {
     <div className="mx-auto max-w-6xl px-6 py-10">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Journal</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Registro de operações e análise de performance.</p>
+        <div className="flex items-start gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Journal</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Registro de operações e análise de performance.</p>
+          </div>
+          {trades.length > 0 && (
+            <TiltmeterGauge result={computeTiltmeter(trades)} size="sm" />
+          )}
         </div>
         <AccountSelectorInline showAddButton />
       </div>
