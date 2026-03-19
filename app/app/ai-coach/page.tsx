@@ -11,6 +11,7 @@ import { ChatInput } from "@/components/ai/ChatInput";
 import { supabase } from "@/lib/supabase/client";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import { formatPsychologyProfile } from "@/lib/ai-prompts";
+import { PaywallGate } from "@/components/billing/PaywallGate";
 import type { JournalTradeRow } from "@/components/journal/types";
 
 interface Message {
@@ -273,6 +274,7 @@ export default function AICoachPage() {
           )}
         </div>
 
+        <PaywallGate requiredPlan="pro" blurContent>
         {/* ── Data sources strip ── */}
         <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border/30">
           <span className="text-[9px] uppercase tracking-wider text-muted-foreground shrink-0 font-medium">
@@ -454,6 +456,7 @@ export default function AICoachPage() {
             </div>
           )}
         </div>
+        </PaywallGate>
       </div>
     </main>
   );
