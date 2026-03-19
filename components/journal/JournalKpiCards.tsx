@@ -11,6 +11,7 @@ interface JournalKpiCardsProps {
   trades: JournalTradeRow[];
   period: PeriodFilter;
   onPeriodChange: (p: PeriodFilter) => void;
+  startingBalanceUsd?: number | null;
 }
 
 const PERIODS: { value: PeriodFilter; label: string }[] = [
@@ -20,8 +21,16 @@ const PERIODS: { value: PeriodFilter; label: string }[] = [
   { value: "all", label: "Tudo" },
 ];
 
-export function JournalKpiCards({ trades, period, onPeriodChange }: JournalKpiCardsProps) {
+export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanceUsd }: JournalKpiCardsProps) {
   const filtered = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
+  const baseBalance = startingBalanceUsd ?? 0;
+
+  // Total PnL from ALL trades (for current balance calculation)
+  const allTimePnl = useMemo(
+    () => trades.reduce((sum, t) => sum + getNetPnl(t), 0),
+    [trades]
+  );
+  const currentBalance = baseBalance + allTimePnl;
 
   const kpis = useMemo(() => {
     // Win/Loss por net_pnl_usd: Win = net_pnl_usd > 0, Loss = net_pnl_usd <= 0
@@ -71,7 +80,15 @@ export function JournalKpiCards({ trades, period, onPeriodChange }: JournalKpiCa
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
+          {baseBalance > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Saldo da Conta</p>
+              <p className={cn("kpi-value text-lg", currentBalance >= baseBalance ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
+                {currentBalance.toFixed(2)} USD
+              </p>
+            </div>
+          )}
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">PnL Total</p>
             <p className={cn("kpi-value text-lg", kpis.pnlTotal >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>

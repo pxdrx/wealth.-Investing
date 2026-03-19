@@ -7,10 +7,13 @@ import { formatPnl } from "@/components/calendar/utils";
 
 interface EquityCurveMiniProps {
   trades: { net_pnl_usd: number | null; opened_at: string | null }[];
+  startingBalanceUsd?: number | null;
 }
 
-export function EquityCurveMini({ trades }: EquityCurveMiniProps) {
+export function EquityCurveMini({ trades, startingBalanceUsd }: EquityCurveMiniProps) {
   const { hidden, mask } = usePrivacy();
+
+  const baseBalance = startingBalanceUsd ?? 0;
 
   const equityData = useMemo(() => {
     const valid = trades
@@ -27,16 +30,16 @@ export function EquityCurveMini({ trades }: EquityCurveMiniProps) {
     }
 
     const days = Array.from(byDay.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    let cumulative = 0;
+    let cumulative = baseBalance;
     return days.map(([date, pnl]) => {
       cumulative += pnl;
       return { date, value: cumulative };
     });
-  }, [trades]);
+  }, [trades, baseBalance]);
 
-  const startVal = equityData.length > 0 ? equityData[0].value : 0;
-  const endVal = equityData.length > 0 ? equityData[equityData.length - 1].value : 0;
-  const isPositive = endVal >= 0;
+  const startVal = equityData.length > 0 ? equityData[0].value : baseBalance;
+  const endVal = equityData.length > 0 ? equityData[equityData.length - 1].value : baseBalance;
+  const isPositive = endVal >= baseBalance;
 
   const strokeColor = isPositive ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))";
 
@@ -85,7 +88,7 @@ export function EquityCurveMini({ trades }: EquityCurveMiniProps) {
                   padding: "6px 10px",
                 }}
                 labelStyle={{ color: "hsl(var(--muted-foreground))", fontSize: "10px" }}
-                formatter={(value: number) => [hidden ? "••••" : formatPnl(value), "P&L"]}
+                formatter={(value: number) => [hidden ? "••••" : formatPnl(value), "Saldo"]}
               />
               <Line
                 type="monotone"

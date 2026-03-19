@@ -584,6 +584,7 @@ function DashboardContent({
             formattedNews,
             newsLoading,
             newsError,
+            activeAccountId,
           })}
         />
       </div>
@@ -604,6 +605,7 @@ interface WidgetRegistryInput {
   formattedNews: NewsItemWithLabel[];
   newsLoading: boolean;
   newsError: string | null;
+  activeAccountId: string | null;
 }
 
 function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.ReactNode> {
@@ -616,10 +618,17 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     formattedNews,
     newsLoading,
     newsError,
+    activeAccountId,
   } = input;
 
   const accountsList = Array.from(accountsById.values());
   const accountsSimple = accountsList.map((a) => ({ id: a.id, name: a.name }));
+
+  // Find starting balance for active account (prop accounts only)
+  const activeProp = activeAccountId
+    ? propAccounts.find((p) => p.account_id === activeAccountId)
+    : null;
+  const activeStartingBalance = activeProp?.starting_balance_usd ?? null;
 
   return {
     // ── Calendar ──
@@ -675,7 +684,7 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     "macro-events": <MacroWidgetEvents />,
 
     // ── Equity Curve Mini ──
-    "equity-mini": <EquityCurveMini trades={journalTrades} />,
+    "equity-mini": <EquityCurveMini trades={journalTrades} startingBalanceUsd={activeStartingBalance} />,
 
     // ── Session Heatmap ──
     "session-heatmap": <SessionHeatmap trades={journalTrades} />,

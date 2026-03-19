@@ -479,7 +479,7 @@ export default function JournalPage() {
           >
             {activeTab === SECTION_OVERVIEW && (
               <div className="space-y-6">
-                <JournalKpiCards trades={trades} period={period} onPeriodChange={setPeriod} />
+                <JournalKpiCards trades={trades} period={period} onPeriodChange={setPeriod} startingBalanceUsd={startingBalanceUsd} />
                 <JournalEquityChart trades={trades} period={period} startingBalanceUsd={startingBalanceUsd} maxOverallLossPercent={maxOverallLossPercent} profitTargetPercent={profitTargetPercent} />
                 <CalendarPnl
                   trades={trades as unknown as TradeRow[]}
