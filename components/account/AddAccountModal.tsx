@@ -168,18 +168,36 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
     setStep("details");
   };
 
+  // Wraps onRefreshAccounts with a 5s timeout to prevent deadlock from getSession()
+  const safeRefresh = () => {
+    if (!onRefreshAccounts) return;
+    const timeout = new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error("refresh timeout")), 5000)
+    );
+    Promise.race([onRefreshAccounts(), timeout]).catch((err) => {
+      console.warn("[AddAccountModal] refresh timed out or failed:", err);
+    });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
 
-    // Safety timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
+    // Hard safety timeout — guarantees loading state is cleared
+    const safetyTimer = setTimeout(() => {
+      console.warn("[AddAccountModal] safety timeout triggered");
       setSaving(false);
-      setError("Tempo esgotado. Tente novamente.");
-    }, 15000);
+    }, 10000);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // getSession with its own timeout to prevent deadlock
+      const sessionResult = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("getSession timeout")), 5000)
+        ),
+      ]);
+      const session = sessionResult.data?.session;
       if (!session?.user?.id) throw new Error("Sessão inválida");
 
       const finalBalance = customBalance ? Number(customBalance) : balance;
@@ -251,19 +269,22 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
         }
       }
 
+      // Success — update UI immediately, refresh in background
       setCreatedAccountId(accountId);
       setSuggestedName(name);
       setEditableName(name);
+      setSaving(false);
+      clearTimeout(safetyTimer);
       onAccountCreated?.(accountId);
-      // Fire-and-forget: don't await — getSession() inside can deadlock
-      onRefreshAccounts?.().catch(() => {});
       setStep("done");
+
+      // Fire-and-forget with timeout protection — never blocks UI
+      safeRefresh();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao criar conta";
       console.error("[AddAccountModal] handleSave error:", msg);
       setError(msg);
-    } finally {
-      clearTimeout(timeout);
+      clearTimeout(safetyTimer);
       setSaving(false);
     }
   };
@@ -604,8 +625,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                     .update({ name: editableName.trim() })
                     .eq("id", createdAccountId);
                   if (updateError) throw updateError;
-                  // Fire-and-forget: don't await — getSession() inside can deadlock
-                  onRefreshAccounts?.().catch(() => {});
+                  // Fire-and-forget with timeout — getSession() inside can deadlock
+                  safeRefresh();
                   handleClose(false);
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Erro ao renomear");

@@ -32,7 +32,7 @@ const DEFAULTS = [
     },
   },
   { name: "Pessoal", kind: "personal" as const, is_active: true },
-  { name: "Cripto", kind: "crypto" as const, is_active: true },
+  { name: "Crypto Fund Trader", kind: "crypto" as const, is_active: true },
 ];
 
 export const DEFAULT_ACCOUNTS = DEFAULTS;
