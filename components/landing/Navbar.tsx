@@ -73,15 +73,15 @@ export function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click (mousedown to avoid race with toggle click)
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handleMouseDown(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
       }
     }
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, []);
 
   const isLoggedIn = authState === true;
@@ -164,9 +164,10 @@ export function Navbar() {
           {/* Logged in: User pill with dropdown + Dashboard CTA */}
           {!isLoading && isLoggedIn && (
             <>
-              <div className="hidden md:block relative" ref={menuRef}>
+              <div className="hidden md:block relative z-[60]" ref={menuRef}>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
                   onClick={() => setUserMenuOpen((v) => !v)}
                   className="inline-flex items-center gap-2 rounded-full border pl-1.5 pr-3 py-1 transition-colors hover:bg-[hsl(var(--landing-accent)/0.06)]"
                   style={{ borderColor: "hsl(var(--landing-border))" }}
