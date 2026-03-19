@@ -3,6 +3,7 @@ import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { parseMt5Xlsx } from "@/lib/mt5-parser";
 import { parseMt5Html } from "@/lib/mt5-html-parser";
 import { inferCategory } from "@/lib/trading/category";
+import { validateAccountOwnership } from "@/lib/account-validation";
 
 export const runtime = "nodejs";
 
@@ -58,6 +59,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
     userId = user.id;
+
+    // Early ownership check — validate before expensive file parsing
+    const ownedAccount = await validateAccountOwnership(supabase, accountId, userId);
+    if (!ownedAccount) {
+      return NextResponse.json({ error: "Account not found" }, { status: 403 });
+    }
 
     // Detect format from file extension
     const fileName = (file.name ?? "").toLowerCase();
@@ -139,17 +146,9 @@ export async function POST(request: Request) {
       });
     }
 
-    const { data: accountRow } = await supabase
-      .from("accounts")
-      .select("id, kind, name")
-      .eq("id", accountId)
-      .eq("user_id", userId)
-      .single();
-    if (!accountRow) {
-      return NextResponse.json({ error: "Account not found" }, { status: 404 });
-    }
-    const accountName: string = (accountRow as { name?: string }).name ?? "";
-    isPropAccount = (accountRow as { kind: string }).kind === "prop";
+    // Account already validated in early ownership check above
+    const accountName: string = ownedAccount.name ?? "";
+    isPropAccount = ownedAccount.kind === "prop";
 
     const { data: personalRow } = await supabase
       .from("accounts")

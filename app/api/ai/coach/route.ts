@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { validateAccountOwnership } from "@/lib/account-validation";
 import { getTierLimits } from "@/lib/subscription-shared";
 import type { Plan } from "@/lib/subscription-shared";
 import { getPersonalTradeStats } from "@/lib/ai-stats";
@@ -98,6 +99,12 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
 
+  // 3b. Validate account ownership before any data access or quota increment
+  const ownedAccount = await validateAccountOwnership(supabase, body.account_id, userId);
+  if (!ownedAccount) {
+    return Response.json({ ok: false, error: "Account not found" }, { status: 403 });
+  }
+
   // 4. Check tier quota
   const { data: sub } = await supabase
     .from("subscriptions")
@@ -151,15 +158,8 @@ export async function POST(req: NextRequest) {
   }
 
   // 6. Fetch data sources in parallel
-  // Get account name for context
-  const { data: account } = await supabase
-    .from("accounts")
-    .select("name")
-    .eq("id", body.account_id)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const accountName = (account as { name?: string } | null)?.name ?? "Conta";
+  // Account name already validated in step 3b
+  const accountName = ownedAccount.name ?? "Conta";
 
   let personalStats: Awaited<ReturnType<typeof getPersonalTradeStats>>;
   let communitySentiment: Awaited<ReturnType<typeof getCommunityIntelligence>>;

@@ -62,6 +62,7 @@ export async function ensureDefaultAccounts(userId: string): Promise<{ ok: boole
     const { data: propRows } = await supabase
       .from("prop_accounts")
       .select("account_id")
+      .eq("user_id", userId)
       .in("account_id", Array.from(propAccountIds));
     propIdsWithRow = (propRows ?? []).map((r: { account_id: string }) => r.account_id);
   }
