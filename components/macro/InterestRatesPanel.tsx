@@ -2,12 +2,17 @@
 "use client";
 
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { COUNTRY_FLAGS } from "@/lib/macro/constants";
 import type { CentralBankRate } from "@/lib/macro/types";
 
 interface InterestRatesPanelProps {
   rates: CentralBankRate[];
 }
+
+const FLAG_CODES: Record<string, string> = {
+  US: "us", EU: "eu", GB: "gb", JP: "jp", BR: "br",
+  CA: "ca", AU: "au", NZ: "nz", CH: "ch", MX: "mx",
+  CN: "cn", DE: "de", FR: "fr", IT: "it", ES: "es",
+};
 
 const ACTION_CONFIG = {
   hike: { icon: TrendingUp, color: "text-red-500", label: "Alta" },
@@ -16,14 +21,20 @@ const ACTION_CONFIG = {
 } as const;
 
 export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
-  if (!rates.length) return null;
+  if (!rates.length) {
+    return (
+      <p className="py-4 text-center text-sm text-muted-foreground">
+        Taxas de juros ainda não disponíveis.
+      </p>
+    );
+  }
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
       {rates.map((rate) => {
         const action = rate.last_action ? ACTION_CONFIG[rate.last_action] : null;
         const ActionIcon = action?.icon || Minus;
-        const flag = COUNTRY_FLAGS[rate.country] || rate.country;
+        const flagCode = FLAG_CODES[rate.country];
 
         return (
           <div
@@ -32,7 +43,17 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
             style={{ backgroundColor: "hsl(var(--card))" }}
           >
             <div className="mb-1 flex items-center gap-1.5">
-              <span className="text-sm">{flag}</span>
+              {flagCode ? (
+                <img
+                  src={`https://flagcdn.com/20x15/${flagCode}.png`}
+                  alt={rate.country}
+                  width={20}
+                  height={15}
+                  className="rounded-[2px]"
+                />
+              ) : (
+                <span className="text-xs">{rate.country}</span>
+              )}
               <span className="text-xs font-semibold">{rate.bank_code}</span>
             </div>
             <div className="text-xl font-bold tracking-tight">
