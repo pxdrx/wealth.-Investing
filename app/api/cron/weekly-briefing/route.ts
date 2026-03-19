@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await supabase
       .from("weekly_panoramas")
       .select("id, is_frozen")
-      .eq("week_start", weekStart)
+      .filter("week_start", "eq", weekStart)
       .maybeSingle();
 
     if (existing?.is_frozen) {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const { data: events } = await supabase
       .from("economic_events")
       .select("*")
-      .eq("week_start", weekStart)
+      .filter("week_start", "eq", weekStart)
       .order("date", { ascending: true })
       .order("time", { ascending: true });
 

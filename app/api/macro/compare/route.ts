@@ -22,10 +22,10 @@ export async function GET(req: NextRequest) {
 
   const supabase = getSupabase();
   const [panoramaA, panoramaB, eventsA, eventsB] = await Promise.all([
-    supabase.from("weekly_panoramas").select("*").eq("week_start", weekA).maybeSingle(),
-    supabase.from("weekly_panoramas").select("*").eq("week_start", weekB).maybeSingle(),
-    supabase.from("economic_events").select("*").eq("week_start", weekA).order("date"),
-    supabase.from("economic_events").select("*").eq("week_start", weekB).order("date"),
+    supabase.from("weekly_panoramas").select("*").filter("week_start", "eq", weekA).limit(1).then(r => ({ ...r, data: r.data?.[0] || null })),
+    supabase.from("weekly_panoramas").select("*").filter("week_start", "eq", weekB).limit(1).then(r => ({ ...r, data: r.data?.[0] || null })),
+    supabase.from("economic_events").select("*").filter("week_start", "eq", weekA).order("date"),
+    supabase.from("economic_events").select("*").filter("week_start", "eq", weekB).order("date"),
   ]);
 
   return NextResponse.json({

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabase
     .from("economic_events")
     .select("*")
-    .eq("week_start", weekStart)
+    .filter("week_start", "eq", weekStart)
     .order("date", { ascending: true })
     .order("time", { ascending: true });
 

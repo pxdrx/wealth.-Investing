@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await getSupabase()
     .from("adaptive_alerts")
     .select("*")
-    .eq("week_start", weekStart)
+    .filter("week_start", "eq", weekStart)
     .order("created_at", { ascending: false });
 
   if (error) {

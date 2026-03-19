@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const { data: panorama } = await supabase
       .from("weekly_panoramas")
       .select("*")
-      .eq("week_start", weekStart)
+      .filter("week_start", "eq", weekStart)
       .maybeSingle();
 
     if (!panorama || panorama.is_frozen) {
