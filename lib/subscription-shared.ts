@@ -1,4 +1,4 @@
-export type Plan = "free" | "pro" | "elite";
+export type Plan = "free" | "pro" | "ultra";
 export type SubStatus = "active" | "canceled" | "past_due" | "trialing" | "incomplete";
 
 export interface TierLimits {
@@ -12,6 +12,7 @@ export interface TierLimits {
   hasAccountComparison: boolean;
   hasCustomAlerts: boolean;
   hasPrioritySupport: boolean;
+  hasMacroIntelligence: boolean;
 }
 
 const TIER_LIMITS: Record<Plan, TierLimits> = {
@@ -26,6 +27,7 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasAccountComparison: false,
     hasCustomAlerts: false,
     hasPrioritySupport: false,
+    hasMacroIntelligence: false,
   },
   pro: {
     maxTrades: null,
@@ -38,8 +40,9 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasAccountComparison: false,
     hasCustomAlerts: false,
     hasPrioritySupport: false,
+    hasMacroIntelligence: true,
   },
-  elite: {
+  ultra: {
     maxTrades: null,
     maxAccounts: null,
     aiCoachMonthly: 150,
@@ -50,6 +53,7 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasAccountComparison: true,
     hasCustomAlerts: true,
     hasPrioritySupport: true,
+    hasMacroIntelligence: true,
   },
 };
 
@@ -58,9 +62,9 @@ export function getTierLimits(plan: Plan): TierLimits {
 }
 
 export function isProOrAbove(plan: Plan): boolean {
-  return plan === "pro" || plan === "elite";
+  return plan === "pro" || plan === "ultra";
 }
 
-export function isElite(plan: Plan): boolean {
-  return plan === "elite";
+export function isUltra(plan: Plan): boolean {
+  return plan === "ultra";
 }

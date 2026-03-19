@@ -1,0 +1,55 @@
+// lib/macro/constants.ts
+
+export const CENTRAL_BANKS = [
+  { code: "FED",     name: "Federal Reserve",           country: "US", currency: "USD" },
+  { code: "ECB",     name: "European Central Bank",     country: "EU", currency: "EUR" },
+  { code: "BOE",     name: "Bank of England",           country: "GB", currency: "GBP" },
+  { code: "BOJ",     name: "Bank of Japan",             country: "JP", currency: "JPY" },
+  { code: "BCB",     name: "Banco Central do Brasil",   country: "BR", currency: "BRL" },
+  { code: "BOC",     name: "Bank of Canada",            country: "CA", currency: "CAD" },
+  { code: "RBA",     name: "Reserve Bank of Australia", country: "AU", currency: "AUD" },
+  { code: "PBOC",    name: "People's Bank of China",    country: "CN", currency: "CNY" },
+  { code: "SNB",     name: "Swiss National Bank",       country: "CH", currency: "CHF" },
+  { code: "BANXICO", name: "Banco de México",           country: "MX", currency: "MXN" },
+] as const;
+
+export const TRACKED_MARKETS = {
+  forex: ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "NZD/USD", "USD/BRL", "USD/CAD", "USD/CHF"],
+  indices: ["S&P 500", "Nasdaq", "DJI"],
+  commodities: ["XAUUSD", "XAGUSD", "USOIL"],
+  crypto: ["BTC/USD", "ETH/USD"],
+} as const;
+
+export const FAIRECONOMY_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
+
+export const IMPACT_COLORS = {
+  high: { bg: "bg-red-500/10", text: "text-red-500", dot: "bg-red-500" },
+  medium: { bg: "bg-orange-500/10", text: "text-orange-500", dot: "bg-orange-500" },
+  low: { bg: "bg-yellow-500/10", text: "text-yellow-500", dot: "bg-yellow-500" },
+} as const;
+
+export const COUNTRY_FLAGS: Record<string, string> = {
+  US: "🇺🇸", EU: "🇪🇺", GB: "🇬🇧", JP: "🇯🇵", BR: "🇧🇷",
+  CA: "🇨🇦", AU: "🇦🇺", NZ: "🇳🇿", CH: "🇨🇭", MX: "🇲🇽",
+  CN: "🇨🇳", DE: "🇩🇪", FR: "🇫🇷", IT: "🇮🇹", ES: "🇪🇸",
+};
+
+/** Get Monday of the week containing a given date */
+export function getWeekStart(date: Date = new Date()): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+  d.setDate(diff);
+  return d.toISOString().split("T")[0];
+}
+
+/** Get Friday of the week containing a given date */
+export function getWeekEnd(date: Date = new Date()): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -2 : 5); // Friday
+  d.setDate(diff);
+  return d.toISOString().split("T")[0];
+}
+
+export const CRON_SECRET_HEADER = "x-cron-secret";

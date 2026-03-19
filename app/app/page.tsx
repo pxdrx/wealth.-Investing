@@ -44,6 +44,8 @@ import type { JournalTradeRow } from "@/components/journal/types";
 import { supabase } from "@/lib/supabase/client";
 import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
+import { MacroWidgetBriefing } from "@/components/macro/MacroWidgetBriefing";
+import { MacroWidgetEvents } from "@/components/macro/MacroWidgetEvents";
 
 type JournalTradeKpiRow = {
   id: string;
@@ -666,8 +668,11 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
       />
     ),
 
-    // ── News ──
-    news: <NewsWidget items={formattedNews} loading={newsLoading} error={newsError} />,
+    // ── Macro Intelligence (replaces News) ──
+    news: <MacroWidgetBriefing />,
+
+    // ── Macro Events ──
+    "macro-events": <MacroWidgetEvents />,
 
     // ── Equity Curve Mini ──
     "equity-mini": <EquityCurveMini trades={journalTrades} />,

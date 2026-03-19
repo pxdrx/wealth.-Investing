@@ -16,7 +16,7 @@ const navLinks = [
   { href: "/app", label: "Dashboard" },
   { href: "/app/wallet", label: "Wallet" },
   { href: "/app/alerts", label: "Alerts" },
-  { href: "/app/news", label: "News" },
+  { href: "/app/macro", label: "Macro" },
   { href: "/app/journal", label: "Journal" },
   { href: "/app/reports", label: "Relatórios" },
   { href: "/app/ai-coach", label: "AI Coach" },
