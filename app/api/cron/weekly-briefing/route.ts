@@ -71,12 +71,20 @@ export async function POST(req: NextRequest) {
     };
 
     if (existing) {
-      await supabase
+      const { error: updateErr } = await supabase
         .from("weekly_panoramas")
         .update(panoramaData)
         .eq("id", existing.id);
+      if (updateErr) {
+        return NextResponse.json({ ok: false, error: `Update failed: ${updateErr.message}` }, { status: 500 });
+      }
     } else {
-      await supabase.from("weekly_panoramas").insert(panoramaData);
+      const { error: insertErr } = await supabase
+        .from("weekly_panoramas")
+        .insert(panoramaData);
+      if (insertErr) {
+        return NextResponse.json({ ok: false, error: `Insert failed: ${insertErr.message}` }, { status: 500 });
+      }
     }
 
     return NextResponse.json({
@@ -84,6 +92,7 @@ export async function POST(req: NextRequest) {
       weekStart,
       eventsCount: events?.length || 0,
       hasTeBriefing: !!teBriefing,
+      narrativeLength: narrative.narrative?.length || 0,
     });
   } catch (error) {
     console.error("[weekly-briefing] Error:", error);
