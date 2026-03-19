@@ -5,14 +5,14 @@ import { Lock } from "lucide-react";
 import Link from "next/link";
 
 interface PaywallGateProps {
-  requiredPlan: "pro" | "elite";
+  requiredPlan: "pro" | "ultra";
   children: React.ReactNode;
   fallback?: React.ReactNode;
   blurContent?: boolean;
 }
 
-function DefaultFallback({ requiredPlan }: { requiredPlan: "pro" | "elite" }) {
-  const label = requiredPlan === "pro" ? "Pro" : "Elite";
+function DefaultFallback({ requiredPlan }: { requiredPlan: "pro" | "ultra" }) {
+  const label = requiredPlan === "pro" ? "Pro" : "Ultra";
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-[22px] border border-border/60 px-6 py-12 text-center"
       style={{ backgroundColor: "hsl(var(--card))" }}>
@@ -34,8 +34,8 @@ export function PaywallGate({ requiredPlan, children, fallback, blurContent = fa
   if (isLoading) return null;
 
   const hasAccess = requiredPlan === "pro"
-    ? (plan === "pro" || plan === "elite")
-    : plan === "elite";
+    ? (plan === "pro" || plan === "ultra")
+    : plan === "ultra";
 
   if (hasAccess) return <>{children}</>;
 

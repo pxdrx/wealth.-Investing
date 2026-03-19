@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase/client";
 
 // Re-export shared types and utilities for existing consumers
 export type { Plan, SubStatus, TierLimits } from "./subscription-shared";
-export { getTierLimits, isProOrAbove, isElite } from "./subscription-shared";
+export { getTierLimits, isProOrAbove, isUltra } from "./subscription-shared";
 
 import type { Plan as PlanType, SubStatus as SubStatusType } from "./subscription-shared";
 

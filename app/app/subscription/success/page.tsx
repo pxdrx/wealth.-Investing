@@ -30,7 +30,7 @@ export default function SubscriptionSuccessPage() {
           Assinatura ativada!
         </h1>
         <p className="text-muted-foreground mb-8">
-          Seu plano {plan === "elite" ? "Elite" : "Pro"} está ativo. Aproveite
+          Seu plano {plan === "ultra" ? "Ultra" : "Pro"} está ativo. Aproveite
           todos os recursos.
         </p>
         <Link

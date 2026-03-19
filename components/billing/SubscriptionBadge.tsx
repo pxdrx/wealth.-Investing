@@ -6,13 +6,13 @@ import { cn } from "@/lib/utils";
 const PLAN_STYLES = {
   free: "bg-zinc-500/10 text-zinc-500",
   pro: "bg-blue-500/10 text-blue-500",
-  elite: "bg-amber-500/10 text-amber-500",
+  ultra: "bg-purple-500/10 text-purple-500",
 } as const;
 
 const PLAN_LABELS = {
   free: "Free",
   pro: "Pro",
-  elite: "Elite",
+  ultra: "Ultra",
 } as const;
 
 export function SubscriptionBadge({ className }: { className?: string }) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStripe, PRICE_IDS } from "@/lib/stripe";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 
-type PlanInterval = "pro_monthly" | "pro_annual" | "elite_monthly" | "elite_annual";
+type PlanInterval = "pro_monthly" | "pro_annual" | "ultra_monthly" | "ultra_annual";
 
 export async function POST(req: NextRequest) {
   try {

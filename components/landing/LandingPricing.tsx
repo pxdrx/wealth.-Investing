@@ -48,8 +48,8 @@ const TIERS: Tier[] = [
     ],
   },
   {
-    id: "elite",
-    name: "Elite",
+    id: "ultra",
+    name: "Ultra",
     monthlyPrice: 139.9,
     annualPrice: 111.9,
     features: [
