@@ -3,9 +3,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { EconomicEvent, RegionalAnalysis, MarketImpact, DecisionIntelligence, Sentiment } from "./types";
 import { TRACKED_MARKETS } from "./constants";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+let _anthropic: Anthropic | null = null;
+function getAnthropic(): Anthropic {
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return _anthropic;
+}
 
 const SYSTEM_PROMPT = `Você é um analista macroeconômico veterano, com mais de 50 anos de experiência, ex-gestor de grandes bancos globais e conselheiro de banco central. Seu QI é superior a 160 e sua leitura de mercado é probabilística, fria e objetiva. Você fala com a plateia da Smart Money Lab, no tom direto, técnico e didático do Wagner Huhn.
 
@@ -99,7 +101,7 @@ Responda em JSON com esta estrutura exata:
   "sentiment": { "bullish_pct": 40, "neutral_pct": 35, "bearish_pct": 25 }
 }`;
 
-  const response = await anthropic.messages.create({
+  const response = await getAnthropic().messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 8192,
     system: SYSTEM_PROMPT,
@@ -126,7 +128,7 @@ export async function generateAdaptiveUpdate(
   event: EconomicEvent,
   existingNarrative: string
 ): Promise<{ update_text: string; alert_title: string }> {
-  const response = await anthropic.messages.create({
+  const response = await getAnthropic().messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
