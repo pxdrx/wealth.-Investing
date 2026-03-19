@@ -20,10 +20,11 @@ export async function GET(req: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Debug: also try a raw count to rule out .maybeSingle() issue
-  const { count, error: countErr } = await supabase
+  // Debug: check what week_start values actually exist
+  const { data: allRows, error: countErr } = await supabase
     .from("weekly_panoramas")
-    .select("*", { count: "exact", head: true });
+    .select("id, week_start, week_end")
+    .limit(5);
 
   const { data, error } = await supabase
     .from("weekly_panoramas")
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
       weekStart,
       urlPrefix: supabaseUrl.substring(0, 30),
       keyPrefix: supabaseKey.substring(0, 15),
-      totalRows: count,
+      allRows,
       countErr: countErr?.message || null,
     },
   });
