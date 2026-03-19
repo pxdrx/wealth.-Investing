@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: error.message, code: error.code, hint: error.hint }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, data });
+  return NextResponse.json({ ok: true, data, debug: { weekStart, hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL, hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY } });
 }
