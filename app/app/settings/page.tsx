@@ -51,6 +51,7 @@ export default function SettingsPage() {
   // ── Delete modal ──
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   // ── Dashboard layout ──
   const [dashLayout, setDashLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT);
@@ -133,13 +134,17 @@ export default function SettingsPage() {
         },
       });
       const json = await res.json();
-      if (!res.ok || !json.url) throw new Error(json.error ?? "Erro ao abrir portal");
+      if (!res.ok || !json.url) {
+        throw new Error(json.error === "No subscription found"
+          ? "Nenhuma assinatura encontrada para gerenciar."
+          : json.error ?? "Erro ao abrir portal de pagamentos");
+      }
+      // Clear loading BEFORE redirect
+      setPortalLoading(false);
       window.location.href = json.url;
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Erro ao abrir portal";
-      alert(msg);
-    } finally {
+      const msg = err instanceof Error ? err.message : "Erro ao abrir portal";
+      setSaveMsg({ type: "error", text: msg });
       setPortalLoading(false);
     }
   }, []);
@@ -565,19 +570,35 @@ export default function SettingsPage() {
               <Button
                 variant="destructive"
                 className="rounded-full"
-                disabled={deleteConfirm !== "EXCLUIR"}
-                onClick={() => {
-                  // TODO: Implement account deletion backend
-                  // This should call an API route that:
-                  // 1. Cancels any active Stripe subscription
-                  // 2. Deletes all user data from Supabase tables
-                  // 3. Deletes the auth user
-                  // 4. Redirects to landing page
-                  alert("Funcionalidade em desenvolvimento.");
+                disabled={deleteConfirm !== "EXCLUIR" || deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) return;
+
+                    const res = await fetch("/api/account/delete", {
+                      method: "DELETE",
+                      headers: { Authorization: `Bearer ${session.access_token}` },
+                    });
+                    const json = await res.json();
+                    if (!res.ok) throw new Error(json.error ?? "Erro ao excluir conta");
+
+                    localStorage.clear();
+                    window.location.href = "/";
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : "Erro ao excluir conta";
+                    alert(msg);
+                    setDeleting(false);
+                  }
                 }}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Excluir minha conta
+                {deleting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                {deleting ? "Excluindo..." : "Excluir minha conta"}
               </Button>
             </div>
           </Card>
