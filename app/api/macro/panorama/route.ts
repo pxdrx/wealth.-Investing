@@ -26,11 +26,13 @@ export async function GET(req: NextRequest) {
     .select("id, week_start, week_end")
     .limit(5);
 
-  const { data, error } = await supabase
+  // Try fetching without .eq to debug - get all and filter in JS
+  const { data: allData, error } = await supabase
     .from("weekly_panoramas")
     .select("*")
-    .eq("week_start", weekStart)
-    .maybeSingle();
+    .limit(5);
+
+  const data = allData?.find((r: Record<string, unknown>) => r.week_start === weekStart) || null;
 
   if (error) {
     return NextResponse.json({ ok: false, error: error.message, code: error.code, hint: error.hint }, { status: 500 });
