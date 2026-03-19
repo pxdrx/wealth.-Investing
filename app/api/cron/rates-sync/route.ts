@@ -11,6 +11,8 @@ function getSupabaseAdmin() {
   );
 }
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });

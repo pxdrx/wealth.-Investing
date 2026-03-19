@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase/client";
 import { getWeekStart } from "@/lib/macro/constants";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const weekStart = searchParams.get("week") || getWeekStart();
