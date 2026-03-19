@@ -259,6 +259,8 @@ function isNextSectionOrTotalRow($: cheerio.CheerioAPI, row: cheerio.Cheerio<any
   return false;
 }
 
+const MAX_ROWS = 5000;
+
 export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
   const html = decodeUtf16Le(buffer);
   const $ = cheerio.load(html);
@@ -309,6 +311,10 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
     }
 
     for (let r = dataStart; r < allRows.length; r++) {
+      if (trades.length >= MAX_ROWS) {
+        console.warn(`[mt5-html-parser] Row limit reached (${MAX_ROWS}). Remaining rows skipped.`);
+        break;
+      }
       const cells = getRowCells($, allRows[r]);
       if (isNextSectionOrTotalRow($, allRows[r], cells)) break;
       if (cells.length < 5) continue;

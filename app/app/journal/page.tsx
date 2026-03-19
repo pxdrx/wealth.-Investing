@@ -219,11 +219,26 @@ export default function JournalPage() {
       const formData = new FormData();
       formData.set("file", pendingFile);
       formData.set("accountId", activeAccountId);
-      const res = await fetch("/api/journal/import-mt5", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: formData,
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180_000); // 3 min
+      let res: Response;
+      try {
+        res = await fetch("/api/journal/import-mt5", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: formData,
+          signal: controller.signal,
+        });
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        if (fetchErr instanceof DOMException && fetchErr.name === "AbortError") {
+          setImportError("Importação excedeu o tempo limite. Tente com um arquivo menor.");
+          setImportFlowState("idle");
+          return;
+        }
+        throw fetchErr;
+      }
+      clearTimeout(timeoutId);
       const data = await res.json().catch(() => ({}));
       const durationMs = Date.now() - startTime;
       if (!res.ok) {
