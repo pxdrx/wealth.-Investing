@@ -1,14 +1,22 @@
 // app/api/macro/calendar/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 import { getWeekStart } from "@/lib/macro/constants";
 
 export const dynamic = "force-dynamic";
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const weekStart = searchParams.get("week") || getWeekStart();
 
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from("economic_events")
     .select("*")

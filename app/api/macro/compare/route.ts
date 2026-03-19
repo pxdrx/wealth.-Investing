@@ -1,8 +1,15 @@
 // app/api/macro/compare/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -13,6 +20,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Missing weekA or weekB" }, { status: 400 });
   }
 
+  const supabase = getSupabase();
   const [panoramaA, panoramaB, eventsA, eventsB] = await Promise.all([
     supabase.from("weekly_panoramas").select("*").eq("week_start", weekA).maybeSingle(),
     supabase.from("weekly_panoramas").select("*").eq("week_start", weekB).maybeSingle(),
