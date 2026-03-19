@@ -303,7 +303,7 @@ export default function JournalPage() {
     setModalOpen(true);
   };
 
-  const hasData = activeAccountId && !loadingTrades && !tradesError && !accountsLoading;
+  const hasData = activeAccountId && !loadingTrades && !tradesError;
   const { hidden: valuesHidden, toggle: toggleValues } = usePrivacy();
 
   return (
