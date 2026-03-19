@@ -6,15 +6,19 @@ import { generateAdaptiveUpdate } from "@/lib/macro/narrative-generator";
 import { getWeekStart } from "@/lib/macro/constants";
 import type { EconomicEvent } from "@/lib/macro/types";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
+
+  const supabase = getSupabaseAdmin();
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -25,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the event
-    const { data: event } = await supabaseAdmin
+    const { data: event } = await supabase
       .from("economic_events")
       .select("*")
       .eq("id", eventId)
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Get current panorama
     const weekStart = getWeekStart();
-    const { data: panorama } = await supabaseAdmin
+    const { data: panorama } = await supabase
       .from("weekly_panoramas")
       .select("*")
       .eq("week_start", weekStart)
@@ -54,7 +58,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Create adaptive alert
-    await supabaseAdmin.from("adaptive_alerts").insert({
+    await supabase.from("adaptive_alerts").insert({
       type: "breaking",
       title: update.alert_title,
       description: update.update_text,
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     // Append update to narrative
     const updatedNarrative = `${panorama.narrative}\n\n---\n**Atualização (${new Date().toLocaleString("pt-BR")}):** ${update.update_text}`;
-    await supabaseAdmin
+    await supabase
       .from("weekly_panoramas")
       .update({ narrative: updatedNarrative, updated_at: new Date().toISOString() })
       .eq("id", panorama.id);

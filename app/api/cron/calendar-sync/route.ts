@@ -4,15 +4,19 @@ import { createClient } from "@supabase/supabase-js";
 import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
+
+  const supabase = getSupabaseAdmin();
 
   try {
     const events = await fetchFaireconomyCalendar();
@@ -22,7 +26,7 @@ export async function POST(req: NextRequest) {
     let updated = 0;
 
     for (const event of events) {
-      const { data: existing } = await supabaseAdmin
+      const { data: existing } = await supabase
         .from("economic_events")
         .select("id, actual")
         .eq("event_uid", event.event_uid)
@@ -31,7 +35,7 @@ export async function POST(req: NextRequest) {
       if (existing) {
         // Check if actual value changed (for adaptive alerts)
         if (event.actual && event.actual !== existing.actual) {
-          await supabaseAdmin
+          await supabase
             .from("economic_events")
             .update({ actual: event.actual, updated_at: new Date().toISOString() })
             .eq("id", existing.id);
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest) {
           }
         }
       } else {
-        const { error } = await supabaseAdmin.from("economic_events").insert(event);
+        const { error } = await supabase.from("economic_events").insert(event);
         if (!error) upserted++;
       }
     }

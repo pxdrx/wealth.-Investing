@@ -4,22 +4,26 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { fetchCentralBankRates } from "@/lib/macro/rates-fetcher";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const supabase = getSupabaseAdmin();
+
   try {
     const rates = await fetchCentralBankRates();
 
     let upserted = 0;
     for (const rate of rates) {
-      const { error } = await supabaseAdmin
+      const { error } = await supabase
         .from("central_bank_rates")
         .upsert(rate, { onConflict: "bank_code" });
       if (!error) upserted++;

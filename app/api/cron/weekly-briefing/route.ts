@@ -7,22 +7,26 @@ import { generateWeeklyNarrative } from "@/lib/macro/narrative-generator";
 import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
 import type { EconomicEvent } from "@/lib/macro/types";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const supabase = getSupabaseAdmin();
+
   try {
     const weekStart = getWeekStart();
     const weekEnd = getWeekEnd();
 
     // Check if panorama already exists and is frozen
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await supabase
       .from("weekly_panoramas")
       .select("id, is_frozen")
       .eq("week_start", weekStart)
@@ -33,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Get events for this week
-    const { data: events } = await supabaseAdmin
+    const { data: events } = await supabase
       .from("economic_events")
       .select("*")
       .eq("week_start", weekStart)
@@ -65,12 +69,12 @@ export async function POST(req: NextRequest) {
     };
 
     if (existing) {
-      await supabaseAdmin
+      await supabase
         .from("weekly_panoramas")
         .update(panoramaData)
         .eq("id", existing.id);
     } else {
-      await supabaseAdmin.from("weekly_panoramas").insert(panoramaData);
+      await supabase.from("weekly_panoramas").insert(panoramaData);
     }
 
     return NextResponse.json({
