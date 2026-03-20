@@ -67,12 +67,20 @@ export async function POST(req: NextRequest) {
       const batch = toInsert.slice(i, i + 50);
       const { error } = await supabase.from("economic_events").insert(batch);
       if (error) {
-        errors.push(`Batch ${i}: ${error.message}`);
-        // Fallback: insert one by one to find the problematic rows
+        // Fallback: try one-by-one, update week_start on duplicates
         for (const event of batch) {
           const { error: singleErr } = await supabase.from("economic_events").insert(event);
           if (singleErr) {
-            errors.push(`Event ${event.event_uid}: ${singleErr.message}`);
+            if (singleErr.message.includes("duplicate key")) {
+              // Update week_start for events that exist with wrong week_start
+              await supabase
+                .from("economic_events")
+                .update({ week_start: event.week_start, date: event.date, time: event.time, forecast: event.forecast, previous: event.previous })
+                .eq("event_uid", event.event_uid);
+              updated++;
+            } else {
+              errors.push(`Event ${event.event_uid}: ${singleErr.message}`);
+            }
           } else {
             upserted++;
           }
