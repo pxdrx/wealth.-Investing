@@ -413,6 +413,7 @@ export default function DashboardPage() {
       propPayoutsTotal={propPayoutsTotal}
       watchlistRef={watchlistRef}
       iframeVisible={iframeVisible}
+      setIframeVisible={setIframeVisible}
       formattedNews={formattedNews}
       newsLoading={newsLoading}
       newsError={newsError}
@@ -464,6 +465,7 @@ function DashboardContent({
   propPayoutsTotal,
   watchlistRef,
   iframeVisible,
+  setIframeVisible,
   formattedNews,
   newsLoading,
   newsError,
@@ -478,6 +480,7 @@ function DashboardContent({
   propPayoutsTotal: number;
   watchlistRef: React.RefObject<HTMLDivElement>;
   iframeVisible: boolean;
+  setIframeVisible: (v: boolean) => void;
   formattedNews: (NewsItem & { timeLabel: string })[];
   newsLoading: boolean;
   newsError: string | null;
@@ -487,6 +490,14 @@ function DashboardContent({
   const [chartExpanded, setChartExpanded] = useState(false);
   const { resolvedTheme } = useTheme();
   const tvTheme = resolvedTheme === "dark" ? "dark" : "light";
+
+  // When chart is expanded, ensure iframe is visible (fixes race with IntersectionObserver)
+  const handleChartToggle = () => {
+    setChartExpanded((v) => {
+      if (!v) setIframeVisible(true);
+      return !v;
+    });
+  };
 
   if (journalLoading) {
     return <DashboardSkeleton />;
@@ -563,7 +574,7 @@ function DashboardContent({
           >
             <button
               type="button"
-              onClick={() => setChartExpanded((v) => !v)}
+              onClick={handleChartToggle}
               className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
             >
               <span className="flex items-center gap-2">
@@ -836,16 +847,16 @@ function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
         backgroundColor: "hsl(var(--card))",
       }}
     >
-      <div
-        className="px-5 py-3.5 border-b"
-        style={{ borderColor: "hsl(var(--border))" }}
-      >
-        <h3 className="text-sm font-semibold tracking-tight text-foreground">
-          Tiltmeter
-        </h3>
-      </div>
-      <div className="flex items-center justify-center py-6">
-        <TiltmeterGauge result={result} size="md" />
+      <div className="flex items-center gap-3 px-4 py-3">
+        <TiltmeterGauge result={result} size="sm" />
+        <div>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">
+            Tiltmeter
+          </h3>
+          <p className="text-[10px] text-muted-foreground capitalize">
+            {result.label}
+          </p>
+        </div>
       </div>
     </div>
   );

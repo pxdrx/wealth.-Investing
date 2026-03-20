@@ -22,43 +22,73 @@ export async function POST(req: NextRequest) {
 
   try {
     const events = await fetchFaireconomyCalendar();
+    if (events.length === 0) {
+      return NextResponse.json({ ok: true, fetched: 0, upserted: 0, updated: 0 });
+    }
 
-    // Upsert events (dedup by event_uid)
+    const weekStart = events[0].week_start;
     let upserted = 0;
     let updated = 0;
+    const errors: string[] = [];
 
+    // Load existing events for this week in bulk
+    const { data: existingRows } = await supabase
+      .from("economic_events")
+      .select("id, event_uid, actual")
+      .filter("week_start", "eq", weekStart);
+
+    const existingMap = new Map<string, { id: string; actual: string | null }>();
+    for (const row of existingRows ?? []) {
+      existingMap.set(row.event_uid, { id: row.id, actual: row.actual });
+    }
+
+    // Process events: update existing, insert new
+    const toInsert: typeof events = [];
     for (const event of events) {
-      const { data: existing } = await supabase
-        .from("economic_events")
-        .select("id, actual")
-        .eq("event_uid", event.event_uid)
-        .maybeSingle();
-
+      const existing = existingMap.get(event.event_uid);
       if (existing) {
-        // Check if actual value changed (for adaptive alerts)
         if (event.actual && event.actual !== existing.actual) {
           await supabase
             .from("economic_events")
             .update({ actual: event.actual, updated_at: new Date().toISOString() })
             .eq("id", existing.id);
           updated++;
-
-          // If HIGH impact and actual diverges from forecast, trigger narrative update
           if (event.impact === "high" && event.forecast && event.actual !== event.forecast) {
             await triggerNarrativeUpdate(existing.id, event);
           }
         }
       } else {
-        const { error } = await supabase.from("economic_events").insert(event);
-        if (!error) upserted++;
+        toInsert.push(event);
+      }
+    }
+
+    // Batch insert new events (50 at a time)
+    for (let i = 0; i < toInsert.length; i += 50) {
+      const batch = toInsert.slice(i, i + 50);
+      const { error } = await supabase.from("economic_events").insert(batch);
+      if (error) {
+        errors.push(`Batch ${i}: ${error.message}`);
+        // Fallback: insert one by one to find the problematic rows
+        for (const event of batch) {
+          const { error: singleErr } = await supabase.from("economic_events").insert(event);
+          if (singleErr) {
+            errors.push(`Event ${event.event_uid}: ${singleErr.message}`);
+          } else {
+            upserted++;
+          }
+        }
+      } else {
+        upserted += batch.length;
       }
     }
 
     return NextResponse.json({
       ok: true,
       fetched: events.length,
+      existing: existingMap.size,
       upserted,
       updated,
+      ...(errors.length > 0 ? { errors: errors.slice(0, 10) } : {}),
     });
   } catch (error) {
     console.error("[calendar-sync] Error:", error);

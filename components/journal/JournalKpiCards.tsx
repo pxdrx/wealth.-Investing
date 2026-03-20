@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 import type { PeriodFilter } from "./types";
 import { filterTradesByPeriod, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
@@ -22,6 +23,7 @@ const PERIODS: { value: PeriodFilter; label: string }[] = [
 ];
 
 export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanceUsd }: JournalKpiCardsProps) {
+  const { mask } = usePrivacy();
   const filtered = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
   const baseBalance = startingBalanceUsd ?? 0;
 
@@ -85,15 +87,14 @@ export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanc
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Saldo da Conta</p>
               <p className={cn("kpi-value text-lg", currentBalance >= baseBalance ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
-                {currentBalance.toFixed(2)} USD
+                {mask(`${currentBalance.toFixed(2)} USD`)}
               </p>
             </div>
           )}
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">PnL Total</p>
             <p className={cn("kpi-value text-lg", kpis.pnlTotal >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
-              {kpis.pnlTotal >= 0 ? "+" : ""}
-              {kpis.pnlTotal.toFixed(2)} USD
+              {mask(`${kpis.pnlTotal >= 0 ? "+" : ""}${kpis.pnlTotal.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">
@@ -107,20 +108,19 @@ export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanc
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Expectativa</p>
             <p className={cn("kpi-value text-lg", kpis.expectation >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
-              {kpis.expectation >= 0 ? "+" : ""}
-              {kpis.expectation.toFixed(2)} USD
+              {mask(`${kpis.expectation >= 0 ? "+" : ""}${kpis.expectation.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Melhor trade</p>
             <p className="kpi-value text-lg text-emerald-600 dark:text-emerald-500">
-              +{kpis.bestTrade.toFixed(2)} USD
+              {mask(`+${kpis.bestTrade.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Pior trade</p>
             <p className="kpi-value text-lg text-red-600 dark:text-red-500">
-              {kpis.worstTrade.toFixed(2)} USD
+              {mask(`${kpis.worstTrade.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">

@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SentimentBar } from "./SentimentBar";
 import type { WeeklyPanorama } from "@/lib/macro/types";
 
 export function MacroWidgetBriefing() {
@@ -49,7 +48,6 @@ export function MacroWidgetBriefing() {
           Ver mais
         </a>
       </div>
-      <SentimentBar sentiment={panorama.sentiment} />
       <p className="text-xs leading-relaxed text-muted-foreground">{preview}</p>
     </div>
   );

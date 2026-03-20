@@ -12,6 +12,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 import { filterTradesByPeriod, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import type { PeriodFilter } from "./types";
@@ -25,6 +26,7 @@ interface JournalEquityChartProps {
 }
 
 export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOverallLossPercent, profitTargetPercent }: JournalEquityChartProps) {
+  const { hidden, mask } = usePrivacy();
   const filtered = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
   const start = startingBalanceUsd ?? 0;
 
@@ -64,7 +66,7 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
       <CardContent>
         {data.length <= 1 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
-            Nenhum trade no período. Equity: {start.toFixed(2)} USD
+            Nenhum trade no período. Equity: {mask(`${start.toFixed(2)} USD`)}
           </p>
         ) : (
           <div className="h-[280px] w-full">
@@ -75,7 +77,7 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
                 <YAxis
                   tick={{ fontSize: 11 }}
                   className="text-muted-foreground"
-                  tickFormatter={(v: number) => `${v.toFixed(0)}`}
+                  tickFormatter={(v: number) => hidden ? "••••" : `${v.toFixed(0)}`}
                   domain={isPropAccount ? [ddLimit! * 0.998, targetLimit! * 1.002] : ["auto", "auto"]}
                 />
                 <Tooltip
@@ -85,7 +87,7 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
                     return (
                       <div className="rounded-input border border-border bg-card px-3 py-2 text-sm shadow-sm">
                         <p className="text-muted-foreground">{p.fullDate}</p>
-                        <p className="font-semibold text-foreground">Equity: {p.equity.toFixed(2)} USD</p>
+                        <p className="font-semibold text-foreground">Equity: {mask(`${p.equity.toFixed(2)} USD`)}</p>
                       </div>
                     );
                   }}

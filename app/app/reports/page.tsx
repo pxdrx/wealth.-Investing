@@ -249,10 +249,6 @@ export default function ReportsPage() {
                 <MetricCard label="Média Perda" value={-analytics.avgLoss} format="currency" colorize />
                 <MetricCard label="Payoff Ratio" value={analytics.payoffRatio} format="ratio" />
                 <MetricCard label="Max Drawdown" value={-analytics.maxDrawdown} format="percent" colorize />
-                <MetricCard label="Sharpe Ratio" value={analytics.sharpeRatio} format="ratio" description={analytics.sharpeRatio === null ? "Min. 20 dias" : undefined} />
-                <MetricCard label="Sortino Ratio" value={analytics.sortinoRatio} format="ratio" description={analytics.sortinoRatio === null ? "Min. 20 dias" : undefined} />
-                <MetricCard label="Kelly (Half)" value={analytics.kellyCriterion * 100} format="percent" description="Fração ótima de risco" />
-                <MetricCard label="Recovery Factor" value={analytics.recoveryFactor} format="ratio" />
                 <MetricCard label="Melhor Dia" value={analytics.bestDay?.pnl ?? null} format="currency" colorize description={analytics.bestDay?.date} />
                 <MetricCard label="Pior Dia" value={analytics.worstDay?.pnl ?? null} format="currency" colorize description={analytics.worstDay?.date} />
                 <MetricCard label="Duração Média" value={analytics.avgTradeDuration} format="duration" />

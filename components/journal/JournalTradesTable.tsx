@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { usePrivacy } from "@/components/context/PrivacyContext";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { ListFilter, TrendingUp } from "lucide-react";
@@ -31,6 +32,7 @@ interface JournalTradesTableProps {
 }
 
 export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableProps) {
+  const { mask } = usePrivacy();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [direction, setDirection] = useState<DirectionFilter>("all");
@@ -202,15 +204,13 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                       {formatDuration(t.opened_at, t.closed_at)}
                     </TableCell>
                     <TableCell className="text-right text-sm hidden lg:table-cell">
-                      {gross >= 0 ? "+" : ""}
-                      {gross.toFixed(2)}
+                      {mask(`${gross >= 0 ? "+" : ""}${gross.toFixed(2)}`)}
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground hidden lg:table-cell">
-                      {(fees ?? 0).toFixed(2)}
+                      {mask((fees ?? 0).toFixed(2))}
                     </TableCell>
                     <TableCell className={cn("text-right text-sm font-medium", net >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
-                      {net >= 0 ? "+" : ""}
-                      {net.toFixed(2)}
+                      {mask(`${net >= 0 ? "+" : ""}${net.toFixed(2)}`)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={isWin ? "success" : "destructive"}>
@@ -269,7 +269,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 "font-semibold",
                 summary.totalPnl >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500"
               )}>
-                {summary.totalPnl >= 0 ? "+" : ""}{summary.totalPnl.toFixed(2)} USD
+                {mask(`${summary.totalPnl >= 0 ? "+" : ""}${summary.totalPnl.toFixed(2)} USD`)}
               </span>
               <span className="text-muted-foreground">
                 WR: {summary.winRate.toFixed(0)}%

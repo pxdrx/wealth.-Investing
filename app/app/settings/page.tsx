@@ -375,10 +375,18 @@ export default function SettingsPage() {
             Dashboard
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Escolha quais widgets exibir e a ordem de apresentação.
+            Marque os widgets que deseja exibir e use as setas para reordenar.
           </p>
 
-          <div className="mt-4 space-y-2">
+          {/* Column headers */}
+          <div className="mt-4 flex items-center gap-3 px-3 pb-1">
+            <span className="w-4" />
+            <span className="flex-1 text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Widget</span>
+            <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Plano</span>
+            <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground w-16 text-center">Ordem</span>
+          </div>
+
+          <div className="space-y-1">
             {[...dashLayout.widgets]
               .sort((a, b) => a.order - b.order)
               .map((w, idx, arr) => {
@@ -401,12 +409,13 @@ export default function SettingsPage() {
                     <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
                       {label.tier}
                     </span>
-                    <div className="flex items-center gap-0.5">
+                    <div className="flex items-center gap-0.5 w-16 justify-center">
                       <button
                         type="button"
                         onClick={() => moveWidget(w.id, "up")}
                         disabled={idx === 0}
                         className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                        title="Mover para cima"
                       >
                         <ChevronUp className="h-4 w-4" />
                       </button>
@@ -415,6 +424,7 @@ export default function SettingsPage() {
                         onClick={() => moveWidget(w.id, "down")}
                         disabled={idx === arr.length - 1}
                         className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                        title="Mover para baixo"
                       >
                         <ChevronDown className="h-4 w-4" />
                       </button>
