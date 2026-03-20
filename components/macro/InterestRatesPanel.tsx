@@ -20,8 +20,22 @@ const ACTION_CONFIG = {
   hold: { icon: Minus, color: "text-gray-400", label: "Manteve" },
 } as const;
 
+// Only show these 6 central banks
+const VISIBLE_BANKS = new Set(["BCB", "BOC", "BOE", "BOJ", "ECB", "FED"]);
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return "—";
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
-  if (!rates.length) {
+  const filteredRates = rates.filter((r) => VISIBLE_BANKS.has(r.bank_code));
+
+  if (!filteredRates.length) {
     return (
       <p className="py-4 text-center text-sm text-muted-foreground">
         Taxas de juros ainda não disponíveis.
@@ -30,8 +44,8 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-      {rates.map((rate) => {
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6">
+      {filteredRates.map((rate) => {
         const action = rate.last_action ? ACTION_CONFIG[rate.last_action] : null;
         const ActionIcon = action?.icon || Minus;
         const flagCode = FLAG_CODES[rate.country];
@@ -67,9 +81,14 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
                 </span>
               </div>
             )}
+            {rate.last_change_date && (
+              <div className="mt-1.5 text-[10px] text-muted-foreground">
+                Último corte: {formatDate(rate.last_change_date)}
+              </div>
+            )}
             {rate.next_meeting && (
-              <div className="mt-1 text-[10px] text-muted-foreground">
-                Próx: {new Date(rate.next_meeting + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+              <div className="mt-0.5 text-[10px] text-muted-foreground">
+                Próx. reunião: {formatDate(rate.next_meeting)}
               </div>
             )}
           </div>

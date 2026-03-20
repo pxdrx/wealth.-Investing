@@ -1,8 +1,8 @@
 // components/macro/EconomicCalendar.tsx
 "use client";
 
-import { useState, useMemo } from "react";
-import { ChevronDown } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { ChevronDown, Clock } from "lucide-react";
 import { IMPACT_COLORS } from "@/lib/macro/constants";
 import { cn } from "@/lib/utils";
 import type { EconomicEvent } from "@/lib/macro/types";
@@ -12,6 +12,22 @@ interface EconomicCalendarProps {
 }
 
 type ImpactFilter = "all" | "high" | "medium" | "low";
+
+// --- Timezone support ---
+const TIMEZONE_OPTIONS = [
+  { value: "America/Sao_Paulo", label: "BRT", long: "Brasília" },
+  { value: "America/New_York", label: "ET", long: "Nova York" },
+  { value: "Europe/London", label: "GMT", long: "Londres" },
+  { value: "Asia/Tokyo", label: "JST", long: "Tóquio" },
+  { value: "UTC", label: "UTC", long: "UTC" },
+] as const;
+
+const TZ_STORAGE_KEY = "economic-calendar-tz";
+
+function getStoredTimezone(): string {
+  if (typeof window === "undefined") return "America/Sao_Paulo";
+  return localStorage.getItem(TZ_STORAGE_KEY) || "America/Sao_Paulo";
+}
 
 // Flag images via flagcdn (Windows doesn't render emoji flags)
 const FLAG_CODES: Record<string, string> = {
@@ -34,10 +50,22 @@ function FlagIcon({ country }: { country: string }) {
   );
 }
 
-function formatTime(time: string | null) {
+/** Convert an event's date+time to display in the selected timezone */
+function formatTimeInTz(date: string, time: string | null, tz: string): string {
   if (!time) return "—";
-  // Remove seconds: "12:30:00" → "12:30"
-  return time.slice(0, 5);
+  try {
+    const timePart = time.length === 5 ? `${time}:00` : time;
+    const utcDate = new Date(`${date}T${timePart}Z`);
+    if (isNaN(utcDate.getTime())) return time.slice(0, 5);
+    return utcDate.toLocaleTimeString("pt-BR", {
+      timeZone: tz,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return time.slice(0, 5);
+  }
 }
 
 function formatDayHeader(dateStr: string) {
@@ -52,13 +80,70 @@ function getTodayStr() {
   return now.toISOString().split("T")[0];
 }
 
+/** Build a comparable datetime string for an event (UTC) */
+function eventDateTime(event: EconomicEvent): string {
+  const time = event.time ?? "23:59";
+  return `${event.date}T${time.length === 5 ? time + ":00" : time}Z`;
+}
+
+/** Find the IDs of the last occurred event and next upcoming event */
+function findHighlightedEvents(events: EconomicEvent[]): {
+  lastOccurredId: string | null;
+  nextUpcomingId: string | null;
+} {
+  const now = new Date();
+  let lastOccurredId: string | null = null;
+  let lastOccurredDt = "";
+  let nextUpcomingId: string | null = null;
+  let nextUpcomingDt = "";
+
+  for (const event of events) {
+    const dt = eventDateTime(event);
+    const hasActual = event.actual !== null && event.actual !== "";
+    const eventDate = new Date(dt);
+
+    if (hasActual && eventDate <= now) {
+      if (!lastOccurredDt || dt > lastOccurredDt) {
+        lastOccurredDt = dt;
+        lastOccurredId = event.id;
+      }
+    }
+
+    if (!hasActual && eventDate > now) {
+      if (!nextUpcomingDt || dt < nextUpcomingDt) {
+        nextUpcomingDt = dt;
+        nextUpcomingId = event.id;
+      }
+    }
+  }
+
+  return { lastOccurredId, nextUpcomingId };
+}
+
 export function EconomicCalendar({ events }: EconomicCalendarProps) {
   const [impactFilter, setImpactFilter] = useState<ImpactFilter>("all");
+  const [timezone, setTimezone] = useState<string>("America/Sao_Paulo");
   const today = getTodayStr();
+
+  // Hydrate timezone from localStorage after mount
+  useEffect(() => {
+    setTimezone(getStoredTimezone());
+  }, []);
+
+  const handleTimezoneChange = (tz: string) => {
+    setTimezone(tz);
+    localStorage.setItem(TZ_STORAGE_KEY, tz);
+  };
 
   const filtered = impactFilter === "all"
     ? events
     : events.filter((e) => e.impact === impactFilter);
+
+  // Find highlighted events (based on ALL events, not just filtered)
+  const { lastOccurredId, nextUpcomingId } = useMemo(
+    () => findHighlightedEvents(events),
+    [events]
+  );
 
   // Group by date
   const grouped = useMemo(() => {
@@ -72,21 +157,25 @@ export function EconomicCalendar({ events }: EconomicCalendarProps) {
   }, [filtered]);
 
   // Track which days are expanded (today expanded by default)
-  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>(() => {
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
+  const hasAutoExpanded = useRef(false);
+
+  // Auto-expand the relevant day when events first load
+  useEffect(() => {
+    if (hasAutoExpanded.current || grouped.length === 0) return;
+    hasAutoExpanded.current = true;
     const init: Record<string, boolean> = {};
-    // Find if today has events, otherwise expand the latest past day
-    const todayHasEvents = filtered.some((e) => e.date === today);
+    const todayHasEvents = grouped.some(([d]) => d === today);
     if (todayHasEvents) {
       init[today] = true;
     } else {
-      // Expand the last day that's <= today, or the first future day
       const pastDays = grouped.filter(([d]) => d <= today);
       const futureDays = grouped.filter(([d]) => d > today);
       if (pastDays.length) init[pastDays[pastDays.length - 1][0]] = true;
       else if (futureDays.length) init[futureDays[0][0]] = true;
     }
-    return init;
-  });
+    setExpandedDays(init);
+  }, [grouped, today]);
 
   const toggleDay = (date: string) => {
     setExpandedDays((prev) => ({ ...prev, [date]: !prev[date] }));
@@ -102,21 +191,52 @@ export function EconomicCalendar({ events }: EconomicCalendarProps) {
 
   return (
     <div className="space-y-3">
-      {/* Impact filter */}
-      <div className="flex gap-2">
-        {(["all", "high", "medium", "low"] as ImpactFilter[]).map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setImpactFilter(filter)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              impactFilter === filter
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
+      {/* Top bar: Impact filter + Timezone selector */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Impact filter */}
+        <div className="flex gap-2">
+          {(["all", "high", "medium", "low"] as ImpactFilter[]).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setImpactFilter(filter)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                impactFilter === filter
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              {filter === "all" ? "Todos" : filter === "high" ? "Alto" : filter === "medium" ? "Médio" : "Baixo"}
+            </button>
+          ))}
+        </div>
+
+        {/* Timezone selector */}
+        <div className="flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+          <select
+            value={timezone}
+            onChange={(e) => handleTimezoneChange(e.target.value)}
+            className="rounded-full border border-border/50 bg-transparent px-2.5 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:border-border focus:border-primary"
           >
-            {filter === "all" ? "Todos" : filter === "high" ? "Alto" : filter === "medium" ? "Médio" : "Baixo"}
-          </button>
-        ))}
+            {TIMEZONE_OPTIONS.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label} — {tz.long}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Legend for event highlighting */}
+      <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
+          Último evento divulgado
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500/60" />
+          Próximo evento
+        </span>
       </div>
 
       {/* Events grouped by day — collapsible */}
@@ -131,10 +251,10 @@ export function EconomicCalendar({ events }: EconomicCalendarProps) {
             className={cn(
               "overflow-hidden rounded-[16px] border transition-colors",
               isToday
-                ? "border-blue-500/30 bg-blue-500/[0.03]"
+                ? "border-blue-500/30"
                 : "border-border/40"
             )}
-            style={!isToday ? { backgroundColor: "hsl(var(--card))" } : undefined}
+            style={{ backgroundColor: "hsl(var(--card))" }}
           >
             {/* Day header — clickable */}
             <button
@@ -183,19 +303,21 @@ export function EconomicCalendar({ events }: EconomicCalendarProps) {
               <div className="border-t border-border/30 px-2 pb-2">
                 {dayEvents.map((event) => {
                   const colors = IMPACT_COLORS[event.impact];
-                  const hasActual = event.actual !== null && event.actual !== "";
+                  const isLastOccurred = event.id === lastOccurredId;
+                  const isNextUpcoming = event.id === nextUpcomingId;
 
                   return (
                     <div
                       key={event.id}
                       className={cn(
                         "mt-1 flex items-center gap-3 rounded-[10px] px-3 py-2 transition-colors",
-                        hasActual && "bg-blue-500/5"
+                        isLastOccurred && "bg-emerald-500/[0.08] ring-1 ring-emerald-500/20",
+                        isNextUpcoming && "bg-blue-500/[0.08] ring-1 ring-blue-500/20",
                       )}
                     >
-                      {/* Time */}
+                      {/* Time (converted to selected timezone) */}
                       <span className="w-10 shrink-0 text-xs font-medium text-muted-foreground">
-                        {formatTime(event.time)}
+                        {formatTimeInTz(event.date, event.time, timezone)}
                       </span>
 
                       {/* Impact dot */}
@@ -205,7 +327,11 @@ export function EconomicCalendar({ events }: EconomicCalendarProps) {
                       <FlagIcon country={event.country} />
 
                       {/* Title */}
-                      <span className="min-w-0 flex-1 truncate text-sm">
+                      <span className={cn(
+                        "min-w-0 flex-1 truncate text-sm",
+                        isLastOccurred && "font-medium text-emerald-700 dark:text-emerald-400",
+                        isNextUpcoming && "font-medium text-blue-700 dark:text-blue-400",
+                      )}>
                         {event.title}
                       </span>
 
@@ -221,7 +347,7 @@ export function EconomicCalendar({ events }: EconomicCalendarProps) {
                         </div>
                         <div className="w-14 text-center">
                           <div className="text-[10px] text-muted-foreground">Real</div>
-                          <div className={hasActual ? "font-semibold text-foreground" : ""}>
+                          <div className={event.actual ? "font-semibold text-foreground" : ""}>
                             {event.actual || "—"}
                           </div>
                         </div>

@@ -29,7 +29,7 @@ export default function MacroIntelligencePage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [calRes, panRes, ratesRes, alertsRes, histRes] = await Promise.all([
+      const [calRes, panRes, ratesRes, alertsRes, histRes] = await Promise.allSettled([
         fetch(`/api/macro/calendar?week=${weekStart}`),
         fetch(`/api/macro/panorama?week=${weekStart}`),
         fetch("/api/macro/rates"),
@@ -37,19 +37,40 @@ export default function MacroIntelligencePage() {
         fetch("/api/macro/history"),
       ]);
 
+      const safeJson = async (result: PromiseSettledResult<Response>) => {
+        if (result.status === "rejected") return { ok: false };
+        try { return await result.value.json(); } catch { return { ok: false }; }
+      };
+
       const [calJson, panJson, ratesJson, alertsJson, histJson] = await Promise.all([
-        calRes.json(),
-        panRes.json(),
-        ratesRes.json(),
-        alertsRes.json(),
-        histRes.json(),
+        safeJson(calRes),
+        safeJson(panRes),
+        safeJson(ratesRes),
+        safeJson(alertsRes),
+        safeJson(histRes),
       ]);
 
-      if (calJson.ok) setEvents(calJson.data);
-      if (panJson.ok) setPanorama(panJson.data);
-      if (ratesJson.ok) setRates(ratesJson.data);
-      if (alertsJson.ok) setAlerts(alertsJson.data);
-      if (histJson.ok) setWeeks(histJson.data);
+      if (calJson.ok) setEvents(calJson.data || []);
+      if (panJson.ok && panJson.data) {
+        const pan = panJson.data;
+        // Ensure JSONB fields are parsed (Supabase may return strings in edge cases)
+        if (typeof pan.regional_analysis === "string") {
+          try { pan.regional_analysis = JSON.parse(pan.regional_analysis); } catch { pan.regional_analysis = null; }
+        }
+        if (typeof pan.decision_intelligence === "string") {
+          try { pan.decision_intelligence = JSON.parse(pan.decision_intelligence); } catch { pan.decision_intelligence = null; }
+        }
+        if (typeof pan.sentiment === "string") {
+          try { pan.sentiment = JSON.parse(pan.sentiment); } catch { pan.sentiment = null; }
+        }
+        if (typeof pan.market_impacts === "string") {
+          try { pan.market_impacts = JSON.parse(pan.market_impacts); } catch { pan.market_impacts = null; }
+        }
+        setPanorama(pan);
+      }
+      if (ratesJson.ok) setRates(ratesJson.data || []);
+      if (alertsJson.ok) setAlerts(alertsJson.data || []);
+      if (histJson.ok) setWeeks(histJson.data || []);
     } catch (error) {
       console.error("[macro] Failed to fetch data:", error);
     } finally {
