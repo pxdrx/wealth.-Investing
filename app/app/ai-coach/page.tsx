@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb } from "lucide-react";
-import { motion } from "framer-motion";
+import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { getTierLimits } from "@/lib/subscription-shared";
@@ -15,6 +15,7 @@ import { PaywallGate } from "@/components/billing/PaywallGate";
 import type { JournalTradeRow } from "@/components/journal/types";
 
 interface Message {
+  id?: string;
   role: "user" | "assistant";
   content: string;
 }
@@ -59,6 +60,9 @@ const INSIGHT_BUTTONS = [
   { icon: Lightbulb, label: "O que posso melhorar?", prompt: "Com base em todos os meus dados, quais sao as 3 principais coisas que posso melhorar no meu trading?" },
 ];
 
+// Max messages to load from history
+const MAX_HISTORY = 50;
+
 export default function AICoachPage() {
   const { activeAccountId } = useActiveAccount();
   const { plan } = useSubscription();
@@ -68,17 +72,21 @@ export default function AICoachPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [usageCount, setUsageCount] = useState(0);
   const [usageLoaded, setUsageLoaded] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [analysisType, setAnalysisType] = useState<"session" | "weekly" | "chat">("chat");
   const [dataMode, setDataMode] = useState(false);
   const [trades, setTrades] = useState<JournalTradeRow[]>([]);
   const [tradesLoaded, setTradesLoaded] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const quotaExhausted = usageCount >= limits.aiCoachMonthly;
   const usagePct = limits.aiCoachMonthly > 0
     ? Math.min(100, (usageCount / limits.aiCoachMonthly) * 100)
     : 0;
+
+  const hasMessages = messages.length > 0;
 
   // Load current usage
   useEffect(() => {
@@ -97,6 +105,42 @@ export default function AICoachPage() {
     }
     loadUsage();
   }, []);
+
+  // Load chat history from Supabase
+  useEffect(() => {
+    async function loadHistory() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        setHistoryLoaded(true);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("ai_coach_messages")
+        .select("id, role, content, created_at")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: true })
+        .limit(MAX_HISTORY);
+
+      if (!error && data && data.length > 0) {
+        setMessages(
+          (data as { id: string; role: string; content: string }[]).map((row) => ({
+            id: row.id,
+            role: row.role as "user" | "assistant",
+            content: row.content,
+          }))
+        );
+      }
+      setHistoryLoaded(true);
+    }
+    loadHistory();
+  }, []);
+
+  // Scroll to bottom when history loads or new messages arrive
+  useEffect(() => {
+    if (historyLoaded) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, historyLoaded]);
 
   // Load trades when data mode is activated
   useEffect(() => {
@@ -126,10 +170,33 @@ export default function AICoachPage() {
     return formatPsychologyProfile(trades);
   }, [trades]);
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // Save a message to Supabase
+  const saveMessage = useCallback(async (role: "user" | "assistant", content: string): Promise<string | undefined> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return undefined;
+    const { data, error } = await supabase
+      .from("ai_coach_messages")
+      .insert({ user_id: session.user.id, role, content })
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      console.warn("[ai-coach] save message error:", error.message);
+      return undefined;
+    }
+    return (data as { id: string } | null)?.id ?? undefined;
+  }, []);
+
+  // Clear chat history
+  const clearHistory = useCallback(async () => {
+    if (isStreaming) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return;
+    await supabase
+      .from("ai_coach_messages")
+      .delete()
+      .eq("user_id", session.user.id);
+    setMessages([]);
+  }, [isStreaming]);
 
   const sendMessage = useCallback(async (text: string, type?: "session" | "weekly" | "chat") => {
     if (!activeAccountId || isStreaming || quotaExhausted) return;
@@ -140,11 +207,26 @@ export default function AICoachPage() {
     setMessages(newMessages);
     setIsStreaming(true);
 
+    // Save user message to DB
+    const userMsgId = await saveMessage("user", text);
+    if (userMsgId) {
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastUserIdx = updated.length - 1;
+        if (updated[lastUserIdx]?.role === "user") {
+          updated[lastUserIdx] = { ...updated[lastUserIdx], id: userMsgId };
+        }
+        return updated;
+      });
+    }
+
     // Optimistically add assistant placeholder
     setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     const controller = new AbortController();
     abortRef.current = controller;
+
+    let fullAssistantContent = "";
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -192,15 +274,18 @@ export default function AICoachPage() {
           try {
             const parsed = JSON.parse(data) as { error?: string; text?: string };
             if (parsed.error) {
+              const errorText = `\n\n_Erro: ${parsed.error}_`;
+              fullAssistantContent += errorText;
               setMessages((prev) => {
                 const updated = [...prev];
                 updated[updated.length - 1] = {
                   role: "assistant",
-                  content: updated[updated.length - 1].content + `\n\n_Erro: ${parsed.error}_`,
+                  content: updated[updated.length - 1].content + errorText,
                 };
                 return updated;
               });
             } else if (parsed.text) {
+              fullAssistantContent += parsed.text;
               setMessages((prev) => {
                 const updated = [...prev];
                 updated[updated.length - 1] = {
@@ -211,6 +296,18 @@ export default function AICoachPage() {
               });
             }
           } catch {}
+        }
+      }
+
+      // Save complete assistant message to DB
+      if (fullAssistantContent) {
+        const assistantMsgId = await saveMessage("assistant", fullAssistantContent);
+        if (assistantMsgId) {
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { ...updated[updated.length - 1], id: assistantMsgId };
+            return updated;
+          });
         }
       }
 
@@ -232,17 +329,17 @@ export default function AICoachPage() {
       setIsStreaming(false);
       abortRef.current = null;
     }
-  }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType]);
+  }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType, dataMode, tradeAnalytics, saveMessage]);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      {/* Main card container — matches landing page mockup */}
+    <main className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
+      {/* Main card container — full height */}
       <div
-        className="rounded-[22px] border border-border/50 overflow-hidden"
+        className="flex flex-col flex-1 min-h-0 rounded-[22px] border border-border/50 overflow-hidden mx-4 sm:mx-6 my-4"
         style={{ backgroundColor: "hsl(var(--card))" }}
       >
         {/* ── Header bar ── */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
               <Brain className="h-4.5 w-4.5 text-blue-500" />
@@ -256,27 +353,46 @@ export default function AICoachPage() {
             </div>
           </div>
 
-          {/* Usage indicator */}
-          {usageLoaded && (
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-16 rounded-full overflow-hidden bg-muted/50">
-                <motion.div
-                  className={`h-full rounded-full ${usagePct >= 90 ? "bg-red-500" : usagePct >= 70 ? "bg-amber-500" : "bg-green-500"}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${usagePct}%` }}
-                  transition={{ duration: 0.6, ease: easeApple }}
-                />
+          <div className="flex items-center gap-3">
+            {/* Clear history button */}
+            {hasMessages && !isStreaming && (
+              <motion.button
+                type="button"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={clearHistory}
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                title="Limpar histórico"
+              >
+                <Trash2 className="h-3 w-3" />
+                <span className="hidden sm:inline">Limpar</span>
+              </motion.button>
+            )}
+
+            {/* Usage indicator */}
+            {usageLoaded && (
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-16 rounded-full overflow-hidden bg-muted/50">
+                  <motion.div
+                    className={`h-full rounded-full ${usagePct >= 90 ? "bg-red-500" : usagePct >= 70 ? "bg-amber-500" : "bg-green-500"}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${usagePct}%` }}
+                    transition={{ duration: 0.6, ease: easeApple }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground tabular-nums">
+                  {usageCount}/{limits.aiCoachMonthly}
+                </span>
               </div>
-              <span className="text-[10px] text-muted-foreground tabular-nums">
-                {usageCount}/{limits.aiCoachMonthly}
-              </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <PaywallGate requiredPlan="pro" blurContent>
         {/* ── Data sources strip ── */}
-        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border/30">
+        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border/30 shrink-0">
           <span className="text-[9px] uppercase tracking-wider text-muted-foreground shrink-0 font-medium">
             Fontes:
           </span>
@@ -297,8 +413,8 @@ export default function AICoachPage() {
           )}
         </div>
 
-        {/* ── Content area ── */}
-        <div className="flex flex-col min-h-[400px]">
+        {/* ── Content area — flex-1 to fill remaining space ── */}
+        <div className="flex flex-col flex-1 min-h-0">
           {/* No account selected */}
           {!activeAccountId && (
             <div className="flex-1 flex items-center justify-center p-8">
@@ -309,118 +425,125 @@ export default function AICoachPage() {
           )}
 
           {activeAccountId && (
-            <div className="flex flex-col flex-1">
-              {/* Quick action cards — empty state */}
-              {messages.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: easeApple }}
-                  className="flex-1 flex flex-col justify-center p-6"
-                >
-                  <p className="text-xs font-medium text-muted-foreground mb-3">Como posso ajudar?</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {QUICK_ACTIONS.map((action, i) => {
-                      const Icon = action.icon;
-                      return (
-                        <motion.button
-                          key={action.type}
-                          type="button"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.08, ease: easeApple }}
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          disabled={quotaExhausted || isStreaming}
-                          onClick={() => {
-                            setAnalysisType(action.type);
-                            if (action.prompt) {
-                              sendMessage(action.prompt, action.type);
-                            }
-                          }}
-                          className="flex flex-col items-start gap-3 rounded-2xl border border-border/40 p-4 text-left transition-all hover:border-border/80 hover:shadow-soft disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ backgroundColor: "hsl(var(--background))" }}
-                        >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                            <Icon className="h-4 w-4 text-blue-500" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">{action.title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Analisar Meus Dados section */}
-                  <div className="mt-6 border-t border-border/30 pt-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-blue-500" />
-                        <p className="text-xs font-medium text-muted-foreground">Analisar Meus Dados</p>
-                      </div>
-                      {!dataMode && (
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setDataMode(true)}
-                          className="rounded-full bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
-                        >
-                          Ativar
-                        </motion.button>
-                      )}
-                      {dataMode && (
-                        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                          {tradesLoaded ? `${trades.length} trades carregados` : "Carregando..."}
-                        </span>
-                      )}
+            <div className="flex flex-col flex-1 min-h-0">
+              {/* Empty state — quick actions (large cards) */}
+              <AnimatePresence mode="wait">
+                {!hasMessages && historyLoaded && (
+                  <motion.div
+                    key="empty-state"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.4, ease: easeApple }}
+                    className="flex-1 flex flex-col justify-center p-6 overflow-y-auto"
+                  >
+                    <p className="text-xs font-medium text-muted-foreground mb-3">Como posso ajudar?</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {QUICK_ACTIONS.map((action, i) => {
+                        const Icon = action.icon;
+                        return (
+                          <motion.button
+                            key={action.type}
+                            type="button"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: i * 0.08, ease: easeApple }}
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            disabled={quotaExhausted || isStreaming}
+                            onClick={() => {
+                              setAnalysisType(action.type);
+                              if (action.prompt) {
+                                sendMessage(action.prompt, action.type);
+                              }
+                            }}
+                            className="flex flex-col items-start gap-3 rounded-2xl border border-border/40 p-4 text-left transition-all hover:border-border/80 hover:shadow-soft disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ backgroundColor: "hsl(var(--background))" }}
+                          >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+                              <Icon className="h-4 w-4 text-blue-500" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{action.title}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                            </div>
+                          </motion.button>
+                        );
+                      })}
                     </div>
 
-                    {dataMode && tradesLoaded && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, ease: easeApple }}
-                        className="flex flex-wrap gap-2"
-                      >
-                        {INSIGHT_BUTTONS.map((btn, i) => {
-                          const Icon = btn.icon;
-                          return (
-                            <motion.button
-                              key={i}
-                              type="button"
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: 0.2, delay: i * 0.05, ease: easeApple }}
-                              whileHover={{ scale: 1.03 }}
-                              whileTap={{ scale: 0.97 }}
-                              disabled={quotaExhausted || isStreaming}
-                              onClick={() => {
-                                setAnalysisType("chat");
-                                sendMessage(btn.prompt, "chat");
-                              }}
-                              className="flex items-center gap-1.5 rounded-full border border-border/40 px-3 py-1.5 text-[11px] font-medium text-foreground hover:border-blue-300 hover:bg-blue-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                              style={{ backgroundColor: "hsl(var(--background))" }}
-                            >
-                              <Icon className="h-3 w-3 text-blue-500" />
-                              {btn.label}
-                            </motion.button>
-                          );
-                        })}
-                      </motion.div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
+                    {/* Analisar Meus Dados section */}
+                    <div className="mt-6 border-t border-border/30 pt-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-blue-500" />
+                          <p className="text-xs font-medium text-muted-foreground">Analisar Meus Dados</p>
+                        </div>
+                        {!dataMode && (
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setDataMode(true)}
+                            className="rounded-full bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
+                          >
+                            Ativar
+                          </motion.button>
+                        )}
+                        {dataMode && (
+                          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                            {tradesLoaded ? `${trades.length} trades carregados` : "Carregando..."}
+                          </span>
+                        )}
+                      </div>
 
-              {/* Messages */}
-              {messages.length > 0 && (
-                <div className="flex-1 space-y-4 p-5 overflow-y-auto max-h-[55vh]">
+                      {dataMode && tradesLoaded && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, ease: easeApple }}
+                          className="flex flex-wrap gap-2"
+                        >
+                          {INSIGHT_BUTTONS.map((btn, i) => {
+                            const Icon = btn.icon;
+                            return (
+                              <motion.button
+                                key={i}
+                                type="button"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.2, delay: i * 0.05, ease: easeApple }}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                disabled={quotaExhausted || isStreaming}
+                                onClick={() => {
+                                  setAnalysisType("chat");
+                                  sendMessage(btn.prompt, "chat");
+                                }}
+                                className="flex items-center gap-1.5 rounded-full border border-border/40 px-3 py-1.5 text-[11px] font-medium text-foreground hover:border-blue-300 hover:bg-blue-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{ backgroundColor: "hsl(var(--background))" }}
+                              >
+                                <Icon className="h-3 w-3 text-blue-500" />
+                                {btn.label}
+                              </motion.button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Messages area — scrollable */}
+              {hasMessages && (
+                <div
+                  ref={chatContainerRef}
+                  className="flex-1 space-y-4 p-5 overflow-y-auto min-h-0"
+                >
                   {messages.map((msg, i) => (
                     <ChatMessage
-                      key={i}
+                      key={msg.id ?? `msg-${i}`}
                       role={msg.role}
                       content={msg.content}
                       isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
@@ -430,9 +553,35 @@ export default function AICoachPage() {
                 </div>
               )}
 
+              {/* Compact shortcut buttons — shown when conversation is active */}
+              {hasMessages && !quotaExhausted && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: easeApple }}
+                  className="flex items-center gap-1.5 px-4 pt-2 pb-1 overflow-x-auto shrink-0"
+                >
+                  {INSIGHT_BUTTONS.map((btn, i) => {
+                    const Icon = btn.icon;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        disabled={isStreaming}
+                        onClick={() => sendMessage(btn.prompt, "chat")}
+                        className="flex items-center gap-1 shrink-0 rounded-full border border-border/30 px-2.5 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:border-blue-300 hover:bg-blue-500/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Icon className="h-2.5 w-2.5 text-blue-500" />
+                        {btn.label}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+
               {/* Quota exhausted */}
               {quotaExhausted && (
-                <div className="flex flex-col items-center gap-3 p-6 border-t border-border/30">
+                <div className="flex flex-col items-center gap-3 p-6 border-t border-border/30 shrink-0">
                   <p className="text-sm text-foreground text-center">
                     Você usou todas as {limits.aiCoachMonthly} análises do plano {plan}.
                   </p>
@@ -445,8 +594,8 @@ export default function AICoachPage() {
                 </div>
               )}
 
-              {/* Chat input — inside card */}
-              <div className="border-t border-border/30 p-4">
+              {/* Chat input — pinned at bottom */}
+              <div className="border-t border-border/30 p-4 shrink-0">
                 <ChatInput
                   onSubmit={(text) => sendMessage(text)}
                   disabled={quotaExhausted || isStreaming}
