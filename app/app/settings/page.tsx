@@ -9,7 +9,7 @@ import { useSubscription } from "@/components/context/SubscriptionContext";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/lib/supabase/client";
-import { getMyProfile } from "@/lib/profile";
+import { getMyProfile, upsertMyProfileDisplayName } from "@/lib/profile";
 import {
   Loader2,
   Save,
@@ -98,16 +98,12 @@ export default function SettingsPage() {
     setSaving(true);
     setSaveMsg(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error("Sessão expirada");
-      const { error } = await supabase
-        .from("profiles")
-        .update({ display_name: displayName.trim() })
-        .eq("id", session.user.id);
-      if (error) throw error;
-      setSaveMsg({ type: "success", text: "Perfil salvo com sucesso!" });
+      const { error } = await upsertMyProfileDisplayName(displayName);
+      if (error) {
+        setSaveMsg({ type: "error", text: error.message });
+      } else {
+        setSaveMsg({ type: "success", text: "Perfil salvo com sucesso!" });
+      }
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Erro ao salvar perfil";
