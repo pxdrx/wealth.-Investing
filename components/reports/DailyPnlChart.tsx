@@ -15,7 +15,8 @@ export function DailyPnlChart({ data }: DailyPnlChartProps) {
       className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
-      <h3 className="text-sm font-semibold mb-4">P&L Diario</h3>
+      <h3 className="text-sm font-semibold">P&L Diário</h3>
+      <p className="text-xs text-muted-foreground mb-4">Resultado líquido por dia de operação</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />

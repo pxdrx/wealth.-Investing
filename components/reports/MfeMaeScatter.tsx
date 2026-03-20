@@ -74,12 +74,15 @@ export function MfeMaeScatter({ trades, type }: MfeMaeScatterProps) {
       className="rounded-[22px] p-5 isolate"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold">{title}</h3>
         <span className="text-[10px] text-muted-foreground rounded-full px-2 py-0.5 bg-muted/50">
           {totalWithData} de {totalTrades} trades com dados
         </span>
       </div>
+      <p className="text-xs text-muted-foreground mb-4">
+        {type === "mae-vs-pnl" ? "Relação entre a pior excursão adversa e o resultado final" : "Relação entre a melhor excursão favorável e o resultado final"}
+      </p>
       <ResponsiveContainer width="100%" height={300}>
         <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
@@ -185,12 +188,13 @@ export function ExitEfficiencyChart({ trades }: ExitEfficiencyChartProps) {
       className="rounded-[22px] p-5 isolate"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold">Exit Efficiency (P&L / MFE)</h3>
         <span className="text-[10px] text-muted-foreground rounded-full px-2 py-0.5 bg-muted/50">
-          Media: {avgEfficiency.toFixed(1)}%
+          Média: {avgEfficiency.toFixed(1)}%
         </span>
       </div>
+      <p className="text-xs text-muted-foreground mb-4">Quanto do movimento favorável você capturou em cada trade</p>
       <ResponsiveContainer width="100%" height={250}>
         <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
@@ -289,8 +293,8 @@ export function MfeMaeDistribution({ trades }: MfeMaeDistributionProps) {
       className="rounded-[22px] p-5 isolate"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold">Distribuicao MFE vs MAE</h3>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-semibold">Distribuição MFE vs MAE</h3>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> MFE
@@ -300,6 +304,7 @@ export function MfeMaeDistribution({ trades }: MfeMaeDistributionProps) {
           </span>
         </div>
       </div>
+      <p className="text-xs text-muted-foreground mb-4">Comparação entre ganho máximo potencial e perda máxima por trade</p>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data} margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />

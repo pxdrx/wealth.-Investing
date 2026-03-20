@@ -15,7 +15,8 @@ export function DrawdownChart({ data }: DrawdownChartProps) {
       className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
-      <h3 className="text-sm font-semibold mb-4">Drawdown</h3>
+      <h3 className="text-sm font-semibold">Drawdown</h3>
+      <p className="text-xs text-muted-foreground mb-4">Queda percentual a partir do pico de equity</p>
       <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={data}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />

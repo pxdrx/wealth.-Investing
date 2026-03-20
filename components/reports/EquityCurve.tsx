@@ -15,7 +15,8 @@ export function EquityCurve({ data }: EquityCurveProps) {
       className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
-      <h3 className="text-sm font-semibold mb-4">Curva de Equity</h3>
+      <h3 className="text-sm font-semibold">Curva de Equity</h3>
+      <p className="text-xs text-muted-foreground mb-4">Evolução acumulada do P&L ao longo do tempo</p>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />

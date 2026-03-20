@@ -37,7 +37,8 @@ export function SymbolBreakdown({ data }: SymbolBreakdownProps) {
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold mb-4">Por Ativo</h3>
+      <h3 className="text-sm font-semibold">Por Ativo</h3>
+      <p className="text-xs text-muted-foreground mb-4">P&L e win rate agrupados por instrumento</p>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={data.slice(0, 10)} layout="vertical">
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
@@ -72,7 +73,8 @@ export function DirectionBreakdown({ data }: DirectionBreakdownProps) {
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold mb-4">Por Direcao</h3>
+      <h3 className="text-sm font-semibold">Por Direção</h3>
+      <p className="text-xs text-muted-foreground mb-4">Comparativo de performance entre compras e vendas</p>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie
@@ -108,7 +110,8 @@ export function DayOfWeekBreakdown({ data }: DayOfWeekBreakdownProps) {
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold mb-4">Por Dia da Semana</h3>
+      <h3 className="text-sm font-semibold">Por Dia da Semana</h3>
+      <p className="text-xs text-muted-foreground mb-4">Seus melhores e piores dias para operar</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
@@ -137,7 +140,8 @@ export function SessionBreakdown({ data }: SessionBreakdownProps) {
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold mb-4">Por Sessao</h3>
+      <h3 className="text-sm font-semibold">Por Sessão</h3>
+      <p className="text-xs text-muted-foreground mb-4">Performance por sessão de mercado (Tokyo, London, NY)</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
@@ -168,7 +172,8 @@ export function HourHeatmap({ data }: HourHeatmapProps) {
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold mb-4">Por Hora (UTC)</h3>
+      <h3 className="text-sm font-semibold">Por Hora (UTC)</h3>
+      <p className="text-xs text-muted-foreground mb-4">Distribuição de trades e P&L por hora do dia</p>
       <div className="flex flex-wrap gap-1">
         {Array.from({ length: 24 }, (_, h) => {
           const item = data.find((d) => d.hour === h);

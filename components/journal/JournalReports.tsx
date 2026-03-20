@@ -220,6 +220,10 @@ export function JournalReports() {
           {tab === "overview" && (
             <div className="space-y-6">
               {/* KPI Grid */}
+              <div>
+                <h3 className="text-sm font-semibold">Métricas Principais</h3>
+                <p className="text-xs text-muted-foreground mb-3">Indicadores-chave da sua performance no período</p>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <MetricCard label="P&L Líquido" value={analytics.netPnl} format="currency" colorize />
                 <MetricCard label="Win Rate" value={analytics.winRate} format="percent" />
@@ -236,6 +240,10 @@ export function JournalReports() {
               </div>
 
               {/* Streaks */}
+              <div>
+                <h3 className="text-sm font-semibold">Sequências</h3>
+                <p className="text-xs text-muted-foreground mb-3">Série atual e recordes de vitórias e derrotas consecutivas</p>
+              </div>
               <div className="grid grid-cols-3 gap-4">
                 <MetricCard label="Streak Atual" value={analytics.streaks.current} format="number" colorize />
                 <MetricCard label="Maior Sequência Wins" value={analytics.streaks.longestWin} format="number" />
