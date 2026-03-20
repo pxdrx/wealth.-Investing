@@ -14,11 +14,8 @@ import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 
 const navLinks = [
   { href: "/app", label: "Dashboard" },
-  { href: "/app/wallet", label: "Wallet" },
-  { href: "/app/alerts", label: "Alerts" },
   { href: "/app/macro", label: "Macro" },
   { href: "/app/journal", label: "Journal" },
-  { href: "/app/reports", label: "Relatórios" },
   { href: "/app/ai-coach", label: "AI Coach" },
   { href: "/app/pricing", label: "Planos" },
 ];

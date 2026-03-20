@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, Upload, Eye, EyeOff } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
@@ -20,6 +20,7 @@ import type { JournalTradeRow, PeriodFilter } from "@/components/journal/types";
 import { computeTiltmeter } from "@/lib/psychology-tags";
 import { TiltmeterGauge } from "@/components/dashboard/TiltmeterGauge";
 import { usePrivacy } from "@/components/context/PrivacyContext";
+import { JournalReports } from "@/components/journal/JournalReports";
 
 type ImportFlowState = "idle" | "previewing" | "importing" | "done";
 
@@ -53,13 +54,15 @@ interface ImportResultData {
 const tabs = [
   { title: "Visão Geral", icon: LayoutDashboard },
   { title: "Trades", icon: TrendingUp },
+  { title: "Relatórios", icon: BarChart3 },
   { type: "separator" as const },
   { title: "Importar MT5", icon: Upload },
 ];
 
 const SECTION_OVERVIEW = 0;
 const SECTION_TRADES = 1;
-const SECTION_IMPORT = 3;
+const SECTION_REPORTS = 2;
+const SECTION_IMPORT = 4;
 
 export default function JournalPage() {
   const { activeAccountId, isLoading: accountsLoading } = useActiveAccount();
@@ -531,6 +534,9 @@ export default function JournalPage() {
             )}
             {activeTab === SECTION_TRADES && (
               <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
+            )}
+            {activeTab === SECTION_REPORTS && (
+              <JournalReports />
             )}
           </motion.div>
         </AnimatePresence>

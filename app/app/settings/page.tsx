@@ -55,6 +55,7 @@ export default function SettingsPage() {
 
   // ── Dashboard layout ──
   const [dashLayout, setDashLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT);
+  const [dashLayoutLoaded, setDashLayoutLoaded] = useState(false);
   const [dashSaving, setDashSaving] = useState(false);
   const [dashMsg, setDashMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -70,17 +71,37 @@ export default function SettingsPage() {
         if (!mounted) return;
         if (profile) {
           setDisplayName(profile.display_name ?? "");
-          if (profile.dashboard_layout) {
-            setDashLayout(mergeLayout(profile.dashboard_layout));
-          } else if (session?.user?.id) {
-            // Fallback: load from localStorage
+        }
+        if (session?.user?.email) setEmail(session.user.email);
+
+        // Load dashboard layout: DB first, then localStorage fallback
+        // This mirrors the exact same logic used in app/app/page.tsx (Dashboard)
+        let layoutLoaded = false;
+        if (session?.user?.id) {
+          try {
+            const { data: layoutProfile } = await supabase
+              .from("profiles")
+              .select("dashboard_layout")
+              .eq("id", session.user.id)
+              .maybeSingle();
+            if (!mounted) return;
+            if (layoutProfile?.dashboard_layout) {
+              setDashLayout(mergeLayout(layoutProfile.dashboard_layout as DashboardLayout));
+              layoutLoaded = true;
+            }
+          } catch {}
+          if (!layoutLoaded && !mounted) return;
+          if (!layoutLoaded) {
             try {
               const stored = localStorage.getItem(`wealth-dash-layout-${session.user.id}`);
-              if (stored) setDashLayout(mergeLayout(JSON.parse(stored)));
+              if (stored) {
+                setDashLayout(mergeLayout(JSON.parse(stored)));
+                layoutLoaded = true;
+              }
             } catch {}
           }
         }
-        if (session?.user?.email) setEmail(session.user.email);
+        if (mounted) setDashLayoutLoaded(true);
       } catch (err) {
         console.error("[settings] failed to load profile:", err);
       } finally {

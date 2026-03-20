@@ -332,10 +332,10 @@ export default function AICoachPage() {
   }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType, dataMode, tradeAnalytics, saveMessage]);
 
   return (
-    <main className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
+    <main className="flex flex-col px-4 sm:px-6" style={{ height: "calc(100vh - 64px)" }}>
       {/* Main card container — full height */}
       <div
-        className="flex flex-col flex-1 min-h-0 rounded-[22px] border border-border/50 overflow-hidden mx-4 sm:mx-6 my-4"
+        className="flex flex-col flex-1 min-h-0 rounded-[22px] border border-border/50 overflow-hidden my-4 w-full max-w-2xl mx-auto"
         style={{ backgroundColor: "hsl(var(--card))" }}
       >
         {/* ── Header bar ── */}

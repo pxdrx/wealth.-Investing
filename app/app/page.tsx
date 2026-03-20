@@ -125,6 +125,30 @@ export default function DashboardPage() {
 
   const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT);
 
+  // Re-fetch trigger: increments when the page regains visibility (e.g. SPA nav back)
+  const [refreshKey, setRefreshKey] = useState(0);
+  const initialLoadDone = useRef(false);
+
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible" && initialLoadDone.current) {
+        setRefreshKey((k) => k + 1);
+      }
+    }
+    // Also listen for focus, which fires on SPA navigation back
+    function handleFocus() {
+      if (initialLoadDone.current) {
+        setRefreshKey((k) => k + 1);
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -138,17 +162,19 @@ export default function DashboardPage() {
         setUserId(null);
         return;
       }
-      setUserId(session?.user?.id ?? null);
+      const uid = session?.user?.id ?? null;
+      setUserId(uid);
       setSessionChecked(true);
+      initialLoadDone.current = true;
 
       // Load dashboard layout from profile (DB first, localStorage fallback)
-      if (session?.user?.id) {
+      if (uid) {
         let loaded = false;
         try {
           const { data: profile } = await supabase
             .from("profiles")
             .select("dashboard_layout")
-            .eq("id", session.user.id)
+            .eq("id", uid)
             .maybeSingle();
           if (!cancelled && profile?.dashboard_layout) {
             setDashboardLayout(mergeLayout(profile.dashboard_layout as DashboardLayout));
@@ -157,7 +183,7 @@ export default function DashboardPage() {
         } catch {}
         if (!loaded && !cancelled) {
           try {
-            const stored = localStorage.getItem(`wealth-dash-layout-${session.user.id}`);
+            const stored = localStorage.getItem(`wealth-dash-layout-${uid}`);
             if (stored) setDashboardLayout(mergeLayout(JSON.parse(stored)));
           } catch {}
         }
@@ -166,7 +192,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     if (!userId) {
@@ -839,6 +865,12 @@ function NewsWidget({
 function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
   const result = useMemo(() => computeTiltmeter(trades), [trades]);
 
+  const zoneDescription = result.zone === "green"
+    ? "Seu estado emocional est\u00e1 positivo com base nos \u00faltimos trades."
+    : result.zone === "red"
+      ? "Sinais de tilt detectados. Considere uma pausa."
+      : "Viés emocional neutro nos \u00faltimos trades.";
+
   return (
     <div
       className="rounded-[22px] border overflow-hidden"
@@ -847,14 +879,30 @@ function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
         backgroundColor: "hsl(var(--card))",
       }}
     >
-      <div className="flex items-center gap-3 px-4 py-3">
-        <TiltmeterGauge result={result} size="sm" />
+      <div
+        className="flex items-center justify-between px-5 py-3.5 border-b"
+        style={{ borderColor: "hsl(var(--border))" }}
+      >
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
             Tiltmeter
           </h3>
-          <p className="text-[10px] text-muted-foreground capitalize">
-            {result.label}
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Vi\u00e9s emocional baseado nos seus \u00faltimos trades
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-4 px-5 py-4">
+        <TiltmeterGauge result={result} size="sm" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground">
+            Tilt: {result.label}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+            {zoneDescription}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Escala: -1 (tilt) a +1 (focado)
           </p>
         </div>
       </div>
