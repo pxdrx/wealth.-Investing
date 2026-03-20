@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   Card,
   CardContent,
@@ -24,15 +25,8 @@ import {
 } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { usePrivacy } from "@/components/context/PrivacyContext";
-import { CalendarPnl } from "@/components/calendar/CalendarPnl";
-import { JournalBriefing } from "@/components/dashboard/JournalBriefing";
-import { AccountsOverview } from "@/components/dashboard/AccountsOverview";
 import { PaywallGate } from "@/components/billing/PaywallGate";
-import { EquityCurveMini } from "@/components/dashboard/EquityCurveMini";
-import { SessionHeatmap } from "@/components/dashboard/SessionHeatmap";
-import { TiltmeterGauge } from "@/components/dashboard/TiltmeterGauge";
 import {
-  WidgetRenderer,
   DEFAULT_LAYOUT,
   mergeLayout,
   type DashboardLayout,
@@ -44,8 +38,45 @@ import type { JournalTradeRow } from "@/components/journal/types";
 import { supabase } from "@/lib/supabase/client";
 import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
-import { MacroWidgetBriefing } from "@/components/macro/MacroWidgetBriefing";
-import { MacroWidgetEvents } from "@/components/macro/MacroWidgetEvents";
+import { useTheme } from "@/components/theme-provider";
+
+// ── Dynamic imports for heavy components (perf: code-split) ──
+const CalendarPnl = dynamic(
+  () => import("@/components/calendar/CalendarPnl").then((m) => ({ default: m.CalendarPnl })),
+  { ssr: false, loading: () => <div className="h-[320px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const JournalBriefing = dynamic(
+  () => import("@/components/dashboard/JournalBriefing").then((m) => ({ default: m.JournalBriefing })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const AccountsOverview = dynamic(
+  () => import("@/components/dashboard/AccountsOverview").then((m) => ({ default: m.AccountsOverview })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const EquityCurveMini = dynamic(
+  () => import("@/components/dashboard/EquityCurveMini").then((m) => ({ default: m.EquityCurveMini })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const SessionHeatmap = dynamic(
+  () => import("@/components/dashboard/SessionHeatmap").then((m) => ({ default: m.SessionHeatmap })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const TiltmeterGauge = dynamic(
+  () => import("@/components/dashboard/TiltmeterGauge").then((m) => ({ default: m.TiltmeterGauge })),
+  { ssr: false, loading: () => <div className="h-[120px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const WidgetRenderer = dynamic(
+  () => import("@/components/dashboard/WidgetRenderer").then((m) => ({ default: m.WidgetRenderer })),
+  { ssr: false, loading: () => <div className="h-[400px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const MacroWidgetBriefing = dynamic(
+  () => import("@/components/macro/MacroWidgetBriefing").then((m) => ({ default: m.MacroWidgetBriefing })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const MacroWidgetEvents = dynamic(
+  () => import("@/components/macro/MacroWidgetEvents").then((m) => ({ default: m.MacroWidgetEvents })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
 
 type JournalTradeKpiRow = {
   id: string;
@@ -454,6 +485,8 @@ function DashboardContent({
 }) {
   const { hidden, toggle } = usePrivacy();
   const [chartExpanded, setChartExpanded] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const tvTheme = resolvedTheme === "dark" ? "dark" : "light";
 
   if (journalLoading) {
     return <DashboardSkeleton />;
@@ -492,6 +525,7 @@ function DashboardContent({
             style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
           >
             <iframe
+              key={`ticker-${tvTheme}`}
               src={
                 "https://s.tradingview.com/embed-widget/ticker-tape/?locale=br#" +
                 encodeURIComponent(
@@ -512,7 +546,7 @@ function DashboardContent({
                     showSymbolLogo: true,
                     isTransparent: true,
                     displayMode: "adaptive",
-                    colorTheme: "light",
+                    colorTheme: tvTheme,
                   }),
                 )
               }
@@ -545,12 +579,13 @@ function DashboardContent({
             {chartExpanded && (
               iframeVisible ? (
                 <iframe
+                  key={`chart-${tvTheme}`}
                   src={
                     "https://s.tradingview.com/widgetembed/?frameElementId=tradingview_advanced&symbol=FX%3AEURUSD&interval=60" +
                     "&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6" +
                     "&hide_legend=0&hide_volume=0" +
                     "&studies=%5B%22MAExp%4050%22%2C%22MAExp%40200%22%5D" +
-                    "&theme=light&style=1&timezone=America%2FSao_Paulo" +
+                    `&theme=${tvTheme}&style=1&timezone=America%2FSao_Paulo` +
                     "&withdateranges=1&allow_symbol_change=1" +
                     "&watchlist=FX%3AEURUSD%2CFX%3AGBPUSD%2CFX%3AUSDJPY%2CFX%3AUSDCAD%2COANDA%3AXAUUSD%2CCOINBASE%3ABTCUSD%2CPEPPERSTONE%3ANAS100%2CPEPPERSTONE%3AUS500" +
                     "&details=1&calendar=1&hotlist=1" +
