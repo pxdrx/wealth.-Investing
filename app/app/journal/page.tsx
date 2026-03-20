@@ -151,9 +151,14 @@ export default function JournalPage() {
   async function handleFileSelected(file: File) {
     if (!activeAccountId) return;
     setImportError(null);
+    setPreviewData(null);
     setIsImportLoading(true);
     setImportFlowState("previewing");
     setPendingFile(file);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30s timeout for preview
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -164,11 +169,24 @@ export default function JournalPage() {
       const formData = new FormData();
       formData.set("file", file);
       formData.set("accountId", activeAccountId);
-      const res = await fetch("/api/journal/import-mt5?preview=true", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: formData,
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/journal/import-mt5?preview=true", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: formData,
+          signal: controller.signal,
+        });
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        if (fetchErr instanceof DOMException && fetchErr.name === "AbortError") {
+          setImportError("Preview excedeu o tempo limite (30s). Tente com um arquivo menor.");
+          setImportFlowState("idle");
+          return;
+        }
+        throw fetchErr;
+      }
+      clearTimeout(timeoutId);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setImportError(data.error || `Erro ${res.status}`);
@@ -177,6 +195,11 @@ export default function JournalPage() {
       }
       // Map API preview response to PreviewData shape
       const rawTrades = (data.preview_trades ?? data.trades ?? []) as Array<Record<string, unknown>>;
+      if (rawTrades.length === 0 && !data.trades_found) {
+        setImportError("Nenhum trade encontrado no arquivo. Verifique se é um relatório MT5 válido.");
+        setImportFlowState("idle");
+        return;
+      }
       const previewTrades: PreviewTrade[] = rawTrades.map((t) => ({
         symbol: String(t.symbol ?? ""),
         direction: (t.direction === "sell" ? "sell" : "buy") as "buy" | "sell",
@@ -188,14 +211,19 @@ export default function JournalPage() {
           try { return new Date(String(raw)).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); } catch { return String(raw).slice(0, 10); }
         })(),
       }));
-      setPreviewData({
+      const preview: PreviewData = {
         fileName: file.name,
         totalTrades: data.trades_found ?? rawTrades.length,
         payouts: data.payouts_detected ?? 0,
         trades: previewTrades,
         raw: data as Record<string, unknown>,
-      });
+      };
+      setPreviewData(preview);
+      // Ensure loading is cleared AFTER preview data is set to avoid blank state
+      setIsImportLoading(false);
+      return; // skip the finally setIsImportLoading since we already set it
     } catch (e) {
+      clearTimeout(timeoutId);
       setImportError(e instanceof Error ? e.message : "Falha ao fazer preview");
       setImportFlowState("idle");
     } finally {
@@ -392,12 +420,25 @@ export default function JournalPage() {
                 />
               )}
 
-              {importFlowState === "previewing" && isImportLoading && !previewData && (
+              {importFlowState === "previewing" && !previewData && (
                 <div className="space-y-2 py-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    Analisando arquivo...
-                  </div>
+                  {isImportLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Analisando arquivo...
+                    </div>
+                  ) : (
+                    /* Fallback: stuck in previewing without data — reset to idle */
+                    <div className="text-center py-4 space-y-2">
+                      <p className="text-sm text-muted-foreground">Não foi possível gerar o preview.</p>
+                      <button
+                        onClick={handleImportReset}
+                        className="text-xs px-4 py-1.5 rounded-lg border border-primary/30 text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                      >
+                        Tentar novamente
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
