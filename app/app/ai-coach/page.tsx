@@ -333,10 +333,10 @@ export default function AICoachPage() {
 
   return (
     <main className="flex flex-col px-4 sm:px-6" style={{ height: "calc(100vh - 64px)" }}>
-      {/* Main card container — full height */}
+      {/* Main card container — full height, widened for better UX */}
       <div
-        className="flex flex-col flex-1 min-h-0 rounded-[22px] border border-border/50 overflow-hidden my-4 w-full max-w-2xl mx-auto"
-        style={{ backgroundColor: "hsl(var(--card))" }}
+        className="flex flex-col flex-1 min-h-0 rounded-[28px] border border-white/10 dark:border-white/5 overflow-hidden my-4 w-full max-w-4xl mx-auto shadow-[0_20px_60px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
+        style={{ backgroundColor: "hsl(var(--card) / 0.75)" }}
       >
         {/* ── Header bar ── */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30 shrink-0">

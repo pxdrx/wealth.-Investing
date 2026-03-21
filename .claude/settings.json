@@ -7,6 +7,8 @@
     "ralph-skills@ralph-marketplace": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true,
     "context-mode@context-mode": true,
-    "obsidian@obsidian-skills": true
+    "obsidian@obsidian-skills": true,
+    "security-guidance@claude-plugins-official": true,
+    "supabase@claude-plugins-official": true
   }
 }

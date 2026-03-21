@@ -79,7 +79,10 @@
       "mcp__playwright__browser_install",
       "mcp__plugin_context-mode_context-mode__ctx_execute_file",
       "mcp__plugin_claude-mem_mcp-search__search",
-      "mcp__plugin_claude-mem_mcp-search__get_observations"
+      "mcp__plugin_claude-mem_mcp-search__get_observations",
+      "mcp__plugin_supabase_supabase__list_projects",
+      "mcp__plugin_supabase_supabase__get_advisors",
+      "mcp__plugin_supabase_supabase__execute_sql"
     ]
   },
   "enableAllProjectMcpServers": true,

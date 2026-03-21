@@ -38,25 +38,30 @@ export function ChatInput({ onSubmit, disabled, placeholder }: ChatInputProps) {
   );
 
   return (
-    <div className="flex items-end gap-2 rounded-2xl border border-border/40 px-4 py-3 transition-colors focus-within:border-blue-500/50 bg-background">
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder ?? "Pergunte ao AI Coach..."}
-        disabled={disabled}
-        rows={1}
-        className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-      />
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={disabled || !text.trim()}
-        className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:bg-muted disabled:text-muted-foreground transition-colors"
-      >
-        <Send className="h-4 w-4" />
-      </button>
+    <div className="relative group mx-auto w-full max-w-[95%]">
+      {/* Glow effect behind the input */}
+      <div className="absolute -inset-1 rounded-[32px] bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-teal-500/0 opacity-0 group-focus-within:opacity-100 blur-md transition-opacity duration-500" />
+      
+      <div className="relative flex items-end gap-3 rounded-[28px] border border-white/10 dark:border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-xl px-5 py-3.5 transition-all focus-within:border-blue-500/40 focus-within:bg-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.1)]">
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder ?? "Digite sua dúvida para análise..."}
+          disabled={disabled}
+          rows={1}
+          className="flex-1 resize-none bg-transparent text-[15px] font-medium text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-50 py-1 max-h-[140px]"
+        />
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={disabled || !text.trim()}
+          className="shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-lg shadow-blue-500/30 hover:scale-105 active:scale-95 disabled:hover:scale-100 disabled:opacity-50 disabled:shadow-none transition-all"
+        >
+          <Send className="h-4.5 w-4.5" strokeWidth={2.5} />
+        </button>
+      </div>
     </div>
   );
 }

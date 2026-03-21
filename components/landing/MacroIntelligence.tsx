@@ -1,8 +1,16 @@
 "use client";
 
-import { Globe, Calendar, Newspaper } from "lucide-react";
+import { Globe, Calendar, Newspaper, AlertTriangle } from "lucide-react";
+import { motion } from "framer-motion";
 import { AnimatedSection } from "./AnimatedSection";
 import { MACRO_SECTION } from "@/lib/landing-data";
+
+const floatAnim: any = {
+  y: ["15px", "-15px"],
+  rotateZ: [2, -2],
+  rotateY: [-5, 5],
+  transition: { duration: 5, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }
+};
 
 export function MacroIntelligence() {
   const impactColor = (impact: string) => {
@@ -12,8 +20,33 @@ export function MacroIntelligence() {
   };
 
   return (
-    <section className="landing-section" aria-label="Inteligência Macro">
-      <div className="landing-container">
+    <section className="landing-section relative" aria-label="Inteligência Macro">
+      <div className="landing-container relative">
+        
+        {/* Floating Headline Widget */}
+        <motion.div
+          animate={floatAnim}
+          className="absolute -right-4 md:right-[-2%] top-[30%] hidden lg:flex flex-col w-[240px] rounded-3xl bg-gradient-to-b from-white/20 to-white/5 dark:from-white/10 dark:to-transparent border border-white/30 dark:border-white/10 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.15)] overflow-hidden -z-10 pointer-events-none opacity-70 scale-90"
+          style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-transparent opacity-60 pointer-events-none" />
+          <div className="p-4 relative text-left">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 shadow-md shadow-red-500/30">
+                <AlertTriangle className="w-4 h-4 text-white" />
+              </div>
+              <p className="text-[10px] font-semibold text-l-text-muted uppercase tracking-wide">Alerta Macro</p>
+            </div>
+            <p className="text-sm font-semibold text-l-text leading-snug">
+              FOMC Rate Decision impacta Dólar com alta volatilidade hoje.
+            </p>
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-[10px] text-l-text-muted">Ao vivo</span>
+              <span className="text-[10px] font-bold text-red-500 px-2 py-0.5 bg-red-500/10 rounded">Alto Impacto</span>
+            </div>
+          </div>
+        </motion.div>
+
         <AnimatedSection className="text-center max-w-3xl mx-auto mb-14">
           <span className="inline-block font-mono text-xs tracking-[0.15em] uppercase text-l-text-muted mb-4">
             {MACRO_SECTION.label}
