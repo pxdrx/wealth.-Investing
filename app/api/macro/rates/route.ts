@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 }
 
@@ -19,7 +19,8 @@ export async function GET() {
     .order("bank_code", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    console.error("[macro/rates]", error.message);
+    return NextResponse.json({ ok: false, error: "Failed to fetch rates data" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, data: data || [] });

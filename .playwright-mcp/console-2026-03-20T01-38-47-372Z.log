@@ -1,0 +1,65 @@
+[    1258ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://haiyyqumhhaixrcayreg.supabase.co/rest/v1/prop_accounts?select=account_id%2Cfirm_name%2Cphase%2Cstarting_balance_usd%2Cdaily_dd_limit%2Cmax_dd_limit&account_id=in.%28f5969ab6-8d24-4e07-9652-2228ee0ccb91%2C9a8e6771-670c-40b2-8616-49a8750aff9c%2C4eb80106-5ad3-4b4a-b7de-98f731ece7ae%2C412ec169-b621-4a49-a7d9-83cf68be76dd%2C4125e8fb-97dd-4cc9-a73d-b2d962ab66f3%2Ce4f4a2f2-933f-44c5-ae5d-1e6bd578be2d%29:0
+[    1266ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://haiyyqumhhaixrcayreg.supabase.co/rest/v1/prop_payouts?select=amount_usd&account_id=in.%28f5969ab6-8d24-4e07-9652-2228ee0ccb91%2C9a8e6771-670c-40b2-8616-49a8750aff9c%2C4eb80106-5ad3-4b4a-b7de-98f731ece7ae%2C412ec169-b621-4a49-a7d9-83cf68be76dd%2C4125e8fb-97dd-4cc9-a73d-b2d962ab66f3%2Ce4f4a2f2-933f-44c5-ae5d-1e6bd578be2d%29:0
+[   26011ms] [ERROR] Warning: Cannot update a component (`%s`) while rendering a different component (`%s`). To locate the bad setState() call inside `%s`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render%s DashboardPage DashboardContent DashboardContent 
+    at DashboardContent (webpack-internal:///(app-pages-browser)/./app/app/page.tsx:613:11)
+    at DashboardPage (webpack-internal:///(app-pages-browser)/./app/app/page.tsx:213:123)
+    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js:14:11)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at div
+    at PrivacyProvider (webpack-internal:///(app-pages-browser)/./components/context/PrivacyContext.tsx:20:11)
+    at AuthGate (webpack-internal:///(app-pages-browser)/./components/auth/AuthGate.tsx:43:11)
+    at AppLayout (Server)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at main
+    at SubscriptionProvider (webpack-internal:///(app-pages-browser)/./components/context/SubscriptionContext.tsx:18:11)
+    at ActiveAccountProvider (webpack-internal:///(app-pages-browser)/./components/context/ActiveAccountContext.tsx:48:11)
+    at AppShell (webpack-internal:///(app-pages-browser)/./components/layout/AppShell.tsx:17:11)
+    at div
+    at ThemeProvider (webpack-internal:///(app-pages-browser)/./components/theme-provider.tsx:19:11)
+    at body
+    at html
+    at RootLayout (Server)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)
+    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)
+    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)
+    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)
+    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)
+    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11) @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:32
+[   27533ms] [WARNING] 2026-03-20T01:39:14.904Z:Chart.Studies.StudyInserter:Cannot get study {"type":"java","studyId":"[\"MAExp@50\",\"MAExp@200\"]"} @ https://www.tradingview-widget.com/static/bundles/embed/81152.75024089ea066b70bf3b.js:17
+[   27565ms] cannot_get_metainfo
+[   79905ms] [WARNING] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ webpack-internal:///(app-pages-browser)/./node_modules/@sentry/core/build/esm/instrument/console.js:43
+[   79905ms] [WARNING] The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ webpack-internal:///(app-pages-browser)/./node_modules/@sentry/core/build/esm/instrument/console.js:43
+[ 1494880ms] [WARNING] 2026-03-20T02:03:42.252Z:Chart.Studies.StudyInserter:Cannot get study {"type":"java","studyId":"[\"MAExp@50\",\"MAExp@200\"]"} @ https://www.tradingview-widget.com/static/bundles/embed/81152.75024089ea066b70bf3b.js:17
+[ 1494913ms] cannot_get_metainfo

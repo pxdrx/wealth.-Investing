@@ -1,0 +1,35 @@
+Traceback (most recent call last):
+  File "C:\Users\leoja\Bots\Agentes de IA\forex_bot\forexfactory-ESSENCIAL\forexfactory-dashboard\backend\scheduler.py", line 103, in <module>
+    run_scheduler()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\leoja\Bots\Agentes de IA\forex_bot\forexfactory-ESSENCIAL\forexfactory-dashboard\backend\scheduler.py", line 55, in run_scheduler
+    log("\U0001f916 MRKT Edge - Agendador Autom�tico 24/7")
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\leoja\Bots\Agentes de IA\forex_bot\forexfactory-ESSENCIAL\forexfactory-dashboard\backend\scheduler.py", line 24, in log
+    print(log_message)
+    ~~~~~^^^^^^^^^^^^^
+  File "C:\Users\leoja\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f916' in position 22: character maps to <undefined>
+[17/12/2025 17:42:48] 🤖 MRKT Edge - Agendador Automático 24/7
+[17/12/2025 17:42:48] ======================================================================
+[17/12/2025 17:42:48] ⏰ Horário: 23:00 (Brasília - America/Sao_Paulo)
+[17/12/2025 17:42:48] 
+[17/12/2025 17:42:48] 📋 Rotina diária:
+[17/12/2025 17:42:48]    1. Buscar resultados dos eventos de hoje no ForexFactory
+[17/12/2025 17:42:48]    2. Atualizar banco de dados com valores reais (actual)
+[17/12/2025 17:42:48]    3. Regenerar panorama semanal com dados atualizados
+[17/12/2025 17:42:48] 
+[17/12/2025 17:42:48] 💡 Mantenha este script rodando!
+[17/12/2025 17:42:48] ======================================================================
+[17/12/2025 17:42:48] 
+[17/12/2025 17:42:48] 🕐 Hora atual (Brasília): 17/12/2025 17:42:48
+[17/12/2025 17:42:48] 📅 Próxima execução: 17/12/2025 23:00:00 (Brasília)
+[17/12/2025 17:42:48] 
+[17/12/2025 17:42:48] 🔄 Aguardando horário agendado...
+[17/12/2025 17:42:48]    (Aperte Ctrl+C para parar)
+[17/12/2025 17:42:48] 
+[17/12/2025 20:15:46] 
+[17/12/2025 20:15:46] ⏹️  Agendador parado pelo usuário
+[17/12/2025 20:15:46] 

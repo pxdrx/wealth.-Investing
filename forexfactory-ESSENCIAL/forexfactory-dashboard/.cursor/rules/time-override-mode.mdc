@@ -1,0 +1,57 @@
+---
+description: ELIMINAÇÃO TOTAL DE TIMEZONE — Horário de evento = rótulo visual (print_time_label). Nunca valor temporal.
+globs: backend/**/*.py,frontend/**/*.jsx,frontend/**/*.tsx
+alwaysApply: false
+---
+
+# ELIMINAÇÃO TOTAL DE TIMEZONE — RÓTULO VISUAL
+
+Horário de evento **NÃO É VALOR TEMPORAL**. É **RÓTULO VISUAL**.
+
+Enquanto o sistema enxergar isso como "hora", alguém vai converter. Por isso não existe mais campo "time" no contrato.
+
+## Modelo de dados
+
+- `print_date_label`: string (ex: `"Wed Jan 28"`) — texto cru do print
+- `print_time_label`: string (ex: `"09:30"`) — texto cru do print
+- `weekday`: string (ex: `"Wednesday"`) — do mapa fixo, nunca calculado
+
+**Proibido:** `date`, `time`, `datetime`, `timestamp` no contrato de evento.
+
+## Ingestão — texto cru do print
+
+Não extrair "hora". Extrair **TEXTO**.
+
+- `print_date_label = "Wed Jan 28"`
+- `print_time_label = "09:30"`
+- Nenhum parse. Nenhum split. Nenhuma validação temporal.
+
+## Filtro por dia — sem data
+
+Usar mapa fixo (`PRINT_DATE_LABEL_TO_WEEKDAY`). O evento já nasce com `weekday = "Wednesday"`. Nunca calcular a partir de data.
+
+## Renderização — texto puro
+
+Na UI:
+
+```jsx
+<span>{event.print_time_label}</span>
+```
+
+Não formatar. Não localizar. Não transformar.
+
+## Atualização de resultados — intocável
+
+Resultado (actual, forecast, previous) **nunca** toca:
+
+- `print_time_label`
+- `print_date_label`
+- `weekday`
+
+Se qualquer fluxo de atualização de resultado alterar esses campos → build falha.
+
+## Regra final
+
+Enquanto existir um campo chamado "time", alguém vai tentar convertê-lo.
+
+Horário de evento é **TEXTO SEM SIGNIFICADO TEMPORAL**.

@@ -1,0 +1,38 @@
+[  659097ms] [ERROR] ./components/account/AccountSelectorInline.tsx:14:1
+Module not found: Can't resolve '@/components/account/AddAccountModal'
+  12 | } from "@/components/ui/dropdown-menu";
+  13 | import { cn } from "@/lib/utils";
+> 14 | import { AddAccountModal } from "@/components/account/AddAccountModal";
+     | ^
+  15 | import type { AccountWithProp } from "@/lib/accounts";
+  16 |
+  17 | function getAccountIcon(account: AccountWithProp) {
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/app/journal/page.tsx @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:32
+[  839543ms] [ERROR] ./components/account/AccountSelectorInline.tsx:14:1
+Module not found: Can't resolve '@/components/account/AddAccountModal'
+  12 | } from "@/components/ui/dropdown-menu";
+  13 | import { cn } from "@/lib/utils";
+> 14 | import { AddAccountModal } from "@/components/account/AddAccountModal";
+     | ^
+  15 | import type { AccountWithProp } from "@/lib/accounts";
+  16 |
+  17 | function getAccountIcon(account: AccountWithProp) {
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/app/journal/page.tsx @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:32
+[ 1876641ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[ 1876685ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[ 1876688ms] Event
+[ 2002043ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css?v=1773287779995' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[ 2002068ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css?v=1773287779995' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[ 2002087ms] Event
+[ 2264470ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css?v=1773288040943' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[ 2264571ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css?v=1773288042764' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[ 2264584ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css?v=1773288042764' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[ 2264589ms] Event

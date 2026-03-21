@@ -1,0 +1,4 @@
+[   40853ms] [ERROR] Failed to load resource: the server responded with a status of 409 () @ https://haiyyqumhhaixrcayreg.supabase.co/rest/v1/accounts?select=id:0
+[  581806ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css?v=1773624984319' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[  581874ms] [ERROR] Refused to apply style from 'http://localhost:3000/_next/static/css/app/layout.css?v=1773624984319' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ http://localhost:3000/app/journal:0
+[  581886ms] Event

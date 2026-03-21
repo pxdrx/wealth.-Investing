@@ -92,26 +92,28 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (!mounted) return;
 
-        if (!session) {
-          // No session at all — redirect to login
+        if (!user || userError) {
+          // No valid session — redirect to login
           clearSessionAndRedirect();
           return;
         }
 
+        // Get session for expiry tracking after user is verified
+        const { data: { session } } = await supabase.auth.getSession();
         // Cache current session and show content immediately
         sessionRef.current = {
-          expires_at: session.expires_at,
-          user_id: session.user.id,
+          expires_at: session?.expires_at,
+          user_id: user.id,
         };
         retriesRef.current = 0;
         if (mounted) setReady(true);
 
         // Refresh token in background if expiring soon
-        const expiresAt = session.expires_at;
+        const expiresAt = session?.expires_at;
         if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
           supabase.auth.refreshSession().then(({ data, error }) => {
             if (!mounted) return;
@@ -130,7 +132,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         // Only run bootstrap once per session
         if (!bootstrapRanRef.current) {
           bootstrapRanRef.current = true;
-          ensureDefaultAccounts(session.user.id).then((r) => {
+          ensureDefaultAccounts(user.id).then((r) => {
             if (!r.ok && typeof sessionStorage !== "undefined") {
               sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
             }
@@ -176,15 +178,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Verify session is still valid
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Verify session is still valid (server-side check)
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (!user || userErr) {
         clearSessionAndRedirect();
         return;
       }
+      const { data: { session } } = await supabase.auth.getSession();
 
       // Proactively refresh if expiring soon
-      const expiresAt = session.expires_at;
+      const expiresAt = session?.expires_at;
       if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
         const { data, error } = await supabase.auth.refreshSession();
         if (error || !data.session) {

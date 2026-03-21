@@ -1,0 +1,24 @@
+{
+  "snapshot_date": "2026-01-25",
+  "week_key": "2026-01-25_to_2026-01-31",
+  "source": "FTMO_FROZEN",
+  "symbols": [
+    "DXY",
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY",
+    "USDCHF",
+    "AUDUSD",
+    "USDCAD",
+    "XAUUSD",
+    "XAGUSD",
+    "US30",
+    "NAS100",
+    "SPX500",
+    "BTCUSD",
+    "EURJPY",
+    "GBPJPY",
+    "EURAUD",
+    "AUDJPY"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "week_key": "2026-01-25_to_2026-01-31",
+  "source": "editorial_manual",
+  "last_revision_id": "rev_001",
+  "revisions": [
+    {
+      "revision_id": "rev_001",
+      "published_at": "2026-01-28T14:05:00Z",
+      "items": [
+        {
+          "symbol": "XAUUSD",
+          "label": "Ouro (XAUUSD)",
+          "context": "Busca por proteção em cenário de incerteza e aversão a risco.",
+          "confidence": 0.85
+        },
+        {
+          "symbol": "DXY",
+          "label": "Dólar (DXY)",
+          "context": "Movimento de proteção e correlação com metais em stress macro.",
+          "confidence": 0.82
+        }
+      ]
+    }
+  ],
+  "fallback": {
+    "symbol": "DXY",
+    "label": "Dólar (DXY)"
+  }
+}

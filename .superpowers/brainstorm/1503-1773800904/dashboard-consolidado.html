@@ -1,0 +1,170 @@
+<h2>Dashboard Consolidado "Visão Geral" — Pro+</h2>
+<p class="subtitle">Tabela de contas com drawdown, equity consolidada, gating para Free users</p>
+
+<div class="section">
+  <h3>Header Consolidado</h3>
+  <div class="mockup">
+    <div class="mockup-header">Dashboard — Visão Geral (Pro+)</div>
+    <div class="mockup-body" style="background: #1a1a2e; padding: 24px;">
+      <!-- Header KPIs -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+        <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px;">
+          <p style="color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Capital Total Funded</p>
+          <p style="color: #fff; font-size: 22px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums;">$310,000</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px;">
+          <p style="color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Total Sacado</p>
+          <p style="color: #50c878; font-size: 22px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums;">$4,200</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px;">
+          <p style="color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">P&L Mês</p>
+          <p style="color: #ff6b6b; font-size: 22px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums;">-$767</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px;">
+          <p style="color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Contas Ativas</p>
+          <p style="color: #fff; font-size: 22px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums;">5</p>
+        </div>
+      </div>
+
+      <!-- Accounts Table -->
+      <div style="background: rgba(255,255,255,0.02); border-radius: 12px; overflow: hidden;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px; padding: 10px 16px; background: rgba(255,255,255,0.04); font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">
+          <span>Conta</span>
+          <span style="text-align: right;">P&L Mês</span>
+          <span style="text-align: right;">DD Diário</span>
+          <span style="text-align: right;">DD Total</span>
+          <span style="text-align: right;">Win Rate</span>
+          <span style="text-align: center;">Status</span>
+        </div>
+        <!-- Row 1 - at risk -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255,107,107,0.03);">
+          <div>
+            <span style="color: #fff; font-weight: 500;">FTMO 100k</span>
+            <span style="color: #666; font-size: 11px; margin-left: 8px;">Phase 2</span>
+          </div>
+          <span style="text-align: right; color: #ff6b6b; font-variant-numeric: tabular-nums;">-$2,340</span>
+          <div style="text-align: right;">
+            <span style="color: #ff6b6b; font-variant-numeric: tabular-nums;">4.1%</span>
+            <span style="color: #666; font-size: 10px;"> / 5%</span>
+          </div>
+          <div style="text-align: right;">
+            <span style="color: #ffc832; font-variant-numeric: tabular-nums;">7.2%</span>
+            <span style="color: #666; font-size: 10px;"> / 10%</span>
+          </div>
+          <span style="text-align: right; color: #ccc; font-variant-numeric: tabular-nums;">48%</span>
+          <div style="text-align: center;"><span style="background: rgba(255,107,107,0.15); color: #ff6b6b; padding: 2px 8px; border-radius: 4px; font-size: 10px;">⚠️ Risco</span></div>
+        </div>
+        <!-- Row 2 -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <div>
+            <span style="color: #fff; font-weight: 500;">The5ers 100k</span>
+            <span style="color: #666; font-size: 11px; margin-left: 8px;">Phase 1</span>
+          </div>
+          <span style="text-align: right; color: #ff6b6b; font-variant-numeric: tabular-nums;">-$854</span>
+          <div style="text-align: right;">
+            <span style="color: #50c878; font-variant-numeric: tabular-nums;">1.2%</span>
+            <span style="color: #666; font-size: 10px;"> / 5%</span>
+          </div>
+          <div style="text-align: right;">
+            <span style="color: #50c878; font-variant-numeric: tabular-nums;">3.1%</span>
+            <span style="color: #666; font-size: 10px;"> / 10%</span>
+          </div>
+          <span style="text-align: right; color: #ccc; font-variant-numeric: tabular-nums;">53%</span>
+          <div style="text-align: center;"><span style="background: rgba(80,200,120,0.15); color: #50c878; padding: 2px 8px; border-radius: 4px; font-size: 10px;">OK</span></div>
+        </div>
+        <!-- Row 3 -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <div>
+            <span style="color: #fff; font-weight: 500;">FTMO 110k</span>
+            <span style="color: #666; font-size: 11px; margin-left: 8px;">Phase 1</span>
+          </div>
+          <span style="text-align: right; color: #50c878; font-variant-numeric: tabular-nums;">+$1,420</span>
+          <div style="text-align: right;">
+            <span style="color: #50c878; font-variant-numeric: tabular-nums;">0.8%</span>
+            <span style="color: #666; font-size: 10px;"> / 5%</span>
+          </div>
+          <div style="text-align: right;">
+            <span style="color: #50c878; font-variant-numeric: tabular-nums;">2.4%</span>
+            <span style="color: #666; font-size: 10px;"> / 10%</span>
+          </div>
+          <span style="text-align: right; color: #ccc; font-variant-numeric: tabular-nums;">61%</span>
+          <div style="text-align: center;"><span style="background: rgba(80,200,120,0.15); color: #50c878; padding: 2px 8px; border-radius: 4px; font-size: 10px;">OK</span></div>
+        </div>
+        <!-- Row 4 - personal -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <div>
+            <span style="color: #fff; font-weight: 500;">Pessoal</span>
+            <span style="color: #666; font-size: 11px; margin-left: 8px;">Personal</span>
+          </div>
+          <span style="text-align: right; color: #50c878; font-variant-numeric: tabular-nums;">+$890</span>
+          <span style="text-align: right; color: #555;">—</span>
+          <span style="text-align: right; color: #555;">—</span>
+          <span style="text-align: right; color: #ccc; font-variant-numeric: tabular-nums;">58%</span>
+          <div style="text-align: center;"><span style="background: rgba(100,140,255,0.15); color: #648cff; padding: 2px 8px; border-radius: 4px; font-size: 10px;">Pessoal</span></div>
+        </div>
+        <!-- Row 5 - crypto -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px; padding: 12px 16px; font-size: 13px;">
+          <div>
+            <span style="color: #fff; font-weight: 500;">Cripto</span>
+            <span style="color: #666; font-size: 11px; margin-left: 8px;">Crypto</span>
+          </div>
+          <span style="text-align: right; color: #50c878; font-variant-numeric: tabular-nums;">+$117</span>
+          <span style="text-align: right; color: #555;">—</span>
+          <span style="text-align: right; color: #555;">—</span>
+          <span style="text-align: right; color: #ccc; font-variant-numeric: tabular-nums;">55%</span>
+          <div style="text-align: center;"><span style="background: rgba(255,200,50,0.15); color: #ffc832; padding: 2px 8px; border-radius: 4px; font-size: 10px;">Crypto</span></div>
+        </div>
+      </div>
+
+      <p style="color: #555; font-size: 11px; margin: 8px 0 0; text-align: right;">Ordenado por risco (drawdown mais alto primeiro)</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 32px;">
+  <h3>Paywall para Free Users</h3>
+  <div class="mockup">
+    <div class="mockup-header">Dashboard — Free user vê últimos 7 dias</div>
+    <div class="mockup-body" style="background: #1a1a2e; padding: 24px; position: relative;">
+      <!-- Blurred content -->
+      <div style="filter: blur(6px); opacity: 0.5; pointer-events: none;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px;">
+            <p style="color: #666; font-size: 11px; margin: 0;">Capital Total</p>
+            <p style="color: #fff; font-size: 20px; font-weight: 700; margin: 4px 0 0;">$310,000</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px;">
+            <p style="color: #666; font-size: 11px; margin: 0;">Total Sacado</p>
+            <p style="color: #50c878; font-size: 20px; font-weight: 700; margin: 4px 0 0;">$4,200</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px;">
+            <p style="color: #666; font-size: 11px; margin: 0;">P&L Mês</p>
+            <p style="color: #ff6b6b; font-size: 20px; font-weight: 700; margin: 4px 0 0;">-$767</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px;">
+            <p style="color: #666; font-size: 11px; margin: 0;">Contas</p>
+            <p style="color: #fff; font-size: 20px; font-weight: 700; margin: 4px 0 0;">5</p>
+          </div>
+        </div>
+      </div>
+      <!-- Paywall overlay -->
+      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26,26,46,0.95); border: 1px solid rgba(100,140,255,0.2); border-radius: 16px; padding: 32px; text-align: center; max-width: 360px; width: 90%;">
+        <div style="font-size: 32px; margin-bottom: 12px;">🔒</div>
+        <p style="color: #fff; font-size: 16px; font-weight: 600; margin: 0 0 8px;">Visão Geral das Contas</p>
+        <p style="color: #888; font-size: 13px; margin: 0 0 20px;">Consolide todas as suas contas em um painel único. Compare drawdown, P&L e performance por conta.</p>
+        <button style="background: #648cff; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">Assinar Pro — R$79,90/mês</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 32px;">
+  <h3>Posicionamento no Dashboard</h3>
+  <p>A "Visão Geral" será uma nova seção entre o calendário consolidado e o Performance card. Para Pro+ aparece completa; para Free aparece com blur + paywall.</p>
+  <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; font-size: 13px; color: #999; font-family: monospace;">
+    <p style="margin: 4px 0; color: #648cff;">▸ TradingView (ticker + chart)</p>
+    <p style="margin: 4px 0; color: #648cff;">▸ Calendário Consolidado</p>
+    <p style="margin: 4px 0; color: #50c878; font-weight: 600;">▸ Visão Geral de Contas (NOVO — Pro+)</p>
+    <p style="margin: 4px 0; color: #648cff;">▸ Performance + News (lado a lado)</p>
+  </div>
+</div>

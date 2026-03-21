@@ -1,0 +1,33 @@
+{
+  "name": "forexfactory-intelligence-frontend",
+  "version": "1.0.0",
+  "description": "Dashboard web em tempo real para análise de eventos ForexFactory",
+  "private": true,
+  "dependencies": {
+    "axios": "^1.6.0",
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.10.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.22",
+    "jsdom": "^23.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.0.7",
+    "vitest": "^1.0.4"
+  },
+  "scripts": {
+    "dev": "vite",
+    "test:backend": "cd backend && python -m pytest tests/ -v -x",
+    "test:frontend": "vitest run",
+    "build": "npm run test:backend && npm run test:frontend && vite build",
+    "preview": "vite preview",
+    "start": "vite --host"
+  }
+}

@@ -20,10 +20,21 @@ interface DuplicateDetail {
   date: string;
 }
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
+
 export async function POST(request: Request) {
   const start = Date.now();
   const url = new URL(request.url);
   const isPreview = url.searchParams.get("preview") === "true";
+
+  // H2: Reject oversized uploads before processing
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { ok: false, error: "File too large. Maximum size is 10MB." },
+      { status: 413 }
+    );
+  }
 
   const auth = request.headers.get("Authorization");
   const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -157,7 +168,7 @@ export async function POST(request: Request) {
       .eq("user_id", userId)
       .eq("kind", "personal")
       .limit(1)
-      .single();
+      .maybeSingle();
     personalAccountId = (personalRow as { id: string } | null)?.id ?? null;
 
     // Prop payouts use prop_accounts.id (prop_account_id), not accounts.id.

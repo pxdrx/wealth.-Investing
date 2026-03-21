@@ -1,0 +1,54 @@
+{
+  "week_key": "2026-01-25_to_2026-01-31",
+  "source": "editorial_manual",
+  "active_revision_id": "rev_001",
+  "revisions": [
+    {
+      "revision_id": "rev_001",
+      "published_label": "Wed Jan 28 14:05",
+      "items": [
+        {
+          "symbol": "EURUSD",
+          "label": "EURUSD",
+          "context": "FX macro: termômetro do USD vs Europa em semana de dados-chave.",
+          "exposure_bucket": "FX_MACRO",
+          "scenario_role": "mixed",
+          "correlation_group": "fx",
+          "confidence_editorial": 0.85
+        },
+        {
+          "symbol": "XAUUSD",
+          "label": "Ouro (XAUUSD)",
+          "context": "Hedge de proteção em cenário de incerteza macroeconômica.",
+          "exposure_bucket": "HEDGE",
+          "scenario_role": "benefit",
+          "correlation_group": "metals",
+          "confidence_editorial": 0.82
+        },
+        {
+          "symbol": "DXY",
+          "label": "Dólar (DXY)",
+          "context": "Proxy de liquidez e exposição ao USD em contexto de dados macro.",
+          "exposure_bucket": "USD_FUNDING",
+          "scenario_role": "uncertain",
+          "correlation_group": "usd",
+          "confidence_editorial": 0.80
+        },
+        {
+          "symbol": "US30",
+          "label": "Dow Jones (US30)",
+          "context": "Termômetro de risco e exposição a índices acionários.",
+          "exposure_bucket": "RISK_PROXY",
+          "scenario_role": "hurt",
+          "correlation_group": "equities",
+          "confidence_editorial": 0.81
+        }
+      ]
+    }
+  ],
+  "fallback": {
+    "symbol": "DXY",
+    "label": "Dólar (DXY)",
+    "context": "Fallback institucional para monitoramento."
+  }
+}

@@ -1,0 +1,297 @@
+<h2>Dashboard — Design Fiel ao Mockup</h2>
+<p class="subtitle">Layout B com estilo idêntico ao JournalMockup da landing page</p>
+
+<div style="max-width: 960px; margin: 0 auto;">
+
+  <!-- Full Dashboard Mockup -->
+  <div style="background: #f8f8fa; border-radius: 22px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 20px rgba(0,0,0,0.04); font-family: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;">
+
+    <!-- Window chrome (identical to JournalMockup) -->
+    <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid rgba(0,0,0,0.06);">
+      <div style="display: flex; gap: 6px;">
+        <div style="width: 10px; height: 10px; border-radius: 50%; background: rgba(220,60,60,0.5);"></div>
+        <div style="width: 10px; height: 10px; border-radius: 50%; background: rgba(220,160,40,0.5);"></div>
+        <div style="width: 10px; height: 10px; border-radius: 50%; background: rgba(60,130,220,0.4);"></div>
+      </div>
+      <span style="font-size: 10px; color: rgba(0,0,0,0.35); margin-left: 8px;">wealth.Investing — Dashboard</span>
+    </div>
+
+    <!-- KPI Strip (top) -->
+    <div style="padding: 16px 20px 0 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <span style="font-size: 14px; font-weight: 600; color: #1a1a1a;">Consolidado de Contas</span>
+        <span style="font-size: 11px; color: rgba(0,0,0,0.4);">Março 2026</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+        <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 10px 12px;">
+          <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">P&L Mês</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1a1a1a; margin-top: 2px;">+R$5.420</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 10px 12px;">
+          <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">Win Rate</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1a1a1a; margin-top: 2px;">63.2%</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 10px 12px;">
+          <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">Trades</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1a1a1a; margin-top: 2px;">19</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 10px 12px;">
+          <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">Dias Operados</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1a1a1a; margin-top: 2px;">12</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar + Day Detail (2-column, identical to JournalMockup) -->
+    <div style="display: flex; border-top: 1px solid rgba(0,0,0,0.06);">
+
+      <!-- Calendar Side -->
+      <div style="flex: 1; padding: 16px 20px;">
+        <!-- Month header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 13px; font-weight: 600; color: #1a1a1a;">Março 2026</span>
+            <div style="display: flex; gap: 4px;">
+              <div style="width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: rgba(0,0,0,0.4); cursor: pointer;">‹</div>
+              <div style="width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: rgba(0,0,0,0.4); cursor: pointer;">›</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.4);">P&L:</span>
+            <span style="font-size: 11px; font-weight: 600; color: #1a1a1a;">+R$5.420</span>
+          </div>
+        </div>
+
+        <!-- Day headers -->
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px;">
+          <div style="text-align: center; font-size: 9px; color: rgba(0,0,0,0.35); padding: 4px 0;">D</div>
+          <div style="text-align: center; font-size: 9px; color: rgba(0,0,0,0.35); padding: 4px 0;">S</div>
+          <div style="text-align: center; font-size: 9px; color: rgba(0,0,0,0.35); padding: 4px 0;">T</div>
+          <div style="text-align: center; font-size: 9px; color: rgba(0,0,0,0.35); padding: 4px 0;">Q</div>
+          <div style="text-align: center; font-size: 9px; color: rgba(0,0,0,0.35); padding: 4px 0;">Q</div>
+          <div style="text-align: center; font-size: 9px; color: rgba(0,0,0,0.35); padding: 4px 0;">S</div>
+          <div style="text-align: center; font-size: 9px; color: rgba(0,0,0,0.35); padding: 4px 0;">S</div>
+        </div>
+
+        <!-- Calendar grid (same color logic as JournalMockup) -->
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+          <!-- Row 1 -->
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.35);">
+            <span style="font-size: 10px; color: #1a1a1a;">1</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+420</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(220,60,60,0.4);">
+            <span style="font-size: 10px; color: #1a1a1a;">2</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.5);">-180</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.35);">
+            <span style="font-size: 10px; color: #1a1a1a;">3</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+310</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.06);">
+            <span style="font-size: 10px; color: #1a1a1a;">4</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.3);">0</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.7);">
+            <span style="font-size: 10px; color: #1a1a1a; font-weight: 500;">5</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+560</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(220,60,60,0.4);">
+            <span style="font-size: 10px; color: #1a1a1a;">6</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.5);">-90</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.15);">7</span>
+          </div>
+          <!-- Row 2 -->
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.15);">8</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.35);">
+            <span style="font-size: 10px; color: #1a1a1a;">9</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+280</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.7);">
+            <span style="font-size: 10px; color: #1a1a1a; font-weight: 500;">10</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+450</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(220,60,60,0.4);">
+            <span style="font-size: 10px; color: #1a1a1a;">11</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.5);">-320</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.35);">
+            <span style="font-size: 10px; color: #1a1a1a;">12</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+190</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.7);">
+            <span style="font-size: 10px; color: #1a1a1a; font-weight: 500;">13</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+670</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.15);">14</span>
+          </div>
+          <!-- Row 3 -->
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.15);">15</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(220,60,60,0.4);">
+            <span style="font-size: 10px; color: #1a1a1a;">16</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.5);">-150</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.35);">
+            <span style="font-size: 10px; color: #1a1a1a;">17</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+380</span>
+          </div>
+          <!-- Day 18 - SELECTED -->
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.7); border: 1.5px solid rgba(0,0,0,0.4);">
+            <span style="font-size: 10px; color: #1a1a1a; font-weight: 700;">18</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+520</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(220,60,60,0.4);">
+            <span style="font-size: 10px; color: #1a1a1a;">19</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.5);">-40</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.35);">
+            <span style="font-size: 10px; color: #1a1a1a;">20</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+290</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.15);">21</span>
+          </div>
+          <!-- Row 4 -->
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.15);">22</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.7);">
+            <span style="font-size: 10px; color: #1a1a1a; font-weight: 500;">23</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+410</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(220,60,60,0.4);">
+            <span style="font-size: 10px; color: #1a1a1a;">24</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.5);">-210</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.35);">
+            <span style="font-size: 10px; color: #1a1a1a;">25</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+330</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.7);">
+            <span style="font-size: 10px; color: #1a1a1a; font-weight: 500;">26</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+480</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(60,130,220,0.35);">
+            <span style="font-size: 10px; color: #1a1a1a;">27</span>
+            <span style="font-size: 7px; color: rgba(0,0,0,0.6);">+150</span>
+          </div>
+          <div style="aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.15);">28</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day Detail Panel (identical structure to JournalMockup) -->
+      <div style="width: 280px; border-left: 1px solid rgba(0,0,0,0.06); padding: 16px 20px; flex-shrink: 0;">
+        <!-- Day header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <span style="font-size: 13px; font-weight: 600; color: #1a1a1a;">18 Mar</span>
+          <span style="font-size: 11px; font-weight: 600; color: #1a1a1a;">+R$520</span>
+        </div>
+
+        <!-- KPIs 2x2 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 8px 10px;">
+            <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">Trades</div>
+            <div style="font-size: 12px; font-weight: 600; color: #1a1a1a;">4</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 8px 10px;">
+            <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">Win Rate</div>
+            <div style="font-size: 12px; font-weight: 600; color: #1a1a1a;">75%</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 8px 10px;">
+            <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">Melhor</div>
+            <div style="font-size: 12px; font-weight: 600; color: #16a34a;">+R$280</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 8px 10px;">
+            <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">Pior</div>
+            <div style="font-size: 12px; font-weight: 600; color: #dc2626;">-R$90</div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Observações</div>
+          <p style="font-size: 11px; line-height: 1.6; color: rgba(0,0,0,0.6); margin: 0;">
+            Dia de boa execução. Respeitei o plano, entrei apenas nos setups definidos no playbook.
+          </p>
+        </div>
+
+        <!-- Toggle: Consolidado / Por conta -->
+        <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,0,0,0.03); border-radius: 8px;">
+          <div style="display: flex; border-radius: 6px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08);">
+            <div style="flex: 1; padding: 4px 8px; font-size: 9px; font-weight: 600; text-align: center; background: #1a1a1a; color: white;">Consolidado</div>
+            <div style="flex: 1; padding: 4px 8px; font-size: 9px; text-align: center; color: rgba(0,0,0,0.4); cursor: pointer;">Por conta</div>
+          </div>
+        </div>
+
+        <!-- Execution rating (bar style from JournalMockup) -->
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 8px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.05em;">Execução</span>
+          <div style="display: flex; gap: 2px;">
+            <div style="height: 6px; width: 16px; border-radius: 99px; background: rgba(0,0,0,0.5);"></div>
+            <div style="height: 6px; width: 16px; border-radius: 99px; background: rgba(0,0,0,0.5);"></div>
+            <div style="height: 6px; width: 16px; border-radius: 99px; background: rgba(0,0,0,0.5);"></div>
+            <div style="height: 6px; width: 16px; border-radius: 99px; background: rgba(0,0,0,0.5);"></div>
+            <div style="height: 6px; width: 16px; border-radius: 99px; background: rgba(0,0,0,0.08);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Separator -->
+    <div style="border-top: 1px solid rgba(0,0,0,0.06);"></div>
+
+    <!-- Bottom: Watchlist + News side by side (compact) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
+      <div style="padding: 16px 20px; border-right: 1px solid rgba(0,0,0,0.06);">
+        <div style="font-size: 12px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px;">Watchlist</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.6);">EUR/USD</span>
+            <span style="font-size: 10px; font-weight: 600; color: #1a1a1a;">1.13495</span>
+            <span style="font-size: 9px; color: #16a34a;">+0.12%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.6);">GBP/USD</span>
+            <span style="font-size: 10px; font-weight: 600; color: #1a1a1a;">1.29602</span>
+            <span style="font-size: 9px; color: #dc2626;">-0.08%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 10px; color: rgba(0,0,0,0.6);">USD/JPY</span>
+            <span style="font-size: 10px; font-weight: 600; color: #1a1a1a;">149.812</span>
+            <span style="font-size: 9px; color: #16a34a;">+0.24%</span>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 16px 20px;">
+        <div style="font-size: 12px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px;">News</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div>
+            <span style="font-size: 10px; color: #1a1a1a; line-height: 1.4;">Bitcoin Reclaims $70,000 as Iran War Eases</span>
+            <span style="font-size: 8px; color: rgba(0,0,0,0.35); display: block;">Reuters · 2h ago</span>
+          </div>
+          <div>
+            <span style="font-size: 10px; color: #1a1a1a; line-height: 1.4;">Fed Minutes Show Officials Open to Rate Cuts</span>
+            <span style="font-size: 8px; color: rgba(0,0,0,0.35); display: block;">Bloomberg · 4h ago</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 20px; padding: 12px; background: rgba(60,130,220,0.08); border-radius: 12px;">
+    <p style="font-size: 13px; color: #2563eb; font-weight: 600; margin: 0;">Design fiel ao JournalMockup da landing page</p>
+    <p style="font-size: 11px; color: rgba(0,0,0,0.5); margin: 4px 0 0 0;">
+      Mesmo card container (rounded-[22px]) · Window chrome · Mono typography · Landing color tokens<br>
+      KPI strip no topo · Calendário + painel lateral · Toggle consolidado/por conta · Watchlist+News compactos abaixo
+    </p>
+  </div>
+</div>

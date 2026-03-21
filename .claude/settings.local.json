@@ -1,6 +1,15 @@
 {
   "permissions": {
     "allow": [
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "WebFetch",
+      "Grep",
+      "Glob",
+      "NotebookEdit",
+      "WebSearch",
       "Bash(claude mcp:*)",
       "mcp__stitch__create_project",
       "mcp__stitch__generate_screen_from_text",
@@ -45,7 +54,36 @@
       "Bash(wc -l C:\\\\Users\\\\phalm\\\\trading-dashboard\\\\components\\\\landing\\\\*.tsx | tail -1)",
       "Bash(find /c/Users/phalm/trading-dashboard/components/landing -name \"*.tsx\" -exec wc -l {} + | sort -rn | head -20)",
       "Bash(grep -r \"import.*gsap\" /c/Users/phalm/trading-dashboard/components /c/Users/phalm/trading-dashboard/app --include=\"*.tsx\" --include=\"*.ts\" 2>/dev/null | head -20)",
-      "Bash(cd C:/Users/phalm/trading-dashboard && npm install 2>&1 | tail -5)"
+      "Bash(cd C:/Users/phalm/trading-dashboard && npm install 2>&1 | tail -5)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(cd:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
+      "mcp__plugin_context-mode_context-mode__ctx_search",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_snapshot",
+      "Bash(lsof:*)",
+      "Bash(sleep:*)",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_evaluate",
+      "Bash(taskkill:*)",
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "mcp__plugin_context-mode_context-mode__ctx_fetch_and_index",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_install",
+      "mcp__plugin_context-mode_context-mode__ctx_execute_file",
+      "mcp__plugin_claude-mem_mcp-search__search",
+      "mcp__plugin_claude-mem_mcp-search__get_observations"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

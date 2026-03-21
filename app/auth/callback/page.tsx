@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
-  const router = useRouter();
   const hasRun = useRef(false);
 
   useEffect(() => {
@@ -53,12 +51,12 @@ export default function AuthCallbackPage() {
         }
       } catch (err) {
         console.error("[auth/callback]", err);
-        router.replace("/login?error=callback");
+        window.location.href = "/login?error=callback";
       }
     }
 
     handle();
-  }, [router]);
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center">

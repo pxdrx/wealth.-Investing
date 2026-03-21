@@ -1,0 +1,177 @@
+<h2>Import Melhorado — Design</h2>
+<p class="subtitle">Drag & drop, preview de trades, e modal de discrepância</p>
+
+<div class="section">
+  <h3>Fluxo completo do Import</h3>
+  <p>O import passa por 4 estados sequenciais:</p>
+</div>
+
+<div class="cards">
+  <!-- State 1: Drop Zone -->
+  <div class="card">
+    <div class="card-image">
+      <div style="background: #1a1a2e; border-radius: 12px; padding: 32px; text-align: center;">
+        <div style="border: 2px dashed rgba(100,140,255,0.4); border-radius: 16px; padding: 48px 24px; background: rgba(100,140,255,0.05);">
+          <div style="font-size: 48px; margin-bottom: 12px;">📄</div>
+          <p style="color: #8b9dc3; font-size: 14px; margin: 0 0 4px;">Arraste seu relatório MT5 aqui</p>
+          <p style="color: #555; font-size: 12px; margin: 0 0 16px;">Formatos aceitos: .xlsx, .html, .htm, .csv</p>
+          <button style="background: rgba(100,140,255,0.15); color: #648cff; border: 1px solid rgba(100,140,255,0.3); padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px;">Ou selecione um arquivo</button>
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
+          <span style="background: rgba(100,140,255,0.1); color: #648cff; padding: 4px 12px; border-radius: 20px; font-size: 11px;">MT5 XLSX</span>
+          <span style="background: rgba(100,140,255,0.1); color: #648cff; padding: 4px 12px; border-radius: 20px; font-size: 11px;">MT5 HTML</span>
+          <span style="background: rgba(80,80,80,0.3); color: #666; padding: 4px 12px; border-radius: 20px; font-size: 11px;">cTrader CSV (em breve)</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>1. Drop Zone</h3>
+      <p>Drag & drop com highlight ao arrastar. Mostra formatos aceitos. Botão fallback para file picker.</p>
+    </div>
+  </div>
+
+  <!-- State 2: Preview -->
+  <div class="card">
+    <div class="card-image">
+      <div style="background: #1a1a2e; border-radius: 12px; padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <p style="color: #fff; font-size: 14px; font-weight: 600; margin: 0;">relatório-mt5-marco.xlsx</p>
+            <p style="color: #666; font-size: 12px; margin: 4px 0 0;">42 trades encontrados · 3 payouts</p>
+          </div>
+          <span style="background: rgba(80,200,120,0.15); color: #50c878; padding: 4px 10px; border-radius: 6px; font-size: 11px;">Parseado OK</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); border-radius: 8px; overflow: hidden;">
+          <div style="display: grid; grid-template-columns: 1fr 80px 60px 80px 80px; padding: 8px 12px; background: rgba(255,255,255,0.05); font-size: 11px; color: #666;">
+            <span>Símbolo</span><span>Direção</span><span>Lotes</span><span>P&L</span><span>Data</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 80px 60px 80px 80px; padding: 8px 12px; font-size: 12px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span>XAUUSD</span><span style="color: #50c878;">Buy</span><span>0.50</span><span style="color: #50c878;">+$420</span><span style="color: #666;">Mar 10</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 80px 60px 80px 80px; padding: 8px 12px; font-size: 12px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span>NAS100</span><span style="color: #ff6b6b;">Sell</span><span>1.00</span><span style="color: #ff6b6b;">-$180</span><span style="color: #666;">Mar 10</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 80px 60px 80px 80px; padding: 8px 12px; font-size: 12px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span>EURUSD</span><span style="color: #50c878;">Buy</span><span>0.30</span><span style="color: #50c878;">+$95</span><span style="color: #666;">Mar 11</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 80px 60px 80px 80px; padding: 8px 12px; font-size: 12px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span>GBPUSD</span><span style="color: #50c878;">Buy</span><span>0.20</span><span style="color: #50c878;">+$67</span><span style="color: #666;">Mar 11</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 80px 60px 80px 80px; padding: 8px 12px; font-size: 12px; color: #ccc;">
+            <span>XAUUSD</span><span style="color: #ff6b6b;">Sell</span><span>0.50</span><span style="color: #ff6b6b;">-$310</span><span style="color: #666;">Mar 12</span>
+          </div>
+        </div>
+        <p style="color: #555; font-size: 11px; margin: 8px 0 16px; text-align: center;">Mostrando 5 de 42 trades</p>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button style="background: transparent; color: #888; border: 1px solid #333; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px;">Cancelar</button>
+          <button style="background: #648cff; color: #fff; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px;">Importar 42 trades</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>2. Preview</h3>
+      <p>Mostra 5 primeiros trades parseados em tabela. Resumo (total trades + payouts). Botão confirmar ou cancelar.</p>
+    </div>
+  </div>
+
+  <!-- State 3: Progress -->
+  <div class="card">
+    <div class="card-image">
+      <div style="background: #1a1a2e; border-radius: 12px; padding: 32px; text-align: center;">
+        <div style="font-size: 36px; margin-bottom: 16px;">⏳</div>
+        <p style="color: #fff; font-size: 14px; font-weight: 500; margin: 0 0 12px;">Importando trades...</p>
+        <div style="background: rgba(255,255,255,0.08); border-radius: 8px; height: 8px; overflow: hidden; margin: 0 auto; max-width: 300px;">
+          <div style="background: #648cff; height: 100%; width: 70%; border-radius: 8px; transition: width 0.3s;"></div>
+        </div>
+        <p style="color: #666; font-size: 12px; margin: 8px 0 0;">32 de 42 trades processados</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>3. Progresso</h3>
+      <p>Barra de progresso animada com contagem de trades processados.</p>
+    </div>
+  </div>
+
+  <!-- State 4: Result -->
+  <div class="card">
+    <div class="card-image">
+      <div style="background: #1a1a2e; border-radius: 12px; padding: 24px;">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <div style="font-size: 36px; margin-bottom: 8px;">✅</div>
+          <p style="color: #fff; font-size: 16px; font-weight: 600; margin: 0;">Import concluído</p>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div style="background: rgba(80,200,120,0.1); border-radius: 8px; padding: 12px; text-align: center;">
+            <p style="color: #50c878; font-size: 20px; font-weight: 700; margin: 0;">38</p>
+            <p style="color: #666; font-size: 11px; margin: 4px 0 0;">importados</p>
+          </div>
+          <div style="background: rgba(255,200,50,0.1); border-radius: 8px; padding: 12px; text-align: center;">
+            <p style="color: #ffc832; font-size: 20px; font-weight: 700; margin: 0;">3</p>
+            <p style="color: #666; font-size: 11px; margin: 4px 0 0;">duplicatas</p>
+          </div>
+          <div style="background: rgba(255,107,107,0.1); border-radius: 8px; padding: 12px; text-align: center;">
+            <p style="color: #ff6b6b; font-size: 20px; font-weight: 700; margin: 0;">1</p>
+            <p style="color: #666; font-size: 11px; margin: 4px 0 0;">falhou</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button style="background: rgba(255,107,107,0.15); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.3); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px;">Ver detalhes (1 erro)</button>
+          <button style="background: rgba(100,140,255,0.15); color: #648cff; border: 1px solid rgba(100,140,255,0.3); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px;">🤖 Analisar com AI Coach</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>4. Resultado + Discrepancy</h3>
+      <p>KPIs (importados/duplicatas/falhou). Botão "Ver detalhes" abre modal com linhas puladas e motivo. Botão AI Coach (Pro+).</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 32px;">
+  <h3>Modal de Discrepância</h3>
+  <div class="mockup">
+    <div class="mockup-header">Detalhes do Import</div>
+    <div class="mockup-body" style="background: #1a1a2e; padding: 24px;">
+      <div style="margin-bottom: 20px;">
+        <p style="color: #fff; font-size: 14px; font-weight: 600; margin: 0 0 4px;">relatório-mt5-marco.xlsx</p>
+        <p style="color: #666; font-size: 12px; margin: 0;">Importado em 17/03/2026 às 21:45 · Duração: 1.2s</p>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <p style="color: #50c878; font-size: 13px; font-weight: 500; margin: 0 0 8px;">✅ 38 trades importados com sucesso</p>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <p style="color: #ffc832; font-size: 13px; font-weight: 500; margin: 0 0 8px;">⚠️ 3 duplicatas ignoradas</p>
+        <div style="background: rgba(255,200,50,0.05); border-radius: 8px; padding: 12px; font-size: 12px; color: #999;">
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span>XAUUSD Buy 0.50 lot · Mar 8</span>
+            <span style="color: #ffc832;">Já existe</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span>NAS100 Sell 1.00 lot · Mar 8</span>
+            <span style="color: #ffc832;">Já existe</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+            <span>EURUSD Buy 0.30 lot · Mar 9</span>
+            <span style="color: #ffc832;">Já existe</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p style="color: #ff6b6b; font-size: 13px; font-weight: 500; margin: 0 0 8px;">❌ 1 linha com erro</p>
+        <div style="background: rgba(255,107,107,0.05); border-radius: 8px; padding: 12px; font-size: 12px; color: #999;">
+          <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+            <span>Linha 34 · dados incompletos</span>
+            <span style="color: #ff6b6b;">Volume ausente</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: right; margin-top: 20px;">
+        <button style="background: rgba(100,140,255,0.15); color: #648cff; border: 1px solid rgba(100,140,255,0.3); padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px;">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
