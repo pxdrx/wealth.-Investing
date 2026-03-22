@@ -1,0 +1,103 @@
+// app/api/macro/refresh-calendar/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
+
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+export const dynamic = "force-dynamic";
+
+export async function POST(req: NextRequest) {
+  // Auth: Bearer token (user must be logged in)
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (!token) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userSupabase = createSupabaseClientForUser(token);
+  const { data: { user } } = await userSupabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  try {
+    const events = await fetchFaireconomyCalendar();
+    if (events.length === 0) {
+      return NextResponse.json({ ok: true, fetched: 0, updated: 0 });
+    }
+
+    const weekStart = events[0].week_start;
+    let updated = 0;
+    let inserted = 0;
+
+    // Load existing events for this week
+    const { data: existingRows } = await supabase
+      .from("economic_events")
+      .select("id, event_uid, actual")
+      .filter("week_start", "eq", weekStart);
+
+    const existingMap = new Map<string, { id: string; actual: string | null }>();
+    for (const row of existingRows ?? []) {
+      existingMap.set(row.event_uid, { id: row.id, actual: row.actual });
+    }
+
+    // Process events: update existing (especially actual values), insert new
+    const toInsert: typeof events = [];
+    for (const event of events) {
+      const existing = existingMap.get(event.event_uid);
+      if (existing) {
+        // Update if actual value changed or new fields available
+        if (event.actual && event.actual !== existing.actual) {
+          await supabase
+            .from("economic_events")
+            .update({
+              actual: event.actual,
+              forecast: event.forecast,
+              previous: event.previous,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existing.id);
+          updated++;
+        }
+      } else {
+        toInsert.push(event);
+      }
+    }
+
+    // Batch insert new events
+    for (let i = 0; i < toInsert.length; i += 50) {
+      const batch = toInsert.slice(i, i + 50);
+      const { error } = await supabase.from("economic_events").insert(batch);
+      if (error) {
+        // One-by-one fallback
+        for (const event of batch) {
+          const { error: singleErr } = await supabase.from("economic_events").insert(event);
+          if (!singleErr) inserted++;
+        }
+      } else {
+        inserted += batch.length;
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      fetched: events.length,
+      updated,
+      inserted,
+    });
+  } catch (error) {
+    console.error("[refresh-calendar] Error:", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
+  }
+}

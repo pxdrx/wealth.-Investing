@@ -13,6 +13,7 @@ import { RegionalAnalysis } from "@/components/macro/RegionalAnalysis";
 import { DecisionIntelligence } from "@/components/macro/DecisionIntelligence";
 import { InterestRatesPanel } from "@/components/macro/InterestRatesPanel";
 import { WeeklyHistory } from "@/components/macro/WeeklyHistory";
+import { supabase } from "@/lib/supabase/client";
 import { getWeekStart } from "@/lib/macro/constants";
 import type { EconomicEvent, WeeklyPanorama, CentralBankRate, AdaptiveAlert as AdaptiveAlertType } from "@/lib/macro/types";
 
@@ -88,6 +89,27 @@ export default function MacroIntelligencePage() {
     fetchData();
   };
 
+  const handleCalendarRefresh = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch("/api/macro/refresh-calendar", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const json = await res.json();
+    if (!json.ok) {
+      console.error("[macro] Calendar refresh failed:", json.error);
+    }
+
+    // Re-fetch calendar data to show updated values
+    const calRes = await fetch(`/api/macro/calendar?week=${weekStart}`);
+    try {
+      const calJson = await calRes.json();
+      if (calJson.ok) setEvents(calJson.data || []);
+    } catch { /* ignore */ }
+  }, [weekStart]);
+
   if (loading) {
     return (
       <div className="mx-auto max-w-6xl px-6 py-10">
@@ -137,12 +159,12 @@ export default function MacroIntelligencePage() {
         {/* Economic Calendar — FREE */}
         <section>
           <h2 className="mb-4 text-lg font-semibold tracking-tight">Calendário Econômico</h2>
-          <EconomicCalendar events={events} />
+          <EconomicCalendar events={events} onRefresh={handleCalendarRefresh} />
         </section>
 
         {/* Weekly Briefing — PRO */}
         <section>
-          <h2 className="mb-4 text-lg font-semibold tracking-tight">Panorama Semanal AI</h2>
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">Visão da Semana</h2>
           <PaywallGate requiredPlan="pro" blurContent>
             <WeeklyBriefing panorama={panorama} />
           </PaywallGate>

@@ -2,13 +2,14 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { ChevronDown, Clock } from "lucide-react";
+import { ChevronDown, Clock, RefreshCw } from "lucide-react";
 import { IMPACT_COLORS } from "@/lib/macro/constants";
 import { cn } from "@/lib/utils";
 import type { EconomicEvent } from "@/lib/macro/types";
 
 interface EconomicCalendarProps {
   events: EconomicEvent[];
+  onRefresh?: () => Promise<void>;
 }
 
 type ImpactFilter = "all" | "high" | "medium" | "low";
@@ -120,10 +121,21 @@ function findHighlightedEvents(events: EconomicEvent[]): {
   return { lastOccurredId, nextUpcomingId };
 }
 
-export function EconomicCalendar({ events }: EconomicCalendarProps) {
+export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
   const [impactFilter, setImpactFilter] = useState<ImpactFilter>("all");
   const [timezone, setTimezone] = useState<string>("America/Sao_Paulo");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const today = getTodayStr();
+
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Hydrate timezone from localStorage after mount
   useEffect(() => {
@@ -210,20 +222,35 @@ export function EconomicCalendar({ events }: EconomicCalendarProps) {
           ))}
         </div>
 
-        {/* Timezone selector */}
-        <div className="flex items-center gap-2">
-          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-          <select
-            value={timezone}
-            onChange={(e) => handleTimezoneChange(e.target.value)}
-            className="rounded-full border border-border/50 bg-transparent px-2.5 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:border-border focus:border-primary"
-          >
-            {TIMEZONE_OPTIONS.map((tz) => (
-              <option key={tz.value} value={tz.value}>
-                {tz.label} — {tz.long}
-              </option>
-            ))}
-          </select>
+        {/* Timezone selector + refresh */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+            <select
+              value={timezone}
+              onChange={(e) => handleTimezoneChange(e.target.value)}
+              className="rounded-full border border-border/50 bg-transparent px-2.5 py-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:border-border focus:border-primary"
+            >
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label} — {tz.long}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 rounded-full border border-border/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground disabled:opacity-50"
+              title="Atualizar calendário"
+            >
+              <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "Atualizando..." : "Atualizar"}
+            </button>
+          )}
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
+import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -90,12 +91,61 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Auto-update central bank rates from HIGH impact rate decisions with actual values
+    let ratesUpdated = 0;
+    for (const event of events) {
+      if (event.impact !== "high" || !event.actual) continue;
+
+      // Check if this event title matches a known rate decision
+      let bankCode: string | null = null;
+      for (const [pattern, code] of Object.entries(RATE_DECISION_PATTERNS)) {
+        if (event.title.includes(pattern) || pattern.includes(event.title)) {
+          bankCode = code;
+          break;
+        }
+      }
+
+      if (!bankCode) continue;
+
+      const rateValue = parseRateValue(event.actual);
+      if (rateValue === null) continue;
+
+      // Determine action by comparing with previous
+      let lastAction: "hold" | "cut" | "hike" = "hold";
+      let changeBps = 0;
+      if (event.previous) {
+        const prevRate = parseRateValue(event.previous);
+        if (prevRate !== null) {
+          const diff = Math.round((rateValue - prevRate) * 100);
+          if (diff > 0) { lastAction = "hike"; changeBps = diff; }
+          else if (diff < 0) { lastAction = "cut"; changeBps = diff; }
+        }
+      }
+
+      const { error: rateErr } = await supabase
+        .from("central_bank_rates")
+        .update({
+          current_rate: rateValue,
+          last_action: lastAction,
+          last_change_bps: changeBps,
+          last_change_date: event.date,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("bank_code", bankCode);
+
+      if (!rateErr) {
+        ratesUpdated++;
+        console.log(`[calendar-sync] Updated ${bankCode} rate to ${rateValue}%`);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       fetched: events.length,
       existing: existingMap.size,
       upserted,
       updated,
+      ratesUpdated,
       ...(errors.length > 0 ? { errors: errors.slice(0, 10) } : {}),
     });
   } catch (error) {
