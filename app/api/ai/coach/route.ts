@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("[ai-coach] Anthropic stream error:", err);
 
         // Rollback usage on failure
@@ -265,8 +265,19 @@ export async function POST(req: NextRequest) {
           });
         } catch {}
 
+        // Map Anthropic error codes to user-facing messages
+        let errorMessage = "Erro ao processar sua mensagem. Tente novamente.";
+        const apiError = err as { status?: number; message?: string };
+        if (apiError.status === 402 || (apiError.message && /credit|billing|payment|insufficient_funds/i.test(apiError.message))) {
+          errorMessage = "AI Coach indisponivel: creditos API esgotados.";
+        } else if (apiError.status === 429 || (apiError.message && /rate.limit/i.test(apiError.message))) {
+          errorMessage = "Muitas requisicoes. Aguarde um momento.";
+        } else if (apiError.status === 401 || apiError.status === 403) {
+          errorMessage = "Erro de configuracao da API.";
+        }
+
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: "Erro ao gerar resposta" })}\n\n`)
+          encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`)
         );
         controller.close();
       }

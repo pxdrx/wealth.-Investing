@@ -37,13 +37,13 @@
     --landing-accent-secondary: 217 60% 50%;
     --landing-accent-warning: 38 80% 48%;
     --landing-accent-danger: 0 72% 50%;
-    --pnl-positive: 152 40% 38%;
+    --pnl-positive: 152 40% 38%; /* Kept for legacy */
     --pnl-positive-light: 152 35% 48%;
     --pnl-negative: 4 50% 52%;
-    --pnl-cell-win: 152 32% 55% / 0.18;
-    --pnl-cell-loss: 4 45% 55% / 0.16;
-    --pnl-text-positive: 152 40% 34%;
-    --pnl-text-negative: 4 50% 48%;
+    --pnl-cell-win: 152 80% 45% / 0.12; /* Neon Emerald light */
+    --pnl-cell-loss: 350 80% 55% / 0.10; /* Deep Rose light */
+    --pnl-text-positive: 152 85% 30%; /* Sharper green */
+    --pnl-text-negative: 350 75% 48%; /* Sharper red */
     --landing-grid: 220 13% 92%;
     --landing-card-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px -4px rgba(0,0,0,0.07);
     --landing-card-shadow-hover: 0 2px 4px rgba(0,0,0,0.05), 0 8px 24px -4px rgba(0,0,0,0.1);
@@ -102,10 +102,10 @@
     --pnl-positive: 152 40% 60%;
     --pnl-positive-light: 152 35% 65%;
     --pnl-negative: 4 45% 62%;
-    --pnl-cell-win: 152 32% 55% / 0.15;
-    --pnl-cell-loss: 4 42% 55% / 0.13;
-    --pnl-text-positive: 152 40% 62%;
-    --pnl-text-negative: 4 45% 60%;
+    --pnl-cell-win: 152 70% 50% / 0.15; /* Neon Emerald bg */
+    --pnl-cell-loss: 350 70% 55% / 0.12; /* Deep Rose bg */
+    --pnl-text-positive: 152 80% 55%; /* Glowing green text */
+    --pnl-text-negative: 350 85% 65%; /* Glowing red text */
     --landing-grid: 0 0% 10%;
     --landing-card-shadow: none;
     --landing-card-shadow-hover: none;
@@ -164,7 +164,26 @@
     opacity: var(--placeholder-opacity);
   }
 
-  .bg-card { background-color: hsl(var(--card)) !important; }
+  /* ── Premium Glass Cards (Global Override) ── */
+  .bg-card { 
+    background-color: hsl(var(--card) / 0.65) !important; 
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid hsl(var(--border) / 0.5) !important;
+    box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.05) !important;
+  }
+  .dark .bg-card {
+    background-color: hsl(var(--card) / 0.25) !important; 
+    border: 1px solid hsl(0 0% 100% / 0.06) !important;
+    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.4) !important;
+  }
+  
+  .metric-value {
+    font-family: theme('fontFamily.display');
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-tight);
+    font-weight: 700;
+  }
   .bg-muted { background-color: hsl(var(--muted)) !important; }
   .bg-popover { background-color: hsl(var(--popover)) !important; }
   .bg-accent { background-color: hsl(var(--accent)) !important; }

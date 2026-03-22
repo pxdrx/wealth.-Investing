@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
@@ -85,8 +86,9 @@ export default function JournalPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const pathname = usePathname();
 
-  // Get userId
+  // Get userId — re-run on navigation (pathname change) so data loads on soft nav
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -94,7 +96,7 @@ export default function JournalPage() {
       if (!cancelled) setUserId(session?.user?.id ?? null);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [pathname]);
 
   const loadTrades = useCallback(async () => {
     if (!activeAccountId) { setTrades([]); return; }

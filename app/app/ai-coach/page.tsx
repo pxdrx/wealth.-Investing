@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb, Trash2 } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useSubscription } from "@/components/context/SubscriptionContext";
@@ -77,6 +78,12 @@ export default function AICoachPage() {
   const [dataMode, setDataMode] = useState(false);
   const [trades, setTrades] = useState<JournalTradeRow[]>([]);
   const [tradesLoaded, setTradesLoaded] = useState(false);
+  const [conversationStartedAt, setConversationStartedAt] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ai-coach-conversation-started-at") ?? "";
+    }
+    return "";
+  });
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -87,6 +94,7 @@ export default function AICoachPage() {
     : 0;
 
   const hasMessages = messages.length > 0;
+  const pathname = usePathname();
 
   // Load current usage
   useEffect(() => {
@@ -104,9 +112,9 @@ export default function AICoachPage() {
       setUsageLoaded(true);
     }
     loadUsage();
-  }, []);
+  }, [pathname]);
 
-  // Load chat history from Supabase
+  // Load chat history from Supabase (only messages after conversationStartedAt)
   useEffect(() => {
     async function loadHistory() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -114,12 +122,19 @@ export default function AICoachPage() {
         setHistoryLoaded(true);
         return;
       }
-      const { data, error } = await supabase
+      let query = supabase
         .from("ai_coach_messages")
         .select("id, role, content, created_at")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: true })
         .limit(MAX_HISTORY);
+
+      // Only load messages from current conversation
+      if (conversationStartedAt) {
+        query = query.gt("created_at", conversationStartedAt);
+      }
+
+      const { data, error } = await query;
 
       if (!error && data && data.length > 0) {
         setMessages(
@@ -133,7 +148,7 @@ export default function AICoachPage() {
       setHistoryLoaded(true);
     }
     loadHistory();
-  }, []);
+  }, [pathname, conversationStartedAt]);
 
   // Scroll to bottom when history loads or new messages arrive
   useEffect(() => {
@@ -186,16 +201,14 @@ export default function AICoachPage() {
     return (data as { id: string } | null)?.id ?? undefined;
   }, []);
 
-  // Clear chat history
-  const clearHistory = useCallback(async () => {
+  // Start new conversation — keep old messages in DB, just filter them out
+  const clearHistory = useCallback(() => {
     if (isStreaming) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user?.id) return;
-    await supabase
-      .from("ai_coach_messages")
-      .delete()
-      .eq("user_id", session.user.id);
+    const now = new Date().toISOString();
+    setConversationStartedAt(now);
+    localStorage.setItem("ai-coach-conversation-started-at", now);
     setMessages([]);
+    chatContainerRef.current?.scrollTo(0, 0);
   }, [isStreaming]);
 
   const sendMessage = useCallback(async (text: string, type?: "session" | "weekly" | "chat") => {
@@ -316,11 +329,23 @@ export default function AICoachPage() {
       if ((err as Error).name === "AbortError") {
         // User cancelled — do nothing
       } else {
+        const errMsg = (err as Error).message;
+        // Map known API error codes to user-facing messages
+        let displayError = "Erro ao conectar com o AI Coach. Tente novamente.";
+        if (errMsg === "quota_exceeded") {
+          displayError = "Limite mensal de analises atingido. Faca upgrade para continuar.";
+        } else if (errMsg === "daily_quota_exceeded") {
+          displayError = "Limite diario de analises atingido. Tente novamente amanha.";
+        } else if (errMsg === "rate_limited") {
+          displayError = "Muitas requisicoes. Aguarde um momento.";
+        } else if (errMsg && errMsg !== "Request failed") {
+          displayError = errMsg;
+        }
         setMessages((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = {
             role: "assistant",
-            content: "Erro ao conectar com o AI Coach. Tente novamente.",
+            content: displayError,
           };
           return updated;
         });
@@ -363,11 +388,11 @@ export default function AICoachPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={clearHistory}
-                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                title="Limpar histórico"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+                title="Nova conversa"
               >
-                <Trash2 className="h-3 w-3" />
-                <span className="hidden sm:inline">Limpar</span>
+                <MessageCircle className="h-3 w-3" />
+                <span className="hidden sm:inline">Nova conversa</span>
               </motion.button>
             )}
 

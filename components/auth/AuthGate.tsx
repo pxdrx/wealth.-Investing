@@ -169,6 +169,17 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     };
   }, [pathname]);
 
+  // Check inactivity on wake from sleep (browsers suspend intervals during sleep)
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible" && isInactive()) {
+        clearSessionAndRedirect();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
   // Periodic session health check (every 5 min)
   useEffect(() => {
     const interval = setInterval(async () => {
