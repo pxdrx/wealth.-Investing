@@ -433,6 +433,13 @@ export default function SettingsPage() {
             Marque os widgets que deseja exibir e use as setas para reordenar.
           </p>
 
+          {!dashLayoutLoaded ? (
+            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando layout...
+            </div>
+          ) : (
+          <>
           {/* Column headers */}
           <div className="mt-4 flex items-center gap-3 px-3 pb-1">
             <span className="w-4" />
@@ -523,6 +530,8 @@ export default function SettingsPage() {
               </span>
             )}
           </div>
+          </>
+          )}
         </Card>
 
         {/* ═══════════ 5. Danger Zone ═══════════ */}
