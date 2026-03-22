@@ -111,18 +111,35 @@ export function DayOfWeekBreakdown({ data }: DayOfWeekBreakdownProps) {
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
       <h3 className="text-sm font-semibold">Por Dia da Semana</h3>
-      <p className="text-xs text-muted-foreground mb-4">Seus melhores e piores dias para operar</p>
-      <ResponsiveContainer width="100%" height={220}>
+      <p className="text-xs text-muted-foreground mb-2">P&L de ganhos e perdas por dia da semana</p>
+      <div className="flex items-center gap-3 mb-3">
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Ganhos
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Perdas
+        </span>
+      </div>
+      <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
           <XAxis dataKey="day" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
-          <Tooltip formatter={(v: number) => [`$${Number(v).toFixed(2)}`, "Avg P&L"]} />
-          <Bar dataKey="avgPnl">
-            {data.map((entry, index) => (
-              <Cell key={index} fill={entry.avgPnl >= 0 ? "#10b981" : "#ef4444"} />
-            ))}
-          </Bar>
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "hsl(var(--card))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
+              fontSize: "11px",
+            }}
+            formatter={(v: number, name: string) => [
+              `$${Math.abs(Number(v)).toFixed(2)}`,
+              name === "totalWinPnl" ? "Ganhos" : name === "totalLossPnl" ? "Perdas" : "P&L Liquido",
+            ]}
+            labelFormatter={(label: string) => label}
+          />
+          <Bar dataKey="totalWinPnl" name="totalWinPnl" fill="#22c55e" opacity={0.85} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="totalLossPnl" name="totalLossPnl" fill="#ef4444" opacity={0.85} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -168,26 +185,37 @@ interface HourHeatmapProps {
 export function HourHeatmap({ data }: HourHeatmapProps) {
   if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados.</p>;
 
-  const maxCount = Math.max(...data.map((d) => d.tradeCount), 1);
+  const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.netPnl ?? d.totalPnl)), 1);
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold">Por Hora (UTC)</h3>
-      <p className="text-xs text-muted-foreground mb-4">Distribuição de trades e P&L por hora do dia</p>
+      <h3 className="text-sm font-semibold">Por Hora</h3>
+      <p className="text-xs text-muted-foreground mb-2">Distribuição de trades, ganhos e perdas por hora do dia</p>
+      <div className="flex items-center gap-3 mb-3">
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> P&L positivo
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> P&L negativo
+        </span>
+      </div>
       <div className="flex flex-wrap gap-1">
         {Array.from({ length: 24 }, (_, h) => {
           const item = data.find((d) => d.hour === h);
           const count = item?.tradeCount ?? 0;
-          const intensity = count / maxCount;
+          const net = item?.netPnl ?? item?.totalPnl ?? 0;
+          const intensity = count === 0 ? 0 : Math.min(Math.abs(net) / maxAbsPnl, 1);
           const bg = count === 0
             ? "hsl(var(--muted))"
-            : `rgba(16, 185, 129, ${0.2 + intensity * 0.8})`;
+            : net >= 0
+              ? `rgba(16, 185, 129, ${0.15 + intensity * 0.7})`
+              : `rgba(239, 68, 68, ${0.15 + intensity * 0.7})`;
           return (
             <div
               key={h}
               className="flex flex-col items-center justify-center rounded-lg text-[10px] w-10 h-10"
               style={{ backgroundColor: bg }}
-              title={`${h}h UTC: ${count} trades, WR ${item?.winRate.toFixed(0) ?? 0}%`}
+              title={`${h}h: ${count} trades (${item?.winCount ?? 0}W / ${item?.lossCount ?? 0}L), WR ${item?.winRate.toFixed(0) ?? 0}%, Net $${net.toFixed(2)}`}
             >
               <span className="font-medium">{h}h</span>
               <span>{count}</span>

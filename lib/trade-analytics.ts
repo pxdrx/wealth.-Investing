@@ -48,6 +48,11 @@ export interface DayOfWeekBreakdownItem {
   tradeCount: number;
   winRate: number;
   avgPnl: number;
+  winCount: number;
+  lossCount: number;
+  totalWinPnl: number;
+  totalLossPnl: number;
+  netPnl: number;
 }
 
 export interface SessionBreakdownItem {
@@ -62,6 +67,11 @@ export interface HourBreakdownItem {
   tradeCount: number;
   winRate: number;
   totalPnl: number;
+  winCount: number;
+  lossCount: number;
+  totalWinPnl: number;
+  totalLossPnl: number;
+  netPnl: number;
 }
 
 export interface Streaks {
@@ -323,13 +333,24 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
     groupBy(sorted, (t) => String(toLocalDayOfWeek(t.opened_at, tz))).entries()
   )
     .sort(([a], [b]) => Number(a) - Number(b))
-    .map(([dayIdx, tds]) => ({
-      day: DAY_NAMES[Number(dayIdx)],
-      dayIndex: Number(dayIdx),
-      tradeCount: tds.length,
-      winRate: winRateOf(tds),
-      avgPnl: totalPnlOf(tds) / tds.length,
-    }));
+    .map(([dayIdx, tds]) => {
+      const dayWins = tds.filter((t) => getNetPnl(t) > 0);
+      const dayLosses = tds.filter((t) => getNetPnl(t) <= 0);
+      const totalWinPnl = dayWins.reduce((s, t) => s + getNetPnl(t), 0);
+      const totalLossPnl = dayLosses.reduce((s, t) => s + getNetPnl(t), 0);
+      return {
+        day: DAY_NAMES[Number(dayIdx)],
+        dayIndex: Number(dayIdx),
+        tradeCount: tds.length,
+        winRate: winRateOf(tds),
+        avgPnl: totalPnlOf(tds) / tds.length,
+        winCount: dayWins.length,
+        lossCount: dayLosses.length,
+        totalWinPnl,
+        totalLossPnl,
+        netPnl: totalWinPnl + totalLossPnl,
+      };
+    });
 
   // ── By Session ──
   const bySession: SessionBreakdownItem[] = Array.from(
@@ -348,12 +369,23 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
     groupBy(sorted, (t) => String(toLocalHour(t.opened_at, tz))).entries()
   )
     .sort(([a], [b]) => Number(a) - Number(b))
-    .map(([hour, tds]) => ({
-      hour: Number(hour),
-      tradeCount: tds.length,
-      winRate: winRateOf(tds),
-      totalPnl: totalPnlOf(tds),
-    }));
+    .map(([hour, tds]) => {
+      const hourWins = tds.filter((t) => getNetPnl(t) > 0);
+      const hourLosses = tds.filter((t) => getNetPnl(t) <= 0);
+      const totalWinPnl = hourWins.reduce((s, t) => s + getNetPnl(t), 0);
+      const totalLossPnl = hourLosses.reduce((s, t) => s + getNetPnl(t), 0);
+      return {
+        hour: Number(hour),
+        tradeCount: tds.length,
+        winRate: winRateOf(tds),
+        totalPnl: totalPnlOf(tds),
+        winCount: hourWins.length,
+        lossCount: hourLosses.length,
+        totalWinPnl,
+        totalLossPnl,
+        netPnl: totalWinPnl + totalLossPnl,
+      };
+    });
 
   return {
     totalTrades,
