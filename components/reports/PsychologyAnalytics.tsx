@@ -386,7 +386,7 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
                 <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
                 <Tooltip
                   contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "11px" }}
-                  formatter={(v: number) => [`$${v.toFixed(2)}`, "P&L Medio"]}
+                  formatter={(v: number | string | Array<number | string>) => [`$${typeof v === "number" ? v.toFixed(2) : v}`, "P&L Medio"]}
                 />
                 <Bar dataKey="avgPnl" radius={[0, 4, 4, 0]}>
                   {avgPnlByEmotion.map((entry, i) => (
@@ -411,7 +411,7 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
               <YAxis domain={[-1, 1]} tick={{ fontSize: 10 }} tickFormatter={(v: number) => v.toFixed(1)} />
               <Tooltip
                 contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "11px" }}
-                formatter={(v: number | null) => [v != null ? v.toFixed(2) : "—", "Score"]}
+                formatter={(v: number | string | Array<number | string>) => [typeof v === "number" ? v.toFixed(2) : String(v ?? "—"), "Score"]}
                 labelFormatter={(idx: number) => {
                   const pt = disciplineOverTime.find((p) => p.index === idx);
                   return pt ? pt.date : `Trade ${idx}`;
@@ -556,7 +556,7 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
               <YAxis domain={[-1, 1]} tick={{ fontSize: 10 }} tickFormatter={(v: number) => v.toFixed(1)} />
               <Tooltip
                 contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "11px" }}
-                formatter={(v: number | null, name: string) => [v != null ? v.toFixed(2) : "—", name]}
+                formatter={(v: number | string | Array<number | string>, name: string) => [typeof v === "number" ? v.toFixed(2) : String(v ?? "—"), name]}
                 labelFormatter={(idx: number) => {
                   const pt = ratingsOverTime.find((p) => p.index === idx);
                   return pt ? pt.date : `Trade ${idx}`;
