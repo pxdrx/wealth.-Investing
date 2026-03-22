@@ -336,10 +336,27 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
         className="rounded-[22px] p-10 text-center isolate"
         style={cardStyle}
       >
-        <Brain className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-        <h3 className="text-lg font-semibold mb-1">Psicologia de Trading</h3>
-        <p className="text-sm text-muted-foreground">
-          Nenhum dado psicologico registrado. Abra um trade e adicione emocoes, disciplina e ratings.
+        <Brain className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Psicologia de Trading</h3>
+        <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+          Nenhum trade possui dados psicológicos. Para ativar esta análise, clique em qualquer trade na aba &quot;Trades&quot; e preencha os campos de emoção, disciplina e ratings.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto text-left">
+          <div className="rounded-xl p-4" style={{ backgroundColor: "hsl(var(--muted) / 0.4)" }}>
+            <p className="text-xs font-semibold mb-1">1. Emoção</p>
+            <p className="text-[11px] text-muted-foreground">Como você se sentiu durante o trade? Calmo, ansioso, eufórico...</p>
+          </div>
+          <div className="rounded-xl p-4" style={{ backgroundColor: "hsl(var(--muted) / 0.4)" }}>
+            <p className="text-xs font-semibold mb-1">2. Disciplina</p>
+            <p className="text-[11px] text-muted-foreground">Seguiu o plano? Moveu stop? Entrou impulsivamente?</p>
+          </div>
+          <div className="rounded-xl p-4" style={{ backgroundColor: "hsl(var(--muted) / 0.4)" }}>
+            <p className="text-xs font-semibold mb-1">3. Ratings</p>
+            <p className="text-[11px] text-muted-foreground">Avalie de -1 a +1 sua entrada, saída e gestão do trade.</p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-6">
+          Com pelo menos 10 trades anotados, você verá: distribuição emocional, detector de tilt, matriz de performance, e recomendações personalizadas.
         </p>
       </div>
     );
@@ -351,8 +368,8 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
       {emotionDistribution.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-[22px] p-5 isolate shadow-soft dark:shadow-soft-dark" style={cardStyle}>
-            <h3 className="text-sm font-semibold mb-1">Distribuicao Emocional</h3>
-            <p className="text-xs text-muted-foreground mb-3">Frequencia de cada estado emocional nos seus trades</p>
+            <h3 className="text-sm font-semibold mb-1">Distribuição Emocional</h3>
+            <p className="text-xs text-muted-foreground mb-3">Frequência de cada estado emocional nos seus trades</p>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
@@ -403,7 +420,7 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
       {disciplineOverTime.length > 0 && (
         <div className="rounded-[22px] p-5 isolate shadow-soft dark:shadow-soft-dark" style={cardStyle}>
           <h3 className="text-sm font-semibold mb-1">Score de Disciplina ao Longo do Tempo</h3>
-          <p className="text-xs text-muted-foreground mb-3">Media movel do score de disciplina (+1 = perfeito, -1 = indisciplinado)</p>
+          <p className="text-xs text-muted-foreground mb-3">Média móvel do score de disciplina (+1 = perfeito, -1 = indisciplinado)</p>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={disciplineOverTime} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
@@ -465,8 +482,8 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
         {/* ── 5. Discipline Distribution ── */}
         {disciplineDistribution.length > 0 && (
           <div className="rounded-[22px] p-5 isolate shadow-soft dark:shadow-soft-dark" style={cardStyle}>
-            <h3 className="text-sm font-semibold mb-1">Distribuicao de Disciplina</h3>
-            <p className="text-xs text-muted-foreground mb-3">Frequencia de cada tag de disciplina</p>
+            <h3 className="text-sm font-semibold mb-1">Distribuição de Disciplina</h3>
+            <p className="text-xs text-muted-foreground mb-3">Frequência de cada tag de disciplina</p>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
@@ -516,7 +533,7 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
       {performanceMatrix.length > 0 && (
         <div className="rounded-[22px] p-5 isolate shadow-soft dark:shadow-soft-dark" style={cardStyle}>
           <h3 className="text-sm font-semibold mb-1">Matriz de Performance</h3>
-          <p className="text-xs text-muted-foreground mb-3">P&L medio para cada combinacao de emocao x disciplina (min. 2 trades)</p>
+          <p className="text-xs text-muted-foreground mb-3">P&L médio para cada combinação de emoção x disciplina (min. 2 trades)</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -548,7 +565,7 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
       {ratingsOverTime.length > 0 && (
         <div className="rounded-[22px] p-5 isolate shadow-soft dark:shadow-soft-dark" style={cardStyle}>
           <h3 className="text-sm font-semibold mb-1">Ratings ao Longo do Tempo</h3>
-          <p className="text-xs text-muted-foreground mb-3">Media movel de entry, exit e management ratings (+1 bom, -1 ruim)</p>
+          <p className="text-xs text-muted-foreground mb-3">Média móvel de entry, exit e management ratings (+1 bom, -1 ruim)</p>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={ratingsOverTime} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
