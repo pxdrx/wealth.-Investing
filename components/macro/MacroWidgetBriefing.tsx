@@ -37,8 +37,9 @@ export function MacroWidgetBriefing() {
     );
   }
 
-  // Show first 300 chars of narrative
-  const preview = panorama.narrative.slice(0, 300) + (panorama.narrative.length > 300 ? "..." : "");
+  // Show first 300 chars of narrative, stripping markdown bold markers
+  const rawPreview = panorama.narrative.slice(0, 300) + (panorama.narrative.length > 300 ? "..." : "");
+  const preview = rawPreview.replace(/\*\*/g, "");
 
   return (
     <div className="space-y-3 rounded-[22px] p-5" style={{ backgroundColor: "hsl(var(--card))" }}>

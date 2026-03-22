@@ -18,7 +18,7 @@ const POSTS = [
   {
     title: "5 Erros que Todo Trader Iniciante Comete",
     excerpt:
-      "De overtrading a falta de gest\u00e3o de risco: os erros mais comuns que impedem traders de alcan\u00e7ar consist\u00eancia \u2014 e como evit\u00e1-los com dados.",
+      "De overtrading a falta de gestão de risco: os erros mais comuns que impedem traders de alcançar consistência — e como evitá-los com dados.",
     date: "15 Mar 2026",
     readTime: "7 min",
     category: "Psicologia",
@@ -26,9 +26,9 @@ const POSTS = [
     gradientDark: "dark:from-red-500/15 dark:to-orange-500/15",
   },
   {
-    title: "Como Usar um Di\u00e1rio de Trading para Aumentar sua Performance",
+    title: "Como Usar um Diário de Trading para Aumentar sua Performance",
     excerpt:
-      "O journaling \u00e9 a ferramenta mais subestimada no trading. Descubra como registrar, revisar e extrair insights que transformam seu operacional.",
+      "O journaling é a ferramenta mais subestimada no trading. Descubra como registrar, revisar e extrair insights que transformam seu operacional.",
     date: "12 Mar 2026",
     readTime: "10 min",
     category: "Journaling",
@@ -38,7 +38,7 @@ const POSTS = [
   {
     title: "Prop Firms: O Guia Completo para 2026",
     excerpt:
-      "Tudo que voc\u00ea precisa saber sobre mesas propriet\u00e1rias: como funcionam, quais as melhores, regras de drawdown e como passar na avalia\u00e7\u00e3o.",
+      "Tudo que você precisa saber sobre mesas proprietárias: como funcionam, quais as melhores, regras de drawdown e como passar na avaliação.",
     date: "08 Mar 2026",
     readTime: "15 min",
     category: "Prop Trading",
@@ -46,12 +46,12 @@ const POSTS = [
     gradientDark: "dark:from-emerald-500/15 dark:to-teal-500/15",
   },
   {
-    title: "A Import\u00e2ncia da Gest\u00e3o de Risco no Day Trade",
+    title: "A Importância da Gestão de Risco no Day Trade",
     excerpt:
-      "Sem gest\u00e3o de risco, at\u00e9 o melhor setup do mundo vai quebrar sua conta. Aprenda a calcular tamanho de posi\u00e7\u00e3o, definir stops e proteger seu capital.",
+      "Sem gestão de risco, até o melhor setup do mundo vai quebrar sua conta. Aprenda a calcular tamanho de posição, definir stops e proteger seu capital.",
     date: "03 Mar 2026",
     readTime: "12 min",
-    category: "Gest\u00e3o de Risco",
+    category: "Gestão de Risco",
     gradient: "from-purple-500/30 to-pink-500/30",
     gradientDark: "dark:from-purple-500/15 dark:to-pink-500/15",
   },
@@ -89,7 +89,7 @@ export default function BlogPage() {
             <AnimatedSection delay={0.1}>
               <p className="mx-auto max-w-xl text-base md:text-lg leading-relaxed text-l-text-secondary">
                 Insights sobre trading, mercado e performance para traders que
-                levam a s\u00e9rio sua evolu\u00e7\u00e3o.
+                levam a sério sua evolução.
               </p>
             </AnimatedSection>
           </div>
@@ -188,8 +188,8 @@ export default function BlogPage() {
                 Em breve teremos novos artigos
               </h2>
               <p className="text-sm text-l-text-secondary mb-6">
-                Cadastre-se para ser notificado quando publicarmos conte\u00fado
-                sobre trading, performance e evolu\u00e7\u00e3o.
+                Cadastre-se para ser notificado quando publicarmos conteúdo
+                sobre trading, performance e evolução.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -212,7 +212,7 @@ export default function BlogPage() {
                 </button>
               </div>
               <p className="text-[11px] text-l-text-muted mt-3">
-                Sem spam. Apenas conte\u00fado relevante para traders.
+                Sem spam. Apenas conteúdo relevante para traders.
               </p>
             </div>
           </AnimatedSection>

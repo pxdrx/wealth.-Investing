@@ -19,81 +19,81 @@ import {
 /* ── Changelog entries (real features) ──────────────────────── */
 const ENTRIES = [
   {
-    date: "Mar\u00e7o 2026",
+    date: "Março 2026",
     version: "v0.9.0",
-    title: "AI Coach \u2014 Assistente de trading com IA",
+    title: "AI Coach — Assistente de trading com IA",
     icon: Bot,
     tag: "Novo",
     tagColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
     bullets: [
       "Assistente de IA com streaming em tempo real (Claude Haiku)",
-      "An\u00e1lise cruzada das suas m\u00e9tricas pessoais + contexto macro",
-      "Dispon\u00edvel para usu\u00e1rios Pro e Pro+ com limites de mensagens por tier",
+      "Análise cruzada das suas métricas pessoais + contexto macro",
+      "Disponível para usuários Pro e Pro+ com limites de mensagens por tier",
     ],
   },
   {
-    date: "Mar\u00e7o 2026",
+    date: "Março 2026",
     version: "v0.8.0",
-    title: "Calend\u00e1rio de Performance redesenhado",
+    title: "Calendário de Performance redesenhado",
     icon: CalendarDays,
     tag: "Redesign",
     tagColor: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
     bullets: [
       "Novo layout visual no Dashboard e Journal com heatmap de P&L",
-      "RR M\u00e9dio (m\u00e9dia de ganho / m\u00e9dia de perda) substitu\u00edu Win Rate",
-      "Design alinhado com a est\u00e9tica da landing page",
+      "RR Médio (média de ganho / média de perda) substituiu Win Rate",
+      "Design alinhado com a estética da landing page",
     ],
   },
   {
-    date: "Mar\u00e7o 2026",
+    date: "Março 2026",
     version: "v0.7.0",
-    title: "Dashboard Consolidado com vis\u00e3o multi-conta",
+    title: "Dashboard Consolidado com visão multi-conta",
     icon: BarChart3,
     tag: "Pro+",
     tagColor: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
     bullets: [
-      "Vis\u00e3o unificada de todas as contas com PaywallGate para Pro+",
-      "Oculta\u00e7\u00e3o de saldos sens\u00edveis com toggle",
-      "Ordena\u00e7\u00e3o inteligente: prop \u2192 pessoal \u2192 crypto",
+      "Visão unificada de todas as contas com PaywallGate para Pro+",
+      "Ocultação de saldos sensíveis com toggle",
+      "Ordenação inteligente: prop → pessoal → crypto",
     ],
   },
   {
-    date: "Mar\u00e7o 2026",
+    date: "Março 2026",
     version: "v0.6.0",
     title: "Sistema de Billing com Stripe",
     icon: CreditCard,
     tag: "Novo",
     tagColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
     bullets: [
-      "Checkout com cart\u00e3o de cr\u00e9dito e Pix via Stripe",
-      "Webhooks para sincroniza\u00e7\u00e3o autom\u00e1tica de status",
-      "P\u00e1ginas de pricing, settings e confirma\u00e7\u00e3o de assinatura",
+      "Checkout com cartão de crédito e Pix via Stripe",
+      "Webhooks para sincronização automática de status",
+      "Páginas de pricing, settings e confirmação de assinatura",
     ],
   },
   {
-    date: "Mar\u00e7o 2026",
+    date: "Março 2026",
     version: "v0.5.0",
-    title: "Rule Engine \u2014 Alertas de Drawdown",
+    title: "Rule Engine — Alertas de Drawdown",
     icon: Shield,
     tag: "Novo",
     tagColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
     bullets: [
-      "Barra de drawdown com c\u00e1lculo em tempo real (RPC calc_drawdown)",
-      "Alertas inteligentes para regras de mesas propriet\u00e1rias",
-      "Badge de status stale para contas sem atualiza\u00e7\u00e3o recente",
+      "Barra de drawdown com cálculo em tempo real (RPC calc_drawdown)",
+      "Alertas inteligentes para regras de mesas proprietárias",
+      "Badge de status stale para contas sem atualização recente",
     ],
   },
   {
     date: "Fevereiro 2026",
     version: "v0.4.0",
-    title: "Import de opera\u00e7\u00f5es MT5 e cTrader",
+    title: "Import de operações MT5 e cTrader",
     icon: FileSpreadsheet,
     tag: "Novo",
     tagColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
     bullets: [
-      "Import de XLSX e HTML do MetaTrader 5 com deduplicação autom\u00e1tica",
-      "Parser de CSV do cTrader integrado \u00e0 API de import",
-      "Logs de ingest\u00e3o com timing e contagem de opera\u00e7\u00f5es",
+      "Import de XLSX e HTML do MetaTrader 5 com deduplicação automática",
+      "Parser de CSV do cTrader integrado à API de import",
+      "Logs de ingestão com timing e contagem de operações",
     ],
   },
 ] as const;
@@ -118,7 +118,7 @@ export default function ChangelogPage() {
                 }}
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                Atualiza\u00e7\u00f5es
+                Atualizações
               </div>
             </AnimatedSection>
 
@@ -130,8 +130,8 @@ export default function ChangelogPage() {
 
             <AnimatedSection delay={0.1}>
               <p className="mx-auto max-w-xl text-base md:text-lg leading-relaxed text-l-text-secondary">
-                Acompanhe a evolu\u00e7\u00e3o da plataforma. Cada atualiza\u00e7\u00e3o \u00e9
-                constru\u00edda com feedback real dos nossos usu\u00e1rios.
+                Acompanhe a evolução da plataforma. Cada atualização é
+                construída com feedback real dos nossos usuários.
               </p>
             </AnimatedSection>
           </div>
@@ -245,8 +245,8 @@ export default function ChangelogPage() {
               Quer ser o primeiro a testar?
             </h2>
             <p className="mx-auto max-w-lg text-base text-l-text-secondary mb-8 leading-relaxed">
-              Crie sua conta gr\u00e1tis e acompanhe cada nova feature em
-              primeira m\u00e3o.
+              Crie sua conta grátis e acompanhe cada nova feature em
+              primeira mão.
             </p>
             <a
               href="/login"
@@ -256,7 +256,7 @@ export default function ChangelogPage() {
                 color: "hsl(var(--landing-bg))",
               }}
             >
-              Crie sua conta gr\u00e1tis
+              Crie sua conta grátis
               <ArrowRight className="h-4 w-4" />
             </a>
           </AnimatedSection>

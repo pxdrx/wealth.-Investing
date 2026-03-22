@@ -866,10 +866,10 @@ function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
   const result = useMemo(() => computeTiltmeter(trades), [trades]);
 
   const zoneDescription = result.zone === "green"
-    ? "Seu estado emocional est\u00e1 positivo com base nos \u00faltimos trades."
+    ? "Seu estado emocional está positivo com base nos últimos trades."
     : result.zone === "red"
       ? "Sinais de tilt detectados. Considere uma pausa."
-      : "Viés emocional neutro nos \u00faltimos trades.";
+      : "Viés emocional neutro nos últimos trades.";
 
   return (
     <div
@@ -888,7 +888,7 @@ function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
             Tiltmeter
           </h3>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            Vi\u00e9s emocional baseado nos seus \u00faltimos trades
+            Viés emocional baseado nos seus últimos trades
           </p>
         </div>
       </div>

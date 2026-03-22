@@ -20,9 +20,9 @@ import {
 /* ── Course data ────────────────────────────────────────────── */
 const COURSES = [
   {
-    title: "Introdu\u00e7\u00e3o ao Journaling de Trades",
+    title: "Introdução ao Journaling de Trades",
     description:
-      "Aprenda a registrar opera\u00e7\u00f5es com contexto, identificar padr\u00f5es e construir o h\u00e1bito que separa traders consistentes dos demais.",
+      "Aprenda a registrar operações com contexto, identificar padrões e construir o hábito que separa traders consistentes dos demais.",
     level: "Iniciante",
     levelColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
     lessons: 5,
@@ -32,10 +32,10 @@ const COURSES = [
     gradientDark: "dark:from-emerald-500/10 dark:via-teal-500/8 dark:to-cyan-500/5",
   },
   {
-    title: "An\u00e1lise de Performance Avan\u00e7ada",
+    title: "Análise de Performance Avançada",
     description:
-      "Domine m\u00e9tricas como profit factor, expectancy, R-m\u00faltiplo e drawdown. Aprenda a ler dashboards e tomar decis\u00f5es baseadas em dados.",
-    level: "Intermedi\u00e1rio",
+      "Domine métricas como profit factor, expectancy, R-múltiplo e drawdown. Aprenda a ler dashboards e tomar decisões baseadas em dados.",
+    level: "Intermediário",
     levelColor: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
     lessons: 8,
     duration: "4h 15min",
@@ -44,10 +44,10 @@ const COURSES = [
     gradientDark: "dark:from-blue-500/10 dark:via-indigo-500/8 dark:to-violet-500/5",
   },
   {
-    title: "Gest\u00e3o de Risco para Prop Traders",
+    title: "Gestão de Risco para Prop Traders",
     description:
-      "Regras de drawdown, sizing de posi\u00e7\u00e3o, gerenciamento de avalia\u00e7\u00f5es e como proteger seu capital em mesas propriet\u00e1rias.",
-    level: "Avan\u00e7ado",
+      "Regras de drawdown, sizing de posição, gerenciamento de avaliações e como proteger seu capital em mesas proprietárias.",
+    level: "Avançado",
     levelColor: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
     lessons: 6,
     duration: "3h 45min",
@@ -58,8 +58,8 @@ const COURSES = [
   {
     title: "Usando IA para Melhorar seu Trading",
     description:
-      "Como usar o AI Coach da wealth.Investing, interpretar insights autom\u00e1ticos e integrar intelig\u00eancia artificial no seu processo de revis\u00e3o.",
-    level: "Todos os n\u00edveis",
+      "Como usar o AI Coach da wealth.Investing, interpretar insights automáticos e integrar inteligência artificial no seu processo de revisão.",
+    level: "Todos os níveis",
     levelColor: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
     lessons: 4,
     duration: "2h",
@@ -111,7 +111,7 @@ export default function AcademyPage() {
             <AnimatedSection delay={0.1}>
               <p className="mx-auto max-w-xl text-base md:text-lg leading-relaxed text-l-text-secondary">
                 Aprenda a usar dados para evoluir como trader. Cursos
-                pr\u00e1ticos, diretos e baseados em evid\u00eancia.
+                práticos, diretos e baseados em evidência.
               </p>
             </AnimatedSection>
 
@@ -121,7 +121,7 @@ export default function AcademyPage() {
                 {[
                   { value: "4", label: "Cursos" },
                   { value: "23", label: "Aulas" },
-                  { value: "12h+", label: "de conte\u00fado" },
+                  { value: "12h+", label: "de conteúdo" },
                 ].map((stat) => (
                   <div key={stat.label} className="text-center">
                     <div className="text-2xl font-bold text-l-text tracking-tight-apple">
@@ -258,7 +258,7 @@ export default function AcademyPage() {
               </h2>
               <p className="text-sm text-l-text-secondary mb-6">
                 Seja o primeiro a acessar os cursos da wealth.Academy quando
-                lan\u00e7armos.
+                lançarmos.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -281,8 +281,8 @@ export default function AcademyPage() {
                 </button>
               </div>
               <p className="text-[11px] text-l-text-muted mt-3">
-                Voc\u00ea ser\u00e1 notificado assim que os cursos estiverem
-                dispon\u00edveis.
+                Você será notificado assim que os cursos estiverem
+                disponíveis.
               </p>
             </div>
           </AnimatedSection>

@@ -59,7 +59,7 @@ const SECTIONS = [
       { icon: BarChart3, text: "Analytics inteligentes que revelam padrões ocultos" },
       { icon: Brain, text: "AI Coach que conhece cada trade seu" },
       { icon: Shield, text: "Gestão de risco integrada às mesas proprietárias" },
-      { icon: Sparkles, text: "Design premium que voc\u00ea tem prazer em usar" },
+      { icon: Sparkles, text: "Design premium que você tem prazer em usar" },
     ],
     accent: "from-purple-500/20 to-pink-500/20",
     accentDark: "dark:from-purple-500/10 dark:to-pink-500/10",
