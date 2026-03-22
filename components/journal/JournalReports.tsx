@@ -18,6 +18,7 @@ import {
   HourHeatmap,
 } from "@/components/reports/BreakdownCharts";
 import { MfeMaeScatter, ExitEfficiencyChart, MfeMaeDistribution } from "@/components/reports/MfeMaeScatter";
+import { PsychologyAnalytics } from "@/components/reports/PsychologyAnalytics";
 import { TrendingUp, PieChart, Brain, Target, Globe } from "lucide-react";
 
 const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
@@ -339,18 +340,9 @@ export function JournalReports() {
             </div>
           )}
 
-          {/* Psychology Placeholder */}
+          {/* Psychology Tab */}
           {tab === "psicologia" && (
-            <div
-              className="rounded-[22px] p-10 text-center isolate"
-              style={{ backgroundColor: "hsl(var(--card))" }}
-            >
-              <Brain className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-lg font-semibold mb-1">Psicologia de Trading</h3>
-              <p className="text-sm text-muted-foreground">
-                Tags de emoção e disciplina por trade serão adicionadas em breve.
-              </p>
-            </div>
+            <PsychologyAnalytics trades={filtered} />
           )}
         </>
       )}
