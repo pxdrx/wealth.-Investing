@@ -28,6 +28,18 @@ export function CalendarPnl({
     [trades, accounts]
   );
 
+  // Compute set of dates that have trades with notes
+  const hasTradeNotes = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of trades) {
+      if ("notes" in t && t.notes) {
+        const dateKey = t.opened_at.slice(0, 10);
+        set.add(dateKey);
+      }
+    }
+    return set;
+  }, [trades]);
+
   // Compute month stats filtered to displayMonth
   const monthStats = useMemo(() => {
     const prefix = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}`;
@@ -166,6 +178,8 @@ export function CalendarPnl({
             year={displayYear}
             month={displayMonth}
             dailyData={dailyData}
+            dayNotes={dayNotes}
+            hasTradeNotes={hasTradeNotes}
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
             onPrevMonth={handlePrevMonth}

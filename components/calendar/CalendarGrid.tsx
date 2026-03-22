@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { DayData } from "./types";
+import type { DayData, DayNote } from "./types";
 import { cellColor, formatPnl, getMonthDays } from "./utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 
@@ -9,6 +9,8 @@ interface CalendarGridProps {
   year: number;
   month: number;
   dailyData: Map<string, DayData>;
+  dayNotes?: Record<string, DayNote>;
+  hasTradeNotes?: Set<string>;
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
   onPrevMonth: () => void;
@@ -37,6 +39,8 @@ export function CalendarGrid({
   year,
   month,
   dailyData,
+  dayNotes,
+  hasTradeNotes,
   selectedDate,
   onSelectDate,
   onPrevMonth,
@@ -119,6 +123,8 @@ export function CalendarGrid({
           const isSelected = selectedDate === dateStr;
           const dayOfWeek = (firstDay + day - 1) % 7;
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const hasDayNote = !!(dayNotes && dayNotes[dateStr]?.observation);
+          const hasTradeNote = !!(hasTradeNotes && hasTradeNotes.has(dateStr));
 
           return (
             <button
@@ -158,6 +164,14 @@ export function CalendarGrid({
                 >
                   {mask(formatPnl(pnl))}
                 </span>
+              )}
+              {/* Note indicator */}
+              {(hasDayNote || hasTradeNote) && (
+                <span
+                  className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "#3b82f6" }}
+                  title={hasDayNote ? "Dia com anotacao" : "Trades com notas"}
+                />
               )}
             </button>
           );

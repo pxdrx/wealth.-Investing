@@ -26,6 +26,7 @@ export interface TradeRow {
   account_id: string;
   symbol: string;
   direction: string;
+  notes?: string | null;
 }
 
 export interface CalendarPnlProps {
