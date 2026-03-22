@@ -278,6 +278,33 @@ export function JournalReports() {
           {/* MFE/MAE Tab */}
           {tab === "mfe-mae" && (
             <div className="space-y-6">
+              {/* Explanation */}
+              <div
+                className="rounded-[22px] p-5 isolate"
+                style={{ backgroundColor: "hsl(var(--card))" }}
+              >
+                <h3 className="text-sm font-semibold mb-2">O que e MFE/MAE?</h3>
+                <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+                  <p>
+                    <span className="font-semibold text-foreground">MFE (Maximum Favorable Excursion)</span> = Maximo lucro que o trade alcancou antes de fechar.
+                  </p>
+                  <p>
+                    <span className="font-semibold text-foreground">MAE (Maximum Adverse Excursion)</span> = Maximo prejuizo que o trade teve antes de fechar.
+                  </p>
+                  <div
+                    className="mt-3 rounded-xl p-3"
+                    style={{ backgroundColor: "hsl(var(--muted) / 0.5)" }}
+                  >
+                    <p className="text-xs font-medium text-foreground mb-1">Como interpretar:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
+                      <li>Se seu MFE e muito maior que seu P&L final, voce esta saindo cedo demais dos trades vencedores.</li>
+                      <li>Se seu MAE e grande em trades vencedores, voce esta arriscando demais antes do trade virar a favor.</li>
+                      <li>Exit Efficiency acima de 70% indica boa gestao de saida.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
               {/* Metric cards */}
               {(() => {
                 const withMfe = filtered.filter((t) => t.mfe_usd != null && t.mfe_usd > 0 && getNetPnl(t) > 0);

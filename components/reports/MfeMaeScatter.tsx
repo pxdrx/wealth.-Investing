@@ -24,6 +24,8 @@ interface ScatterPoint {
   y: number;
   symbol: string;
   isWin: boolean;
+  date: string;
+  direction: string;
 }
 
 export function MfeMaeScatter({ trades, type }: MfeMaeScatterProps) {
@@ -40,7 +42,7 @@ export function MfeMaeScatter({ trades, type }: MfeMaeScatterProps) {
     for (const t of withData) {
       const pnl = getNetPnl(t);
       const xVal = type === "mae-vs-pnl" ? Math.abs(t.mae_usd ?? 0) : (t.mfe_usd ?? 0);
-      const pt: ScatterPoint = { x: xVal, y: pnl, symbol: t.symbol, isWin: pnl > 0 };
+      const pt: ScatterPoint = { x: xVal, y: pnl, symbol: t.symbol, isWin: pnl > 0, date: t.closed_at.slice(0, 10), direction: t.direction };
       if (pnl > 0) winPts.push(pt);
       else lossPts.push(pt);
     }
@@ -105,14 +107,19 @@ export function MfeMaeScatter({ trades, type }: MfeMaeScatterProps) {
             content={({ payload }) => {
               if (!payload || payload.length === 0) return null;
               const d = payload[0].payload as ScatterPoint;
+              const dirLabel = d.direction === "buy" ? "Long" : "Short";
               return (
                 <div
                   className="rounded-lg border border-border/50 px-3 py-2 text-xs shadow-md"
                   style={{ backgroundColor: "hsl(var(--card))" }}
                 >
-                  <p className="font-medium">{d.symbol}</p>
+                  <p className="font-medium">{d.symbol} ({dirLabel})</p>
+                  <p className="text-muted-foreground">{d.date}</p>
                   <p>{xLabel}: ${d.x.toFixed(2)}</p>
-                  <p>P&L: ${d.y.toFixed(2)}</p>
+                  <p style={{ color: d.y >= 0 ? "#22c55e" : "#ef4444" }}>P&L: ${d.y.toFixed(2)}</p>
+                  {type === "mfe-vs-pnl" && d.isWin && d.x > 0 && (
+                    <p className="text-muted-foreground">Capturou: {((d.y / d.x) * 100).toFixed(0)}%</p>
+                  )}
                 </div>
               );
             }}
