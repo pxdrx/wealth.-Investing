@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,10 +32,12 @@ import {
 } from "@/components/dashboard/WidgetRenderer";
 
 export default function SettingsPage() {
+  const pathname = usePathname();
   // ── Profile state ──
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{
     type: "success" | "error";
@@ -63,12 +66,15 @@ export default function SettingsPage() {
   useEffect(() => {
     let mounted = true;
     async function load() {
+      setProfileLoading(true);
+      setProfileError(null);
       try {
         const [profile, { data: { session } }] = await Promise.all([
           getMyProfile(),
           supabase.auth.getSession(),
         ]);
         if (!mounted) return;
+        // Profile can be null (no profile row yet) — show empty form
         if (profile) {
           setDisplayName(profile.display_name ?? "");
         }
@@ -101,18 +107,26 @@ export default function SettingsPage() {
             } catch {}
           }
         }
-        if (mounted) setDashLayoutLoaded(true);
+        if (mounted) {
+          setDashLayoutLoaded(true);
+          setProfileLoading(false);
+        }
       } catch (err) {
         console.error("[settings] failed to load profile:", err);
-      } finally {
-        if (mounted) setProfileLoading(false);
+        if (mounted) {
+          setProfileError(
+            err instanceof Error ? err.message : "Erro ao carregar perfil"
+          );
+          setProfileLoading(false);
+          setDashLayoutLoaded(true);
+        }
       }
     }
     load();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [pathname]);
 
   // ── Save profile ──
   const handleSaveProfile = useCallback(async () => {
@@ -261,6 +275,26 @@ export default function SettingsPage() {
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Carregando...
+            </div>
+          ) : profileError ? (
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-red-500">
+                <AlertTriangle className="h-4 w-4" />
+                {profileError}
+              </div>
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => {
+                  setProfileLoading(true);
+                  setProfileError(null);
+                  // Force re-run by toggling a dummy state — useEffect depends on pathname
+                  window.location.reload();
+                }}
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Tentar novamente
+              </Button>
             </div>
           ) : (
             <div className="mt-4 space-y-4">
