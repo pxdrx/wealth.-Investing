@@ -30,8 +30,11 @@ function generateEventUid(event: FaireconomyEvent): string {
   return `${event.country}-${dateClean}-${event.title}`.toLowerCase().replace(/\s+/g, "-").slice(0, 128);
 }
 
-export async function fetchFaireconomyCalendar(): Promise<Omit<EconomicEvent, "id" | "created_at" | "updated_at">[]> {
-  const res = await fetch(FAIRECONOMY_URL, {
+export async function fetchFaireconomyCalendar(
+  url: string = FAIRECONOMY_URL,
+  weekStartOverride?: string
+): Promise<Omit<EconomicEvent, "id" | "created_at" | "updated_at">[]> {
+  const res = await fetch(url, {
     headers: { "User-Agent": "wealth-investing/1.0" },
     next: { revalidate: 0 },
   });
@@ -41,7 +44,7 @@ export async function fetchFaireconomyCalendar(): Promise<Omit<EconomicEvent, "i
   }
 
   const raw: FaireconomyEvent[] = await res.json();
-  const weekStart = getWeekStart();
+  const weekStart = weekStartOverride || getWeekStart();
 
   return raw
     .filter((e) => normalizeImpact(e.impact) !== null)
@@ -57,7 +60,7 @@ export async function fetchFaireconomyCalendar(): Promise<Omit<EconomicEvent, "i
         impact,
         forecast: e.forecast || null,
         previous: e.previous || null,
-        actual: null, // Filled later by updates
+        actual: e.actual || null,
         currency: e.country.toUpperCase().slice(0, 3),
         week_start: weekStart,
       };

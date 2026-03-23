@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
+import { FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL, getWeekStart } from "@/lib/macro/constants";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -26,10 +27,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const weekParam = searchParams.get("week");
+
+  // Determine which Faireconomy URL and week_start to use
+  let faireconomyUrl = FAIRECONOMY_URL;
+  let weekStartOverride: string | undefined;
+
+  if (weekParam === "next") {
+    faireconomyUrl = FAIRECONOMY_NEXT_WEEK_URL;
+    const nextWeekDate = new Date();
+    nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+    weekStartOverride = getWeekStart(nextWeekDate);
+  }
+
   const supabase = getSupabaseAdmin();
 
   try {
-    const events = await fetchFaireconomyCalendar();
+    const events = await fetchFaireconomyCalendar(faireconomyUrl, weekStartOverride);
     if (events.length === 0) {
       return NextResponse.json({ ok: true, fetched: 0, updated: 0 });
     }

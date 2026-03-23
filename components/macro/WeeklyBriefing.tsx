@@ -252,10 +252,10 @@ export function WeeklyBriefing({ panorama }: WeeklyBriefingProps) {
       {/* Collapsible Content */}
       <div className={cn(
         "grid transition-all duration-300 ease-in-out",
-        isOpen ? "grid-rows-[1fr] opacity-100 mt-6" : "grid-rows-[0fr] opacity-0 mt-0"
+        isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
       )}>
         <div className="overflow-hidden">
-          <div className="max-w-4xl mx-auto pt-2 pb-2">
+          <div className="max-w-4xl mx-auto pt-6 pb-2">
             {/* Sentiment bar */}
             <div className="mb-8 p-4 rounded-[16px] bg-background/40 border border-border/30 backdrop-blur-md">
               <SentimentLine sentiment={panorama.sentiment} />

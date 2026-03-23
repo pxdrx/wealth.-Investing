@@ -119,4 +119,5 @@ export interface FaireconomyEvent {
   impact: string;        // "High", "Medium", "Low", "Holiday"
   forecast: string;
   previous: string;
+  actual?: string;
 }

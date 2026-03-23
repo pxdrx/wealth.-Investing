@@ -2,13 +2,15 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { ChevronDown, Clock, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Clock, RefreshCw, ChevronsUpDown } from "lucide-react";
 import { IMPACT_COLORS } from "@/lib/macro/constants";
 import { cn } from "@/lib/utils";
 import type { EconomicEvent } from "@/lib/macro/types";
 
 interface EconomicCalendarProps {
   events: EconomicEvent[];
+  weekStart: string;
+  onWeekChange: (week: string) => void;
   onRefresh?: () => Promise<void>;
 }
 
@@ -81,6 +83,30 @@ function getTodayStr() {
   return now.toISOString().split("T")[0];
 }
 
+/** Format week label: "Semana de 17 mar." */
+function formatWeekLabel(weekStart: string): string {
+  const d = new Date(weekStart + "T12:00:00");
+  const day = d.getDate();
+  const month = d.toLocaleDateString("pt-BR", { month: "short" });
+  return `Semana de ${day} ${month}`;
+}
+
+/** Shift a week_start string by N weeks */
+function shiftWeek(weekStart: string, weeks: number): string {
+  const d = new Date(weekStart + "T12:00:00");
+  d.setDate(d.getDate() + weeks * 7);
+  return d.toISOString().split("T")[0];
+}
+
+/** Get Monday of the current week */
+function getCurrentWeekMonday(): string {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return d.toISOString().split("T")[0];
+}
+
 /** Build a comparable datetime string for an event (UTC) */
 function eventDateTime(event: EconomicEvent): string {
   const time = event.time ?? "23:59";
@@ -121,11 +147,31 @@ function findHighlightedEvents(events: EconomicEvent[]): {
   return { lastOccurredId, nextUpcomingId };
 }
 
-export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
+/** Color-code actual vs forecast: green=beat, red=miss, neutral=inline */
+function getActualColor(actual: string | null, forecast: string | null): string {
+  if (!actual) return "";
+  if (!forecast) return "font-semibold text-foreground";
+  const a = parseFloat(actual.replace(/[%,K]/gi, ""));
+  const f = parseFloat(forecast.replace(/[%,K]/gi, ""));
+  if (isNaN(a) || isNaN(f)) return "font-semibold text-foreground";
+  if (a > f) return "font-bold text-emerald-600 dark:text-emerald-400";
+  if (a < f) return "font-bold text-red-600 dark:text-red-400";
+  return "font-semibold text-foreground";
+}
+
+export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }: EconomicCalendarProps) {
   const [impactFilter, setImpactFilter] = useState<ImpactFilter>("all");
   const [timezone, setTimezone] = useState<string>("America/Sao_Paulo");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const today = getTodayStr();
+  const currentWeekMonday = getCurrentWeekMonday();
+
+  // Week navigation limits: 4 weeks back, 1 week forward
+  const minWeek = shiftWeek(currentWeekMonday, -4);
+  const maxWeek = shiftWeek(currentWeekMonday, 1);
+  const canGoPrev = weekStart > minWeek;
+  const canGoNext = weekStart < maxWeek;
+  const isCurrentWeek = weekStart === currentWeekMonday;
 
   const handleRefresh = async () => {
     if (!onRefresh || isRefreshing) return;
@@ -168,29 +214,46 @@ export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
-  // Track which days are expanded (today expanded by default)
+  // Track which days are expanded
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
-  const hasAutoExpanded = useRef(false);
+  const lastWeekStartRef = useRef<string>("");
 
-  // Auto-expand the relevant day when events first load
+  // Auto-expand: only today (or nearest future day). Reset on week change.
   useEffect(() => {
-    if (hasAutoExpanded.current || grouped.length === 0) return;
-    hasAutoExpanded.current = true;
+    if (grouped.length === 0) return;
+    if (lastWeekStartRef.current === weekStart) return;
+    lastWeekStartRef.current = weekStart;
+
     const init: Record<string, boolean> = {};
     const todayHasEvents = grouped.some(([d]) => d === today);
     if (todayHasEvents) {
       init[today] = true;
     } else {
-      const pastDays = grouped.filter(([d]) => d <= today);
+      // Expand the first future day, or the last day if all are past
       const futureDays = grouped.filter(([d]) => d > today);
-      if (pastDays.length) init[pastDays[pastDays.length - 1][0]] = true;
-      else if (futureDays.length) init[futureDays[0][0]] = true;
+      if (futureDays.length) {
+        init[futureDays[0][0]] = true;
+      } else {
+        init[grouped[grouped.length - 1][0]] = true;
+      }
     }
     setExpandedDays(init);
-  }, [grouped, today]);
+  }, [grouped, today, weekStart]);
 
   const toggleDay = (date: string) => {
     setExpandedDays((prev) => ({ ...prev, [date]: !prev[date] }));
+  };
+
+  // Expand/collapse all toggle
+  const allExpanded = grouped.length > 0 && grouped.every(([d]) => expandedDays[d]);
+  const toggleAll = () => {
+    if (allExpanded) {
+      setExpandedDays({});
+    } else {
+      const all: Record<string, boolean> = {};
+      for (const [d] of grouped) all[d] = true;
+      setExpandedDays(all);
+    }
   };
 
   // Count events by impact for badges
@@ -203,6 +266,51 @@ export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
 
   return (
     <div className="space-y-3">
+      {/* Week navigation */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => canGoPrev && onWeekChange(shiftWeek(weekStart, -1))}
+            disabled={!canGoPrev}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"
+            title="Semana anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => !isCurrentWeek && onWeekChange(currentWeekMonday)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+              isCurrentWeek
+                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            {formatWeekLabel(weekStart)}
+          </button>
+          <button
+            type="button"
+            onClick={() => canGoNext && onWeekChange(shiftWeek(weekStart, 1))}
+            disabled={!canGoNext}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"
+            title="Próxima semana"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          {!isCurrentWeek && (
+            <button
+              type="button"
+              onClick={() => onWeekChange(currentWeekMonday)}
+              className="ml-1 rounded-full bg-muted/60 px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              Hoje
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Top bar: Impact filter + Timezone selector */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Impact filter */}
@@ -222,7 +330,7 @@ export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
           ))}
         </div>
 
-        {/* Timezone selector + refresh */}
+        {/* Timezone selector + expand/collapse + refresh */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Clock className="h-3.5 w-3.5 text-muted-foreground" />
@@ -238,6 +346,18 @@ export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
               ))}
             </select>
           </div>
+
+          {grouped.length > 1 && (
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="flex items-center gap-1 rounded-full border border-border/50 px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+              title={allExpanded ? "Recolher todos" : "Expandir todos"}
+            >
+              <ChevronsUpDown className="h-3 w-3" />
+              {allExpanded ? "Recolher" : "Expandir"}
+            </button>
+          )}
 
           {onRefresh && (
             <button
@@ -286,7 +406,7 @@ export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
             <button
               type="button"
               onClick={() => toggleDay(date)}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent/50"
             >
               {/* Today indicator */}
               {isToday && (
@@ -331,6 +451,7 @@ export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
                   const colors = IMPACT_COLORS[event.impact];
                   const isLastOccurred = event.id === lastOccurredId;
                   const isNextUpcoming = event.id === nextUpcomingId;
+                  const actualColor = getActualColor(event.actual, event.forecast);
 
                   return (
                     <div
@@ -373,7 +494,7 @@ export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
                         </div>
                         <div className="w-14 text-center">
                           <div className="text-[10px] text-muted-foreground">Real</div>
-                          <div className={event.actual ? "font-semibold text-foreground" : ""}>
+                          <div className={actualColor}>
                             {event.actual || "—"}
                           </div>
                         </div>

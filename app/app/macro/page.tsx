@@ -1,7 +1,7 @@
 // app/app/macro/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Globe, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PaywallGate } from "@/components/billing/PaywallGate";
@@ -26,15 +26,17 @@ export default function MacroIntelligencePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const weekStart = getWeekStart();
+  // Week navigation: start with current week
+  const currentWeek = getWeekStart();
+  const [calendarWeek, setCalendarWeek] = useState(currentWeek);
 
   const fetchData = useCallback(async () => {
     try {
       const [calRes, panRes, ratesRes, alertsRes, histRes] = await Promise.allSettled([
-        fetch(`/api/macro/calendar?week=${weekStart}`),
-        fetch(`/api/macro/panorama?week=${weekStart}`),
+        fetch(`/api/macro/calendar?week=${calendarWeek}`),
+        fetch(`/api/macro/panorama?week=${currentWeek}`),
         fetch("/api/macro/rates"),
-        fetch(`/api/macro/alerts?week=${weekStart}`),
+        fetch(`/api/macro/alerts?week=${currentWeek}`),
         fetch("/api/macro/history"),
       ]);
 
@@ -78,7 +80,7 @@ export default function MacroIntelligencePage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [weekStart]);
+  }, [calendarWeek, currentWeek]);
 
   useEffect(() => {
     fetchData();
@@ -89,11 +91,22 @@ export default function MacroIntelligencePage() {
     fetchData();
   };
 
+  // Calendar-specific refresh (fetches latest from Faireconomy)
   const handleCalendarRefresh = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const res = await fetch("/api/macro/refresh-calendar", {
+    // Determine if we need the next-week URL
+    const nextWeekDate = new Date();
+    nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+    const nextWeek = getWeekStart(nextWeekDate);
+    const weekParam = calendarWeek === nextWeek ? "next" : "";
+
+    const url = weekParam
+      ? `/api/macro/refresh-calendar?week=${weekParam}`
+      : "/api/macro/refresh-calendar";
+
+    const res = await fetch(url, {
       method: "POST",
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
@@ -103,12 +116,46 @@ export default function MacroIntelligencePage() {
     }
 
     // Re-fetch calendar data to show updated values
-    const calRes = await fetch(`/api/macro/calendar?week=${weekStart}`);
+    const calRes = await fetch(`/api/macro/calendar?week=${calendarWeek}`);
     try {
       const calJson = await calRes.json();
       if (calJson.ok) setEvents(calJson.data || []);
     } catch { /* ignore */ }
-  }, [weekStart]);
+  }, [calendarWeek]);
+
+  // Handle week change from calendar navigation
+  const handleWeekChange = useCallback(async (newWeek: string) => {
+    setCalendarWeek(newWeek);
+    // Fetch calendar events for the new week
+    try {
+      const calRes = await fetch(`/api/macro/calendar?week=${newWeek}`);
+      const calJson = await calRes.json();
+      if (calJson.ok) setEvents(calJson.data || []);
+    } catch {
+      setEvents([]);
+    }
+  }, []);
+
+  // Poll for actual values during market hours (Mon-Fri, 12:00-22:00 UTC)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    // Only poll when viewing current week
+    if (calendarWeek !== currentWeek) return;
+
+    pollRef.current = setInterval(() => {
+      const now = new Date();
+      const day = now.getUTCDay();
+      const hour = now.getUTCHours();
+      // Mon-Fri, 12:00-22:00 UTC covers major market hours
+      if (day >= 1 && day <= 5 && hour >= 12 && hour <= 22) {
+        handleCalendarRefresh();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [calendarWeek, currentWeek, handleCalendarRefresh]);
 
   if (loading) {
     return (
@@ -169,7 +216,12 @@ export default function MacroIntelligencePage() {
               Calendário Econômico
             </h2>
             <div className="flex-1 min-h-[400px]">
-              <EconomicCalendar events={events} onRefresh={handleCalendarRefresh} />
+              <EconomicCalendar
+                events={events}
+                weekStart={calendarWeek}
+                onWeekChange={handleWeekChange}
+                onRefresh={handleCalendarRefresh}
+              />
             </div>
           </section>
 
@@ -214,7 +266,7 @@ export default function MacroIntelligencePage() {
         <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card/40 backdrop-blur-xl p-6">
           <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Histórico Macro Semanal</h2>
           <PaywallGate requiredPlan="pro" blurContent>
-            <WeeklyHistory weeks={weeks} currentWeek={weekStart} />
+            <WeeklyHistory weeks={weeks} currentWeek={currentWeek} />
           </PaywallGate>
         </section>
       </div>

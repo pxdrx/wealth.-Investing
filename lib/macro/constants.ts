@@ -21,6 +21,7 @@ export const TRACKED_MARKETS = {
 } as const;
 
 export const FAIRECONOMY_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
+export const FAIRECONOMY_NEXT_WEEK_URL = "https://nfs.faireconomy.media/ff_calendar_nextweek.json";
 
 export const IMPACT_COLORS = {
   high: { bg: "bg-red-500/10", text: "text-red-500", dot: "bg-red-500" },
@@ -50,6 +51,13 @@ export function getWeekEnd(date: Date = new Date()): string {
   const diff = d.getDate() - day + (day === 0 ? -2 : 5); // Friday
   d.setDate(diff);
   return d.toISOString().split("T")[0];
+}
+
+/** Get Monday of the week offset by N weeks from a given date */
+export function getWeekStartOffset(weeks: number, date: Date = new Date()): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() + weeks * 7);
+  return getWeekStart(d);
 }
 
 export const CRON_SECRET_HEADER = "x-cron-secret";
