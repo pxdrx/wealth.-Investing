@@ -40,9 +40,9 @@ export default function MacroIntelligencePage() {
     try {
       const [calRes, panRes, ratesRes, alertsRes, histRes] = await Promise.allSettled([
         fetch(`/api/macro/calendar?week=${calendarWeek}`),
-        fetch(`/api/macro/panorama?week=${currentWeek}`),
+        fetch(`/api/macro/panorama?week=${defaultWeek}`),
         fetch("/api/macro/rates"),
-        fetch(`/api/macro/alerts?week=${currentWeek}`),
+        fetch(`/api/macro/alerts?week=${defaultWeek}`),
         fetch("/api/macro/history"),
       ]);
 
@@ -86,7 +86,7 @@ export default function MacroIntelligencePage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [calendarWeek, currentWeek]);
+  }, [calendarWeek, defaultWeek]);
 
   useEffect(() => {
     fetchData();
