@@ -86,46 +86,46 @@ export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanc
           {baseBalance > 0 && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Saldo da Conta</p>
-              <p className={cn("kpi-value text-lg", currentBalance >= baseBalance ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
+              <p className={cn("kpi-value text-lg whitespace-nowrap", currentBalance >= baseBalance ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
                 {mask(`${currentBalance.toFixed(2)} USD`)}
               </p>
             </div>
           )}
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">PnL Total</p>
-            <p className={cn("kpi-value text-lg", kpis.pnlTotal >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
+            <p className={cn("kpi-value text-lg whitespace-nowrap", kpis.pnlTotal >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
               {mask(`${kpis.pnlTotal >= 0 ? "+" : ""}${kpis.pnlTotal.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Winrate %</p>
-            <p className="kpi-value text-lg">{kpis.winrate.toFixed(1)}%</p>
+            <p className="kpi-value text-lg whitespace-nowrap">{kpis.winrate.toFixed(1)}%</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Payoff</p>
-            <p className="kpi-value text-lg">{kpis.payoff.toFixed(2)}</p>
+            <p className="kpi-value text-lg whitespace-nowrap">{kpis.payoff.toFixed(2)}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Expectativa</p>
-            <p className={cn("kpi-value text-lg", kpis.expectation >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
+            <p className={cn("kpi-value text-lg whitespace-nowrap", kpis.expectation >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
               {mask(`${kpis.expectation >= 0 ? "+" : ""}${kpis.expectation.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Melhor trade</p>
-            <p className="kpi-value text-lg text-emerald-600 dark:text-emerald-500">
+            <p className="kpi-value text-lg whitespace-nowrap text-emerald-600 dark:text-emerald-500">
               {mask(`+${kpis.bestTrade.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Pior trade</p>
-            <p className="kpi-value text-lg text-red-600 dark:text-red-500">
+            <p className="kpi-value text-lg whitespace-nowrap text-red-600 dark:text-red-500">
               {mask(`${kpis.worstTrade.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Total trades</p>
-            <p className="kpi-value text-lg">{kpis.totalTrades}</p>
+            <p className="kpi-value text-lg whitespace-nowrap">{kpis.totalTrades}</p>
           </div>
         </div>
       </CardContent>

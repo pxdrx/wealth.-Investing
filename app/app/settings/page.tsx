@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,6 @@ import {
 } from "@/components/dashboard/WidgetRenderer";
 
 export default function SettingsPage() {
-  const pathname = usePathname();
   // ── Profile state ──
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -126,7 +125,8 @@ export default function SettingsPage() {
     return () => {
       mounted = false;
     };
-  }, [pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Save profile ──
   const handleSaveProfile = useCallback(async () => {

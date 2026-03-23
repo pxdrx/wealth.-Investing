@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+
 import { supabase } from "@/lib/supabase/client";
 import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 
@@ -48,7 +48,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const retriesRef = useRef(0);
   const bootstrapRanRef = useRef(false);
   const lastActivityWriteRef = useRef(0);
-  const pathname = usePathname();
+
 
   // Throttled activity tracker
   const handleActivity = useCallback(() => {
@@ -167,7 +167,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, [pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Check inactivity on wake from sleep (browsers suspend intervals during sleep)
   useEffect(() => {

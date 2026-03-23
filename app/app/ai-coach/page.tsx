@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { usePathname } from "next/navigation";
-import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb } from "lucide-react";
+import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useSubscription } from "@/components/context/SubscriptionContext";
@@ -62,6 +61,14 @@ const INSIGHT_BUTTONS = [
   { icon: Lightbulb, label: "O que posso melhorar?", prompt: "Com base em todos os meus dados, quais sao as 3 principais coisas que posso melhorar no meu trading?" },
 ];
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Bom dia! Como posso ajudar?";
+  if (hour >= 12 && hour < 18) return "Boa tarde! Como posso ajudar?";
+  if (hour >= 18 && hour < 24) return "Boa noite! Como posso ajudar?";
+  return "Como posso te ajudar nessa madrugada?";
+}
+
 // Max messages to load from history
 const MAX_HISTORY = 50;
 
@@ -95,7 +102,26 @@ export default function AICoachPage() {
     : 0;
 
   const hasMessages = messages.length > 0;
-  const pathname = usePathname();
+
+  // Auto-start new session if previous conversation is from a different day
+  useEffect(() => {
+    if (conversationStartedAt) {
+      const started = new Date(conversationStartedAt);
+      const today = new Date();
+      if (started.toDateString() !== today.toDateString()) {
+        const now = new Date().toISOString();
+        setConversationStartedAt(now);
+        localStorage.setItem("ai-coach-conversation-started-at", now);
+        setMessages([]);
+      }
+    } else {
+      // First time — set conversation start
+      const now = new Date().toISOString();
+      setConversationStartedAt(now);
+      localStorage.setItem("ai-coach-conversation-started-at", now);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load current usage
   useEffect(() => {
@@ -113,7 +139,8 @@ export default function AICoachPage() {
       setUsageLoaded(true);
     }
     loadUsage();
-  }, [pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load chat history from Supabase (only messages after conversationStartedAt)
   useEffect(() => {
@@ -149,7 +176,7 @@ export default function AICoachPage() {
       setHistoryLoaded(true);
     }
     loadHistory();
-  }, [pathname, conversationStartedAt]);
+  }, [conversationStartedAt]);
 
   // Scroll to bottom when history loads or new messages arrive
   useEffect(() => {
@@ -524,11 +551,40 @@ export default function AICoachPage() {
           {activeAccountId && (
              <>
                <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
-                 {!hasMessages && historyLoaded && (
-                   <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto opacity-60">
-                     <Brain className="h-12 w-12 text-blue-500/50 mb-4" />
-                     <p className="text-sm text-foreground font-medium mb-1">Coach Prontidão</p>
-                     <p className="text-xs text-muted-foreground">Use os atalhos laterais ou digite uma mensagem abaixo para iniciar a análise quantitativa.</p>
+                 {(!historyLoaded || !usageLoaded) && (
+                   <div className="h-full flex items-center justify-center">
+                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                   </div>
+                 )}
+                 {historyLoaded && usageLoaded && !hasMessages && (
+                   <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto px-4">
+                     <div className="mb-6">
+                       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 mb-4">
+                         <Brain className="h-8 w-8 text-blue-500" />
+                       </div>
+                       <p className="text-lg font-semibold text-foreground mb-1">{getGreeting()}</p>
+                       <p className="text-sm text-muted-foreground">Sou seu AI Co-Pilot. Analiso seus trades, identifico padrões e ajudo a melhorar sua performance.</p>
+                     </div>
+                     <div className="flex flex-wrap justify-center gap-2">
+                       {INSIGHT_BUTTONS.map((btn, i) => {
+                         const Icon = btn.icon;
+                         return (
+                           <button
+                             key={i}
+                             type="button"
+                             disabled={quotaExhausted || isStreaming}
+                             onClick={() => {
+                               setAnalysisType("chat");
+                               sendMessage(btn.prompt, "chat");
+                             }}
+                             className="flex items-center gap-1.5 rounded-full border border-border/40 bg-card/40 px-3 py-1.5 text-xs font-medium text-foreground hover:border-blue-400 hover:bg-blue-500/10 transition-all backdrop-blur-xl"
+                           >
+                             <Icon className="h-3.5 w-3.5 text-blue-500" />
+                             {btn.label}
+                           </button>
+                         );
+                       })}
+                     </div>
                    </div>
                  )}
                  

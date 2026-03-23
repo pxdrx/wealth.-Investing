@@ -105,7 +105,7 @@ type PropAccountRow = {
 };
 
 export default function DashboardPage() {
-  const { activeAccountId } = useActiveAccount();
+  const { activeAccountId, accounts: ctxAccounts } = useActiveAccount();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -128,6 +128,15 @@ export default function DashboardPage() {
   // Re-fetch trigger: increments when the page regains visibility (e.g. SPA nav back)
   const [refreshKey, setRefreshKey] = useState(0);
   const initialLoadDone = useRef(false);
+  const prevCtxAccountLen = useRef(ctxAccounts.length);
+
+  // Sync dashboard data when accounts change in context (e.g., deletion)
+  useEffect(() => {
+    if (prevCtxAccountLen.current !== ctxAccounts.length && ctxAccounts.length > 0) {
+      prevCtxAccountLen.current = ctxAccounts.length;
+      setRefreshKey((k) => k + 1);
+    }
+  }, [ctxAccounts]);
 
   useEffect(() => {
     function handleVisibility() {

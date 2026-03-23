@@ -69,6 +69,9 @@ export function mergeLayout(userLayout: DashboardLayout | null | undefined): Das
   return { ...userLayout, widgets: merged };
 }
 
+// ─── Small widget IDs for dynamic grid sizing ──────────────────
+const SMALL_WIDGET_IDS = new Set(["news", "equity-mini", "tiltmeter", "top-symbols", "session-heatmap", "streaks"]);
+
 // ─── Renderer ───────────────────────────────────────────────────
 
 interface WidgetRendererProps {
@@ -81,6 +84,21 @@ export function WidgetRenderer({ layout, registry }: WidgetRendererProps) {
     .filter((w) => w.visible && registry[w.id] !== undefined)
     .sort((a, b) => a.order - b.order);
 
+  // Dynamic grid spans: small widgets fill their row evenly
+  const visibleSmall = visible.filter((w) => SMALL_WIDGET_IDS.has(w.id));
+  const smallCount = visibleSmall.length;
+  const remainder = smallCount % 3;
+
+  function getGridClass(widgetId: string): string {
+    if (!SMALL_WIDGET_IDS.has(widgetId)) return "xl:col-span-12";
+    const smallIdx = visibleSmall.findIndex((w) => w.id === widgetId);
+    const isInLastIncompleteRow = remainder > 0 && smallIdx >= smallCount - remainder;
+    if (isInLastIncompleteRow) {
+      return remainder === 1 ? "xl:col-span-12" : "xl:col-span-6";
+    }
+    return "xl:col-span-4";
+  }
+
   return (
     <>
       {visible.map((w) => {
@@ -88,13 +106,7 @@ export function WidgetRenderer({ layout, registry }: WidgetRendererProps) {
         const tier = label?.tier ?? "free";
         const node = registry[w.id];
 
-        // Asymmetrical Bento Box sizing logic
-        let gridClass = "xl:col-span-12";
-        // "esses 3 alinhados no mesmo nivel" => news, equity-mini, tiltmeter side-by-side in 3 columns
-        if (w.id === "news" || w.id === "equity-mini" || w.id === "tiltmeter") gridClass = "xl:col-span-4";
-        // Other smaller widgets 3-column
-        else if (w.id === "top-symbols" || w.id === "session-heatmap" || w.id === "streaks") gridClass = "xl:col-span-4";
-        // ai-insight is full-width (col-span-12) so it centers its content
+        const gridClass = getGridClass(w.id);
 
         if (tier === "pro") {
           return (

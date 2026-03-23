@@ -9,7 +9,7 @@ import type { CentralBankRate } from "./types";
  * Primary source: Supabase `central_bank_rates` table (updated by cron).
  * Fallback: this hardcoded object (manually maintained).
  *
- * Last updated: 2026-03-19
+ * Last updated: 2026-03-23
  */
 const POLICY_RATES: Record<string, {
   current_rate: number;
@@ -18,16 +18,16 @@ const POLICY_RATES: Record<string, {
   last_change_date: string;
   next_meeting: string | null;
 }> = {
-  FED:     { current_rate: 4.500, last_action: "hold",  last_change_bps: -25,  last_change_date: "2024-12-18", next_meeting: "2026-05-07" },
-  ECB:     { current_rate: 2.650, last_action: "cut",   last_change_bps: -25,  last_change_date: "2025-03-06", next_meeting: "2026-04-17" },
-  BOE:     { current_rate: 4.500, last_action: "cut",   last_change_bps: -25,  last_change_date: "2025-02-06", next_meeting: "2026-05-08" },
-  BOJ:     { current_rate: 0.500, last_action: "hike",  last_change_bps: 25,   last_change_date: "2025-01-24", next_meeting: "2026-04-25" },
-  BCB:     { current_rate: 14.250, last_action: "hike", last_change_bps: 100,  last_change_date: "2025-03-19", next_meeting: "2026-05-07" },
-  BOC:     { current_rate: 2.750, last_action: "cut",   last_change_bps: -25,  last_change_date: "2025-03-12", next_meeting: "2026-04-16" },
-  RBA:     { current_rate: 4.100, last_action: "cut",   last_change_bps: -25,  last_change_date: "2025-02-18", next_meeting: "2026-04-01" },
-  PBOC:    { current_rate: 3.100, last_action: "cut",   last_change_bps: -25,  last_change_date: "2024-10-21", next_meeting: null },
-  SNB:     { current_rate: 0.250, last_action: "cut",   last_change_bps: -25,  last_change_date: "2025-03-20", next_meeting: "2026-06-19" },
-  BANXICO: { current_rate: 9.500, last_action: "cut",   last_change_bps: -50,  last_change_date: "2025-03-27", next_meeting: "2026-05-15" },
+  FED:     { current_rate: 3.625, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-12-10", next_meeting: "2026-04-29" },
+  ECB:     { current_rate: 2.150, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-06-05", next_meeting: "2026-04-17" },
+  BOE:     { current_rate: 3.750, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-12-18", next_meeting: "2026-04-30" },
+  BOJ:     { current_rate: 0.750, last_action: "hold",  last_change_bps: 25,   last_change_date: "2025-12-19", next_meeting: "2026-04-28" },
+  BCB:     { current_rate: 14.750, last_action: "cut",  last_change_bps: -25,  last_change_date: "2026-03-18", next_meeting: "2026-04-29" },
+  BOC:     { current_rate: 2.250, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-10-29", next_meeting: "2026-04-16" },
+  RBA:     { current_rate: 4.100, last_action: "hike",  last_change_bps: 25,   last_change_date: "2026-03-18", next_meeting: "2026-05-05" },
+  PBOC:    { current_rate: 3.000, last_action: "hold",  last_change_bps: -10,  last_change_date: "2025-05-20", next_meeting: "2026-04-20" },
+  SNB:     { current_rate: 0.000, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-06-19", next_meeting: "2026-06-19" },
+  BANXICO: { current_rate: 7.000, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-12-18", next_meeting: "2026-03-26" },
 };
 
 function getSupabaseAdmin() {
