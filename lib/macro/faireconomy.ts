@@ -44,7 +44,15 @@ export async function fetchFaireconomyCalendar(
   }
 
   const raw: FaireconomyEvent[] = await res.json();
-  const weekStart = weekStartOverride || getWeekStart();
+
+  // Determine week_start from the actual event dates (not current date)
+  // Faireconomy "thisweek" may return next week's data on weekends
+  let weekStart = weekStartOverride;
+  if (!weekStart && raw.length > 0) {
+    const firstEventDate = parseDate(raw[0].date).date;
+    weekStart = getWeekStart(new Date(firstEventDate + "T12:00:00"));
+  }
+  if (!weekStart) weekStart = getWeekStart();
 
   return raw
     .filter((e) => normalizeImpact(e.impact) !== null)

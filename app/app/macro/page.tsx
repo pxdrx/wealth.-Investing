@@ -26,9 +26,15 @@ export default function MacroIntelligencePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Week navigation: start with current week
+  // Week navigation: on weekends (Sat/Sun after market close), default to next week
   const currentWeek = getWeekStart();
-  const [calendarWeek, setCalendarWeek] = useState(currentWeek);
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0=Sun, 6=Sat
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const defaultWeek = isWeekend
+    ? (() => { const d = new Date(); d.setDate(d.getDate() + 7); return getWeekStart(d); })()
+    : currentWeek;
+  const [calendarWeek, setCalendarWeek] = useState(defaultWeek);
 
   const fetchData = useCallback(async () => {
     try {

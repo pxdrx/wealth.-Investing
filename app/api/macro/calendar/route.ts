@@ -37,45 +37,53 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Failed to fetch calendar data" }, { status: 500 });
   }
 
-  // Auto-sync: if DB is empty for current or next week, fetch from Faireconomy
-  if ((!data || data.length === 0)) {
-    const currentWeek = getWeekStart();
-    const nextWeekDate = new Date();
-    nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-    const nextWeek = getWeekStart(nextWeekDate);
+  // Auto-sync: if DB is empty, try fetching from Faireconomy
+  // Faireconomy "thisweek" may return current or next week depending on the day
+  if (!data || data.length === 0) {
+    try {
+      // Try both thisweek and nextweek URLs — the fetcher auto-detects week_start from event dates
+      const urls = [FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL];
+      const admin = getSupabaseAdmin();
+      let matchingWeekData: Record<string, unknown>[] | null = null;
 
-    let faireconomyUrl: string | null = null;
-    if (weekStart === currentWeek) {
-      faireconomyUrl = FAIRECONOMY_URL;
-    } else if (weekStart === nextWeek) {
-      faireconomyUrl = FAIRECONOMY_NEXT_WEEK_URL;
-    }
+      for (const url of urls) {
+        try {
+          // Don't pass weekStartOverride — let fetcher determine from event dates
+          const events = await fetchFaireconomyCalendar(url);
+          if (events.length === 0) continue;
 
-    if (faireconomyUrl) {
-      try {
-        const events = await fetchFaireconomyCalendar(faireconomyUrl, weekStart);
-        if (events.length > 0) {
-          const admin = getSupabaseAdmin();
-          // Insert in batches, ignore conflicts
+          const eventWeekStart = events[0].week_start;
+
+          // Insert events into DB
           for (let i = 0; i < events.length; i += 50) {
             const batch = events.slice(i, i + 50);
-            await admin.from("economic_events").upsert(batch, { onConflict: "event_uid", ignoreDuplicates: true });
+            await admin.from("economic_events").upsert(batch, {
+              onConflict: "event_uid",
+              ignoreDuplicates: true,
+            });
           }
 
-          // Re-query with fresh data
-          const { data: freshData } = await supabase
-            .from("economic_events")
-            .select("*")
-            .filter("week_start", "eq", weekStart)
-            .order("date", { ascending: true })
-            .order("time", { ascending: true });
-
-          return NextResponse.json({ ok: true, data: freshData || [] });
+          // If these events match the requested week, query them back
+          if (eventWeekStart === weekStart) {
+            const { data: freshData } = await supabase
+              .from("economic_events")
+              .select("*")
+              .filter("week_start", "eq", weekStart)
+              .order("date", { ascending: true })
+              .order("time", { ascending: true });
+            matchingWeekData = freshData;
+            break;
+          }
+        } catch (urlErr) {
+          console.error(`[macro/calendar] Fetch from ${url} failed:`, urlErr);
         }
-      } catch (err) {
-        console.error("[macro/calendar] Auto-sync failed:", err);
-        // Fall through to return empty
       }
+
+      if (matchingWeekData && matchingWeekData.length > 0) {
+        return NextResponse.json({ ok: true, data: matchingWeekData });
+      }
+    } catch (err) {
+      console.error("[macro/calendar] Auto-sync failed:", err);
     }
   }
 
