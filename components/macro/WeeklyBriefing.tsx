@@ -10,6 +10,7 @@ import type { WeeklyPanorama, Sentiment } from "@/lib/macro/types";
 interface WeeklyBriefingProps {
   panorama: WeeklyPanorama | null;
   onRegenerate?: () => Promise<void>;
+  defaultExpanded?: boolean;
 }
 
 /** Subtle thin sentiment bar */
@@ -182,8 +183,8 @@ function CollapsibleSection({ title, children, defaultOpen = false }: {
   );
 }
 
-export function WeeklyBriefing({ panorama, onRegenerate }: WeeklyBriefingProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false }: WeeklyBriefingProps) {
+  const [isOpen, setIsOpen] = useState(defaultExpanded);
   const [isRegenerating, setIsRegenerating] = useState(false);
 
   const handleRegenerate = async (e: React.MouseEvent) => {
