@@ -129,6 +129,48 @@ export default function MacroIntelligencePage() {
     } catch { /* ignore */ }
   }, [calendarWeek]);
 
+  // Regenerate weekly report via Claude
+  const handleRegenerate = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch("/api/macro/regenerate-report", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ week: defaultWeek }),
+    });
+    const json = await res.json();
+    if (!json.ok) {
+      console.error("[macro] Report regeneration failed:", json.error);
+      return;
+    }
+
+    // Refetch panorama to show updated data
+    const panRes = await fetch(`/api/macro/panorama?week=${defaultWeek}`);
+    try {
+      const panJson = await panRes.json();
+      if (panJson.ok && panJson.data) {
+        const pan = panJson.data;
+        if (typeof pan.regional_analysis === "string") {
+          try { pan.regional_analysis = JSON.parse(pan.regional_analysis); } catch { pan.regional_analysis = null; }
+        }
+        if (typeof pan.decision_intelligence === "string") {
+          try { pan.decision_intelligence = JSON.parse(pan.decision_intelligence); } catch { pan.decision_intelligence = null; }
+        }
+        if (typeof pan.sentiment === "string") {
+          try { pan.sentiment = JSON.parse(pan.sentiment); } catch { pan.sentiment = null; }
+        }
+        if (typeof pan.market_impacts === "string") {
+          try { pan.market_impacts = JSON.parse(pan.market_impacts); } catch { pan.market_impacts = null; }
+        }
+        setPanorama(pan);
+      }
+    } catch { /* ignore */ }
+  }, [defaultWeek]);
+
   // Handle week change from calendar navigation
   const handleWeekChange = useCallback(async (newWeek: string) => {
     setCalendarWeek(newWeek);
@@ -243,7 +285,7 @@ export default function MacroIntelligencePage() {
         {/* Row 2: Weekly Briefing */}
         <section className="w-full rounded-[28px] border border-border/50 bg-card/60 shadow-soft dark:shadow-soft-dark overflow-hidden backdrop-blur-3xl relative isolate px-6 py-5">
            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
-           <WeeklyBriefing panorama={panorama} />
+           <WeeklyBriefing panorama={panorama} onRegenerate={handleRegenerate} />
         </section>
 
         {/* Row 3: Regional Analysis */}

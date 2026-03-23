@@ -13,6 +13,7 @@ function getSupabaseAdmin() {
 }
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   // Auth: Bearer token (user must be logged in)
@@ -102,11 +103,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // --- TE Actuals Enrichment ---
+    let teUpdated = 0;
+    try {
+      const { scrapeTeCalendarActuals } = await import("@/lib/macro/te-scraper");
+      const { mergeTeActuals } = await import("@/lib/macro/actuals-merger");
+
+      const teRows = await scrapeTeCalendarActuals();
+      if (teRows.length > 0) {
+        const mergeResult = await mergeTeActuals(teRows, supabase);
+        teUpdated = mergeResult.updated;
+        console.log(`[refresh-calendar] TE actuals: ${mergeResult.updated} updated`);
+      }
+    } catch (teErr) {
+      console.warn("[refresh-calendar] TE actuals failed:", teErr);
+    }
+
     return NextResponse.json({
       ok: true,
       fetched: events.length,
       updated,
       inserted,
+      teUpdated,
     });
   } catch (error) {
     console.error("[refresh-calendar] Error:", error);

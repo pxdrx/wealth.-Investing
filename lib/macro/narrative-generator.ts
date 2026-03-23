@@ -22,6 +22,8 @@ Responda SEMPRE em PT-BR. Formato de resposta: JSON válido com a estrutura exat
 interface NarrativeInput {
   events: EconomicEvent[];
   teBriefing: string | null;
+  teHeadlines?: string[] | null;
+  weekAheadEditorial?: string | null;
   weekStart: string;
   weekEnd: string;
 }
@@ -52,7 +54,7 @@ TODOS OS EVENTOS (${input.events.length} total):
 ${input.events.map((e) => `- ${e.date} ${e.time || ""} | ${e.country} | ${e.title} [${e.impact}]`).join("\n")}
 
 ${input.teBriefing ? `CONTEXTO EDITORIAL (TradingEconomics):\n${input.teBriefing}\n` : ""}
-
+${input.weekAheadEditorial ? `EDITORIAL "WEEK AHEAD" (TradingEconomics):\n${input.weekAheadEditorial}\n` : ""}${input.teHeadlines && input.teHeadlines.length > 0 ? `HEADLINES DE MERCADO (TradingEconomics):\n${input.teHeadlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}\n` : ""}
 MERCADOS COBERTOS: ${allMarkets.join(", ")}
 
 INSTRUÇÃO PARA O CAMPO "narrative":

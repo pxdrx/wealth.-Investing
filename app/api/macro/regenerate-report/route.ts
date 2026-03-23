@@ -1,11 +1,13 @@
-// app/api/cron/weekly-briefing/route.ts
+// app/api/macro/regenerate-report/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { scrapeTeBriefing } from "@/lib/macro/te-scraper";
 import { generateWeeklyNarrative } from "@/lib/macro/narrative-generator";
 import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
 import type { EconomicEvent } from "@/lib/macro/types";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 function getSupabaseAdmin() {
   return createClient(
@@ -14,29 +16,50 @@ function getSupabaseAdmin() {
   );
 }
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
-
 export async function POST(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
+  // Verify user auth via Bearer token
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Verify the token is valid by creating a user-scoped client
+  const token = authHeader.slice(7);
+  const userClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  );
+  const { data: { user }, error: authErr } = await userClient.auth.getUser();
+  if (authErr || !user) {
+    return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
   }
 
   const supabase = getSupabaseAdmin();
 
   try {
-    const weekStart = getWeekStart();
-    const weekEnd = getWeekEnd();
+    // Parse optional week parameter
+    const body = await req.json().catch(() => ({}));
+    const weekStart = body.week || getWeekStart();
+    const weekEnd = getWeekEnd(new Date(weekStart + "T12:00:00"));
 
-    // Check if panorama already exists and is frozen
+    // Rate limit: check if panorama was updated less than 5 minutes ago
     const { data: existing } = await supabase
       .from("weekly_panoramas")
-      .select("id, is_frozen")
+      .select("id, is_frozen, updated_at")
       .filter("week_start", "eq", weekStart)
       .maybeSingle();
 
     if (existing?.is_frozen) {
-      return NextResponse.json({ ok: true, message: "Week is frozen, skipping" });
+      return NextResponse.json({ ok: false, error: "Semana congelada, não pode ser atualizada" }, { status: 409 });
+    }
+
+    if (existing?.updated_at) {
+      const lastUpdate = new Date(existing.updated_at).getTime();
+      const now = Date.now();
+      if (now - lastUpdate < 5 * 60 * 1000) {
+        return NextResponse.json({ ok: false, error: "Aguarde 5 minutos entre regenerações" }, { status: 429 });
+      }
     }
 
     // 1. Get events for this week
@@ -47,25 +70,25 @@ export async function POST(req: NextRequest) {
       .order("date", { ascending: true })
       .order("time", { ascending: true });
 
-    // 2. Scrape enriched TE data (headlines + week ahead editorial + actuals)
-    let teBriefing: Awaited<ReturnType<typeof scrapeTeBriefing>> | null = null;
+    // 2. Scrape enriched TE data
+    let teBriefingRaw: string | null = null;
     let teHeadlines: string[] | null = null;
     let weekAheadEditorial: string | null = null;
     try {
       const enriched = await scrapeTeBriefing();
       if (enriched) {
-        teBriefing = enriched;
+        teBriefingRaw = enriched.raw_text;
         teHeadlines = enriched.headlines.map(h => h.title);
         weekAheadEditorial = enriched.week_ahead_editorial;
       }
     } catch (err) {
-      console.warn("[weekly-briefing] TE scrape failed:", err);
+      console.warn("[regenerate-report] TE scrape failed:", err);
     }
 
-    // 3. Generate narrative via Claude Sonnet
+    // 3. Generate narrative via Claude
     const narrative = await generateWeeklyNarrative({
       events: (events || []) as EconomicEvent[],
-      teBriefing: teBriefing?.raw_text || null,
+      teBriefing: teBriefingRaw,
       teHeadlines,
       weekAheadEditorial,
       weekStart,
@@ -76,7 +99,7 @@ export async function POST(req: NextRequest) {
     const panoramaData = {
       week_start: weekStart,
       week_end: weekEnd,
-      te_briefing_raw: teBriefing?.raw_text || null,
+      te_briefing_raw: teBriefingRaw,
       narrative: narrative.narrative,
       regional_analysis: narrative.regional_analysis,
       market_impacts: narrative.market_impacts,
@@ -106,16 +129,14 @@ export async function POST(req: NextRequest) {
       ok: true,
       weekStart,
       eventsCount: events?.length || 0,
-      hasTeBriefing: !!teBriefing,
+      hasTeData: !!teBriefingRaw,
       narrativeLength: narrative.narrative?.length || 0,
     });
   } catch (error) {
-    console.error("[weekly-briefing] Error:", error);
+    console.error("[regenerate-report] Error:", error);
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { ok: false, error: error instanceof Error ? error.message : "Erro ao gerar relatório" },
       { status: 500 }
     );
   }
 }
-
-export { POST as GET };

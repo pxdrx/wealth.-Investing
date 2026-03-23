@@ -9,6 +9,7 @@ import type { WeeklyPanorama, Sentiment } from "@/lib/macro/types";
 
 interface WeeklyBriefingProps {
   panorama: WeeklyPanorama | null;
+  onRegenerate?: () => Promise<void>;
 }
 
 /** Subtle thin sentiment bar */
@@ -181,8 +182,20 @@ function CollapsibleSection({ title, children, defaultOpen = false }: {
   );
 }
 
-export function WeeklyBriefing({ panorama }: WeeklyBriefingProps) {
+export function WeeklyBriefing({ panorama, onRegenerate }: WeeklyBriefingProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const handleRegenerate = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't toggle the dropdown
+    if (!onRegenerate || isRegenerating) return;
+    setIsRegenerating(true);
+    try {
+      await onRegenerate();
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   if (!panorama) {
     return (
@@ -237,6 +250,15 @@ export function WeeklyBriefing({ panorama }: WeeklyBriefingProps) {
           <span className="text-[11px] font-medium text-muted-foreground hidden sm:block">
             Gerado em {updatedAt}
           </span>
+          {onRegenerate && (
+            <button
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+              className="text-[11px] font-semibold text-blue-500 hover:text-blue-600 transition-colors disabled:opacity-50"
+            >
+              {isRegenerating ? "Gerando..." : "Regenerar"}
+            </button>
+          )}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/30 group-hover:bg-muted/60 transition-colors">
             <span className="text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
               {isOpen ? "Ocultar" : "Ler Relatório"}

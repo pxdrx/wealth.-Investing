@@ -91,6 +91,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // --- TE Actuals Enrichment ---
+    let teActualsUpdated = 0;
+    try {
+      const { scrapeTeCalendarActuals } = await import("@/lib/macro/te-scraper");
+      const { mergeTeActuals } = await import("@/lib/macro/actuals-merger");
+
+      const teRows = await scrapeTeCalendarActuals();
+      if (teRows.length > 0) {
+        const mergeResult = await mergeTeActuals(teRows, supabase);
+        teActualsUpdated = mergeResult.updated;
+        console.log(`[calendar-sync] TE actuals: ${mergeResult.updated} updated, ${mergeResult.surprises.length} surprises`);
+
+        // Trigger narrative updates for significant surprises
+        for (const surprise of mergeResult.surprises) {
+          await triggerNarrativeUpdate(surprise.eventId, {
+            title: surprise.title,
+            actual: surprise.actual,
+            forecast: surprise.forecast,
+            impact: "high",
+          });
+        }
+      }
+    } catch (teErr) {
+      console.warn("[calendar-sync] TE actuals enrichment failed:", teErr);
+    }
+
     // Auto-update central bank rates from HIGH impact rate decisions with actual values
     let ratesUpdated = 0;
     for (const event of events) {
@@ -146,6 +172,7 @@ export async function POST(req: NextRequest) {
       upserted,
       updated,
       ratesUpdated,
+      teActualsUpdated,
       ...(errors.length > 0 ? { errors: errors.slice(0, 10) } : {}),
     });
   } catch (error) {

@@ -121,3 +121,27 @@ export interface FaireconomyEvent {
   previous: string;
   actual?: string;
 }
+
+// TradingEconomics scraper types
+export interface TeCalendarRow {
+  date: string;
+  time: string | null;
+  country: string;
+  title: string;
+  actual: string | null;
+  forecast: string | null;
+  previous: string | null;
+  importance: "high" | "medium" | "low";
+}
+
+export interface TeHeadline {
+  title: string;
+  timestamp: string | null;
+}
+
+export interface TeEnrichedBriefing {
+  calendar_actuals: TeCalendarRow[];
+  headlines: TeHeadline[];
+  week_ahead_editorial: string | null;
+  raw_text: string;
+}
