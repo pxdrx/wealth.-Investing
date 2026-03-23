@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
-import { FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL, getWeekStart } from "@/lib/macro/constants";
+import { FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL, getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -119,12 +119,42 @@ export async function POST(req: NextRequest) {
       console.warn("[refresh-calendar] TE actuals failed:", teErr);
     }
 
+    // --- Investing.com Actuals Enrichment (Apify) ---
+    let icUpdated = 0;
+    try {
+      const { fetchInvestingComCalendar } = await import("@/lib/macro/apify/calendar-fetcher");
+      const { mergeInvestingComActuals } = await import("@/lib/macro/apify/calendar-merger");
+
+      const currentWeekEnd = getWeekEnd();
+
+      // Current week
+      const icEvents = await fetchInvestingComCalendar(weekStart, currentWeekEnd);
+      if (icEvents && icEvents.length > 0) {
+        const icResult = await mergeInvestingComActuals(icEvents, supabase, weekStart);
+        icUpdated += icResult.updated;
+      }
+
+      // Previous week backfill
+      const prevWeekStart = getWeekStartOffset(-1);
+      const prevWeekEnd = getWeekEnd(new Date(prevWeekStart + "T12:00:00Z"));
+      const prevIcEvents = await fetchInvestingComCalendar(prevWeekStart, prevWeekEnd);
+      if (prevIcEvents && prevIcEvents.length > 0) {
+        const prevResult = await mergeInvestingComActuals(prevIcEvents, supabase, prevWeekStart);
+        icUpdated += prevResult.updated;
+      }
+
+      console.log(`[refresh-calendar] Investing.com enrichment: ${icUpdated} updated`);
+    } catch (icErr) {
+      console.warn("[refresh-calendar] Investing.com enrichment failed:", icErr);
+    }
+
     return NextResponse.json({
       ok: true,
       fetched: events.length,
       updated,
       inserted,
       teUpdated,
+      icUpdated,
     });
   } catch (error) {
     console.error("[refresh-calendar] Error:", error);

@@ -150,10 +150,10 @@ export function Navbar() {
               </a>
               <a
                 href="/login"
-                className="hidden md:inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-[1.02]"
+                className="hidden md:inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-full transition-all hover:scale-[1.02] shadow-[0_2px_8px_rgba(26,26,26,0.08)]"
                 style={{
                   backgroundColor: "hsl(var(--landing-accent))",
-                  color: "hsl(var(--landing-bg))",
+                  color: "hsl(var(--landing-bg-elevated))",
                 }}
               >
                 Comece grátis

@@ -352,7 +352,7 @@ export default function JournalPage() {
   const { hidden: valuesHidden, toggle: toggleValues } = usePrivacy();
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
+    <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">

@@ -47,16 +47,31 @@ export async function POST(req: NextRequest) {
       .order("date", { ascending: true })
       .order("time", { ascending: true });
 
-    // 2. Scrape enriched TE data (headlines + week ahead editorial + actuals)
+    // 2. Try Apify RAG browser for full Week Ahead editorial (primary)
+    let weekAheadEditorial: string | null = null;
+    try {
+      const { fetchWeekAheadViaApify } = await import("@/lib/macro/apify/week-ahead-fetcher");
+      const apifyResult = await fetchWeekAheadViaApify();
+      if (apifyResult) {
+        weekAheadEditorial = apifyResult.editorial;
+        console.log(`[weekly-briefing] Apify week-ahead: ${weekAheadEditorial.length} chars from ${apifyResult.publishedDate}`);
+      }
+    } catch (err) {
+      console.warn("[weekly-briefing] Apify week-ahead failed:", err);
+    }
+
+    // 2b. Scrape enriched TE data (headlines + fallback week ahead)
     let teBriefing: Awaited<ReturnType<typeof scrapeTeBriefing>> | null = null;
     let teHeadlines: string[] | null = null;
-    let weekAheadEditorial: string | null = null;
     try {
       const enriched = await scrapeTeBriefing();
       if (enriched) {
         teBriefing = enriched;
         teHeadlines = enriched.headlines.map(h => h.title);
-        weekAheadEditorial = enriched.week_ahead_editorial;
+        // Only use TE editorial as fallback if Apify didn't get it
+        if (!weekAheadEditorial) {
+          weekAheadEditorial = enriched.week_ahead_editorial;
+        }
       }
     } catch (err) {
       console.warn("[weekly-briefing] TE scrape failed:", err);

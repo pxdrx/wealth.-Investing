@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
+import { getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -117,6 +118,35 @@ export async function POST(req: NextRequest) {
       console.warn("[calendar-sync] TE actuals enrichment failed:", teErr);
     }
 
+    // --- Investing.com Actuals Enrichment (Apify) ---
+    let icUpdated = 0;
+    try {
+      const { fetchInvestingComCalendar } = await import("@/lib/macro/apify/calendar-fetcher");
+      const { mergeInvestingComActuals } = await import("@/lib/macro/apify/calendar-merger");
+
+      const weekEnd = getWeekEnd();
+
+      // Current week
+      const icEvents = await fetchInvestingComCalendar(weekStart, weekEnd);
+      if (icEvents && icEvents.length > 0) {
+        const icResult = await mergeInvestingComActuals(icEvents, supabase, weekStart);
+        icUpdated += icResult.updated;
+      }
+
+      // Previous week backfill
+      const prevWeekStart = getWeekStartOffset(-1);
+      const prevWeekEnd = getWeekEnd(new Date(prevWeekStart + "T12:00:00Z"));
+      const prevIcEvents = await fetchInvestingComCalendar(prevWeekStart, prevWeekEnd);
+      if (prevIcEvents && prevIcEvents.length > 0) {
+        const prevResult = await mergeInvestingComActuals(prevIcEvents, supabase, prevWeekStart);
+        icUpdated += prevResult.updated;
+      }
+
+      console.log(`[calendar-sync] Investing.com enrichment: ${icUpdated} updated`);
+    } catch (icErr) {
+      console.warn("[calendar-sync] Investing.com enrichment failed:", icErr);
+    }
+
     // Auto-update central bank rates from HIGH impact rate decisions with actual values
     let ratesUpdated = 0;
     for (const event of events) {
@@ -173,6 +203,7 @@ export async function POST(req: NextRequest) {
       updated,
       ratesUpdated,
       teActualsUpdated,
+      icUpdated,
       ...(errors.length > 0 ? { errors: errors.slice(0, 10) } : {}),
     });
   } catch (error) {

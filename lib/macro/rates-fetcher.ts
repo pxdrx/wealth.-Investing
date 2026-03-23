@@ -4,10 +4,11 @@ import { CENTRAL_BANKS } from "./constants";
 import type { CentralBankRate } from "./types";
 
 /**
- * Central bank policy rates — hardcoded fallback.
+ * EMERGENCY FALLBACK ONLY — used when both Apify and DB fail.
  *
- * Primary source: Supabase `central_bank_rates` table (updated by cron).
- * Fallback: this hardcoded object (manually maintained).
+ * Primary source: Apify RAG browser → TradingEconomics (updated by cron).
+ * Secondary: Supabase `central_bank_rates` table.
+ * Last resort: this hardcoded object (manually maintained).
  *
  * Last updated: 2026-03-23
  */

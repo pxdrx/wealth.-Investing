@@ -94,7 +94,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
           </div>
 
           {/* Direction pills */}
-          <div className="flex rounded-lg border border-border/60 overflow-hidden">
+          <div className="flex rounded-lg border border-border/40 bg-card shadow-sm overflow-hidden">
             {(["all", "buy", "sell"] as const).map((d) => (
               <button
                 key={d}
@@ -113,7 +113,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
           </div>
 
           {/* Result pills */}
-          <div className="flex rounded-lg border border-border/60 overflow-hidden">
+          <div className="flex rounded-lg border border-border/40 bg-card shadow-sm overflow-hidden">
             {(["all", "win", "loss"] as const).map((r) => (
               <button
                 key={r}
@@ -139,7 +139,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 type="date"
                 value={dateFrom}
                 onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
-                className="w-[130px] h-8 text-xs"
+                className="w-[130px] h-8 text-xs border-border/40"
               />
             </div>
             <div className="flex items-center gap-1.5">
@@ -148,27 +148,27 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 type="date"
                 value={dateTo}
                 onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
-                className="w-[130px] h-8 text-xs"
+                className="w-[130px] h-8 text-xs border-border/40"
               />
             </div>
           </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-input border border-border/80 overflow-hidden">
+        <div className="rounded-input border border-border/40 shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="border-border/60 hover:bg-transparent">
-                <TableHead>Símbolo</TableHead>
-                <TableHead>Direção</TableHead>
-                <TableHead>Abertura</TableHead>
-                <TableHead>Fechamento</TableHead>
-                <TableHead className="hidden lg:table-cell">Duração</TableHead>
-                <TableHead className="text-right hidden lg:table-cell">PnL bruto</TableHead>
-                <TableHead className="text-right hidden lg:table-cell">Fees</TableHead>
-                <TableHead className="text-right">Net PnL</TableHead>
-                <TableHead>Resultado</TableHead>
-                <TableHead className="hidden xl:table-cell">Tags</TableHead>
+              <TableRow className="border-border/40 hover:bg-transparent">
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Símbolo</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Direção</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Abertura</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Fechamento</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground hidden lg:table-cell">Duração</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right hidden lg:table-cell">PnL bruto</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right hidden lg:table-cell">Fees</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right">Net PnL</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Resultado</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground hidden xl:table-cell">Tags</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

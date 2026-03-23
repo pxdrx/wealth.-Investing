@@ -274,7 +274,7 @@ export default function MacroIntelligencePage() {
             {/* Calendar & Rates */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
               {/* Economic Calendar */}
-              <section className="xl:col-span-8 flex flex-col rounded-[28px] border border-border/50 bg-card/60 shadow-soft dark:shadow-soft-dark overflow-hidden backdrop-blur-3xl relative isolate p-6">
+              <section className="xl:col-span-8 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6">
                 <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-blue-500"></span>
                   Calendário Econômico
@@ -290,7 +290,7 @@ export default function MacroIntelligencePage() {
               </section>
 
               {/* Interest Rates */}
-              <section className="xl:col-span-4 flex flex-col rounded-[28px] border border-border/50 bg-card/60 shadow-soft dark:shadow-soft-dark overflow-hidden backdrop-blur-3xl relative isolate p-6">
+              <section className="xl:col-span-4 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6">
                 <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Taxas Baseadas (Bancos Centrais)</h2>
                 <PaywallGate requiredPlan="pro" blurContent>
                   <InterestRatesPanel rates={rates} />
@@ -299,8 +299,8 @@ export default function MacroIntelligencePage() {
             </div>
 
             {/* Weekly History */}
-            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card/40 backdrop-blur-xl p-6">
-              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Histórico Macro Semanal</h2>
+            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
+                <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Histórico Macro Semanal</h2>
               <PaywallGate requiredPlan="pro" blurContent>
                 <WeeklyHistory weeks={weeks} currentWeek={currentWeek} />
               </PaywallGate>
@@ -312,13 +312,12 @@ export default function MacroIntelligencePage() {
         <TabsContent value="report" className="flex-1 min-h-0 mt-0">
           <div className="flex flex-col gap-6">
             {/* Weekly Briefing — expanded, no collapse */}
-            <section className="w-full rounded-[28px] border border-border/50 bg-card/60 shadow-soft dark:shadow-soft-dark overflow-hidden backdrop-blur-3xl relative isolate px-6 py-5">
-              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
+            <section className="w-full rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate px-6 py-5">
               <WeeklyBriefing panorama={panorama} onRegenerate={handleRegenerate} defaultExpanded />
             </section>
 
             {/* Regional Analysis */}
-            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card/40 backdrop-blur-xl p-6">
+            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-indigo-500"></span>
                 Análise Regional
@@ -329,7 +328,7 @@ export default function MacroIntelligencePage() {
             </section>
 
             {/* Decision Intelligence */}
-            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card/40 backdrop-blur-xl p-6">
+            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
                 Inteligência de Decisão

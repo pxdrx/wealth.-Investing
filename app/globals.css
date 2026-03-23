@@ -4,52 +4,52 @@
 
 @layer base {
   :root {
-    /* ── Light theme ── */
-    --background: 220 14% 95%;
-    --foreground: 222 47% 11%;
+    /* ── Light theme (Lumina Slate Identity) ── */
+    --background: 0 0% 95%; /* #F2F2F2 (Mais contraste com os cards) */
+    --foreground: 0 0% 10%; /* #1A1A1A */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --primary: 215 25% 15%;
+    --card-foreground: 0 0% 10%; 
+    --primary: 0 0% 10%; /* #1A1A1A */
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 215 20% 95%;
-    --accent-foreground: 215 25% 15%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --input-bg: 240 5% 97%;
-    --ring: 215 20% 65%;
+    --secondary: 0 0% 93%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 93%;
+    --muted-foreground: 0 0% 42%; /* #6B6B6B */
+    --accent: 0 0% 93%;
+    --accent-foreground: 0 0% 10%;
+    --border: 0 0% 82%; /* #D1D1D1 (Linhas divisórias mais visíveis) */
+    --input: 0 0% 82%;
+    --input-bg: 0 0% 100%;
+    --ring: 0 0% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 10%;
 
-    /* ── Landing tokens (light) ── */
-    --landing-bg: 220 14% 97%;
+    /* ── Landing tokens (Lumina Slate) ── */
+    --landing-bg: 0 0% 95%;
     --landing-bg-elevated: 0 0% 100%;
-    --landing-bg-tertiary: 220 14% 96%;
-    --landing-border: 220 13% 90%;
-    --landing-border-strong: 220 9% 83%;
-    --landing-text: 222 47% 11%;
-    --landing-text-secondary: 220 9% 35%;
-    --landing-text-muted: 220 9% 58%;
-    --landing-accent: 215 25% 15%;
-    --landing-accent-secondary: 217 60% 50%;
+    --landing-bg-tertiary: 0 0% 93%;
+    --landing-border: 0 0% 82%;
+    --landing-border-strong: 0 0% 65%;
+    --landing-text: 0 0% 10%;
+    --landing-text-secondary: 0 0% 42%;
+    --landing-text-muted: 0 0% 60%;
+    --landing-accent: 0 0% 10%;
+    --landing-accent-secondary: 0 0% 25%;
     --landing-accent-warning: 38 80% 48%;
     --landing-accent-danger: 0 72% 50%;
-    --pnl-positive: 152 40% 38%; /* Kept for legacy */
+    --pnl-positive: 152 40% 38%;
     --pnl-positive-light: 152 35% 48%;
     --pnl-negative: 4 50% 52%;
-    --pnl-cell-win: 152 80% 45% / 0.12; /* Neon Emerald light */
-    --pnl-cell-loss: 350 80% 55% / 0.10; /* Deep Rose light */
-    --pnl-text-positive: 152 85% 30%; /* Sharper green */
-    --pnl-text-negative: 350 75% 48%; /* Sharper red */
-    --landing-grid: 220 13% 92%;
-    --landing-card-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px -4px rgba(0,0,0,0.07);
-    --landing-card-shadow-hover: 0 2px 4px rgba(0,0,0,0.05), 0 8px 24px -4px rgba(0,0,0,0.1);
+    --pnl-cell-win: 152 80% 45% / 0.12; 
+    --pnl-cell-loss: 350 80% 55% / 0.10; 
+    --pnl-text-positive: 152 85% 30%; 
+    --pnl-text-negative: 350 75% 48%; 
+    --landing-grid: 0 0% 82%; 
+    --landing-card-shadow: 0 1px 2px rgba(0,0,0,0.02), 0 4px 16px -4px rgba(0,0,0,0.04);
+    --landing-card-shadow-hover: 0 2px 4px rgba(0,0,0,0.03), 0 8px 24px -4px rgba(0,0,0,0.08);
 
-    /* Radius */
-    --radius-card: 22px;
+    /* Radius (Lumina Soft Geometry) */
+    --radius-card: 20px;
     --radius-modal: 24px;
     --radius-input: 12px;
 
@@ -61,8 +61,8 @@
     --leading-normal: 1.5;
     --leading-relaxed: 1.625;
     --placeholder-opacity: 0.55;
-    --font-weight-heading: 600;
-    --font-weight-display: 700;
+    --font-weight-heading: 800; /* For Manrope headlines */
+    --font-weight-display: 800;
   }
 
   .dark {

@@ -542,11 +542,11 @@ function DashboardContent({
     <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-8" data-account-id={activeAccountId ?? undefined}>
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
+          <h1 className="text-3xl font-headline font-extrabold tracking-tight text-foreground">
             Command Center
           </h1>
           <p className="mt-1 text-sm text-muted-foreground font-medium">
-            Visão geral da sua mesa proprietária e capital alocado.
+            Visão geral das suas contas.
           </p>
         </div>
         <button
@@ -567,8 +567,7 @@ function DashboardContent({
         <div className="lg:col-span-12 flex flex-col gap-3">
           {/* Ticker tape */}
           <div
-            className="w-full rounded-xl border overflow-hidden"
-            style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
+            className="w-full rounded-xl border border-border/40 bg-card overflow-hidden shadow-sm"
           >
             <iframe
               key={`ticker-${tvTheme}`}
@@ -604,8 +603,7 @@ function DashboardContent({
           {/* Advanced chart with full tools — collapsible */}
           <div
             ref={watchlistRef}
-            className="w-full rounded-[22px] border overflow-hidden shadow-soft dark:shadow-soft-dark"
-            style={{ borderColor: "hsl(var(--border) / 0.5)", backgroundColor: "hsl(var(--card) / 0.65)", backdropFilter: "blur(28px)" }}
+            className="w-full rounded-[22px] border border-border/40 bg-card overflow-hidden shadow-sm"
           >
             <button
               type="button"

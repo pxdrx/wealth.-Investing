@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
+import { useSubscription } from "@/components/context/SubscriptionContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,7 @@ export function AppSidebar() {
   const [hasSession, setHasSession] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const { plan } = useSubscription();
 
   // Auto-collapse on smaller screens
   useEffect(() => {
@@ -79,7 +81,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "relative flex flex-col border-r border-border/40 bg-card/40 backdrop-blur-3xl transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] z-40 hidden md:flex",
+        "relative flex flex-col border-r border-border/40 bg-background transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] z-40 hidden md:flex",
         collapsed ? "w-[80px]" : "w-[260px]"
       )}
     >
@@ -94,8 +96,8 @@ export function AppSidebar() {
       {/* Header / Brand */}
       <div className={cn("flex items-center shrink-0 h-20 px-6 transition-opacity", collapsed && "px-0 justify-center")}>
         {collapsed ? (
-          <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
-            <span className="text-primary font-bold text-sm">w.</span>
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground shadow-sm">
+            <span className="font-headline font-bold text-sm">w.</span>
           </div>
         ) : (
           <BrandMark />
@@ -123,7 +125,7 @@ export function AppSidebar() {
               )}
             >
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1/2 w-1 bg-primary rounded-r-md shadow-[0_0_12px_rgba(32,107,179,0.8)]" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-[60%] w-1 bg-primary rounded-r-md" />
               )}
               <Icon className={cn("h-5 w-5 shrink-0 transition-transform group-hover:scale-110", isActive && "text-primary")} />
               
@@ -176,7 +178,7 @@ export function AppSidebar() {
             "mt-4 flex items-center gap-3 rounded-xl border border-border/30 bg-muted/20 p-2 overflow-hidden transition-all",
             collapsed ? "justify-center" : ""
           )}>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-purple-600/80 text-xs font-bold text-white shadow-inner">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm">
               {initials}
             </div>
             {!collapsed && (
@@ -191,7 +193,7 @@ export function AppSidebar() {
                     )}
                   </div>
                   <span className="truncate text-[10px] text-muted-foreground uppercase tracking-widest">
-                    Terminal Pro
+                    Terminal {plan === 'ultra' ? 'Ultra' : plan === 'pro' ? 'Pro' : 'Free'}
                   </span>
                 </div>
                 <div className="shrink-0">

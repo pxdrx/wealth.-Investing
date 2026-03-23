@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { fetchCentralBankRates } from "@/lib/macro/rates-fetcher";
+import { fetchRatesViaApify } from "@/lib/macro/apify/rates-scraper";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -12,6 +13,7 @@ function getSupabaseAdmin() {
 }
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
@@ -21,7 +23,39 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
 
   try {
-    const rates = await fetchCentralBankRates();
+    let source = "hardcoded_fallback";
+    let rates: Awaited<ReturnType<typeof fetchCentralBankRates>>;
+
+    // 1. Try Apify (live data from TradingEconomics)
+    const apifyRates = await fetchRatesViaApify();
+    if (apifyRates && apifyRates.length > 0) {
+      // Apify gives us current_rate but not last_action/next_meeting.
+      // Merge with existing DB data to preserve those fields.
+      const { data: dbRates } = await supabase
+        .from("central_bank_rates")
+        .select("bank_code, last_action, last_change_bps, last_change_date, next_meeting");
+
+      const dbMap = new Map(
+        (dbRates ?? []).map((r) => [r.bank_code, r])
+      );
+
+      rates = apifyRates.map((r) => {
+        const existing = dbMap.get(r.bank_code);
+        return {
+          ...r,
+          last_action: existing?.last_action ?? r.last_action,
+          last_change_bps: existing?.last_change_bps ?? r.last_change_bps,
+          last_change_date: existing?.last_change_date ?? r.last_change_date,
+          next_meeting: existing?.next_meeting ?? r.next_meeting,
+        };
+      });
+      source = "apify_te";
+      console.log(`[rates-sync] Using Apify data: ${rates.length} rates`);
+    } else {
+      // 2. Fallback to hardcoded rates
+      console.warn("[rates-sync] Apify failed, using hardcoded fallback");
+      rates = await fetchCentralBankRates();
+    }
 
     let upserted = 0;
     for (const rate of rates) {
@@ -31,7 +65,7 @@ export async function POST(req: NextRequest) {
       if (!error) upserted++;
     }
 
-    return NextResponse.json({ ok: true, upserted, total: rates.length });
+    return NextResponse.json({ ok: true, source, upserted, total: rates.length });
   } catch (error) {
     console.error("[rates-sync] Error:", error);
     return NextResponse.json(

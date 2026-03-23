@@ -106,7 +106,7 @@ export function Hero() {
           >
             <motion.h1
               variants={fadeUp}
-              className="text-[2rem] sm:text-[2.5rem] md:text-[3rem] lg:text-[3.5rem] font-bold leading-[1.1] tracking-tighter-apple text-l-text mb-6"
+              className="text-[2rem] sm:text-[2.5rem] md:text-[3rem] lg:text-[3.5rem] font-headline font-extrabold leading-[1.05] tracking-tight text-l-text mb-6"
             >
               {HERO.headline}
             </motion.h1>
@@ -116,10 +116,10 @@ export function Hero() {
             >
               {HERO.subheadline}
             </motion.p>
-            <motion.div variants={fadeUp} className="mt-8">
-              <LiquidButton href="/login" size="xxl" className="text-base font-semibold px-10 py-6 min-w-[200px]">
+            <motion.div variants={fadeUp} className="mt-8 relative z-50">
+              <a href="/login" className="inline-flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-base font-semibold px-10 py-5 min-w-[200px] rounded-full hover:bg-black transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-[0_8px_24px_rgba(26,26,26,0.12)]">
                 {HERO.ctaPrimary}
-              </LiquidButton>
+              </a>
             </motion.div>
           </motion.div>
           <motion.div

@@ -37,6 +37,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Failed to fetch calendar data" }, { status: 500 });
   }
 
+  // If we have data, compute freshness metadata
+  if (data && data.length > 0) {
+    const lastSynced = data.reduce((latest: string, e: { updated_at?: string }) =>
+      e.updated_at && e.updated_at > latest ? e.updated_at : latest,
+      data[0].updated_at || ""
+    );
+    const eventsWithActuals = data.filter((e: { actual?: string | null }) => e.actual).length;
+
+    return NextResponse.json({
+      ok: true,
+      data,
+      meta: { last_synced: lastSynced, events_with_actuals: eventsWithActuals, total: data.length },
+    });
+  }
+
   // Auto-sync: if DB is empty, try fetching from Faireconomy
   // Faireconomy "thisweek" may return current or next week depending on the day
   if (!data || data.length === 0) {

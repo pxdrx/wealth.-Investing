@@ -46,6 +46,7 @@ export default {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
         display: ["var(--font-jakarta)", "system-ui", "-apple-system", "sans-serif"],
+        headline: ["var(--font-manrope)", "system-ui", "-apple-system", "sans-serif"],
         mono: ["var(--font-jetbrains)", "JetBrains Mono", "monospace"],
       },
       borderRadius: {

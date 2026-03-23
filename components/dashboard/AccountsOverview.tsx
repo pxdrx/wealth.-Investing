@@ -203,7 +203,7 @@ export function AccountsOverview({
         {kpis.map((kpi) => (
           <div
             key={kpi.label}
-            className="bg-card rounded-[22px] p-5 relative isolate overflow-hidden"
+            className="bg-card rounded-[22px] p-5 relative isolate overflow-hidden border border-border/40 shadow-sm"
           >
             <p className="text-[11px] uppercase font-semibold tracking-wider text-muted-foreground mb-1.5">
               {kpi.label}
@@ -213,9 +213,8 @@ export function AccountsOverview({
         ))}
       </div>
 
-      {/* Accounts Table */}
       <div
-        className="bg-card rounded-[22px] overflow-hidden relative isolate"
+        className="bg-card rounded-[22px] overflow-hidden relative isolate border border-border/40 shadow-sm"
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

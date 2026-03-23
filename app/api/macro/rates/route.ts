@@ -23,5 +23,24 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Failed to fetch rates data" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, data: data || [] });
+  // Staleness check: if newest updated_at > 48h ago, flag as stale
+  const rates = data || [];
+  let lastUpdated: string | null = null;
+  let isStale = true;
+  if (rates.length > 0) {
+    lastUpdated = rates.reduce((latest: string, r: { updated_at?: string }) =>
+      r.updated_at && r.updated_at > latest ? r.updated_at : latest,
+      rates[0].updated_at || ""
+    );
+    if (lastUpdated) {
+      const ageMs = Date.now() - new Date(lastUpdated).getTime();
+      isStale = ageMs > 48 * 60 * 60 * 1000; // 48h
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    data: rates,
+    meta: { last_updated: lastUpdated, is_stale: isStale },
+  });
 }
