@@ -147,6 +147,12 @@ function findHighlightedEvents(events: EconomicEvent[]): {
   return { lastOccurredId, nextUpcomingId };
 }
 
+/** Detect speech/testimony events that have no numeric data */
+function isSpeechEvent(title: string): boolean {
+  const lower = title.toLowerCase();
+  return lower.includes("speaks") || lower.includes("speech") || lower.includes("testimony") || lower.includes("conference") || lower.includes("hearing");
+}
+
 /** Color-code actual vs forecast: green=beat, red=miss, neutral=inline */
 function getActualColor(actual: string | null, forecast: string | null): string {
   if (!actual) return "";
@@ -482,23 +488,29 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
                         {event.title}
                       </span>
 
-                      {/* Values */}
-                      <div className="hidden shrink-0 gap-4 text-xs sm:flex">
-                        <div className="w-14 text-center">
-                          <div className="text-[10px] text-muted-foreground">Anterior</div>
-                          <div>{event.previous || "—"}</div>
-                        </div>
-                        <div className="w-14 text-center">
-                          <div className="text-[10px] text-muted-foreground">Previsão</div>
-                          <div>{event.forecast || "—"}</div>
-                        </div>
-                        <div className="w-14 text-center">
-                          <div className="text-[10px] text-muted-foreground">Real</div>
-                          <div className={actualColor}>
-                            {event.actual || "—"}
+                      {/* Values — hidden for speech/testimony events */}
+                      {!isSpeechEvent(event.title) ? (
+                        <div className="hidden shrink-0 gap-4 text-xs sm:flex">
+                          <div className="w-14 text-center">
+                            <div className="text-[10px] text-muted-foreground">Anterior</div>
+                            <div>{event.previous || "—"}</div>
+                          </div>
+                          <div className="w-14 text-center">
+                            <div className="text-[10px] text-muted-foreground">Previsão</div>
+                            <div>{event.forecast || "—"}</div>
+                          </div>
+                          <div className="w-14 text-center">
+                            <div className="text-[10px] text-muted-foreground">Real</div>
+                            <div className={actualColor}>
+                              {event.actual || "—"}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <span className="hidden sm:block text-[10px] text-muted-foreground italic">
+                          Discurso
+                        </span>
+                      )}
                     </div>
                   );
                 })}

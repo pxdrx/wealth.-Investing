@@ -232,21 +232,24 @@ export function WeeklyBriefing({ panorama, onRegenerate }: WeeklyBriefingProps) 
 
   return (
     <div className="w-full">
-      {/* Header (Clickable Toggle) */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between group outline-none"
-      >
-        <div className="flex items-center gap-3">
+      {/* Header */}
+      <div className="flex w-full items-center justify-between">
+        {/* Left side — clickable to toggle */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex flex-1 items-center gap-3 group outline-none min-w-0"
+        >
           <h3 className="text-xl font-display font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
             Relatório Macro IA
           </h3>
           {weekRange && (
-            <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold text-blue-500 uppercase tracking-widest">{weekRange}</span>
+            <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold text-blue-500 uppercase tracking-widest shrink-0">{weekRange}</span>
           )}
           {!panorama.is_frozen && <LiveIndicator />}
-        </div>
-        <div className="flex items-center gap-4">
+        </button>
+
+        {/* Right side — separate buttons */}
+        <div className="flex items-center gap-4 shrink-0">
           <span className="text-[11px] font-medium text-muted-foreground hidden sm:block">
             Gerado em {updatedAt}
           </span>
@@ -259,17 +262,20 @@ export function WeeklyBriefing({ panorama, onRegenerate }: WeeklyBriefingProps) 
               {isRegenerating ? "Gerando..." : "Regenerar"}
             </button>
           )}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/30 group-hover:bg-muted/60 transition-colors">
-            <span className="text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/30 hover:bg-muted/60 transition-colors"
+          >
+            <span className="text-xs font-semibold text-muted-foreground">
               {isOpen ? "Ocultar" : "Ler Relatório"}
             </span>
             <ChevronDown className={cn(
               "h-4 w-4 text-muted-foreground transition-transform duration-300",
               isOpen && "rotate-180"
             )} />
-          </div>
+          </button>
         </div>
-      </button>
+      </div>
 
       {/* Collapsible Content */}
       <div className={cn(
