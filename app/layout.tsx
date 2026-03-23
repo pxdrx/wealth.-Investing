@@ -64,10 +64,12 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrains.variable} ${jakarta.variable} relative min-h-screen font-sans antialiased`}
       >
         <ThemeProvider defaultTheme="dark" storageKey="trading-dashboard-theme">
-          {/* Global Glowing Backgrounds */}
-          <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-[-20%] left-[10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[140px] mix-blend-normal opacity-50 dark:opacity-100 animate-pulse duration-10000" />
-            <div className="absolute bottom-[-10%] right-[10%] w-[40%] h-[40%] rounded-full bg-l-accent-secondary/15 blur-[120px] mix-blend-normal opacity-50 dark:opacity-100" />
+          {/* Premium Ambient Background (Forces Glassmorphism to pop) */}
+          <div className="fixed inset-0 z-0 pointer-events-none bg-background">
+            <div className="absolute top-[-30%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-blue-500/10 dark:bg-blue-600/20 blur-[140px] mix-blend-screen animate-pulse duration-[15000ms]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-[120px] mix-blend-screen" />
+            <div className="absolute top-[20%] left-[60%] w-[40vw] h-[40vw] rounded-full bg-purple-500/5 dark:bg-indigo-500/10 blur-[100px] mix-blend-screen" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
           </div>
           <div className="relative z-[1] flex flex-col min-h-screen">
             <AppShell>{children}</AppShell>

@@ -62,14 +62,14 @@ export function SessionHeatmap({ trades }: SessionHeatmapProps) {
 
   return (
     <div
-      className="rounded-[22px] border overflow-hidden"
+      className="rounded-[22px] border overflow-hidden h-full flex flex-col"
       style={{
         borderColor: "hsl(var(--border))",
         backgroundColor: "hsl(var(--card))",
       }}
     >
       <div
-        className="px-5 py-3.5 border-b"
+        className="px-5 py-3.5 border-b shrink-0"
         style={{ borderColor: "hsl(var(--border))" }}
       >
         <h3 className="text-sm font-semibold tracking-tight text-foreground">

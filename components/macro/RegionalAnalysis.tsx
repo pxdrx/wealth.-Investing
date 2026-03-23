@@ -30,7 +30,7 @@ export function RegionalAnalysis({ data }: RegionalAnalysisProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
       {regions.map(({ key, data: region }) => {
         const outlook = OUTLOOK_CONFIG[region.outlook];
         const OutlookIcon = outlook.icon;

@@ -30,7 +30,7 @@ export function MacroWidgetBriefing() {
 
   if (!panorama) {
     return (
-      <div className="rounded-[22px] p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
+      <div className="rounded-[22px] border overflow-hidden h-full flex flex-col p-5" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}>
         <h3 className="text-sm font-semibold">Panorama Macro</h3>
         <p className="mt-2 text-xs text-muted-foreground">Análise semanal ainda não disponível.</p>
       </div>
@@ -42,14 +42,14 @@ export function MacroWidgetBriefing() {
   const preview = rawPreview.replace(/\*\*/g, "");
 
   return (
-    <div className="space-y-3 rounded-[22px] p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
-      <div className="flex items-center justify-between">
+    <div className="space-y-3 rounded-[22px] border overflow-hidden h-full flex flex-col p-5" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}>
+      <div className="flex items-center justify-between shrink-0">
         <h3 className="text-sm font-semibold">Panorama Macro</h3>
         <a href="/app/macro" className="text-xs font-medium text-primary hover:underline">
           Ver mais
         </a>
       </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">{preview}</p>
+      <p className="text-xs leading-relaxed text-muted-foreground flex-1">{preview}</p>
     </div>
   );
 }

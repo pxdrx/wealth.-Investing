@@ -14,6 +14,7 @@ import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import { formatPsychologyProfile } from "@/lib/ai-prompts";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import type { JournalTradeRow } from "@/components/journal/types";
+import { cn } from "@/lib/utils";
 
 interface Message {
   id?: string;
@@ -357,57 +358,152 @@ export default function AICoachPage() {
   }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType, dataMode, tradeAnalytics, saveMessage]);
 
   return (
-    <main className="flex flex-col px-4 sm:px-6" style={{ height: "calc(100vh - 64px)" }}>
-      {/* Main card container — full height, widened for better UX */}
-      <div
-        className="flex flex-col flex-1 min-h-0 rounded-[28px] border border-white/10 dark:border-white/5 overflow-hidden my-4 w-full max-w-4xl mx-auto shadow-[0_20px_60px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
-        style={{ backgroundColor: "hsl(var(--card) / 0.75)" }}
-      >
-        {/* ── Header bar ── */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
-              <Brain className="h-4.5 w-4.5 text-blue-500" />
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-foreground">AI Coach</span>
-              <div className="flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                <span className="text-[10px] text-muted-foreground">Online</span>
+    <main className="flex w-full h-full p-6 lg:p-8 gap-6 overflow-hidden">
+      {/* LEFT PANE: Context & Data Insights (Hidden on small screens) */}
+      <div className="hidden lg:flex flex-col w-[350px] xl:w-[400px] shrink-0 gap-6 overflow-y-auto custom-scrollbar pr-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
+            AI Co-Pilot
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground font-medium">
+            Seu analista quantitativo pessoal.
+          </p>
+        </div>
+
+        <PaywallGate requiredPlan="pro" blurContent>
+          <div className="flex flex-col gap-6">
+            {/* Quick Actions Bento */}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ações Rápidas</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {QUICK_ACTIONS.map((action, i) => {
+                  const Icon = action.icon;
+                  return (
+                    <motion.button
+                      key={action.type}
+                      type="button"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: i * 0.08, ease: easeApple }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      disabled={quotaExhausted || isStreaming}
+                      onClick={() => {
+                        setAnalysisType(action.type);
+                        if (action.prompt) {
+                          sendMessage(action.prompt, action.type);
+                        }
+                      }}
+                      className="group flex items-center gap-4 rounded-[16px] border border-border/40 bg-card/60 p-4 text-left transition-all hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(32,107,179,0.1)] backdrop-blur-xl disabled:opacity-50"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                        <Icon className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground group-hover:text-blue-400 transition-colors">{action.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                      </div>
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
+
+            {/* Context Data Source */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Contexto de Dados</h3>
+                {!dataMode ? (
+                  <button
+                    onClick={() => setDataMode(true)}
+                    className="text-[10px] font-bold uppercase tracking-wider text-blue-500 hover:text-blue-400 transition-colors"
+                  >
+                    Ativar Analytics
+                  </button>
+                ) : (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                    Sincronizado
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 rounded-[16px] border border-border/40 bg-card/40 p-4 backdrop-blur-xl">
+                {DATA_SOURCES.map((src, i) => (
+                  <div key={src.label} className="flex items-center gap-3 py-1">
+                    <src.icon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground font-medium">{src.label}</span>
+                    <div className="ml-auto h-2 w-2 rounded-full bg-emerald-500/50" />
+                  </div>
+                ))}
+                {dataMode && tradesLoaded && (
+                  <div className="mt-2 pt-3 border-t border-border/30 flex items-center gap-3">
+                    <Sparkles className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium text-blue-400">{trades.length} trades em memória</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Deep Insights */}
+            {dataMode && tradesLoaded && (
+               <div className="flex flex-col gap-3">
+                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Insights Profundos</h3>
+                 <div className="flex flex-wrap gap-2">
+                   {INSIGHT_BUTTONS.map((btn, i) => {
+                     const Icon = btn.icon;
+                     return (
+                       <button
+                         key={i}
+                         type="button"
+                         disabled={quotaExhausted || isStreaming}
+                         onClick={() => {
+                           setAnalysisType("chat");
+                           sendMessage(btn.prompt, "chat");
+                         }}
+                         className="flex items-center gap-1.5 rounded-full border border-border/40 bg-card/40 px-3 py-1.5 text-xs font-medium text-foreground hover:border-blue-400 hover:bg-blue-500/10 transition-all backdrop-blur-xl"
+                       >
+                         <Icon className="h-3.5 w-3.5 text-blue-500" />
+                         {btn.label}
+                       </button>
+                     );
+                   })}
+                 </div>
+               </div>
+            )}
+            
+          </div>
+        </PaywallGate>
+      </div>
+
+      {/* RIGHT PANE: Chat Interface */}
+      <div className="flex-1 flex flex-col h-full rounded-[24px] border border-border/50 bg-card/60 shadow-soft dark:shadow-soft-dark overflow-hidden backdrop-blur-3xl relative isolate">
+        {/* Glow behind chat */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
+        
+        {/* Chat Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-background/20 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-3">
+             <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+             <span className="text-sm font-semibold tracking-wide text-foreground">Sessão Ativa</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Clear history button */}
+          <div className="flex items-center gap-4">
             {hasMessages && !isStreaming && (
-              <motion.button
-                type="button"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={clearHistory}
-                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-                title="Nova conversa"
+                className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                <MessageCircle className="h-3 w-3" />
-                <span className="hidden sm:inline">Nova conversa</span>
-              </motion.button>
+                Limpar Memória
+              </button>
             )}
-
-            {/* Usage indicator */}
             {usageLoaded && (
               <div className="flex items-center gap-2">
                 <div className="h-1.5 w-16 rounded-full overflow-hidden bg-muted/50">
-                  <motion.div
-                    className={`h-full rounded-full ${usagePct >= 90 ? "bg-red-500" : usagePct >= 70 ? "bg-amber-500" : "bg-green-500"}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${usagePct}%` }}
-                    transition={{ duration: 0.6, ease: easeApple }}
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${usagePct >= 90 ? "bg-red-500" : usagePct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
+                    style={{ width: `${usagePct}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground tabular-nums">
+                <span className="text-[10px] font-bold text-muted-foreground">
                   {usageCount}/{limits.aiCoachMonthly}
                 </span>
               </div>
@@ -415,222 +511,63 @@ export default function AICoachPage() {
           </div>
         </div>
 
-        <PaywallGate requiredPlan="pro" blurContent>
-        {/* ── Data sources strip ── */}
-        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border/30 shrink-0">
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground shrink-0 font-medium">
-            Fontes:
-          </span>
-          {DATA_SOURCES.map((src) => (
-            <div
-              key={src.label}
-              className="flex items-center gap-1 shrink-0 rounded-md px-2 py-0.5 bg-muted/30"
-            >
-              <src.icon className="h-2.5 w-2.5 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">{src.label}</span>
-            </div>
-          ))}
-          {dataMode && (
-            <div className="flex items-center gap-1 shrink-0 rounded-md px-2 py-0.5 bg-blue-500/10">
-              <Sparkles className="h-2.5 w-2.5 text-blue-500" />
-              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Analytics</span>
-            </div>
-          )}
-        </div>
-
-        {/* ── Content area — flex-1 to fill remaining space ── */}
-        <div className="flex flex-col flex-1 min-h-0">
-          {/* No account selected */}
+        {/* Chat Messages */}
+        <div className="flex-1 flex flex-col min-h-0 relative">
           {!activeAccountId && (
             <div className="flex-1 flex items-center justify-center p-8">
               <p className="text-sm text-muted-foreground">
-                Selecione uma conta para usar o AI Coach.
+                Selecione uma conta no menu principal para iniciar.
               </p>
             </div>
           )}
 
           {activeAccountId && (
-            <div className="flex flex-col flex-1 min-h-0">
-              {/* Empty state — quick actions (large cards) */}
-              <AnimatePresence mode="wait">
-                {!hasMessages && historyLoaded && (
-                  <motion.div
-                    key="empty-state"
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ duration: 0.4, ease: easeApple }}
-                    className="flex-1 flex flex-col justify-center p-6 overflow-y-auto"
-                  >
-                    <p className="text-xs font-medium text-muted-foreground mb-3">Como posso ajudar?</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {QUICK_ACTIONS.map((action, i) => {
-                        const Icon = action.icon;
-                        return (
-                          <motion.button
-                            key={action.type}
-                            type="button"
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.08, ease: easeApple }}
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            disabled={quotaExhausted || isStreaming}
-                            onClick={() => {
-                              setAnalysisType(action.type);
-                              if (action.prompt) {
-                                sendMessage(action.prompt, action.type);
-                              }
-                            }}
-                            className="flex flex-col items-start gap-3 rounded-2xl border border-border/40 p-4 text-left transition-all hover:border-border/80 hover:shadow-soft disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ backgroundColor: "hsl(var(--background))" }}
-                          >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                              <Icon className="h-4 w-4 text-blue-500" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">{action.title}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
-                            </div>
-                          </motion.button>
+             <>
+               <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+                 {!hasMessages && historyLoaded && (
+                   <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto opacity-60">
+                     <Brain className="h-12 w-12 text-blue-500/50 mb-4" />
+                     <p className="text-sm text-foreground font-medium mb-1">Coach Prontidão</p>
+                     <p className="text-xs text-muted-foreground">Use os atalhos laterais ou digite uma mensagem abaixo para iniciar a análise quantitativa.</p>
+                   </div>
+                 )}
+                 
+                 {hasMessages && (
+                   <div className="space-y-6 pb-4">
+                     {messages.map((msg, i) => {
+                       const isAssistant = msg.role === "assistant";
+                         return (
+                          <ChatMessage
+                           key={msg.id ?? `msg-${i}`}
+                           role={msg.role}
+                           content={msg.content}
+                           isStreaming={isStreaming && i === messages.length - 1 && isAssistant}
+                         />
                         );
                       })}
-                    </div>
+                     <div ref={messagesEndRef} />
+                   </div>
+                 )}
+                 
+                 {quotaExhausted && (
+                   <div className="mt-8 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-center">
+                     <p className="text-sm text-red-500 font-medium mb-2">Limite Mensal Atingido</p>
+                     <a href="/app/pricing" className="text-xs font-bold text-red-400 hover:text-red-300 underline">Fazer Upgrade do Plano</a>
+                   </div>
+                 )}
+               </div>
 
-                    {/* Analisar Meus Dados section */}
-                    <div className="mt-6 border-t border-border/30 pt-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-blue-500" />
-                          <p className="text-xs font-medium text-muted-foreground">Analisar Meus Dados</p>
-                        </div>
-                        {!dataMode && (
-                          <motion.button
-                            type="button"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setDataMode(true)}
-                            className="rounded-full bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
-                          >
-                            Ativar
-                          </motion.button>
-                        )}
-                        {dataMode && (
-                          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                            {tradesLoaded ? `${trades.length} trades carregados` : "Carregando..."}
-                          </span>
-                        )}
-                      </div>
-
-                      {dataMode && tradesLoaded && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, ease: easeApple }}
-                          className="flex flex-wrap gap-2"
-                        >
-                          {INSIGHT_BUTTONS.map((btn, i) => {
-                            const Icon = btn.icon;
-                            return (
-                              <motion.button
-                                key={i}
-                                type="button"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.2, delay: i * 0.05, ease: easeApple }}
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
-                                disabled={quotaExhausted || isStreaming}
-                                onClick={() => {
-                                  setAnalysisType("chat");
-                                  sendMessage(btn.prompt, "chat");
-                                }}
-                                className="flex items-center gap-1.5 rounded-full border border-border/40 px-3 py-1.5 text-[11px] font-medium text-foreground hover:border-blue-300 hover:bg-blue-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                style={{ backgroundColor: "hsl(var(--background))" }}
-                              >
-                                <Icon className="h-3 w-3 text-blue-500" />
-                                {btn.label}
-                              </motion.button>
-                            );
-                          })}
-                        </motion.div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Messages area — scrollable */}
-              {hasMessages && (
-                <div
-                  ref={chatContainerRef}
-                  className="flex-1 space-y-4 p-5 overflow-y-auto min-h-0"
-                >
-                  {messages.map((msg, i) => (
-                    <ChatMessage
-                      key={msg.id ?? `msg-${i}`}
-                      role={msg.role}
-                      content={msg.content}
-                      isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
-                    />
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
-
-              {/* Compact shortcut buttons — shown when conversation is active */}
-              {hasMessages && !quotaExhausted && (
-                <motion.div
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: easeApple }}
-                  className="flex items-center gap-1.5 px-4 pt-2 pb-1 overflow-x-auto shrink-0"
-                >
-                  {INSIGHT_BUTTONS.map((btn, i) => {
-                    const Icon = btn.icon;
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        disabled={isStreaming}
-                        onClick={() => sendMessage(btn.prompt, "chat")}
-                        className="flex items-center gap-1 shrink-0 rounded-full border border-border/30 px-2.5 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:border-blue-300 hover:bg-blue-500/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Icon className="h-2.5 w-2.5 text-blue-500" />
-                        {btn.label}
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-
-              {/* Quota exhausted */}
-              {quotaExhausted && (
-                <div className="flex flex-col items-center gap-3 p-6 border-t border-border/30 shrink-0">
-                  <p className="text-sm text-foreground text-center">
-                    Você usou todas as {limits.aiCoachMonthly} análises do plano {plan}.
-                  </p>
-                  <a
-                    href="/app/pricing"
-                    className="rounded-full bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
-                  >
-                    Fazer upgrade
-                  </a>
-                </div>
-              )}
-
-              {/* Chat input — pinned at bottom */}
-              <div className="border-t border-border/30 p-4 shrink-0">
-                <ChatInput
-                  onSubmit={(text) => sendMessage(text)}
-                  disabled={quotaExhausted || isStreaming}
-                  placeholder={quotaExhausted ? "Limite mensal atingido" : "Pergunte ao AI Coach..."}
-                />
-              </div>
-            </div>
+               {/* Input Area */}
+               <div className="p-4 bg-background/40 backdrop-blur-xl border-t border-border/30 shrink-0">
+                 <ChatInput
+                   onSubmit={(text) => sendMessage(text)}
+                   disabled={quotaExhausted || isStreaming}
+                   placeholder={quotaExhausted ? "Limite bloqueado" : "Comande a análise..."}
+                 />
+               </div>
+             </>
           )}
         </div>
-        </PaywallGate>
       </div>
     </main>
   );

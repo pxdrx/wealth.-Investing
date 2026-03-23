@@ -2,6 +2,7 @@
 
 import { ComponentType, ReactNode } from "react";
 import { PaywallGate } from "@/components/billing/PaywallGate";
+import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -87,19 +88,27 @@ export function WidgetRenderer({ layout, registry }: WidgetRendererProps) {
         const tier = label?.tier ?? "free";
         const node = registry[w.id];
 
+        // Asymmetrical Bento Box sizing logic
+        let gridClass = "xl:col-span-12";
+        // "esses 3 alinhados no mesmo nivel" => news, equity-mini, tiltmeter side-by-side in 3 columns
+        if (w.id === "news" || w.id === "equity-mini" || w.id === "tiltmeter") gridClass = "xl:col-span-4";
+        // Other smaller widgets 3-column
+        else if (w.id === "top-symbols" || w.id === "session-heatmap" || w.id === "streaks") gridClass = "xl:col-span-4";
+        // ai-insight is full-width (col-span-12) so it centers its content
+
         if (tier === "pro") {
           return (
-            <div key={w.id} className="lg:col-span-12">
+            <div key={w.id} className={cn("col-span-1 flex flex-col", gridClass)}>
               <PaywallGate requiredPlan="pro" blurContent>
-                {node}
+                <div className="flex-1 flex flex-col">{node}</div>
               </PaywallGate>
             </div>
           );
         }
 
         return (
-          <div key={w.id} className="lg:col-span-12">
-            {node}
+          <div key={w.id} className={cn("col-span-1 flex flex-col", gridClass)}>
+            <div className="flex-1 flex flex-col">{node}</div>
           </div>
         );
       })}

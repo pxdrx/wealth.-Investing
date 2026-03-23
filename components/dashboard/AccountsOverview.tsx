@@ -180,19 +180,19 @@ export function AccountsOverview({
   const kpis = [
     {
       label: "Capital Total Funded",
-      render: <MoneyDisplay value={capitalFunded} className="text-2xl font-bold tabular-nums leading-tight" />,
+      render: <MoneyDisplay value={capitalFunded} className="metric-value text-[26px] leading-tight" />,
     },
     {
       label: "Total Sacado",
-      render: <MoneyDisplay value={propPayoutsTotal} className="text-2xl font-bold tabular-nums leading-tight" />,
+      render: <MoneyDisplay value={propPayoutsTotal} className="metric-value text-[26px] leading-tight" />,
     },
     {
       label: "P&L Mês",
-      render: <MoneyDisplay value={pnlMes} showSign colorize className="text-2xl font-bold tabular-nums leading-tight" />,
+      render: <MoneyDisplay value={pnlMes} showSign colorize className="metric-value text-[26px] leading-tight" />,
     },
     {
       label: "Contas Ativas",
-      render: <span className="text-2xl font-bold tabular-nums leading-tight">{contasAtivas}</span>,
+      render: <span className="metric-value text-[26px] leading-tight">{contasAtivas}</span>,
     },
   ];
 
@@ -203,10 +203,9 @@ export function AccountsOverview({
         {kpis.map((kpi) => (
           <div
             key={kpi.label}
-            className="rounded-[22px] p-4 shadow-soft dark:shadow-soft-dark"
-            style={{ backgroundColor: "hsl(var(--card))" }}
+            className="bg-card rounded-[22px] p-5 relative isolate overflow-hidden"
           >
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+            <p className="text-[11px] uppercase font-semibold tracking-wider text-muted-foreground mb-1.5">
               {kpi.label}
             </p>
             {kpi.render}
@@ -216,8 +215,7 @@ export function AccountsOverview({
 
       {/* Accounts Table */}
       <div
-        className="rounded-[22px] overflow-hidden shadow-soft dark:shadow-soft-dark"
-        style={{ backgroundColor: "hsl(var(--card))" }}
+        className="bg-card rounded-[22px] overflow-hidden relative isolate"
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -280,17 +278,17 @@ export function AccountsOverview({
                       </td>
 
                       {/* P&L Mês */}
-                      <td className="px-4 py-3 text-right tabular-nums font-medium">
+                      <td className="px-4 py-3 text-right metric-value text-sm font-semibold">
                         <MoneyDisplay value={pnl} showSign colorize />
                       </td>
 
                       {/* DD Diário */}
-                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      <td className="px-4 py-3 text-right metric-value text-xs text-muted-foreground">
                         {ddDiario !== null ? (
                           <span
                             style={
                               ddDiarioLimit && ddDiario / ddDiarioLimit > 0.7
-                                ? { color: "hsl(var(--pnl-negative))" }
+                                ? { color: "hsl(var(--pnl-negative))", fontWeight: "bold" }
                                 : undefined
                             }
                           >
@@ -303,12 +301,12 @@ export function AccountsOverview({
                       </td>
 
                       {/* DD Total */}
-                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      <td className="px-4 py-3 text-right metric-value text-xs text-muted-foreground">
                         {ddTotal !== null ? (
                           <span
                             style={
                               ddTotalLimit && ddTotal / ddTotalLimit > 0.7
-                                ? { color: "hsl(var(--pnl-negative))" }
+                                ? { color: "hsl(var(--pnl-negative))", fontWeight: "bold" }
                                 : undefined
                             }
                           >
@@ -321,7 +319,7 @@ export function AccountsOverview({
                       </td>
 
                       {/* Win Rate */}
-                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      <td className="px-4 py-3 text-right metric-value text-xs text-muted-foreground">
                         {winRate !== null ? (
                           `${winRate.toFixed(0)}%`
                         ) : (

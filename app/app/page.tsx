@@ -530,14 +530,14 @@ function DashboardContent({
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12" data-account-id={activeAccountId ?? undefined}>
-      <div className="mb-10 flex items-center justify-between">
+    <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-8" data-account-id={activeAccountId ?? undefined}>
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-            Dashboard
+          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
+            Command Center
           </h1>
-          <p className="mt-1 text-muted-foreground leading-relaxed-apple">
-            Visão geral do seu gabinete de negociação.
+          <p className="mt-1 text-sm text-muted-foreground font-medium">
+            Visão geral da sua mesa proprietária e capital alocado.
           </p>
         </div>
         <button
@@ -553,7 +553,7 @@ function DashboardContent({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12 auto-rows-min">
         {/* TradingView Advanced Chart */}
         <div className="lg:col-span-12 flex flex-col gap-3">
           {/* Ticker tape */}
@@ -595,8 +595,8 @@ function DashboardContent({
           {/* Advanced chart with full tools — collapsible */}
           <div
             ref={watchlistRef}
-            className="w-full rounded-xl border overflow-hidden"
-            style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
+            className="w-full rounded-[22px] border overflow-hidden shadow-soft dark:shadow-soft-dark"
+            style={{ borderColor: "hsl(var(--border) / 0.5)", backgroundColor: "hsl(var(--card) / 0.65)", backdropFilter: "blur(28px)" }}
           >
             <button
               type="button"
@@ -873,14 +873,14 @@ function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
 
   return (
     <div
-      className="rounded-[22px] border overflow-hidden"
+      className="rounded-[22px] border overflow-hidden h-full flex flex-col"
       style={{
         borderColor: "hsl(var(--border))",
         backgroundColor: "hsl(var(--card))",
       }}
     >
       <div
-        className="flex items-center justify-between px-5 py-3.5 border-b"
+        className="flex items-center justify-between px-5 py-3.5 border-b shrink-0"
         style={{ borderColor: "hsl(var(--border))" }}
       >
         <div>
@@ -892,7 +892,7 @@ function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-4 px-5 py-4">
+      <div className="flex items-center gap-4 px-5 py-4 flex-1">
         <TiltmeterGauge result={result} size="sm" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">
@@ -937,14 +937,14 @@ function TopSymbolsWidget({
 
   return (
     <div
-      className="rounded-[22px] border overflow-hidden"
+      className="rounded-[22px] border overflow-hidden h-full flex flex-col"
       style={{
         borderColor: "hsl(var(--border))",
         backgroundColor: "hsl(var(--card))",
       }}
     >
       <div
-        className="flex items-center justify-between px-5 py-3.5 border-b"
+        className="flex items-center justify-between px-5 py-3.5 border-b shrink-0"
         style={{ borderColor: "hsl(var(--border))" }}
       >
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
@@ -952,7 +952,7 @@ function TopSymbolsWidget({
         </h3>
         <TrendingUp className="h-4 w-4 text-muted-foreground" />
       </div>
-      <div className="px-5 py-3">
+      <div className="px-5 py-3 flex-1">
         {topSymbols.length === 0 ? (
           <p className="text-xs text-muted-foreground py-4 text-center">
             Nenhum ativo registrado.
@@ -1041,14 +1041,14 @@ function StreaksWidget({
 
   return (
     <div
-      className="rounded-[22px] border overflow-hidden"
+      className="rounded-[22px] border overflow-hidden h-full flex flex-col"
       style={{
         borderColor: "hsl(var(--border))",
         backgroundColor: "hsl(var(--card))",
       }}
     >
       <div
-        className="flex items-center justify-between px-5 py-3.5 border-b"
+        className="flex items-center justify-between px-5 py-3.5 border-b shrink-0"
         style={{ borderColor: "hsl(var(--border))" }}
       >
         <h3 className="text-sm font-semibold tracking-tight text-foreground">

@@ -116,7 +116,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
     // Heading-like bold line (starts and ends with **)
     if (trimmed.startsWith("**") && trimmed.endsWith("**")) {
       nodes.push(
-        <p key={`p-${nodes.length}`} className="text-sm font-semibold leading-relaxed text-foreground">
+        <p key={`p-${nodes.length}`} className="text-base font-semibold leading-relaxed text-foreground mt-4 mb-2">
           {trimmed.replace(/\*\*/g, "")}
         </p>
       );
@@ -125,7 +125,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
 
     // Regular paragraph
     nodes.push(
-      <p key={`p-${nodes.length}`} className="text-sm leading-relaxed text-muted-foreground">
+      <p key={`p-${nodes.length}`} className="text-[15px] leading-[1.7] text-muted-foreground">
         {inlineMarkdown(trimmed)}
       </p>
     );
@@ -157,24 +157,33 @@ function CollapsibleSection({ title, children, defaultOpen = false }: {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-t border-border/30">
+    <div className="border border-border/20 rounded-[16px] bg-background/20 mb-3 overflow-hidden transition-all duration-300">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between py-3 text-left"
+        className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors"
       >
-        <span className="text-sm font-semibold text-foreground">{title}</span>
+        <span className="text-sm font-semibold text-foreground tracking-wide">{title}</span>
         <ChevronDown className={cn(
-          "h-4 w-4 text-muted-foreground transition-transform",
+          "h-4 w-4 text-muted-foreground transition-transform duration-300",
           open && "rotate-180"
         )} />
       </button>
-      {open && <div className="space-y-2 pb-3">{children}</div>}
+      <div className={cn(
+        "grid transition-all duration-300 ease-in-out",
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+      )}>
+        <div className="overflow-hidden">
+          <div className="space-y-4 px-5 pb-5 pt-1">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
 
 export function WeeklyBriefing({ panorama }: WeeklyBriefingProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   if (!panorama) {
     return (
       <div
@@ -206,65 +215,85 @@ export function WeeklyBriefing({ panorama }: WeeklyBriefingProps) {
     }
   })();
 
-  // Split narrative into sections by "---" or bold headers
   const sections = splitNarrativeSections(panorama.narrative);
 
   return (
-    <div
-      className="rounded-[22px] border border-border/40 p-6"
-      style={{ backgroundColor: "hsl(var(--card))" }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="w-full">
+      {/* Header (Clickable Toggle) */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between group outline-none"
+      >
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold tracking-tight">Visão da Semana</h3>
+          <h3 className="text-xl font-display font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
+            Relatório Macro IA
+          </h3>
           {weekRange && (
-            <span className="text-xs text-muted-foreground">{weekRange}</span>
+            <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold text-blue-500 uppercase tracking-widest">{weekRange}</span>
           )}
           {!panorama.is_frozen && <LiveIndicator />}
         </div>
-        <span className="text-[11px] text-muted-foreground">
-          Atualizado {updatedAt}
-        </span>
-      </div>
-
-      {/* Sentiment bar */}
-      <div className="mt-4">
-        <SentimentLine sentiment={panorama.sentiment} />
-      </div>
-
-      {/* Narrative content */}
-      <div className="mt-5">
-        {sections.length <= 1 ? (
-          <div className="space-y-2">
-            {renderMarkdown(panorama.narrative)}
-          </div>
-        ) : (
-          sections.map((section, i) => (
-            <CollapsibleSection
-              key={i}
-              title={section.title}
-              defaultOpen={i === 0}
-            >
-              {renderMarkdown(section.content)}
-            </CollapsibleSection>
-          ))
-        )}
-      </div>
-
-      {/* Source tags */}
-      <div className="mt-4 flex items-center gap-2 border-t border-border/30 pt-3">
-        <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-500">
-          Claude Sonnet
-        </span>
-        {panorama.te_briefing_raw && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-            TradingEconomics
+        <div className="flex items-center gap-4">
+          <span className="text-[11px] font-medium text-muted-foreground hidden sm:block">
+            Gerado em {updatedAt}
           </span>
-        )}
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-          ForexFactory
-        </span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/30 group-hover:bg-muted/60 transition-colors">
+            <span className="text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
+              {isOpen ? "Ocultar" : "Ler Relatório"}
+            </span>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-300",
+              isOpen && "rotate-180"
+            )} />
+          </div>
+        </div>
+      </button>
+
+      {/* Collapsible Content */}
+      <div className={cn(
+        "grid transition-all duration-300 ease-in-out",
+        isOpen ? "grid-rows-[1fr] opacity-100 mt-6" : "grid-rows-[0fr] opacity-0 mt-0"
+      )}>
+        <div className="overflow-hidden">
+          <div className="max-w-4xl mx-auto pt-2 pb-2">
+            {/* Sentiment bar */}
+            <div className="mb-8 p-4 rounded-[16px] bg-background/40 border border-border/30 backdrop-blur-md">
+              <SentimentLine sentiment={panorama.sentiment} />
+            </div>
+
+            {/* Narrative content (More Apple-like typography) */}
+            <div className="space-y-6">
+              {sections.length <= 1 ? (
+                <div className="space-y-4">
+                  {renderMarkdown(panorama.narrative)}
+                </div>
+              ) : (
+                sections.map((section, i) => (
+                  <CollapsibleSection
+                    key={i}
+                    title={section.title}
+                    defaultOpen={i === 0 || i === 1}
+                  >
+                    {renderMarkdown(section.content)}
+                  </CollapsibleSection>
+                ))
+              )}
+            </div>
+
+            {/* Source tags */}
+            <div className="mt-8 flex items-center gap-2 border-t border-border/30 pt-4">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mr-2">Powered By</span>
+              <span className="rounded-md bg-blue-500/10 px-2 py-1 text-[10px] font-bold tracking-wide text-blue-500">
+                Claude 3.5 Sonnet
+              </span>
+              {panorama.te_briefing_raw && (
+                <span className="rounded-md bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground">
+                  TradingEconomics Data
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

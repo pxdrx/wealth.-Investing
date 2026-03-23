@@ -276,12 +276,11 @@ export function EconomicCalendar({ events, onRefresh }: EconomicCalendarProps) {
           <div
             key={date}
             className={cn(
-              "overflow-hidden rounded-[16px] border transition-colors",
+              "overflow-hidden rounded-[20px] border transition-colors",
               isToday
-                ? "border-blue-500/30"
-                : "border-border/40"
+                ? "border-blue-500/40 bg-blue-500/5 shadow-[0_4px_24px_rgba(59,130,246,0.1)] backdrop-blur-md"
+                : "border-border/30 bg-background/30 backdrop-blur-md"
             )}
-            style={{ backgroundColor: "hsl(var(--card))" }}
           >
             {/* Day header — clickable */}
             <button

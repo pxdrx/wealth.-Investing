@@ -22,31 +22,26 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className={`flex w-full gap-4 ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
-      {/* Avatar */}
-      <div className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-md ${
-        isUser 
-          ? "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/20" 
-          : isError
-            ? "bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/20"
-            : "bg-gradient-to-br from-emerald-400 to-teal-500 shadow-teal-500/20"
-      }`}>
-        {isUser ? <User className="h-4.5 w-4.5 text-white" /> : <Brain className="h-4.5 w-4.5 text-white" />}
-      </div>
+      {/* Avatar (only for AI) */}
+      {!isUser && (
+        <div className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-md ${
+          isError
+            ? "bg-red-500/10 border border-red-500/20"
+            : "bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/20"
+        }`}>
+          <Brain className={`h-4 w-4 ${isError ? "text-red-500" : "text-emerald-500"}`} />
+        </div>
+      )}
 
       {/* Message Bubble */}
-      <div className="flex flex-col gap-1 w-full max-w-[80%]">
-        <span className={`text-[11px] font-semibold tracking-wider uppercase px-1 ${
-          isUser ? "text-right text-muted-foreground" : "text-left text-muted-foreground"
-        }`}>
-          {isUser ? "Você" : "AI Coach"}
-        </span>
+      <div className={`flex flex-col gap-1 w-full max-w-[85%] ${isUser ? "items-end" : "items-start"}`}>
         <div
-          className={`relative px-5 py-4 text-[15px] leading-relaxed shadow-sm ${
+          className={`relative px-5 py-4 text-[15px] leading-relaxed ${
             isUser
-              ? "rounded-2xl rounded-tr-sm bg-gradient-to-br from-blue-600/10 to-indigo-600/5 text-foreground border border-blue-500/20"
+              ? "rounded-[24px] rounded-tr-[4px] bg-blue-600 text-white shadow-[0_8px_24px_rgba(37,99,235,0.25)]"
               : isError
-                ? "rounded-2xl rounded-tl-sm bg-red-500/10 border border-red-500/30"
-                : "rounded-2xl rounded-tl-sm bg-white/5 border border-white/10 dark:border-white/5 backdrop-blur-md"
+                ? "rounded-[24px] rounded-tl-[4px] bg-red-500/10 border border-red-500/30 text-foreground"
+                : "rounded-[24px] rounded-tl-[4px] bg-card/60 border border-border/50 shadow-soft dark:shadow-soft-dark backdrop-blur-xl text-foreground"
           }`}
         >
           {isUser ? (
@@ -54,7 +49,7 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
           ) : isError ? (
             <p className="text-red-400 font-medium">{content.replace(/_Erro:|_/g, "").trim() || content}</p>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-display prose-headings:text-foreground prose-strong:text-emerald-500">
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-display prose-headings:text-foreground prose-strong:text-emerald-500 prose-a:text-blue-500">
               <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
               {isStreaming && (
                 <motion.span

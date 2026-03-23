@@ -149,16 +149,11 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
 
   return (
     <div
-      className="rounded-2xl border overflow-hidden"
-      style={{
-        borderColor: "hsl(var(--border))",
-        backgroundColor: "hsl(var(--card))",
-      }}
+      className="bg-card rounded-2xl border border-border/50 overflow-hidden relative isolate"
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-5 py-3.5 border-b"
-        style={{ borderColor: "hsl(var(--border))" }}
+        className="flex items-center justify-between px-5 py-4 border-b border-border/40"
       >
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
           Resumo de Performance
@@ -187,7 +182,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
           </p>
 
           <p
-            className="text-2xl font-bold tabular-nums mb-4"
+            className="metric-value text-[28px] mb-5"
             style={{ color: pnlColor(kpis.totalPnl) }}
           >
             {v(formatPnl(kpis.totalPnl))}
@@ -208,21 +203,21 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                     }}
                   />
                 </div>
-                <span className="text-xs font-semibold tabular-nums text-foreground">
+                <span className="metric-value text-sm text-foreground">
                   {v(`${(kpis.winRate * 100).toFixed(0)}%`)}
                 </span>
               </div>
             </KpiRow>
 
             <KpiRow label="Payoff">
-              <span className="text-xs font-semibold tabular-nums text-foreground">
+              <span className="metric-value text-sm text-foreground">
                 {v(kpis.payoff)}
               </span>
             </KpiRow>
 
             <KpiRow label="Expectativa">
               <span
-                className="text-xs font-semibold tabular-nums"
+                className="metric-value text-sm"
                 style={{ color: pnlColor(kpis.expectativaRaw) }}
               >
                 {v(kpis.expectativa)}
@@ -231,7 +226,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
 
             <KpiRow label="Melhor Trade">
               <span
-                className="text-xs font-semibold tabular-nums"
+                className="metric-value text-sm"
                 style={{ color: kpis.bestTrade > 0 ? "hsl(var(--pnl-positive))" : undefined }}
               >
                 {v(formatPnl(kpis.bestTrade))}
@@ -240,7 +235,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
 
             <KpiRow label="Pior Trade">
               <span
-                className="text-xs font-semibold tabular-nums"
+                className="metric-value text-sm"
                 style={{ color: kpis.worstTrade < 0 ? "hsl(var(--pnl-negative))" : undefined }}
               >
                 {v(formatPnl(kpis.worstTrade))}
@@ -248,14 +243,14 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
             </KpiRow>
 
             <KpiRow label="Dias Op.">
-              <span className="text-xs font-semibold tabular-nums text-foreground">
+              <span className="metric-value text-sm text-foreground">
                 {v(`${kpis.daysOp}/${kpis.daysInMonth}`)}
               </span>
             </KpiRow>
 
             <KpiRow label="Streak">
               <span
-                className="text-xs font-semibold tabular-nums"
+                className="metric-value text-sm"
                 style={{ color: streak.type === "W" ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))" }}
               >
                 {v(`${streak.count}${streak.type}`)}
@@ -263,7 +258,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
             </KpiRow>
 
             <KpiRow label="Total Trades">
-              <span className="text-xs font-semibold tabular-nums text-foreground">
+              <span className="metric-value text-sm text-foreground">
                 {v(kpis.totalTrades.toString())}
               </span>
             </KpiRow>
@@ -282,7 +277,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
             </p>
             {equityData.length >= 2 && (
               <span
-                className="text-xs font-semibold tabular-nums"
+                className="metric-value text-[15px]"
                 style={{ color: pnlColor(equityData[equityData.length - 1]?.value ?? 0) }}
               >
                 {v(formatPnl(equityData[equityData.length - 1]?.value ?? 0))}
@@ -317,13 +312,18 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                   <YAxis hide domain={["auto", "auto"]} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      borderColor: "hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "11px",
-                      padding: "6px 10px",
+                      backgroundColor: "rgba(10, 10, 10, 0.8)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      padding: "8px 12px",
+                      color: "#fff",
+                      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
                     }}
-                    labelStyle={{ color: "hsl(var(--muted-foreground))", fontSize: "10px" }}
+                    itemStyle={{ color: "#fff", fontWeight: "600", fontFamily: "var(--font-jakarta)" }}
+                    labelStyle={{ color: "rgba(255,255,255,0.6)", fontSize: "11px", marginBottom: "4px" }}
                     formatter={(value: number) => [formatPnl(value), "P&L"]}
                   />
                   <ReferenceLine
@@ -336,10 +336,10 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
                     type="monotone"
                     dataKey="value"
                     stroke="url(#equityStrokeSplit)"
-                    strokeWidth={1.5}
+                    strokeWidth={2.5}
                     fill="url(#equityFillSplit)"
                     dot={false}
-                    activeDot={{ r: 3, strokeWidth: 1.5, fill: "hsl(var(--card))" }}
+                    activeDot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--background))", stroke: "hsl(var(--primary))" }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -354,8 +354,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
 
       {/* Bottom: Recent trades */}
       <div
-        className="border-t px-5 py-4"
-        style={{ borderColor: "hsl(var(--border))" }}
+        className="border-t border-border/40 px-5 py-4"
       >
         <p className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground mb-3">
           Últimas Trades
@@ -368,30 +367,29 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
               return (
                 <div
                   key={t.id}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 min-w-[140px] flex-1"
-                  style={{ backgroundColor: "hsl(var(--muted) / 0.4)" }}
+                  className="flex items-center gap-2 rounded-xl border border-border/20 px-3 py-2.5 min-w-[140px] flex-1 bg-gradient-to-br from-muted/30 to-muted/10 backdrop-blur-sm"
                 >
                   <span
-                    className="inline-flex items-center justify-center rounded-md w-5 h-5 text-[9px] font-bold shrink-0"
+                    className="inline-flex items-center justify-center rounded-md w-6 h-6 text-[10px] font-bold shrink-0 shadow-sm"
                     style={{
                       backgroundColor: isLong
-                        ? "hsl(var(--pnl-positive) / 0.12)"
-                        : "hsl(var(--pnl-negative) / 0.12)",
-                      color: isLong ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))",
+                        ? "hsl(var(--pnl-positive) / 0.15)"
+                        : "hsl(var(--pnl-negative) / 0.15)",
+                      color: isLong ? "hsl(var(--pnl-text-positive))" : "hsl(var(--pnl-text-negative))",
                     }}
                   >
                     {isLong ? "\u25B2" : "\u25BC"}
                   </span>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-medium text-foreground truncate">
+                    <span className="text-[12px] font-semibold text-foreground tracking-tight truncate">
                       {t.symbol}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground/80">
                       {timeAgo(t.opened_at)}
                     </span>
                   </div>
                   <span
-                    className="text-xs font-semibold tabular-nums ml-auto"
+                    className="metric-value font-semibold text-sm ml-auto"
                     style={{ color: pnlColor(t.net_pnl_usd) }}
                   >
                     {v(formatPnl(t.net_pnl_usd))}

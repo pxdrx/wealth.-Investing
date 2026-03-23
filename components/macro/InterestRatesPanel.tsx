@@ -44,7 +44,7 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {filteredRates.map((rate) => {
         const action = rate.last_action ? ACTION_CONFIG[rate.last_action] : null;
         const ActionIcon = action?.icon || Minus;
@@ -53,44 +53,46 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
         return (
           <div
             key={rate.bank_code}
-            className="rounded-[16px] p-4"
+            className="flex flex-col rounded-[16px] border border-border/30 p-4"
             style={{ backgroundColor: "hsl(var(--card))" }}
           >
-            <div className="mb-1 flex items-center gap-1.5">
+            <div className="mb-2 flex items-center gap-2">
               {flagCode ? (
                 <img
                   src={`https://flagcdn.com/20x15/${flagCode}.png`}
                   alt={rate.country}
                   width={20}
                   height={15}
-                  className="rounded-[2px]"
+                  className="rounded-[2px] shrink-0"
                 />
               ) : (
                 <span className="text-xs">{rate.country}</span>
               )}
-              <span className="text-xs font-semibold">{rate.bank_code}</span>
+              <span className="text-xs font-semibold tracking-wide">{rate.bank_code}</span>
             </div>
-            <div className="text-xl font-bold tracking-tight">
+            <div className="text-2xl font-bold tracking-tight">
               {rate.current_rate.toFixed(rate.current_rate >= 10 ? 2 : 3)}%
             </div>
             {action && (
-              <div className={`mt-1 flex items-center gap-1 text-[10px] ${action.color}`}>
-                <ActionIcon className="h-3 w-3" />
+              <div className={`mt-1.5 flex items-center gap-1 text-[11px] font-medium ${action.color}`}>
+                <ActionIcon className="h-3 w-3 shrink-0" />
                 <span>
                   {action.label} {rate.last_change_bps ? `${Math.abs(rate.last_change_bps)}bps` : ""}
                 </span>
               </div>
             )}
-            {rate.last_change_date && (
-              <div className="mt-1.5 text-[10px] text-muted-foreground">
-                Último corte: {formatDate(rate.last_change_date)}
-              </div>
-            )}
-            {rate.next_meeting && (
-              <div className="mt-0.5 text-[10px] text-muted-foreground">
-                Próx. reunião: {formatDate(rate.next_meeting)}
-              </div>
-            )}
+            <div className="mt-auto pt-3 space-y-0.5">
+              {rate.last_change_date && (
+                <div className="text-[11px] leading-snug text-muted-foreground">
+                  Último corte: {formatDate(rate.last_change_date)}
+                </div>
+              )}
+              {rate.next_meeting && (
+                <div className="text-[11px] leading-snug text-muted-foreground">
+                  Próx. reunião: {formatDate(rate.next_meeting)}
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
