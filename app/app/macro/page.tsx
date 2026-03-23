@@ -2,9 +2,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Globe, RefreshCw, CalendarDays, FileText } from "lucide-react";
+import { Globe, RefreshCw, CalendarDays, FileText, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
 import { AdaptiveAlerts } from "@/components/macro/AdaptiveAlerts";
@@ -26,6 +34,7 @@ export default function MacroIntelligencePage() {
   const [weeks, setWeeks] = useState<{ week_start: string; week_end: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showRefreshDialog, setShowRefreshDialog] = useState(false);
 
   // Week navigation: on weekends (Sat/Sun after market close), default to next week
   const currentWeek = getWeekStart();
@@ -93,9 +102,51 @@ export default function MacroIntelligencePage() {
     fetchData();
   }, [fetchData]);
 
-  const handleRefresh = () => {
+  const REFRESH_COOLDOWN_KEY = "macro_last_full_refresh";
+  const REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
+
+  const getLastRefreshTime = (): number => {
+    try { return parseInt(localStorage.getItem(REFRESH_COOLDOWN_KEY) || "0", 10); }
+    catch { return 0; }
+  };
+
+  const handleRefreshClick = () => {
+    setShowRefreshDialog(true);
+  };
+
+  const handleRefreshConfirm = async () => {
+    setShowRefreshDialog(false);
+
+    const lastRefresh = getLastRefreshTime();
+    const now = Date.now();
+    if (now - lastRefresh < REFRESH_COOLDOWN_MS) {
+      const hoursAgo = Math.round((now - lastRefresh) / (60 * 60 * 1000));
+      alert(`Atualização já realizada há ${hoursAgo}h. Aguarde 24h entre atualizações.`);
+      return;
+    }
+
     setRefreshing(true);
-    fetchData();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const headers = { Authorization: `Bearer ${session.access_token}` };
+
+      // Run all refreshes in parallel: calendar + rates + calendar enrichment
+      await Promise.allSettled([
+        fetch("/api/macro/refresh-calendar", { method: "POST", headers }),
+        fetch("/api/cron/rates-sync", { method: "POST", headers: { "x-cron-secret": "manual" } }),
+      ]);
+
+      localStorage.setItem(REFRESH_COOLDOWN_KEY, String(Date.now()));
+
+      // Re-fetch all data
+      await fetchData();
+    } catch (err) {
+      console.error("[macro] Full refresh failed:", err);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Calendar-specific refresh (fetches latest from Faireconomy)
@@ -239,14 +290,50 @@ export default function MacroIntelligencePage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleRefresh}
+          onClick={handleRefreshClick}
           disabled={refreshing}
           className="gap-2"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          Atualizar
+          {refreshing ? "Atualizando..." : "Atualizar"}
         </Button>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showRefreshDialog} onOpenChange={setShowRefreshDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Atualização Completa
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  Esta ação busca dados atualizados de múltiplas fontes e consome recursos externos.
+                  <strong className="text-foreground"> Limite: 1x por dia.</strong>
+                </p>
+                <div className="rounded-lg border border-border/60 p-3 space-y-1.5">
+                  <p className="font-medium text-foreground text-xs uppercase tracking-widest">O que será atualizado:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Taxas de juros dos bancos centrais (via TradingEconomics)</li>
+                    <li>Calendário econômico — Previous, Forecast e Actual (via Investing.com)</li>
+                    <li>Backfill de dados da semana anterior</li>
+                  </ul>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowRefreshDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRefreshConfirm}>
+              Sim, atualizar agora
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Adaptive Alerts - Always visible */}
       {alerts.length > 0 && (
