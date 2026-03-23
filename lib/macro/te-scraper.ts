@@ -40,10 +40,15 @@ function cleanCell(text: string): string | null {
 /**
  * Scrape TradingEconomics calendar for actual economic data releases.
  * Parses the HTML table by column position within each <tr>.
+ * @param weekStart - Optional date string (YYYY-MM-DD) to fetch a specific week
  */
-export async function scrapeTeCalendarActuals(): Promise<TeCalendarRow[]> {
+export async function scrapeTeCalendarActuals(weekStart?: string): Promise<TeCalendarRow[]> {
   try {
-    const res = await fetch(TE_CALENDAR_URL, FETCH_OPTS);
+    // Add date parameter to fetch specific week's data
+    const url = weekStart
+      ? `${TE_CALENDAR_URL}?day=${weekStart}`
+      : TE_CALENDAR_URL;
+    const res = await fetch(url, FETCH_OPTS);
 
     if (!res.ok) {
       console.warn(`[te-scraper] Calendar fetch failed: ${res.status}`);
@@ -56,81 +61,68 @@ export async function scrapeTeCalendarActuals(): Promise<TeCalendarRow[]> {
     const rows: TeCalendarRow[] = [];
     let currentDate = "";
 
-    // TE calendar uses table#calendar or a main table within the calendar page
-    const tableSelector = "table#calendar tbody tr, table.table tbody tr, #calendar tr";
+    // TE calendar structure (verified via Playwright):
+    // - Header rows (th): Date | Actual | Previous | Consensus | Forecast
+    // - Data rows (td): Time[0] | Country[1] | Event[2] | Actual[3] | Previous[4] | Ticker[5] | Consensus[6] | Forecast[7] | Alert[8]
+    // Date header rows are in separate <tbody>/<rowgroup> elements
 
-    $(tableSelector).each((_, row) => {
+    $("table tr").each((_, row) => {
       const $row = $(row);
-      const cells = $row.find("td");
 
-      // Skip header rows or rows with too few cells
-      if (cells.length < 5) return;
-
-      // Try to extract importance from sentiment indicator
-      const sentimentCell = $row.find("td.calendar-sentiment, td[title]").last();
-      const importanceRaw =
-        sentimentCell.attr("title") ||
-        $row.find("[data-value]").last().attr("data-value") ||
-        $row.find(".calendar-bull, .bull").length.toString() ||
-        "";
-
-      // Try dedicated class-based extraction first
-      const eventCell = $row.find("td.calendar-event, td.event").text().trim();
-      const countryCell =
-        $row.find("td.calendar-country").text().trim() ||
-        $row.find("td img[alt]").first().attr("alt") ||
-        "";
-
-      if (eventCell) {
-        // Class-based extraction (structured TE layout)
-        const dateCell = $row.find("td.calendar-date").text().trim();
-        if (dateCell) currentDate = dateCell;
-
-        rows.push({
-          date: currentDate,
-          time: cleanCell($row.find("td.calendar-time, td:nth-child(2)").text()),
-          country: countryCell.trim(),
-          title: eventCell,
-          actual: cleanCell(
-            $row.find("td.calendar-actual, td.actual").text() ||
-              cells.eq(cells.length - 4).text()
-          ),
-          previous: cleanCell(
-            $row.find("td.calendar-previous, td.previous").text() ||
-              cells.eq(cells.length - 3).text()
-          ),
-          forecast: cleanCell(
-            $row.find("td.calendar-consensus, td.consensus, td.forecast").text() ||
-              cells.eq(cells.length - 2).text()
-          ),
-          importance: parseImportance(importanceRaw),
-        });
-      } else {
-        // Position-based extraction fallback
-        // Typical order: Date | Time | Country(flag) | Event | Actual | Previous | Consensus | Forecast | Impact
-        const dateText = cleanCell(cells.eq(0).text());
-        if (dateText && dateText.length > 3) currentDate = dateText;
-
-        const title = cleanCell(cells.eq(3).text()) || cleanCell(cells.eq(2).text());
-        if (!title) return;
-
-        // Extract country from flag image alt or cell text
-        const country =
-          cells.eq(2).find("img[alt]").attr("alt") ||
-          cleanCell(cells.eq(2).text()) ||
-          "";
-
-        rows.push({
-          date: currentDate,
-          time: cleanCell(cells.eq(1).text()),
-          country: country.trim(),
-          title,
-          actual: cleanCell(cells.eq(4).text()),
-          previous: cleanCell(cells.eq(5).text()),
-          forecast: cleanCell(cells.eq(6).text()),
-          importance: parseImportance(importanceRaw),
-        });
+      // Check if this is a date header row (has <th> with date text)
+      const headerCells = $row.find("th");
+      if (headerCells.length > 0) {
+        const dateText = headerCells.first().text().trim();
+        // Date headers look like "Monday March 23 2026"
+        if (dateText && /\w+ \w+ \d+ \d{4}/.test(dateText)) {
+          // Parse "Monday March 23 2026" → "2026-03-23"
+          try {
+            const d = new Date(dateText.replace(/^\w+ /, "")); // remove day name
+            if (!isNaN(d.getTime())) {
+              currentDate = d.toISOString().split("T")[0];
+            }
+          } catch { /* keep previous date */ }
+        }
+        return; // skip header rows
       }
+
+      const cells = $row.find("td");
+      if (cells.length < 5) return; // skip short rows
+
+      // Extract event title from cell[2] (link text or cell text)
+      const eventCell = cells.eq(2);
+      const title = eventCell.find("a").first().text().trim() || cleanCell(eventCell.text());
+      if (!title) return;
+
+      // Extract country from cell[1] — nested table with country name + code
+      const countryCell = cells.eq(1);
+      const countryCode = countryCell.find("td").last().text().trim() || // 2-letter code in nested table
+        countryCell.find("img[alt]").first().attr("alt")?.slice(0, 2).toUpperCase() ||
+        countryCell.text().trim().slice(-2).toUpperCase();
+
+      // Extract values: Actual[3], Previous[4], Consensus[6], Forecast[7]
+      const actual = cleanCell(cells.eq(3).text());
+      const previous = cleanCell(cells.eq(4).text());
+      const consensus = cleanCell(cells.eq(6).text());
+      const forecast = cleanCell(cells.eq(7).text());
+
+      // Importance: check for star/bull indicators or data-importance attribute
+      const importanceRaw =
+        $row.attr("data-importance") ||
+        $row.find("[title*='High'], [title*='Medium'], [title*='Low']").attr("title") ||
+        cells.last().find("i, span").length.toString() || // count star icons
+        "";
+
+      rows.push({
+        date: currentDate,
+        time: cleanCell(cells.eq(0).text()),
+        country: countryCode.slice(0, 2),
+        title,
+        actual,
+        previous,
+        forecast: consensus || forecast, // TE calls it "Consensus", our DB calls it "forecast"
+        importance: parseImportance(importanceRaw),
+      });
     });
 
     console.log(`[te-scraper] Extracted ${rows.length} calendar rows`);
