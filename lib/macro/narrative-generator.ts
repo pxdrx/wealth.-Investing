@@ -111,7 +111,7 @@ Responda em JSON com esta estrutura exata:
 }`;
 
   const response = await getAnthropic().messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
@@ -138,7 +138,7 @@ export async function generateAdaptiveUpdate(
   existingNarrative: string
 ): Promise<{ update_text: string; alert_title: string }> {
   const response = await getAnthropic().messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [
