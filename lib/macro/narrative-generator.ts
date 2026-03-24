@@ -1,7 +1,7 @@
 // lib/macro/narrative-generator.ts
 import Anthropic from "@anthropic-ai/sdk";
-import type { EconomicEvent, RegionalAnalysis, MarketImpact, DecisionIntelligence, Sentiment, MacroHeadline } from "./types";
-import { TRACKED_MARKETS } from "./constants";
+import type { EconomicEvent, AssetImpacts, MacroHeadline } from "./types";
+
 
 let _anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic {
@@ -30,17 +30,13 @@ interface NarrativeInput {
 }
 
 interface NarrativeOutput {
-  narrative: string;
-  regional_analysis: RegionalAnalysis;
-  market_impacts: MarketImpact[];
-  decision_intelligence: DecisionIntelligence;
-  sentiment: Sentiment;
+  summary: string;
+  asset_impacts: AssetImpacts;
 }
 
 export async function generateWeeklyNarrative(input: NarrativeInput): Promise<NarrativeOutput> {
   const highEvents = input.events.filter((e) => e.impact === "high");
   const mediumCount = input.events.filter((e) => e.impact === "medium").length;
-  const keyMarkets = ["EUR/USD", "GBP/USD", "USD/JPY", "XAU/USD", "DXY", "S&P 500", "Nasdaq", "Bitcoin"];
 
   // Only send high-impact events (not all 79) to fit in 60s timeout
   const userPrompt = `Análise semanal Smart Money Lab: ${input.weekStart} a ${input.weekEnd}.
@@ -54,25 +50,22 @@ ${input.liveHeadlines
   .map((h, i) => `${i + 1}. [${h.source === "truth_social" ? "TRUMP" : "FJ"}] ${h.headline.slice(0, 120)}`)
   .join("\n")}
 ` : ""}
-Responda em JSON. Campo "narrative": texto de 600-900 palavras em PT-BR com 5 seções (use **título** e \\n\\n):
-1. **Visão Geral** — ciclo macro, tom da semana (risk-on/off), analogia didática
-2. **EUA** — dados de emprego, inflação, FED, tensão dados fortes vs cortes
-3. **Europa + Ásia** — BCE, BOJ, China, impacto em EUR/GBP/JPY
-4. **Trade** — risk-on/off por bloco, carry trade, proteção, cenários por ativo (DXY, EURUSD, GBPUSD, XAUUSD, Nasdaq, S&P500, BTC com Alta%/Lateral%/Baixa% somando 100%)
-5. **Fechamento** — "Quem opera sem contexto está reagindo. Quem lê macro está se posicionando."
+Responda em JSON com a estrutura exata abaixo.
 
-Demais campos:
-- regional_analysis: americas/europe/asia_pacific com outlook e key_events (2-3 cada)
-- market_impacts: ${keyMarkets.join(", ")} com direction/conviction(0-100)/rationale curto
-- decision_intelligence: base_scenario(prob 50-70%) + alt_scenario + conviction_map para os 8 ativos
-- sentiment: bullish_pct + neutral_pct + bearish_pct = 100
+Campo "summary": resumo geral da semana em 2-3 parágrafos (PT-BR, 200-400 palavras). Conciso e acionável. Cubra o tom macro (risk-on/off), principais catalisadores, e o que o trader deve observar.
+
+Campo "asset_impacts": análise de impacto para 4 categorias de ativos. Para cada uma:
+- bias: "bullish", "bearish" ou "neutral"
+- confidence: "alta", "media" ou "baixa"
+- reason: 1-2 frases explicando o viés (PT-BR)
+- key_levels: níveis técnicos relevantes (ex: "S&P 5800-5900", "XAU/USD 2300-2350")
 
 JSON exato:
-{"narrative":"...","regional_analysis":{"americas":{"title":"Américas","summary":"...","key_events":["..."],"outlook":"neutral"},"europe":{"title":"Europa","summary":"...","key_events":["..."],"outlook":"neutral"},"asia_pacific":{"title":"Ásia-Pacífico","summary":"...","key_events":["..."],"outlook":"neutral"}},"market_impacts":[{"asset":"EUR/USD","direction":"neutral","conviction":50,"rationale":"..."}],"decision_intelligence":{"base_scenario":{"title":"...","probability":60,"description":"...","key_drivers":["..."]},"alt_scenario":{"title":"...","probability":40,"description":"...","key_drivers":["..."]},"conviction_map":[{"asset":"EUR/USD","direction":"neutral","conviction":50}]},"sentiment":{"bullish_pct":33,"neutral_pct":34,"bearish_pct":33}}`;
+{"summary":"...","asset_impacts":{"indices":{"bias":"bullish","confidence":"alta","reason":"...","key_levels":"S&P 5800-5900"},"gold":{"bias":"bearish","confidence":"media","reason":"...","key_levels":"XAU/USD 2300-2350"},"btc":{"bias":"neutral","confidence":"baixa","reason":"...","key_levels":"BTC 65k-70k"},"dollar":{"bias":"bullish","confidence":"alta","reason":"...","key_levels":"DXY 104-106"}}}`;
 
   const response = await getAnthropic().messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 8192,
+    max_tokens: 4096,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });

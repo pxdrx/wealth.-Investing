@@ -77,11 +77,12 @@ export async function POST(req: NextRequest) {
       week_start: weekStart,
       week_end: weekEnd,
       te_briefing_raw: null,
-      narrative: narrative.narrative,
-      regional_analysis: narrative.regional_analysis,
-      market_impacts: narrative.market_impacts,
-      decision_intelligence: narrative.decision_intelligence,
-      sentiment: narrative.sentiment,
+      narrative: narrative.summary,
+      asset_impacts: narrative.asset_impacts,
+      regional_analysis: null,
+      market_impacts: null,
+      decision_intelligence: null,
+      sentiment: null,
       updated_at: new Date().toISOString(),
     };
 
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
       weekStart,
       eventsCount: events?.length || 0,
       headlinesCount: liveHeadlines.length,
-      narrativeLength: narrative.narrative?.length || 0,
+      narrativeLength: narrative.summary?.length || 0,
     });
   } catch (error) {
     console.error("[weekly-briefing] Error:", error);

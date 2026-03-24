@@ -19,8 +19,6 @@ import { AdaptiveAlerts } from "@/components/macro/AdaptiveAlerts";
 import { HeadlinesFeed } from "@/components/macro/HeadlinesFeed";
 import { EconomicCalendar } from "@/components/macro/EconomicCalendar";
 import { WeeklyBriefing } from "@/components/macro/WeeklyBriefing";
-import { RegionalAnalysis } from "@/components/macro/RegionalAnalysis";
-import { DecisionIntelligence } from "@/components/macro/DecisionIntelligence";
 import { InterestRatesPanel } from "@/components/macro/InterestRatesPanel";
 import { WeeklyHistory } from "@/components/macro/WeeklyHistory";
 import { supabase } from "@/lib/supabase/client";
@@ -37,6 +35,7 @@ export default function MacroIntelligencePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
+  const [hasUnseenReport, setHasUnseenReport] = useState(false);
 
   // Week navigation: always default to current week's Monday
   const defaultWeek = getWeekStart();
@@ -83,7 +82,20 @@ export default function MacroIntelligencePage() {
         if (typeof pan.market_impacts === "string") {
           try { pan.market_impacts = JSON.parse(pan.market_impacts); } catch { pan.market_impacts = null; }
         }
+        if (typeof pan.asset_impacts === "string") {
+          try { pan.asset_impacts = JSON.parse(pan.asset_impacts); } catch { pan.asset_impacts = null; }
+        }
         setPanorama(pan);
+
+        // Check if panorama was updated since last seen
+        try {
+          const lastSeen = localStorage.getItem("lastSeenPanoramaUpdate");
+          if (lastSeen && pan.updated_at && new Date(pan.updated_at) > new Date(lastSeen)) {
+            setHasUnseenReport(true);
+          } else if (!lastSeen && pan.updated_at) {
+            setHasUnseenReport(true);
+          }
+        } catch { /* ignore localStorage errors */ }
       }
       if (ratesJson.ok) setRates(ratesJson.data || []);
       if (alertsJson.ok) setAlerts(alertsJson.data || []);
@@ -231,6 +243,9 @@ export default function MacroIntelligencePage() {
         if (typeof pan.market_impacts === "string") {
           try { pan.market_impacts = JSON.parse(pan.market_impacts); } catch { pan.market_impacts = null; }
         }
+        if (typeof pan.asset_impacts === "string") {
+          try { pan.asset_impacts = JSON.parse(pan.asset_impacts); } catch { pan.asset_impacts = null; }
+        }
         setPanorama(pan);
       }
     } catch { /* ignore */ }
@@ -246,6 +261,16 @@ export default function MacroIntelligencePage() {
       console.error("[macro] Headlines refresh failed:", err);
     }
   }, []);
+
+  // Mark report as seen when Report tab is selected
+  const handleReportTabClick = useCallback(() => {
+    setHasUnseenReport(false);
+    if (panorama?.updated_at) {
+      try {
+        localStorage.setItem("lastSeenPanoramaUpdate", panorama.updated_at);
+      } catch { /* ignore */ }
+    }
+  }, [panorama?.updated_at]);
 
   // Handle week change from calendar navigation
   const handleWeekChange = useCallback(async (newWeek: string) => {
@@ -373,9 +398,12 @@ export default function MacroIntelligencePage() {
             <CalendarDays className="h-4 w-4" />
             Terminal
           </TabsTrigger>
-          <TabsTrigger value="report" className="gap-2 px-4">
+          <TabsTrigger value="report" className="gap-2 px-4 relative" onClick={handleReportTabClick}>
             <FileText className="h-4 w-4" />
             Relatório Macro
+            {hasUnseenReport && (
+              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse" />
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -433,27 +461,6 @@ export default function MacroIntelligencePage() {
               <WeeklyBriefing panorama={panorama} onRegenerate={handleRegenerate} defaultExpanded />
             </section>
 
-            {/* Regional Analysis */}
-            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-indigo-500"></span>
-                Análise Regional
-              </h2>
-              <PaywallGate requiredPlan="pro" blurContent>
-                <RegionalAnalysis data={panorama?.regional_analysis || null} />
-              </PaywallGate>
-            </section>
-
-            {/* Decision Intelligence */}
-            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                Inteligência de Decisão
-              </h2>
-              <PaywallGate requiredPlan="pro" blurContent>
-                <DecisionIntelligence data={panorama?.decision_intelligence || null} />
-              </PaywallGate>
-            </section>
           </div>
         </TabsContent>
       </Tabs>

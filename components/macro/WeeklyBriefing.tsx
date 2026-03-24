@@ -4,52 +4,14 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { LiveIndicator } from "./LiveIndicator";
+import { AssetImpactCards } from "./AssetImpactCards";
 import { cn } from "@/lib/utils";
-import type { WeeklyPanorama, Sentiment } from "@/lib/macro/types";
+import type { WeeklyPanorama } from "@/lib/macro/types";
 
 interface WeeklyBriefingProps {
   panorama: WeeklyPanorama | null;
   onRegenerate?: () => Promise<void>;
   defaultExpanded?: boolean;
-}
-
-/** Subtle thin sentiment bar */
-function SentimentLine({ sentiment }: { sentiment: Sentiment | null }) {
-  if (!sentiment) return null;
-  const { bullish_pct, neutral_pct, bearish_pct } = sentiment;
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex h-1.5 overflow-hidden rounded-full bg-muted/40">
-        <div
-          className="bg-emerald-500 transition-all"
-          style={{ width: `${bullish_pct}%` }}
-        />
-        <div
-          className="bg-gray-400/60 transition-all"
-          style={{ width: `${neutral_pct}%` }}
-        />
-        <div
-          className="bg-red-500 transition-all"
-          style={{ width: `${bearish_pct}%` }}
-        />
-      </div>
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          Bullish {bullish_pct}%
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-gray-400" />
-          Neutro {neutral_pct}%
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500" />
-          Bearish {bearish_pct}%
-        </span>
-      </div>
-    </div>
-  );
 }
 
 /** Parse simple markdown to React nodes */
@@ -150,39 +112,6 @@ function inlineMarkdown(text: string): React.ReactNode {
   });
 }
 
-/** Collapsible section */
-function CollapsibleSection({ title, children, defaultOpen = false }: {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <div className="border border-border/20 rounded-[16px] bg-background/20 mb-3 overflow-hidden transition-all duration-300">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors"
-      >
-        <span className="text-sm font-semibold text-foreground tracking-wide">{title}</span>
-        <ChevronDown className={cn(
-          "h-4 w-4 text-muted-foreground transition-transform duration-300",
-          open && "rotate-180"
-        )} />
-      </button>
-      <div className={cn(
-        "grid transition-all duration-300 ease-in-out",
-        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-      )}>
-        <div className="overflow-hidden">
-          <div className="space-y-4 px-5 pb-5 pt-1">{children}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false }: WeeklyBriefingProps) {
   const [isOpen, setIsOpen] = useState(defaultExpanded);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -228,8 +157,6 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
       return "";
     }
   })();
-
-  const sections = splitNarrativeSections(panorama.narrative);
 
   return (
     <div className="w-full">
@@ -285,28 +212,18 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
       )}>
         <div className="overflow-hidden">
           <div className="max-w-4xl mx-auto pt-6 pb-2">
-            {/* Sentiment bar */}
-            <div className="mb-8 p-4 rounded-[16px] bg-background/40 border border-border/30 backdrop-blur-md">
-              <SentimentLine sentiment={panorama.sentiment} />
+            {/* Summary text */}
+            <div className="space-y-4 mb-8">
+              {renderMarkdown(panorama.narrative)}
             </div>
 
-            {/* Narrative content (More Apple-like typography) */}
-            <div className="space-y-6">
-              {sections.length <= 1 ? (
-                <div className="space-y-4">
-                  {renderMarkdown(panorama.narrative)}
-                </div>
-              ) : (
-                sections.map((section, i) => (
-                  <CollapsibleSection
-                    key={i}
-                    title={section.title}
-                    defaultOpen={i === 0 || i === 1}
-                  >
-                    {renderMarkdown(section.content)}
-                  </CollapsibleSection>
-                ))
-              )}
+            {/* Asset Impact Cards */}
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-blue-500" />
+                Impacto por Ativo
+              </h3>
+              <AssetImpactCards impacts={panorama.asset_impacts || null} />
             </div>
 
             {/* Source tags */}
@@ -328,57 +245,3 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
   );
 }
 
-/** Split narrative text into titled sections by "---" separators or bold headers */
-function splitNarrativeSections(narrative: string): { title: string; content: string }[] {
-  const parts = narrative.split(/\n---\n/);
-  if (parts.length <= 1) {
-    // Try splitting by bold section headers (lines that start and end with **)
-    const lines = narrative.split("\n");
-    const sections: { title: string; content: string }[] = [];
-    let currentTitle = "";
-    let currentContent: string[] = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("**") && trimmed.endsWith("**") && trimmed.length > 4) {
-        if (currentTitle || currentContent.length > 0) {
-          sections.push({
-            title: currentTitle || "Resumo",
-            content: currentContent.join("\n"),
-          });
-        }
-        currentTitle = trimmed.replace(/\*\*/g, "");
-        currentContent = [];
-      } else {
-        currentContent.push(line);
-      }
-    }
-
-    if (currentTitle || currentContent.length > 0) {
-      sections.push({
-        title: currentTitle || "Resumo",
-        content: currentContent.join("\n"),
-      });
-    }
-
-    // If we only found one section, return empty to show flat mode
-    if (sections.length <= 1) return [];
-    return sections;
-  }
-
-  return parts.map((part, i) => {
-    const lines = part.trim().split("\n");
-    const firstLine = lines[0]?.trim() || "";
-    // Check if first line is a bold header
-    if (firstLine.startsWith("**") && firstLine.endsWith("**")) {
-      return {
-        title: firstLine.replace(/\*\*/g, ""),
-        content: lines.slice(1).join("\n"),
-      };
-    }
-    return {
-      title: i === 0 ? "Resumo" : `Seção ${i + 1}`,
-      content: part.trim(),
-    };
-  });
-}

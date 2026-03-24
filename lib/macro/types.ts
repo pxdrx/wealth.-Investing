@@ -27,6 +27,7 @@ export interface WeeklyPanorama {
   market_impacts: MarketImpact[] | null;
   decision_intelligence: DecisionIntelligence | null;
   sentiment: Sentiment | null;
+  asset_impacts: AssetImpacts | null;
   is_frozen: boolean;
   created_at: string;
   updated_at: string;
@@ -75,6 +76,20 @@ export interface Sentiment {
   bullish_pct: number;
   neutral_pct: number;
   bearish_pct: number;
+}
+
+export interface AssetImpact {
+  bias: "bullish" | "bearish" | "neutral";
+  confidence: "alta" | "media" | "baixa";
+  reason: string;
+  key_levels: string;
+}
+
+export interface AssetImpacts {
+  indices: AssetImpact;
+  gold: AssetImpact;
+  btc: AssetImpact;
+  dollar: AssetImpact;
 }
 
 export interface CentralBankRate {
@@ -148,7 +163,7 @@ export interface TeEnrichedBriefing {
 
 export interface MacroHeadline {
   id: string;
-  source: "financial_juice" | "truth_social" | "te_headlines" | "trading_economics";
+  source: "forexlive" | "fxstreet" | "reuters" | "truth_social" | "te_headlines" | "trading_economics";
   headline: string;
   summary: string | null;
   author: string | null;
