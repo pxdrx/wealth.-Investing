@@ -132,11 +132,28 @@ export default function MacroIntelligencePage() {
 
       const headers = { Authorization: `Bearer ${session.access_token}` };
 
-      // Run all refreshes in parallel: calendar + rates + calendar enrichment
-      await Promise.allSettled([
+      // Run all refreshes in parallel: calendar + rates
+      const [calResult, ratesResult] = await Promise.allSettled([
         fetch("/api/macro/refresh-calendar", { method: "POST", headers }),
-        fetch("/api/cron/rates-sync", { method: "POST", headers: { "x-cron-secret": "manual" } }),
+        fetch("/api/macro/refresh-rates", { method: "POST", headers }),
       ]);
+
+      // Check for errors and show feedback
+      const errors: string[] = [];
+      if (calResult.status === "rejected") {
+        errors.push("Calendário: falha na conexão");
+      } else if (!calResult.value.ok) {
+        errors.push(`Calendário: ${calResult.value.status} ${calResult.value.statusText}`);
+      }
+      if (ratesResult.status === "rejected") {
+        errors.push("Taxas: falha na conexão");
+      } else if (!ratesResult.value.ok) {
+        errors.push(`Taxas: ${ratesResult.value.status} ${ratesResult.value.statusText}`);
+      }
+
+      if (errors.length > 0) {
+        alert(`Atualização parcial. Erros:\n${errors.join("\n")}`);
+      }
 
       localStorage.setItem(REFRESH_COOLDOWN_KEY, String(Date.now()));
 
@@ -144,6 +161,7 @@ export default function MacroIntelligencePage() {
       await fetchData();
     } catch (err) {
       console.error("[macro] Full refresh failed:", err);
+      alert("Falha na atualização. Tente novamente mais tarde.");
     } finally {
       setRefreshing(false);
     }

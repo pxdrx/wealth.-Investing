@@ -56,7 +56,12 @@ function titlesMatch(icTitle: string, dbTitle: string): boolean {
   // Substring containment (either direction)
   if (a.includes(b) || b.includes(a)) return true;
 
-  // Word-overlap heuristic: >60% of words shared
+  // Key economic terms — if both titles share one, it's very likely the same event
+  const KEY_TERMS = ["payroll", "nfp", "cpi", "ppi", "gdp", "pmi", "fomc", "ecb", "boj", "employment", "inflation", "retail", "housing", "confidence", "manufacturing", "services", "trade balance", "jobless", "unemployment"];
+  const sharedKey = KEY_TERMS.some((t) => a.includes(t) && b.includes(t));
+  if (sharedKey) return true;
+
+  // Word-overlap heuristic: >40% of words shared
   const wordsA = new Set(a.split(" ").filter((w) => w.length > 1));
   const wordsB = new Set(b.split(" ").filter((w) => w.length > 1));
 
@@ -68,7 +73,7 @@ function titlesMatch(icTitle: string, dbTitle: string): boolean {
   });
 
   const minSize = Math.min(wordsA.size, wordsB.size);
-  return overlap / minSize > 0.6;
+  return overlap / minSize > 0.4;
 }
 
 /**
@@ -162,7 +167,11 @@ export async function mergeInvestingComActuals(
     for (const icEvent of usefulEvents) {
       try {
         const match = findMatchingEvent(icEvent, dbEvents as EconomicEvent[]);
-        if (!match) continue;
+        if (!match) {
+          const icCountry = resolveCountry(icEvent);
+          console.log(`[calendar-merger] No match for IC event: "${icEvent.event}" (${icCountry} ${icEvent.date})`);
+          continue;
+        }
 
         result.matched++;
 
