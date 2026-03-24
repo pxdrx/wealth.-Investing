@@ -137,36 +137,32 @@ export default function MacroIntelligencePage() {
 
       const headers = { Authorization: `Bearer ${session.access_token}` };
 
-      // Run all refreshes in parallel: calendar + rates
-      const [calResult, ratesResult] = await Promise.allSettled([
-        fetch("/api/macro/refresh-calendar", { method: "POST", headers }),
+      // Run rates first (fast, ~10s), calendar in background (can be slow)
+      const ratesResult = await Promise.race([
         fetch("/api/macro/refresh-rates", { method: "POST", headers }),
-      ]);
+        new Promise<Response>((_, reject) => setTimeout(() => reject(new Error("timeout")), 55000)),
+      ]).catch(() => null);
 
-      // Check for errors and show feedback
-      const errors: string[] = [];
-      if (calResult.status === "rejected") {
-        errors.push("Calendário: falha na conexão");
-      } else if (!calResult.value.ok) {
-        errors.push(`Calendário: ${calResult.value.status} ${calResult.value.statusText}`);
-      }
-      if (ratesResult.status === "rejected") {
-        errors.push("Taxas: falha na conexão");
-      } else if (!ratesResult.value.ok) {
-        errors.push(`Taxas: ${ratesResult.value.status} ${ratesResult.value.statusText}`);
+      if (ratesResult && ratesResult.ok) {
+        console.log("[macro] Rates refreshed successfully");
       }
 
-      if (errors.length > 0) {
-        alert(`Atualização parcial. Erros:\n${errors.join("\n")}`);
-      }
+      // Refresh data immediately after rates (user sees updated rates fast)
+      await fetchData();
+
+      // Calendar refresh in background (don't block UI)
+      fetch("/api/macro/refresh-calendar", { method: "POST", headers })
+        .then(async (res) => {
+          if (res.ok) {
+            console.log("[macro] Calendar refreshed, reloading data...");
+            await fetchData(); // Auto-refresh page with new calendar data
+          }
+        })
+        .catch((err) => console.warn("[macro] Calendar refresh failed:", err));
 
       localStorage.setItem(REFRESH_COOLDOWN_KEY, String(Date.now()));
-
-      // Re-fetch all data
-      await fetchData();
     } catch (err) {
       console.error("[macro] Full refresh failed:", err);
-      alert("Falha na atualização. Tente novamente mais tarde.");
     } finally {
       setRefreshing(false);
     }
@@ -429,7 +425,7 @@ export default function MacroIntelligencePage() {
 
             {/* Weekly History */}
             <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
-                <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Histórico Macro Semanal</h2>
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Histórico Macro Semanal</h2>
               <PaywallGate requiredPlan="pro" blurContent>
                 <WeeklyHistory weeks={weeks} currentWeek={currentWeek} />
               </PaywallGate>
