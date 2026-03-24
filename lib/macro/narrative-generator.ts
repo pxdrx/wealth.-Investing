@@ -112,7 +112,7 @@ Responda em JSON com esta estrutura exata:
 
   const response = await getAnthropic().messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 4096,
+    max_tokens: 8192,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });
@@ -123,9 +123,33 @@ Responda em JSON com esta estrutura exata:
   }
 
   // Parse JSON from response (strip any markdown fencing)
-  const jsonStr = textBlock.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-  const parsed: NarrativeOutput = JSON.parse(jsonStr);
+  let jsonStr = textBlock.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
+  // If JSON is truncated (stop_reason: max_tokens), try to salvage
+  if (response.stop_reason === "end_turn") {
+    const parsed: NarrativeOutput = JSON.parse(jsonStr);
+    return parsed;
+  }
+
+  // Truncated response — attempt to close open JSON
+  console.warn("[narrative-generator] Response may be truncated, attempting JSON repair");
+  // Find last complete field by looking for last complete key-value
+  const lastBrace = jsonStr.lastIndexOf("}");
+  if (lastBrace > 0) {
+    // Count open/close braces and brackets to close them
+    let openBraces = 0, openBrackets = 0;
+    for (const ch of jsonStr.slice(0, lastBrace + 1)) {
+      if (ch === "{") openBraces++;
+      if (ch === "}") openBraces--;
+      if (ch === "[") openBrackets++;
+      if (ch === "]") openBrackets--;
+    }
+    jsonStr = jsonStr.slice(0, lastBrace + 1);
+    jsonStr += "]".repeat(Math.max(0, openBrackets));
+    jsonStr += "}".repeat(Math.max(0, openBraces));
+  }
+
+  const parsed: NarrativeOutput = JSON.parse(jsonStr);
   return parsed;
 }
 
