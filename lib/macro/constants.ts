@@ -35,13 +35,21 @@ export const COUNTRY_FLAGS: Record<string, string> = {
   CN: "🇨🇳", DE: "🇩🇪", FR: "🇫🇷", IT: "🇮🇹", ES: "🇪🇸",
 };
 
+/** Format date as YYYY-MM-DD using LOCAL timezone (avoids UTC shift from toISOString) */
+function formatLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** Get Monday of the week containing a given date */
 export function getWeekStart(date: Date = new Date()): string {
   const d = new Date(date);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
   d.setDate(diff);
-  return d.toISOString().split("T")[0];
+  return formatLocalDate(d);
 }
 
 /** Get Friday of the week containing a given date */
@@ -50,7 +58,7 @@ export function getWeekEnd(date: Date = new Date()): string {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -2 : 5); // Friday
   d.setDate(diff);
-  return d.toISOString().split("T")[0];
+  return formatLocalDate(d);
 }
 
 /** Get Monday of the week offset by N weeks from a given date */

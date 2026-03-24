@@ -22,15 +22,36 @@ function getSupabaseAdmin() {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const weekStart = searchParams.get("week") || getWeekStart();
+  const weekParam = searchParams.get("week") || getWeekStart();
 
   const supabase = getSupabase();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("economic_events")
     .select("*")
-    .filter("week_start", "eq", weekStart)
+    .filter("week_start", "eq", weekParam)
     .order("date", { ascending: true })
     .order("time", { ascending: true });
+
+  // Fallback: if no events for computed week, try latest available week
+  if (!error && (!data || data.length === 0)) {
+    const { data: latestWeek } = await supabase
+      .from("economic_events")
+      .select("week_start")
+      .order("week_start", { ascending: false })
+      .limit(1);
+
+    if (latestWeek && latestWeek.length > 0 && latestWeek[0].week_start !== weekParam) {
+      const fallback = await supabase
+        .from("economic_events")
+        .select("*")
+        .filter("week_start", "eq", latestWeek[0].week_start)
+        .order("date", { ascending: true })
+        .order("time", { ascending: true });
+      if (!fallback.error && fallback.data) {
+        data = fallback.data;
+      }
+    }
+  }
 
   if (error) {
     console.error("[macro/calendar]", error.message);
@@ -79,11 +100,11 @@ export async function GET(req: NextRequest) {
           }
 
           // If these events match the requested week, query them back
-          if (eventWeekStart === weekStart) {
+          if (eventWeekStart === weekParam) {
             const { data: freshData } = await supabase
               .from("economic_events")
               .select("*")
-              .filter("week_start", "eq", weekStart)
+              .filter("week_start", "eq", weekParam)
               .order("date", { ascending: true })
               .order("time", { ascending: true });
             matchingWeekData = freshData;

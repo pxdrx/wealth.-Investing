@@ -38,14 +38,8 @@ export default function MacroIntelligencePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
 
-  // Week navigation: on weekends (Sat/Sun after market close), default to next week
-  const currentWeek = getWeekStart();
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=Sun, 6=Sat
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  const defaultWeek = isWeekend
-    ? (() => { const d = new Date(); d.setDate(d.getDate() + 7); return getWeekStart(d); })()
-    : currentWeek;
+  // Week navigation: always default to current week's Monday
+  const defaultWeek = getWeekStart();
   const [calendarWeek, setCalendarWeek] = useState(defaultWeek);
 
   const fetchData = useCallback(async () => {
@@ -270,7 +264,7 @@ export default function MacroIntelligencePage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     // Only poll when viewing current week
-    if (calendarWeek !== currentWeek) return;
+    if (calendarWeek !== defaultWeek) return;
 
     pollRef.current = setInterval(() => {
       const now = new Date();
@@ -285,7 +279,7 @@ export default function MacroIntelligencePage() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [calendarWeek, currentWeek, handleCalendarRefresh]);
+  }, [calendarWeek, defaultWeek, handleCalendarRefresh]);
 
   if (loading) {
     return (
@@ -427,7 +421,7 @@ export default function MacroIntelligencePage() {
             <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
               <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Histórico Macro Semanal</h2>
               <PaywallGate requiredPlan="pro" blurContent>
-                <WeeklyHistory weeks={weeks} currentWeek={currentWeek} />
+                <WeeklyHistory weeks={weeks} currentWeek={defaultWeek} />
               </PaywallGate>
             </section>
           </div>
