@@ -65,7 +65,7 @@ ${input.liveHeadlines
 MERCADOS COBERTOS: ${allMarkets.join(", ")}
 
 INSTRUÇÃO PARA O CAMPO "narrative":
-Escreva um texto LONGO e DETALHADO (1500-2500 palavras) em PT-BR, seguindo EXATAMENTE estas 7 seções na ordem. Use quebras de linha (\\n\\n) entre seções. Cada seção deve ter seu título em negrito com ** (ex: **1. Abertura — Visão Geral**).
+Escreva um texto CONCISO e DIRETO (800-1200 palavras) em PT-BR, seguindo EXATAMENTE estas 7 seções na ordem. Use quebras de linha (\\n\\n) entre seções. Cada seção deve ter seu título em negrito com ** (ex: **1. Abertura — Visão Geral**).
 
 1. **Abertura — Visão Geral**: Ciclo macro global atual. Crescimento vs desaceleração, inflação (quente ou esfriando?), política monetária (apertando, pausando, afrouxando?). Dê o tom da semana: risk-on, risk-off ou indefinido. Use uma analogia didática para situar o leitor.
 
@@ -112,7 +112,7 @@ Responda em JSON com esta estrutura exata:
 
   const response = await getAnthropic().messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 8192,
+    max_tokens: 4096,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });
