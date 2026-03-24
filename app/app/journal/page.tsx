@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
@@ -22,6 +22,7 @@ import { computeTiltmeter } from "@/lib/psychology-tags";
 import { TiltmeterGauge } from "@/components/dashboard/TiltmeterGauge";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { JournalReports } from "@/components/journal/JournalReports";
+import { AddTradeModal } from "@/components/journal/AddTradeModal";
 
 type ImportFlowState = "idle" | "previewing" | "importing" | "done";
 
@@ -86,6 +87,7 @@ export default function JournalPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [showAddTrade, setShowAddTrade] = useState(false);
   const pathname = usePathname();
 
   // Get userId — re-run on navigation (pathname change) so data loads on soft nav
@@ -364,6 +366,13 @@ export default function JournalPage() {
             <TiltmeterGauge result={computeTiltmeter(trades)} size="sm" />
           )}
           <button
+            onClick={() => setShowAddTrade(true)}
+            className="flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-2 text-xs font-medium hover:opacity-90 transition-opacity"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Adicionar Trade
+          </button>
+          <button
             onClick={toggleValues}
             className="group relative flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
             title={valuesHidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
@@ -531,6 +540,10 @@ export default function JournalPage() {
                   trades={trades as unknown as TradeRow[]}
                   dayNotes={dayNotes}
                   showConsolidatedToggle={false}
+                  userId={userId}
+                  onNoteSaved={(date, note) => {
+                    setDayNotes((prev) => ({ ...prev, [date]: note }));
+                  }}
                 />
               </div>
             )}
@@ -550,6 +563,15 @@ export default function JournalPage() {
         onOpenChange={setModalOpen}
         onSaved={loadTrades}
       />
+
+      {userId && (
+        <AddTradeModal
+          open={showAddTrade}
+          onClose={() => setShowAddTrade(false)}
+          onSaved={loadTrades}
+          userId={userId}
+        />
+      )}
 
     </div>
   );

@@ -76,7 +76,7 @@ function fireConfetti() {
 export function PricingCards() {
   const [annual, setAnnual] = useState(false);
   const [loadingTier, setLoadingTier] = useState<Plan | null>(null);
-  const { plan: currentPlan } = useSubscription();
+  const { plan: currentPlan, subscription } = useSubscription();
 
   function handleToggle() {
     const goingAnnual = !annual;
@@ -102,6 +102,10 @@ export function PricingCards() {
         body: JSON.stringify({ plan: tier, interval: annual ? "year" : "month" }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Erro ao processar assinatura. Tente novamente.");
+        return;
+      }
       if (data.url) {
         window.location.href = data.url;
       }
@@ -128,11 +132,15 @@ export function PricingCards() {
         },
       });
       const data = await res.json();
+      if (!res.ok) {
+        alert(res.status === 404 ? "Nenhuma assinatura ativa encontrada." : (data.error || "Erro ao acessar portal. Tente novamente."));
+        return;
+      }
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[billing] Portal error:", err);
     } finally {
       setLoadingTier(null);
     }
@@ -247,7 +255,7 @@ export function PricingCards() {
                     >
                       Plano atual
                     </Button>
-                  ) : (
+                  ) : subscription?.stripe_customer_id ? (
                     <Button
                       className="w-full rounded-full"
                       variant="outline"
@@ -255,6 +263,14 @@ export function PricingCards() {
                       onClick={handleManageSubscription}
                     >
                       {loadingTier === "free" ? "Redirecionando..." : "Gerenciar assinatura"}
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full rounded-full"
+                      variant="outline"
+                      disabled
+                    >
+                      Plano atual
                     </Button>
                   )
                 ) : (

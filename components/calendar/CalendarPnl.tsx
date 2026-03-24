@@ -17,6 +17,8 @@ export function CalendarPnl({
   accounts,
   dayNotes,
   showConsolidatedToggle,
+  userId,
+  onNoteSaved,
 }: CalendarPnlProps) {
   const now = new Date();
   const [displayYear, setDisplayYear] = useState(now.getFullYear());
@@ -193,6 +195,8 @@ export function CalendarPnl({
           dayData={selectedDayData}
           dayNote={selectedDayNote}
           showConsolidatedToggle={showConsolidatedToggle}
+          userId={userId}
+          onNoteSaved={onNoteSaved}
         />
       </div>
     </div>

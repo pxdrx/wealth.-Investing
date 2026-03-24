@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Newspaper, RefreshCw, Megaphone, Zap } from "lucide-react";
+import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
 import type { MacroHeadline } from "@/lib/macro/types";
@@ -13,7 +13,7 @@ interface HeadlinesFeedProps {
   refreshing?: boolean;
 }
 
-type SourceFilter = "all" | "financial_juice" | "truth_social";
+type SourceFilter = "all" | "financial_juice" | "truth_social" | "trading_economics";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -33,6 +33,14 @@ function SourceBadge({ source }: { source: string }) {
       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full">
         <Megaphone className="w-2.5 h-2.5" />
         Trump
+      </span>
+    );
+  }
+  if (source === "trading_economics") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+        <TrendingUp className="w-2.5 h-2.5" />
+        TE
       </span>
     );
   }
@@ -57,6 +65,7 @@ const FILTER_OPTIONS: { key: SourceFilter; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "financial_juice", label: "Financial Juice" },
   { key: "truth_social", label: "Trump" },
+  { key: "trading_economics", label: "Trading Economics" },
 ];
 
 export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFeedProps) {
@@ -127,11 +136,15 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
               const isBreaking = h.impact === "breaking";
               const isTrump = h.source === "truth_social";
 
+              const isTE = h.source === "trading_economics";
+
               const borderClass = isBreaking
                 ? "border-l-4 border-red-500 pl-3"
                 : isTrump
                   ? "border-l-4 border-purple-500 pl-3"
-                  : "border-l-4 border-border pl-3";
+                  : isTE
+                    ? "border-l-4 border-emerald-500 pl-3"
+                    : "border-l-4 border-border pl-3";
 
               return (
                 <div key={h.id} className={`${borderClass} py-1.5`}>

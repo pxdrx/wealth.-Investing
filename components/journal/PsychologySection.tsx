@@ -9,6 +9,8 @@ import {
   EMOTION_TAGS,
   DISCIPLINE_TAGS,
   SETUP_QUALITY,
+  SETUP_TAGS,
+  MISTAKE_TAGS,
   SUB_RATING_OPTIONS,
   validateCustomTags,
 } from "@/lib/psychology-tags";
@@ -145,6 +147,66 @@ export function PsychologySection({
           <SubRating label="Entrada" value={entryRating} onChange={onEntryRatingChange} />
           <SubRating label="Saida" value={exitRating} onChange={onExitRatingChange} />
           <SubRating label="Gestao" value={managementRating} onChange={onManagementRatingChange} />
+        </div>
+      </div>
+
+      {/* Setup Tags (preset chips) */}
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Setup</Label>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries(SETUP_TAGS).map(([key, { label, emoji }]) => {
+            const isSelected = customTags.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  const next = isSelected
+                    ? customTags.filter((t) => t !== key)
+                    : validateCustomTags([...customTags, key]);
+                  onCustomTagsChange(next);
+                }}
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors border",
+                  isSelected
+                    ? "bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400"
+                    : "border-border/40 text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {emoji} {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Mistake Tags (preset chips) */}
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Erros</Label>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries(MISTAKE_TAGS).map(([key, { label, emoji }]) => {
+            const isSelected = customTags.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  const next = isSelected
+                    ? customTags.filter((t) => t !== key)
+                    : validateCustomTags([...customTags, key]);
+                  onCustomTagsChange(next);
+                }}
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors border",
+                  isSelected
+                    ? "bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400"
+                    : "border-border/40 text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {emoji} {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

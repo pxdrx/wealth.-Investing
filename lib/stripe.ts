@@ -23,6 +23,14 @@ export const PRICE_IDS = {
   ultra_annual: process.env.STRIPE_ULTRA_ANNUAL_PRICE_ID!,
 } as const;
 
+// Warn about missing price IDs in development
+if (typeof window === "undefined") {
+  const missing = Object.entries(PRICE_IDS).filter(([, v]) => !v);
+  if (missing.length > 0) {
+    console.warn("[stripe] Missing price IDs:", missing.map(([k]) => k).join(", "));
+  }
+}
+
 /** Map Stripe price ID → plan name */
 export function planFromPriceId(priceId: string): "pro" | "ultra" | null {
   if (priceId === PRICE_IDS.pro_monthly || priceId === PRICE_IDS.pro_annual) return "pro";

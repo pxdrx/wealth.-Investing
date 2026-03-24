@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { supabase } from "@/lib/supabase/client";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import { PsychologySection } from "./PsychologySection";
 import { validateCustomTags } from "@/lib/psychology-tags";
 
@@ -33,6 +33,7 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
   const [mistakes, setMistakes] = useState<string[]>([]);
   const [newMistake, setNewMistake] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Psychology fields
@@ -118,6 +119,32 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
       setToast({ type: "error", message: e instanceof Error ? e.message : "Erro ao salvar." });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!trade?.id) return;
+    if (!confirm("Tem certeza que deseja excluir este trade? Esta acao nao pode ser desfeita.")) return;
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("journal_trades")
+        .delete()
+        .eq("id", trade.id);
+
+      if (error) {
+        setToast({ type: "error", message: "Erro ao excluir: " + error.message });
+        return;
+      }
+
+      onOpenChange(false);
+      onSaved?.();
+    } catch (err) {
+      console.error("[trade-detail] Delete error:", err);
+      setToast({ type: "error", message: "Erro ao excluir trade." });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -299,13 +326,23 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Salvando…" : "Salvar"}
-          </Button>
+        <DialogFooter className="flex !justify-between items-center">
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {deleting ? "Excluindo..." : "Excluir trade"}
+          </button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

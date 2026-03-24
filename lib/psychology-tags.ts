@@ -55,6 +55,29 @@ export const DISCIPLINE_TAGS: DisciplineTag[] = [
   { key: "break_rules", label: "Break Rules", labelPtBr: "Quebrou Regras", sentiment: -1, icon: "⚠️" },
 ];
 
+// ─── Setup Tags ────────────────────────────────────────────────
+export const SETUP_TAGS: Record<string, { label: string; emoji: string }> = {
+  breakout: { label: "Breakout", emoji: "💥" },
+  pullback: { label: "Pullback", emoji: "↩️" },
+  reversal: { label: "Reversão", emoji: "🔄" },
+  range: { label: "Range", emoji: "📊" },
+  trend_follow: { label: "Trend Following", emoji: "📈" },
+  counter_trend: { label: "Contra-Tendência", emoji: "🔀" },
+  news_trade: { label: "Trade de Notícia", emoji: "📰" },
+  scalp: { label: "Scalp", emoji: "⚡" },
+};
+
+// ─── Mistake Tags ──────────────────────────────────────────────
+export const MISTAKE_TAGS: Record<string, { label: string; emoji: string }> = {
+  fomo: { label: "FOMO", emoji: "😰" },
+  sl_wide: { label: "SL Largo", emoji: "📏" },
+  early_exit: { label: "Saída Antecipada", emoji: "🏃" },
+  late_entry: { label: "Entrada Tardia", emoji: "⏰" },
+  oversize: { label: "Posição Grande", emoji: "🎰" },
+  revenge_trade: { label: "Trade Vingança", emoji: "😤" },
+  no_plan: { label: "Sem Plano", emoji: "❌" },
+};
+
 // ─── Setup Quality ──────────────────────────────────────────────
 export interface SetupQualityOption {
   key: string;

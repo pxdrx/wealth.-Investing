@@ -19,7 +19,8 @@ import { usePrivacy } from "@/components/context/PrivacyContext";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { ListFilter, TrendingUp } from "lucide-react";
-import { getEmotionTag, getDisciplineTag } from "@/lib/psychology-tags";
+import { getEmotionTag, getDisciplineTag, SETUP_TAGS, MISTAKE_TAGS } from "@/lib/psychology-tags";
+import { StickyNote } from "lucide-react";
 
 const PAGE_SIZE = 15;
 
@@ -37,6 +38,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
   const [dateTo, setDateTo] = useState("");
   const [direction, setDirection] = useState<DirectionFilter>("all");
   const [result, setResult] = useState<ResultFilter>("all");
+  const [symbolFilter, setSymbolFilter] = useState("");
   const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
@@ -62,8 +64,11 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
         return net < 0;
       });
     }
+    if (symbolFilter) {
+      list = list.filter((t) => t.symbol.toUpperCase().includes(symbolFilter));
+    }
     return list;
-  }, [trades, dateFrom, dateTo, direction, result]);
+  }, [trades, dateFrom, dateTo, direction, result, symbolFilter]);
 
   // Summary stats
   const summary = useMemo(() => {
@@ -131,6 +136,15 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
             ))}
           </div>
 
+          {/* Symbol search */}
+          <input
+            type="text"
+            value={symbolFilter}
+            onChange={(e) => { setSymbolFilter(e.target.value.toUpperCase()); setPage(0); }}
+            placeholder="Buscar ativo..."
+            className="rounded-xl border border-border/60 bg-transparent px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring w-28"
+          />
+
           {/* Date filters */}
           <div className="flex items-center gap-2 ml-auto">
             <div className="flex items-center gap-1.5">
@@ -184,7 +198,8 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                     key={t.id}
                     className={cn(
                       "cursor-pointer transition-colors",
-                      idx % 2 === 1 && "bg-muted/5"
+                      idx % 2 === 1 && "bg-muted/5",
+                      !t.emotion && !t.notes && "border-l-2 border-l-amber-400/60"
                     )}
                     onClick={() => onTradeClick(t)}
                   >
@@ -218,7 +233,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden xl:table-cell">
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap items-center gap-1">
                         {t.emotion && (() => {
                           const tag = getEmotionTag(t.emotion);
                           return tag ? (
@@ -235,6 +250,36 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                             </span>
                           ) : null;
                         })()}
+                        {t.custom_tags && t.custom_tags.length > 0 && (
+                          <>
+                            {t.custom_tags.slice(0, 2).map((ctag: string) => {
+                              const setupInfo = SETUP_TAGS[ctag];
+                              const mistakeInfo = MISTAKE_TAGS[ctag];
+                              const info = setupInfo || mistakeInfo;
+                              return (
+                                <span
+                                  key={ctag}
+                                  className={cn(
+                                    "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                    mistakeInfo
+                                      ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                                      : setupInfo
+                                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                      : "bg-muted"
+                                  )}
+                                >
+                                  {info?.emoji || ""} {info?.label || ctag}
+                                </span>
+                              );
+                            })}
+                            {t.custom_tags.length > 2 && (
+                              <span className="text-[10px] text-muted-foreground">+{t.custom_tags.length - 2}</span>
+                            )}
+                          </>
+                        )}
+                        {(t.notes || t.context) && (
+                          <span title="Tem notas"><StickyNote className="h-3 w-3 text-muted-foreground/50" /></span>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

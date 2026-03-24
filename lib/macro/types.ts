@@ -148,7 +148,7 @@ export interface TeEnrichedBriefing {
 
 export interface MacroHeadline {
   id: string;
-  source: "financial_juice" | "truth_social" | "te_headlines";
+  source: "financial_juice" | "truth_social" | "te_headlines" | "trading_economics";
   headline: string;
   summary: string | null;
   author: string | null;
