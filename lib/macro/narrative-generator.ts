@@ -1,6 +1,6 @@
 // lib/macro/narrative-generator.ts
 import Anthropic from "@anthropic-ai/sdk";
-import type { EconomicEvent, RegionalAnalysis, MarketImpact, DecisionIntelligence, Sentiment } from "./types";
+import type { EconomicEvent, RegionalAnalysis, MarketImpact, DecisionIntelligence, Sentiment, MacroHeadline } from "./types";
 import { TRACKED_MARKETS } from "./constants";
 
 let _anthropic: Anthropic | null = null;
@@ -24,6 +24,7 @@ interface NarrativeInput {
   teBriefing: string | null;
   teHeadlines?: string[] | null;
   weekAheadEditorial?: string | null;
+  liveHeadlines?: MacroHeadline[] | null;
   weekStart: string;
   weekEnd: string;
 }
@@ -54,7 +55,13 @@ TODOS OS EVENTOS (${input.events.length} total):
 ${input.events.map((e) => `- ${e.date} ${e.time || ""} | ${e.country} | ${e.title} [${e.impact}]`).join("\n")}
 
 ${input.teBriefing ? `CONTEXTO EDITORIAL (TradingEconomics):\n${input.teBriefing}\n` : ""}
-${input.weekAheadEditorial ? `EDITORIAL "WEEK AHEAD" (TradingEconomics):\n${input.weekAheadEditorial}\n` : ""}${input.teHeadlines && input.teHeadlines.length > 0 ? `HEADLINES DE MERCADO (TradingEconomics):\n${input.teHeadlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}\n` : ""}
+${input.weekAheadEditorial ? `EDITORIAL "WEEK AHEAD" (TradingEconomics):\n${input.weekAheadEditorial}\n` : ""}${input.teHeadlines && input.teHeadlines.length > 0 ? `HEADLINES DE MERCADO (TradingEconomics):\n${input.teHeadlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}\n` : ""}${input.liveHeadlines && input.liveHeadlines.length > 0 ? `HEADLINES AO VIVO (últimas 48h — incorpore na análise):
+${input.liveHeadlines
+  .filter(h => h.impact === "breaking" || h.impact === "high")
+  .slice(0, 15)
+  .map((h, i) => `${i + 1}. [${h.source === "truth_social" ? "TRUTH SOCIAL" : "FINANCIAL JUICE"}${h.impact === "breaking" ? " — BREAKING" : ""}] ${h.headline} (${h.published_at || h.fetched_at})`)
+  .join("\n")}
+` : ""}
 MERCADOS COBERTOS: ${allMarkets.join(", ")}
 
 INSTRUÇÃO PARA O CAMPO "narrative":

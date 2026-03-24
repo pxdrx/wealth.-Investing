@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { scrapeTeBriefing } from "@/lib/macro/te-scraper";
 import { generateWeeklyNarrative } from "@/lib/macro/narrative-generator";
 import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
-import type { EconomicEvent } from "@/lib/macro/types";
+import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -85,12 +85,27 @@ export async function POST(req: NextRequest) {
       console.warn("[regenerate-report] TE scrape failed:", err);
     }
 
+    // 2b. Fetch latest live headlines from DB for narrative context
+    let liveHeadlines: MacroHeadline[] = [];
+    try {
+      const { data: hdl } = await supabase
+        .from("macro_headlines")
+        .select("*")
+        .gte("fetched_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(20);
+      liveHeadlines = (hdl || []) as MacroHeadline[];
+    } catch (err) {
+      console.warn("[regenerate-report] Headlines fetch failed:", err);
+    }
+
     // 3. Generate narrative via Claude
     const narrative = await generateWeeklyNarrative({
       events: (events || []) as EconomicEvent[],
       teBriefing: teBriefingRaw,
       teHeadlines,
       weekAheadEditorial,
+      liveHeadlines,
       weekStart,
       weekEnd,
     });

@@ -29,6 +29,8 @@ export const APIFY_ACTORS = {
   INVESTING_CALENDAR: "pintostudio/economic-calendar-data-investing-com",
   CHEERIO_SCRAPER: "apify/cheerio-scraper",
   RAG_WEB_BROWSER: "apify/rag-web-browser",
+  HEADLINE_NEWS: "rodrigo_pacelli/headline-news-scraper",
+  TRUTH_SOCIAL: "muhammetakkurtt/truth-social-scraper",
 } as const;
 
 /** Map from bank_code to TE country slug */
@@ -44,3 +46,24 @@ export const BANK_CODE_TO_TE_SLUG: Record<string, string> = {
   SNB: "switzerland",
   BANXICO: "mexico",
 };
+
+export interface HeadlineNewsItem {
+  title: string;
+  url: string;
+  description?: string;
+  source: string;
+  publishedAt?: string;
+  scrapedAt?: string;
+  urlToImage?: string;
+}
+
+export interface TruthSocialPost {
+  id: string;
+  content: string;
+  created_at: string;
+  url?: string;
+  favourites_count?: number;
+  reblogs_count?: number;
+  replies_count?: number;
+  account?: { display_name?: string; username?: string };
+}

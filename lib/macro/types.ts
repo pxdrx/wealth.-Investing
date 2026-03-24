@@ -145,3 +145,16 @@ export interface TeEnrichedBriefing {
   week_ahead_editorial: string | null;
   raw_text: string;
 }
+
+export interface MacroHeadline {
+  id: string;
+  source: "financial_juice" | "truth_social" | "te_headlines";
+  headline: string;
+  summary: string | null;
+  author: string | null;
+  url: string | null;
+  impact: "breaking" | "high" | "medium" | "low";
+  published_at: string | null;
+  fetched_at: string;
+  external_id: string | null;
+}

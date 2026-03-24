@@ -5,7 +5,7 @@ import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { scrapeTeBriefing } from "@/lib/macro/te-scraper";
 import { generateWeeklyNarrative } from "@/lib/macro/narrative-generator";
 import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
-import type { EconomicEvent } from "@/lib/macro/types";
+import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -77,12 +77,27 @@ export async function POST(req: NextRequest) {
       console.warn("[weekly-briefing] TE scrape failed:", err);
     }
 
+    // 2c. Fetch latest live headlines from DB for narrative context
+    let liveHeadlines: MacroHeadline[] = [];
+    try {
+      const { data: hdl } = await supabase
+        .from("macro_headlines")
+        .select("*")
+        .gte("fetched_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(20);
+      liveHeadlines = (hdl || []) as MacroHeadline[];
+    } catch (err) {
+      console.warn("[weekly-briefing] Headlines fetch failed:", err);
+    }
+
     // 3. Generate narrative via Claude Sonnet
     const narrative = await generateWeeklyNarrative({
       events: (events || []) as EconomicEvent[],
       teBriefing: teBriefing?.raw_text || null,
       teHeadlines,
       weekAheadEditorial,
+      liveHeadlines,
       weekStart,
       weekEnd,
     });

@@ -16,6 +16,7 @@ import {
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
 import { AdaptiveAlerts } from "@/components/macro/AdaptiveAlerts";
+import { HeadlinesFeed } from "@/components/macro/HeadlinesFeed";
 import { EconomicCalendar } from "@/components/macro/EconomicCalendar";
 import { WeeklyBriefing } from "@/components/macro/WeeklyBriefing";
 import { RegionalAnalysis } from "@/components/macro/RegionalAnalysis";
@@ -24,13 +25,14 @@ import { InterestRatesPanel } from "@/components/macro/InterestRatesPanel";
 import { WeeklyHistory } from "@/components/macro/WeeklyHistory";
 import { supabase } from "@/lib/supabase/client";
 import { getWeekStart } from "@/lib/macro/constants";
-import type { EconomicEvent, WeeklyPanorama, CentralBankRate, AdaptiveAlert as AdaptiveAlertType } from "@/lib/macro/types";
+import type { EconomicEvent, WeeklyPanorama, CentralBankRate, AdaptiveAlert as AdaptiveAlertType, MacroHeadline } from "@/lib/macro/types";
 
 export default function MacroIntelligencePage() {
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [panorama, setPanorama] = useState<WeeklyPanorama | null>(null);
   const [rates, setRates] = useState<CentralBankRate[]>([]);
   const [alerts, setAlerts] = useState<AdaptiveAlertType[]>([]);
+  const [headlines, setHeadlines] = useState<MacroHeadline[]>([]);
   const [weeks, setWeeks] = useState<{ week_start: string; week_end: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,12 +50,13 @@ export default function MacroIntelligencePage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [calRes, panRes, ratesRes, alertsRes, histRes] = await Promise.allSettled([
+      const [calRes, panRes, ratesRes, alertsRes, histRes, hdlRes] = await Promise.allSettled([
         fetch(`/api/macro/calendar?week=${calendarWeek}`),
         fetch(`/api/macro/panorama?week=${defaultWeek}`),
         fetch("/api/macro/rates"),
         fetch(`/api/macro/alerts?week=${defaultWeek}`),
         fetch("/api/macro/history"),
+        fetch("/api/macro/headlines?limit=15"),
       ]);
 
       const safeJson = async (result: PromiseSettledResult<Response>) => {
@@ -61,12 +64,13 @@ export default function MacroIntelligencePage() {
         try { return await result.value.json(); } catch { return { ok: false }; }
       };
 
-      const [calJson, panJson, ratesJson, alertsJson, histJson] = await Promise.all([
+      const [calJson, panJson, ratesJson, alertsJson, histJson, hdlJson] = await Promise.all([
         safeJson(calRes),
         safeJson(panRes),
         safeJson(ratesRes),
         safeJson(alertsRes),
         safeJson(histRes),
+        safeJson(hdlRes),
       ]);
 
       if (calJson.ok) setEvents(calJson.data || []);
@@ -89,6 +93,7 @@ export default function MacroIntelligencePage() {
       }
       if (ratesJson.ok) setRates(ratesJson.data || []);
       if (alertsJson.ok) setAlerts(alertsJson.data || []);
+      if (hdlJson.ok) setHeadlines(hdlJson.data || []);
       if (histJson.ok) setWeeks(histJson.data || []);
     } catch (error) {
       console.error("[macro] Failed to fetch data:", error);
@@ -241,6 +246,17 @@ export default function MacroIntelligencePage() {
     } catch { /* ignore */ }
   }, [defaultWeek]);
 
+  // Headlines manual refresh
+  const handleHeadlinesRefresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/macro/headlines?limit=15");
+      const json = await res.json();
+      if (json.ok) setHeadlines(json.data || []);
+    } catch (err) {
+      console.error("[macro] Headlines refresh failed:", err);
+    }
+  }, []);
+
   // Handle week change from calendar navigation
   const handleWeekChange = useCallback(async (newWeek: string) => {
     setCalendarWeek(newWeek);
@@ -359,6 +375,14 @@ export default function MacroIntelligencePage() {
           <AdaptiveAlerts alerts={alerts} />
         </div>
       )}
+
+      {/* Headlines Feed */}
+      <div className="w-full mb-6">
+        <HeadlinesFeed
+          headlines={headlines}
+          onRefresh={handleHeadlinesRefresh}
+        />
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="terminal" className="flex-1 flex flex-col min-h-0">
