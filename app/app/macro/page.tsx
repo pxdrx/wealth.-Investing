@@ -366,14 +366,6 @@ export default function MacroIntelligencePage() {
         </div>
       )}
 
-      {/* Headlines Feed */}
-      <div className="w-full mb-6">
-        <HeadlinesFeed
-          headlines={headlines}
-          onRefresh={handleHeadlinesRefresh}
-        />
-      </div>
-
       {/* Tabs */}
       <Tabs defaultValue="terminal" className="flex-1 flex flex-col min-h-0">
         <TabsList className="self-start mb-6 h-11">
@@ -416,6 +408,12 @@ export default function MacroIntelligencePage() {
                 </PaywallGate>
               </section>
             </div>
+
+            {/* Headlines Feed — Terminal tab only */}
+            <HeadlinesFeed
+              headlines={headlines}
+              onRefresh={handleHeadlinesRefresh}
+            />
 
             {/* Weekly History */}
             <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
