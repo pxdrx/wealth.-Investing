@@ -39,76 +39,36 @@ interface NarrativeOutput {
 
 export async function generateWeeklyNarrative(input: NarrativeInput): Promise<NarrativeOutput> {
   const highEvents = input.events.filter((e) => e.impact === "high");
-  const allMarkets = [
-    ...TRACKED_MARKETS.forex,
-    ...TRACKED_MARKETS.indices,
-    ...TRACKED_MARKETS.commodities,
-    ...TRACKED_MARKETS.crypto,
-  ];
+  const mediumCount = input.events.filter((e) => e.impact === "medium").length;
+  const keyMarkets = ["EUR/USD", "GBP/USD", "USD/JPY", "XAU/USD", "DXY", "S&P 500", "Nasdaq", "Bitcoin"];
 
-  const userPrompt = `Gere a análise semanal Smart Money Lab para ${input.weekStart} a ${input.weekEnd}.
+  // Only send high-impact events (not all 79) to fit in 60s timeout
+  const userPrompt = `Análise semanal Smart Money Lab: ${input.weekStart} a ${input.weekEnd}.
 
-EVENTOS DE ALTO IMPACTO DESTA SEMANA:
-${highEvents.map((e) => `- ${e.date} ${e.time || "TBD"} | ${e.country} | ${e.title} | Prev: ${e.previous || "N/A"} | Forecast: ${e.forecast || "N/A"} | Actual: ${e.actual || "Pendente"}`).join("\n")}
-
-TODOS OS EVENTOS (${input.events.length} total):
-${input.events.map((e) => `- ${e.date} ${e.time || ""} | ${e.country} | ${e.title} [${e.impact}]`).join("\n")}
-
-${input.teBriefing ? `CONTEXTO EDITORIAL (TradingEconomics):\n${input.teBriefing}\n` : ""}
-${input.weekAheadEditorial ? `EDITORIAL "WEEK AHEAD" (TradingEconomics):\n${input.weekAheadEditorial}\n` : ""}${input.teHeadlines && input.teHeadlines.length > 0 ? `HEADLINES DE MERCADO (TradingEconomics):\n${input.teHeadlines.map((h, i) => `${i + 1}. ${h}`).join("\n")}\n` : ""}${input.liveHeadlines && input.liveHeadlines.length > 0 ? `HEADLINES AO VIVO (últimas 48h — incorpore na análise):
+EVENTOS DE ALTO IMPACTO (${highEvents.length} high, ${mediumCount} medium):
+${highEvents.slice(0, 25).map((e) => `- ${e.date} ${e.time || ""} | ${e.country} | ${e.title} | Prev: ${e.previous || "N/A"} | Fcst: ${e.forecast || "N/A"} | Act: ${e.actual || "—"}`).join("\n")}
+${input.teBriefing ? `\nCONTEXTO:\n${input.teBriefing.slice(0, 500)}\n` : ""}${input.weekAheadEditorial ? `WEEK AHEAD:\n${input.weekAheadEditorial.slice(0, 500)}\n` : ""}${input.liveHeadlines && input.liveHeadlines.length > 0 ? `HEADLINES AO VIVO:
 ${input.liveHeadlines
   .filter(h => h.impact === "breaking" || h.impact === "high")
-  .slice(0, 15)
-  .map((h, i) => `${i + 1}. [${h.source === "truth_social" ? "TRUTH SOCIAL" : "FINANCIAL JUICE"}${h.impact === "breaking" ? " — BREAKING" : ""}] ${h.headline} (${h.published_at || h.fetched_at})`)
+  .slice(0, 10)
+  .map((h, i) => `${i + 1}. [${h.source === "truth_social" ? "TRUMP" : "FJ"}] ${h.headline.slice(0, 120)}`)
   .join("\n")}
 ` : ""}
-MERCADOS COBERTOS: ${allMarkets.join(", ")}
+Responda em JSON. Campo "narrative": texto de 600-900 palavras em PT-BR com 5 seções (use **título** e \\n\\n):
+1. **Visão Geral** — ciclo macro, tom da semana (risk-on/off), analogia didática
+2. **EUA** — dados de emprego, inflação, FED, tensão dados fortes vs cortes
+3. **Europa + Ásia** — BCE, BOJ, China, impacto em EUR/GBP/JPY
+4. **Trade** — risk-on/off por bloco, carry trade, proteção, cenários por ativo (DXY, EURUSD, GBPUSD, XAUUSD, Nasdaq, S&P500, BTC com Alta%/Lateral%/Baixa% somando 100%)
+5. **Fechamento** — "Quem opera sem contexto está reagindo. Quem lê macro está se posicionando."
 
-INSTRUÇÃO PARA O CAMPO "narrative":
-Escreva um texto CONCISO e DIRETO (800-1200 palavras) em PT-BR, seguindo EXATAMENTE estas 7 seções na ordem. Use quebras de linha (\\n\\n) entre seções. Cada seção deve ter seu título em negrito com ** (ex: **1. Abertura — Visão Geral**).
+Demais campos:
+- regional_analysis: americas/europe/asia_pacific com outlook e key_events (2-3 cada)
+- market_impacts: ${keyMarkets.join(", ")} com direction/conviction(0-100)/rationale curto
+- decision_intelligence: base_scenario(prob 50-70%) + alt_scenario + conviction_map para os 8 ativos
+- sentiment: bullish_pct + neutral_pct + bearish_pct = 100
 
-1. **Abertura — Visão Geral**: Ciclo macro global atual. Crescimento vs desaceleração, inflação (quente ou esfriando?), política monetária (apertando, pausando, afrouxando?). Dê o tom da semana: risk-on, risk-off ou indefinido. Use uma analogia didática para situar o leitor.
-
-2. **Estados Unidos**: Analise Payroll/ADP/JOLTS, IPC/PCE, ISM/PMIs, discursos do FED — com base nos eventos da semana. O que o FED precisa ver vs o que o mercado quer ouvir. Dados de emprego forte = bom para economia, ruim para corte de juros — explique essa tensão. Inclua uma analogia didática (ex: "O mercado está como um elástico esticado entre dois postes: dados fortes puxam o dólar, dados fracos puxam as bolsas").
-
-3. **Europa**: Inflação, crescimento, mercado de trabalho, divergência entre países (Alemanha fraca vs serviços resilientes?). Por que EUR e GBP reagem ou congelam. BCE hawkish ou dovish? Impacto no EURUSD e GBPUSD.
-
-4. **Ásia (China + Japão)**: China: crédito, PMI, consumo, deflação ou reflação? Japão: inflação, salários, política monetária do BOJ (yield curve control, hiking cycle?). Impacto indireto em USD, ouro, equities globais. Use analogia se relevante.
-
-5. **Tradução para Trade**: Para cada bloco macro acima — risk-on ou risk-off? Carry trade é atrativo? Proteção (ouro, yen, franco suíço) ou lateralização? Onde o mercado está estressado (VIX, spreads) vs confortável? Conecte macro com ação prática.
-
-6. **Tabela de Cenários**: Monte uma tabela em texto para DXY, EURUSD, GBPUSD, XAUUSD, Nasdaq, S&P500 e Bitcoin. Cada ativo com: Alta%, Lateral%, Baixa% e uma frase de narrativa. A soma de Alta+Lateral+Baixa DEVE ser 100% para cada ativo. Formato:
-DXY: Alta 40% | Lateral 35% | Baixa 25% — "Dados fortes sustentam, mas teto existe."
-(repita para todos os 7 ativos)
-
-7. **Fechamento Lab**: Encerre com a frase: "Quem opera sem contexto está reagindo. Quem lê macro está se posicionando." Adicione 1-2 frases finais de contexto sobre a semana. Sem motivacional, sem bullshit — apenas verdade de mercado.
-
-INSTRUÇÃO PARA OS DEMAIS CAMPOS:
-- regional_analysis: Mapeie para americas/europe/asia_pacific com outlook (bullish/neutral/bearish) e key_events relevantes extraídos dos dados acima.
-- market_impacts: Inclua TODOS os mercados cobertos (${allMarkets.join(", ")}), cada um com direction (bullish/bearish/neutral), conviction (0-100) e rationale em PT-BR.
-- decision_intelligence: base_scenario (cenário mais provável, probability 50-70%) e alt_scenario (cenário alternativo, probability = 100 - base). conviction_map para TODOS os mercados cobertos com direction (long/short/neutral) e conviction (0-100).
-- sentiment: bullish_pct + neutral_pct + bearish_pct = 100. Reflita o sentimento macro geral da semana.
-
-Responda em JSON com esta estrutura exata:
-{
-  "narrative": "Texto completo de 1500-2500 palavras seguindo as 7 seções acima...",
-  "regional_analysis": {
-    "americas": { "title": "Américas", "summary": "...", "key_events": ["evento1", "evento2"], "outlook": "bullish|neutral|bearish" },
-    "europe": { "title": "Europa", "summary": "...", "key_events": ["evento1"], "outlook": "bullish|neutral|bearish" },
-    "asia_pacific": { "title": "Ásia-Pacífico", "summary": "...", "key_events": ["evento1"], "outlook": "bullish|neutral|bearish" }
-  },
-  "market_impacts": [
-    { "asset": "EUR/USD", "direction": "bullish|bearish|neutral", "conviction": 75, "rationale": "..." }
-  ],
-  "decision_intelligence": {
-    "base_scenario": { "title": "...", "probability": 60, "description": "...", "key_drivers": ["driver1"] },
-    "alt_scenario": { "title": "...", "probability": 40, "description": "...", "key_drivers": ["driver1"] },
-    "conviction_map": [
-      { "asset": "EUR/USD", "direction": "long|short|neutral", "conviction": 75 }
-    ]
-  },
-  "sentiment": { "bullish_pct": 40, "neutral_pct": 35, "bearish_pct": 25 }
-}`;
+JSON exato:
+{"narrative":"...","regional_analysis":{"americas":{"title":"Américas","summary":"...","key_events":["..."],"outlook":"neutral"},"europe":{"title":"Europa","summary":"...","key_events":["..."],"outlook":"neutral"},"asia_pacific":{"title":"Ásia-Pacífico","summary":"...","key_events":["..."],"outlook":"neutral"}},"market_impacts":[{"asset":"EUR/USD","direction":"neutral","conviction":50,"rationale":"..."}],"decision_intelligence":{"base_scenario":{"title":"...","probability":60,"description":"...","key_drivers":["..."]},"alt_scenario":{"title":"...","probability":40,"description":"...","key_drivers":["..."]},"conviction_map":[{"asset":"EUR/USD","direction":"neutral","conviction":50}]},"sentiment":{"bullish_pct":33,"neutral_pct":34,"bearish_pct":33}}`;
 
   const response = await getAnthropic().messages.create({
     model: "claude-haiku-4-5-20251001",
