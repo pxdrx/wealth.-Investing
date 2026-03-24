@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   // Parse query params
   const limitParam = parseInt(searchParams.get("limit") || "30", 10);
   const limit = Math.min(Math.max(1, limitParam), 100);
-  const source = searchParams.get("source") as "financial_juice" | "truth_social" | "trading_economics" | null;
+  const source = searchParams.get("source") as "forexlive" | "fxstreet" | "reuters" | "truth_social" | "trading_economics" | null;
   const since = searchParams.get("since") || new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
   const supabase = getSupabase();

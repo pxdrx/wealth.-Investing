@@ -71,7 +71,7 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
               <span className="text-xs font-semibold tracking-wide">{rate.bank_code}</span>
             </div>
             <div className="text-2xl font-bold tracking-tight">
-              {rate.current_rate.toFixed(rate.current_rate >= 10 ? 2 : 3)}%
+              {rate.current_rate.toFixed(2)}%
             </div>
             {action && (
               <div className={`mt-1.5 flex items-center gap-1 text-[11px] font-medium ${action.color}`}>
@@ -81,18 +81,13 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
                 </span>
               </div>
             )}
-            <div className="mt-auto pt-3 space-y-0.5">
-              {rate.last_change_date && (
-                <div className="text-[11px] leading-snug text-muted-foreground">
-                  Último corte: {formatDate(rate.last_change_date)}
-                </div>
-              )}
-              {rate.next_meeting && (
+            {rate.next_meeting && (
+              <div className="mt-auto pt-3">
                 <div className="text-[11px] leading-snug text-muted-foreground">
                   Próx. reunião: {formatDate(rate.next_meeting)}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         );
       })}

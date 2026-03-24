@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp } from "lucide-react";
+import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp, Activity, BarChart3, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
 import type { MacroHeadline } from "@/lib/macro/types";
@@ -13,7 +13,7 @@ interface HeadlinesFeedProps {
   refreshing?: boolean;
 }
 
-type SourceFilter = "all" | "financial_juice" | "truth_social" | "trading_economics";
+type SourceFilter = "all" | "forexlive" | "fxstreet" | "reuters" | "truth_social" | "trading_economics";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -28,6 +28,30 @@ function timeAgo(dateStr: string): string {
 }
 
 function SourceBadge({ source }: { source: string }) {
+  if (source === "forexlive") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-600 dark:text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded-full">
+        <Activity className="w-2.5 h-2.5" />
+        FL
+      </span>
+    );
+  }
+  if (source === "fxstreet") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full">
+        <BarChart3 className="w-2.5 h-2.5" />
+        FX
+      </span>
+    );
+  }
+  if (source === "reuters") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">
+        <Globe className="w-2.5 h-2.5" />
+        Reuters
+      </span>
+    );
+  }
   if (source === "truth_social") {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full">
@@ -44,10 +68,11 @@ function SourceBadge({ source }: { source: string }) {
       </span>
     );
   }
+  // Fallback
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
       <Zap className="w-2.5 h-2.5" />
-      Financial Juice
+      {source}
     </span>
   );
 }
@@ -63,10 +88,24 @@ function BreakingDot() {
 
 const FILTER_OPTIONS: { key: SourceFilter; label: string }[] = [
   { key: "all", label: "Todos" },
-  { key: "financial_juice", label: "Financial Juice" },
+  { key: "forexlive", label: "ForexLive" },
+  { key: "fxstreet", label: "FXStreet" },
+  { key: "reuters", label: "Reuters" },
   { key: "truth_social", label: "Trump" },
   { key: "trading_economics", label: "Trading Economics" },
 ];
+
+function getBorderClass(source: string, isBreaking: boolean): string {
+  if (isBreaking) return "border-l-4 border-red-500 pl-3";
+  switch (source) {
+    case "forexlive": return "border-l-4 border-orange-500 pl-3";
+    case "fxstreet": return "border-l-4 border-indigo-500 pl-3";
+    case "reuters": return "border-l-4 border-blue-500 pl-3";
+    case "truth_social": return "border-l-4 border-purple-500 pl-3";
+    case "trading_economics": return "border-l-4 border-emerald-500 pl-3";
+    default: return "border-l-4 border-border pl-3";
+  }
+}
 
 export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFeedProps) {
   const [filter, setFilter] = useState<SourceFilter>("all");
@@ -108,7 +147,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
       </div>
 
       {/* Source filter pills */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         {FILTER_OPTIONS.map((opt) => (
           <button
             key={opt.key}
@@ -134,17 +173,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
           <div className="space-y-3">
             {displayItems.map((h) => {
               const isBreaking = h.impact === "breaking";
-              const isTrump = h.source === "truth_social";
-
-              const isTE = h.source === "trading_economics";
-
-              const borderClass = isBreaking
-                ? "border-l-4 border-red-500 pl-3"
-                : isTrump
-                  ? "border-l-4 border-purple-500 pl-3"
-                  : isTE
-                    ? "border-l-4 border-emerald-500 pl-3"
-                    : "border-l-4 border-border pl-3";
+              const borderClass = getBorderClass(h.source, isBreaking);
 
               return (
                 <div key={h.id} className={`${borderClass} py-1.5`}>

@@ -1,7 +1,7 @@
 // app/api/cron/calendar-sync/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
+import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
 import { getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
 
   try {
-    const events = await fetchFaireconomyCalendar();
+    const events = await scrapeForexFactoryCalendar();
     if (events.length === 0) {
       return NextResponse.json({ ok: true, fetched: 0, upserted: 0, updated: 0 });
     }
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
             .eq("id", existing.id);
           updated++;
           if (event.impact === "high" && event.forecast && event.actual !== event.forecast) {
-            await triggerNarrativeUpdate(existing.id, event);
+            await triggerNarrativeUpdate(existing.id, { ...event });
           }
         }
       } else {

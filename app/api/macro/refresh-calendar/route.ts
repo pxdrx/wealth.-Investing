@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
-import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
-import { FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL, getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
+import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
+import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -31,12 +31,10 @@ export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const weekParam = searchParams.get("week");
 
-  // Determine which Faireconomy URL and week_start to use
-  let faireconomyUrl = FAIRECONOMY_URL;
+  // Determine week_start override for next-week requests
   let weekStartOverride: string | undefined;
 
   if (weekParam === "next") {
-    faireconomyUrl = FAIRECONOMY_NEXT_WEEK_URL;
     const nextWeekDate = new Date();
     nextWeekDate.setDate(nextWeekDate.getDate() + 7);
     weekStartOverride = getWeekStart(nextWeekDate);
@@ -45,7 +43,9 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
 
   try {
-    const events = await fetchFaireconomyCalendar(faireconomyUrl, weekStartOverride);
+    // ForexFactory calendar page always shows current week
+    // For next-week, we pass the weekStartOverride so events get tagged correctly
+    const events = await scrapeForexFactoryCalendar(undefined, weekStartOverride);
     if (events.length === 0) {
       return NextResponse.json({ ok: true, fetched: 0, updated: 0 });
     }
