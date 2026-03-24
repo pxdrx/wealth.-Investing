@@ -313,7 +313,7 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
             <div className="mt-8 flex items-center gap-2 border-t border-border/30 pt-4">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mr-2">Powered By</span>
               <span className="rounded-md bg-blue-500/10 px-2 py-1 text-[10px] font-bold tracking-wide text-blue-500">
-                Claude 3.5 Sonnet
+                Claude Haiku
               </span>
               {panorama.te_briefing_raw && (
                 <span className="rounded-md bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground">

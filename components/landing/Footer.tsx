@@ -35,11 +35,6 @@ export function Footer() {
     return () => subscription.unsubscribe();
   }, []);
 
-  function handleEmBreve(e: React.MouseEvent<HTMLAnchorElement>) {
-    e.preventDefault();
-    window.alert("Em breve!");
-  }
-
   return (
     <footer
       className="border-t pt-16 pb-8"
@@ -112,10 +107,9 @@ export function Footer() {
               {FOOTER_SOCIAL_LINKS.map((link) => (
                 <li key={link.label}>
                   <a
-                    href={link.href === "em-breve" ? "#" : link.href}
-                    onClick={link.href === "em-breve" ? handleEmBreve : undefined}
-                    target={link.href !== "em-breve" ? "_blank" : undefined}
-                    rel={link.href !== "em-breve" ? "noopener noreferrer" : undefined}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-sm text-l-text-secondary hover:text-l-text transition-colors"
                   >
                     {link.label}

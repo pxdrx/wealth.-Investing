@@ -15,8 +15,8 @@ interface AccountsOverviewProps {
     firm_name: string;
     phase: string;
     starting_balance_usd: number;
-    daily_dd_limit?: number;
-    max_dd_limit?: number;
+    max_daily_loss_percent?: number;
+    max_overall_loss_percent?: number;
   }>;
   trades: Array<{
     account_id: string;
@@ -120,7 +120,7 @@ export function AccountsOverview({
             startingBalance > 0
               ? (Math.abs(todayLosses) / startingBalance) * 100
               : 0;
-          ddDiarioLimit = pa.daily_dd_limit ?? null;
+          ddDiarioLimit = pa.max_daily_loss_percent ?? null;
 
           // Total DD: monthly losses
           const monthLosses = monthTrades
@@ -130,7 +130,7 @@ export function AccountsOverview({
             startingBalance > 0
               ? (Math.abs(monthLosses) / startingBalance) * 100
               : 0;
-          ddTotalLimit = pa.max_dd_limit ?? null;
+          ddTotalLimit = pa.max_overall_loss_percent ?? null;
 
           // Risk level for sorting
           const dailyRisk =

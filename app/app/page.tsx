@@ -100,8 +100,8 @@ type PropAccountRow = {
   firm_name: string;
   phase: string;
   starting_balance_usd: number;
-  daily_dd_limit?: number;
-  max_dd_limit?: number;
+  max_daily_loss_percent?: number;
+  max_overall_loss_percent?: number;
 };
 
 export default function DashboardPage() {
@@ -244,12 +244,12 @@ export default function DashboardPage() {
           const [propAccountsRes, propPayoutsRes] = await Promise.all([
             supabase
               .from("prop_accounts")
-              .select("account_id, firm_name, phase, starting_balance_usd, daily_dd_limit, max_dd_limit")
+              .select("account_id, firm_name, phase, starting_balance_usd, max_daily_loss_percent, max_overall_loss_percent")
               .in("account_id", accountIds),
             supabase
               .from("prop_payouts")
               .select("amount_usd")
-              .in("account_id", accountIds),
+              .eq("user_id", userId),
           ]);
           if (!cancelled) {
             setPropAccounts((propAccountsRes.data ?? []) as PropAccountRow[]);

@@ -43,7 +43,7 @@ export const WIDGET_LABELS: Record<string, { title: string; titlePtBr: string; t
   kpi: { title: "Performance Summary", titlePtBr: "Resumo de Performance", tier: "free" },
   accounts: { title: "Accounts Overview", titlePtBr: "Visão de Contas", tier: "pro" },
   calendar: { title: "Calendar", titlePtBr: "Calendário", tier: "free" },
-  news: { title: "News", titlePtBr: "Notícias", tier: "free" },
+  news: { title: "Macro Panorama", titlePtBr: "Panorama Macro", tier: "free" },
   "equity-mini": { title: "Equity Curve", titlePtBr: "Curva de Equity", tier: "pro" },
   tiltmeter: { title: "Tiltmeter", titlePtBr: "Tiltmeter", tier: "pro" },
   "top-symbols": { title: "Top Symbols", titlePtBr: "Top Ativos", tier: "pro" },
