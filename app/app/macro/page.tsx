@@ -457,7 +457,7 @@ export default function MacroIntelligencePage() {
         <TabsContent value="report" className="flex-1 min-h-0 mt-0">
           <div className="flex flex-col gap-6">
             {/* Weekly Briefing — expanded, no collapse */}
-            <section className="w-full rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate px-6 py-5">
+            <section className="w-full rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate px-4 sm:px-6 py-5">
               <WeeklyBriefing panorama={panorama} onRegenerate={handleRegenerate} defaultExpanded />
             </section>
 

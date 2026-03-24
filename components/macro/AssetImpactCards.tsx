@@ -47,20 +47,10 @@ function ConfidenceBadge({ confidence }: { confidence: string }) {
 export function AssetImpactCards({ impacts }: AssetImpactCardsProps) {
   if (!impacts) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {ASSETS.map(({ key, label, icon: Icon }) => (
-          <div
-            key={key}
-            className="rounded-[22px] border border-border/40 p-5 isolate animate-pulse"
-            style={{ backgroundColor: "hsl(var(--card))" }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Icon className="h-5 w-5 text-muted-foreground" />
-              <span className="font-semibold text-sm">{label}</span>
-            </div>
-            <div className="h-16 bg-muted/30 rounded-xl" />
-          </div>
-        ))}
+      <div className="rounded-xl border border-border/30 bg-muted/10 p-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Regenere o relatório para ver a análise de impacto por ativo.
+        </p>
       </div>
     );
   }

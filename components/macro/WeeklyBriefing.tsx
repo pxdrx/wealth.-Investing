@@ -14,6 +14,14 @@ interface WeeklyBriefingProps {
   defaultExpanded?: boolean;
 }
 
+/**
+ * Detect if narrative is old format (has ## headers like "Visão Geral", "EUA", "Europa", "Fechamento").
+ * Old narratives were full markdown reports; new ones are concise 2-3 paragraph summaries.
+ */
+function isOldNarrativeFormat(text: string): boolean {
+  return /^##\s+/m.test(text) || /Visão Geral|Fechamento/i.test(text);
+}
+
 /** Parse simple markdown to React nodes */
 function renderMarkdown(text: string): React.ReactNode[] {
   const lines = text.split("\n");
@@ -211,10 +219,21 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
         isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
       )}>
         <div className="overflow-hidden">
-          <div className="max-w-4xl mx-auto pt-6 pb-2">
+          <div className="pt-6 pb-2">
             {/* Summary text */}
             <div className="space-y-4 mb-8">
-              {renderMarkdown(panorama.narrative)}
+              {isOldNarrativeFormat(panorama.narrative) ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mb-2">
+                    Este relatório está no formato antigo.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Clique em <strong className="text-foreground">Regenerar</strong> acima para gerar o novo formato com análise por ativo e resumo conciso.
+                  </p>
+                </div>
+              ) : (
+                renderMarkdown(panorama.narrative)
+              )}
             </div>
 
             {/* Asset Impact Cards */}
@@ -230,7 +249,7 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
             <div className="mt-8 flex items-center gap-2 border-t border-border/30 pt-4">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mr-2">Powered By</span>
               <span className="rounded-md bg-blue-500/10 px-2 py-1 text-[10px] font-bold tracking-wide text-blue-500">
-                Claude Haiku
+                Claude AI
               </span>
               {panorama.te_briefing_raw && (
                 <span className="rounded-md bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground">
