@@ -41,8 +41,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Helper: strip DB-managed fields before upsert
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const stripDbFields = ({ id, ...rest }: MacroHeadline): Omit<MacroHeadline, "id"> => rest;
+    const stripDbFields = (h: MacroHeadline) => ({
+      source: h.source,
+      headline: h.headline,
+      summary: h.summary,
+      author: h.author,
+      url: h.url,
+      impact: h.impact,
+      published_at: h.published_at,
+      fetched_at: h.fetched_at,
+      external_id: h.external_id,
+    });
 
     // 2. Upsert Financial Juice headlines
     let fjCount = 0;
