@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { Scan } from "lucide-react";
+
 const STORAGE_KEY = "wealth-pro-onboarding-seen";
 
 interface OnboardingStep {
@@ -24,86 +26,148 @@ interface OnboardingStep {
   gradient: string;
 }
 
-const STEPS: OnboardingStep[] = [
-  {
-    icon: <Sparkles className="h-10 w-10" />,
-    title: "Bem-vindo ao Pro!",
-    description:
-      "Você desbloqueou o arsenal completo da wealth.Investing. Vamos te mostrar o que mudou na sua experiência — em menos de 1 minuto.",
-    highlights: [
-      "Dashboard customizável",
-      "Relatórios avançados",
-      "AI Coach com seus dados",
-      "Psicologia e disciplina",
-    ],
-    gradient: "from-blue-600 to-indigo-600",
-  },
-  {
-    icon: <LayoutDashboard className="h-10 w-10" />,
-    title: "Dashboard Customizável",
-    description:
-      "Organize seu dashboard do seu jeito. Ative, desative e reordene widgets para focar no que importa para o seu operacional.",
-    highlights: [
-      "Arraste widgets para reordenar",
-      "Ative/desative em Configurações",
-      "Curva de equity, mapa de sessões",
-      "Termômetro Emocional em tempo real",
-    ],
-    gradient: "from-violet-600 to-purple-600",
-  },
-  {
-    icon: <BarChart3 className="h-10 w-10" />,
-    title: "Relatórios & Analytics",
-    description:
-      "Mergulhe nos seus dados com relatórios que traders profissionais usam. Identifique padrões, vazamentos e oportunidades.",
-    highlights: [
-      "Equity curve e drawdown",
-      "Análise MFE/MAE por trade",
-      "Breakdown por ativo, sessão, dia",
-      "Profit factor, Sharpe, expectancy",
-    ],
-    gradient: "from-emerald-600 to-teal-600",
-  },
-  {
-    icon: <Brain className="h-10 w-10" />,
-    title: "AI Coach",
-    description:
-      "Pergunte qualquer coisa sobre seus trades e receba respostas baseadas nos seus dados reais. Não é um chatbot genérico — é o seu analista pessoal.",
-    highlights: [
-      '"Qual meu melhor dia da semana?"',
-      '"Onde estou perdendo dinheiro?"',
-      "Cruza suas métricas + contexto macro",
-      "Insights acionáveis, não genéricos",
-    ],
-    gradient: "from-amber-500 to-orange-600",
-  },
-  {
-    icon: <Target className="h-10 w-10" />,
-    title: "Psicologia & Disciplina",
-    description:
-      "Registre emoção, disciplina e qualidade de execução em cada trade. O Termômetro Emocional te avisa quando você está saindo do plano.",
-    highlights: [
-      "Tags de emoção por trade",
-      "Score de disciplina",
-      "Termômetro Emocional no dashboard",
-      "Analytics psicológico nos relatórios",
-    ],
-    gradient: "from-rose-500 to-pink-600",
-  },
-  {
+function getSteps(plan: "pro" | "ultra"): OnboardingStep[] {
+  const isUltra = plan === "ultra";
+  const planName = isUltra ? "Ultra" : "Pro";
+  const steps: OnboardingStep[] = [
+    {
+      icon: <Sparkles className="h-10 w-10" />,
+      title: `Bem-vindo ao ${planName}!`,
+      description: isUltra
+        ? "Você desbloqueou o nível máximo da wealth.Investing — tudo ilimitado, AI avançada e análise profissional. Veja o que você tem acesso."
+        : "Você desbloqueou o arsenal completo da wealth.Investing. Vamos te mostrar o que mudou na sua experiência — em menos de 1 minuto.",
+      highlights: isUltra
+        ? [
+            "Tudo do Pro + exclusivos Ultra",
+            "Contas ilimitadas",
+            "Analista Dexter com IA",
+            "10 consultas AI Coach por dia",
+          ]
+        : [
+            "Dashboard completo",
+            "Relatórios e analytics",
+            "AI Coach com seus dados",
+            "Psicologia e disciplina",
+          ],
+      gradient: isUltra ? "from-purple-600 to-violet-600" : "from-blue-600 to-indigo-600",
+    },
+    {
+      icon: <LayoutDashboard className="h-10 w-10" />,
+      title: "Dashboard Completo",
+      description:
+        "Organize seu dashboard do seu jeito. Ative, desative e reordene widgets para focar no que importa para o seu operacional.",
+      highlights: [
+        "Arraste widgets para reordenar",
+        "Ative/desative em Configurações",
+        "Curva de equity, mapa de sessões",
+        "Termômetro Emocional em tempo real",
+      ],
+      gradient: "from-violet-600 to-purple-600",
+    },
+    {
+      icon: <BarChart3 className="h-10 w-10" />,
+      title: "Relatórios & Analytics",
+      description:
+        "Mergulhe nos seus dados com relatórios que traders profissionais usam. Identifique padrões, vazamentos e oportunidades.",
+      highlights: isUltra
+        ? [
+            "Relatórios avançados (MFE/MAE, Sharpe, Kelly)",
+            "Breakdown por ativo, sessão, dia",
+            "Export PDF dos relatórios",
+            "Profit factor, Sortino, expectancy",
+          ]
+        : [
+            "Equity curve e drawdown",
+            "Análise MFE/MAE por trade",
+            "Breakdown por ativo, sessão, dia",
+            "Profit factor, Sharpe, expectancy",
+          ],
+      gradient: "from-emerald-600 to-teal-600",
+    },
+    {
+      icon: <Brain className="h-10 w-10" />,
+      title: "AI Coach",
+      description: isUltra
+        ? "10 consultas por dia com o AI Coach. Pergunte qualquer coisa sobre seus trades e receba respostas baseadas nos seus dados reais."
+        : "Pergunte qualquer coisa sobre seus trades e receba respostas baseadas nos seus dados reais. Não é um chatbot genérico — é o seu analista pessoal.",
+      highlights: [
+        '"Qual meu melhor dia da semana?"',
+        '"Onde estou perdendo dinheiro?"',
+        "Cruza suas métricas + contexto macro",
+        isUltra ? "10 consultas por dia" : "10 consultas por mês",
+      ],
+      gradient: "from-amber-500 to-orange-600",
+    },
+  ];
+
+  // Ultra-exclusive steps
+  if (isUltra) {
+    steps.push({
+      icon: <Scan className="h-10 w-10" />,
+      title: "Analista Dexter",
+      description:
+        "Seu analista financeiro com IA. Digite qualquer ativo — ações, forex, cripto, commodities — e receba uma análise completa: técnica, fundamental, sentimento, risco e veredicto.",
+      highlights: [
+        "Análise de 5 dimensões por ativo",
+        "Veredicto com bias e confiança",
+        "Níveis chave e ideia de trade",
+        "Histórico de análises salvo",
+      ],
+      gradient: "from-cyan-500 to-blue-600",
+    });
+    steps.push({
+      icon: <Target className="h-10 w-10" />,
+      title: "Exclusivos Ultra",
+      description:
+        "Funcionalidades que só o Ultra tem. Comparação de contas, alertas customizados, regeneração de briefing on-demand e histórico macro semanal.",
+      highlights: [
+        "Comparação entre contas",
+        "Alertas de drawdown e headlines",
+        "Regenerar Briefing Macroeconômico",
+        "Suporte prioritário",
+      ],
+      gradient: "from-rose-500 to-pink-600",
+    });
+  } else {
+    steps.push({
+      icon: <Target className="h-10 w-10" />,
+      title: "Psicologia & Disciplina",
+      description:
+        "Registre emoção, disciplina e qualidade de execução em cada trade. O Termômetro Emocional te avisa quando você está saindo do plano.",
+      highlights: [
+        "Tags de emoção por trade",
+        "Score de disciplina",
+        "Termômetro Emocional no dashboard",
+        "Analytics psicológico nos relatórios",
+      ],
+      gradient: "from-rose-500 to-pink-600",
+    });
+  }
+
+  // Final step
+  steps.push({
     icon: <Rocket className="h-10 w-10" />,
     title: "Hora de operar com dados",
     description:
       "Tudo pronto. Importe seus trades, explore os relatórios e comece a construir consistência com dados reais. Boas operações!",
-    highlights: [
-      "Importe trades no Journal",
-      "Personalize o Dashboard",
-      "Explore os Relatórios",
-      "Converse com o AI Coach",
-    ],
+    highlights: isUltra
+      ? [
+          "Teste o Analista Dexter",
+          "Personalize o Dashboard",
+          "Explore os Relatórios Avançados",
+          "Converse com o AI Coach",
+        ]
+      : [
+          "Importe trades no Journal",
+          "Personalize o Dashboard",
+          "Explore os Relatórios",
+          "Converse com o AI Coach",
+        ],
     gradient: "from-blue-600 to-cyan-600",
-  },
-];
+  });
+
+  return steps;
+}
 
 export function hasSeenProOnboarding(): boolean {
   if (typeof window === "undefined") return true;
@@ -119,12 +183,14 @@ export function markProOnboardingSeen(): void {
 interface ProOnboardingModalProps {
   open: boolean;
   onClose: () => void;
+  plan?: "pro" | "ultra";
 }
 
-export function ProOnboardingModal({ open, onClose }: ProOnboardingModalProps) {
+export function ProOnboardingModal({ open, onClose, plan = "pro" }: ProOnboardingModalProps) {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
 
+  const STEPS = getSteps(plan);
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
   const progress = ((step + 1) / STEPS.length) * 100;

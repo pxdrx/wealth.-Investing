@@ -43,6 +43,7 @@ export default function SubscriptionSuccessPage() {
 
       <ProOnboardingModal
         open={showOnboarding}
+        plan={plan === "ultra" ? "ultra" : "pro"}
         onClose={() => {
           markProOnboardingSeen();
           setShowOnboarding(false);
