@@ -37,6 +37,7 @@ interface CoachRequestBody {
   messages: { role: "user" | "assistant"; content: string }[];
   account_id: string;
   enriched?: boolean;
+  conversation_id?: string;
 }
 
 const VALID_TYPES = new Set(["session", "weekly", "chat"]);

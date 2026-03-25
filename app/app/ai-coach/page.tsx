@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb, Loader2 } from "lucide-react";
+import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb, Loader2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useSubscription } from "@/components/context/SubscriptionContext";
@@ -14,6 +15,13 @@ import { formatPsychologyProfile } from "@/lib/ai-prompts";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import type { JournalTradeRow } from "@/components/journal/types";
 import { cn } from "@/lib/utils";
+
+interface Conversation {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Message {
   id?: string;
@@ -72,10 +80,12 @@ function getGreeting(): string {
 // Max messages to load from history
 const MAX_HISTORY = 50;
 
-export default function AICoachPage() {
+function AICoachPageInner() {
   const { activeAccountId } = useActiveAccount();
   const { plan } = useSubscription();
   const limits = getTierLimits(plan);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -86,15 +96,17 @@ export default function AICoachPage() {
   const [dataMode, setDataMode] = useState(false);
   const [trades, setTrades] = useState<JournalTradeRow[]>([]);
   const [tradesLoaded, setTradesLoaded] = useState(false);
-  const [conversationStartedAt, setConversationStartedAt] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("ai-coach-conversation-started-at") ?? "";
-    }
-    return "";
-  });
+
+  // Conversation management
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversationTitle, setActiveConversationTitle] = useState("Nova conversa");
+  const [conversationsLoaded, setConversationsLoaded] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const titleUpdatedRef = useRef(false);
 
   const quotaExhausted = usageCount >= limits.aiCoachMonthly;
   const usagePct = limits.aiCoachMonthly > 0
@@ -103,23 +115,56 @@ export default function AICoachPage() {
 
   const hasMessages = messages.length > 0;
 
-  // Auto-start new session if previous conversation is from a different day
+  // Helper to get auth token
+  const getToken = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  }, []);
+
+  // Load conversations list and initialize active conversation
   useEffect(() => {
-    if (conversationStartedAt) {
-      const started = new Date(conversationStartedAt);
-      const today = new Date();
-      if (started.toDateString() !== today.toDateString()) {
-        const now = new Date().toISOString();
-        setConversationStartedAt(now);
-        localStorage.setItem("ai-coach-conversation-started-at", now);
-        setMessages([]);
+    async function initConversations() {
+      const token = await getToken();
+      if (!token) { setConversationsLoaded(true); return; }
+
+      const res = await fetch("/api/ai/conversations", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.ok && json.data) {
+        setConversations(json.data);
       }
-    } else {
-      // First time — set conversation start
-      const now = new Date().toISOString();
-      setConversationStartedAt(now);
-      localStorage.setItem("ai-coach-conversation-started-at", now);
+
+      // Check URL param for active conversation
+      const chatId = searchParams.get("chat");
+      if (chatId) {
+        setActiveConversationId(chatId);
+        const found = (json.data as Conversation[])?.find((c: Conversation) => c.id === chatId);
+        if (found) setActiveConversationTitle(found.title);
+      } else if (json.data && json.data.length > 0) {
+        // Use most recent conversation
+        const latest = json.data[0];
+        setActiveConversationId(latest.id);
+        setActiveConversationTitle(latest.title);
+        router.replace(`/app/ai-coach?chat=${latest.id}`);
+      } else {
+        // No conversations exist — create one
+        const createRes = await fetch("/api/ai/conversations", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ title: "Nova conversa" }),
+        });
+        const createJson = await createRes.json();
+        if (createJson.ok && createJson.data) {
+          setActiveConversationId(createJson.data.id);
+          setActiveConversationTitle(createJson.data.title);
+          setConversations([{ ...createJson.data, updated_at: createJson.data.created_at }]);
+          router.replace(`/app/ai-coach?chat=${createJson.data.id}`);
+        }
+      }
+      setConversationsLoaded(true);
     }
+    initConversations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -142,27 +187,26 @@ export default function AICoachPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load chat history from Supabase (only messages after conversationStartedAt)
+  // Load chat history for active conversation
   useEffect(() => {
     async function loadHistory() {
+      if (!activeConversationId) {
+        setHistoryLoaded(true);
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         setHistoryLoaded(true);
         return;
       }
-      let query = supabase
+
+      const { data, error } = await supabase
         .from("ai_coach_messages")
         .select("id, role, content, created_at")
         .eq("user_id", session.user.id)
+        .eq("conversation_id", activeConversationId)
         .order("created_at", { ascending: true })
         .limit(MAX_HISTORY);
-
-      // Only load messages from current conversation
-      if (conversationStartedAt) {
-        query = query.gt("created_at", conversationStartedAt);
-      }
-
-      const { data, error } = await query;
 
       if (!error && data && data.length > 0) {
         setMessages(
@@ -172,11 +216,15 @@ export default function AICoachPage() {
             content: row.content,
           }))
         );
+      } else {
+        setMessages([]);
       }
+      titleUpdatedRef.current = false;
       setHistoryLoaded(true);
     }
+    setHistoryLoaded(false);
     loadHistory();
-  }, [conversationStartedAt]);
+  }, [activeConversationId]);
 
   // Scroll to bottom when history loads or new messages arrive
   useEffect(() => {
@@ -219,7 +267,12 @@ export default function AICoachPage() {
     if (!session?.user?.id) return undefined;
     const { data, error } = await supabase
       .from("ai_coach_messages")
-      .insert({ user_id: session.user.id, role, content })
+      .insert({
+        user_id: session.user.id,
+        role,
+        content,
+        conversation_id: activeConversationId,
+      })
       .select("id")
       .maybeSingle();
     if (error) {
@@ -227,17 +280,60 @@ export default function AICoachPage() {
       return undefined;
     }
     return (data as { id: string } | null)?.id ?? undefined;
-  }, []);
+  }, [activeConversationId]);
 
-  // Start new conversation — keep old messages in DB, just filter them out
-  const clearHistory = useCallback(() => {
+  // Start a new conversation
+  const handleNewChat = useCallback(async () => {
     if (isStreaming) return;
-    const now = new Date().toISOString();
-    setConversationStartedAt(now);
-    localStorage.setItem("ai-coach-conversation-started-at", now);
-    setMessages([]);
-    chatContainerRef.current?.scrollTo(0, 0);
-  }, [isStreaming]);
+    const token = await getToken();
+    if (!token) return;
+
+    const res = await fetch("/api/ai/conversations", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Nova conversa" }),
+    });
+    const json = await res.json();
+    if (json.ok && json.data) {
+      const newConv: Conversation = { ...json.data, updated_at: json.data.created_at };
+      setConversations((prev) => [newConv, ...prev]);
+      setActiveConversationId(json.data.id);
+      setActiveConversationTitle(json.data.title);
+      setMessages([]);
+      titleUpdatedRef.current = false;
+      router.push(`/app/ai-coach?chat=${json.data.id}`);
+      chatContainerRef.current?.scrollTo(0, 0);
+    }
+  }, [isStreaming, getToken, router]);
+
+  // Switch to an existing conversation
+  const switchConversation = useCallback((conv: Conversation) => {
+    if (isStreaming) return;
+    setActiveConversationId(conv.id);
+    setActiveConversationTitle(conv.title);
+    router.push(`/app/ai-coach?chat=${conv.id}`);
+  }, [isStreaming, router]);
+
+  // Auto-title after first user message
+  const autoUpdateTitle = useCallback(async (userMessage: string) => {
+    if (!activeConversationId || titleUpdatedRef.current) return;
+    titleUpdatedRef.current = true;
+
+    const autoTitle = userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : "");
+    const token = await getToken();
+    if (!token) return;
+
+    await fetch("/api/ai/conversations", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: activeConversationId, title: autoTitle }),
+    });
+
+    setActiveConversationTitle(autoTitle);
+    setConversations((prev) =>
+      prev.map((c) => (c.id === activeConversationId ? { ...c, title: autoTitle } : c))
+    );
+  }, [activeConversationId, getToken]);
 
   const sendMessage = useCallback(async (text: string, type?: "session" | "weekly" | "chat") => {
     if (!activeAccountId || isStreaming || quotaExhausted) return;
@@ -259,6 +355,11 @@ export default function AICoachPage() {
         }
         return updated;
       });
+    }
+
+    // Auto-title on first user message
+    if (activeConversationTitle === "Nova conversa") {
+      autoUpdateTitle(text);
     }
 
     // Optimistically add assistant placeholder
@@ -382,7 +483,7 @@ export default function AICoachPage() {
       setIsStreaming(false);
       abortRef.current = null;
     }
-  }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType, dataMode, tradeAnalytics, saveMessage]);
+  }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType, dataMode, tradeAnalytics, saveMessage, activeConversationTitle, autoUpdateTitle]);
 
   return (
     <main className="flex w-full h-full p-6 lg:p-8 gap-6 overflow-hidden">
@@ -508,20 +609,21 @@ export default function AICoachPage() {
         
         {/* Chat Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-background/20 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-3">
-             <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-             <span className="text-sm font-semibold tracking-wide text-foreground">Sessão Ativa</span>
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+             <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse shrink-0" />
+             <span className="text-sm font-semibold tracking-wide text-foreground truncate max-w-[200px]">
+               {activeConversationTitle}
+             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            {hasMessages && !isStreaming && (
-              <button
-                onClick={clearHistory}
-                className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Limpar Memória
-              </button>
-            )}
+          <div className="flex items-center gap-4 shrink-0">
+            <button
+              onClick={handleNewChat}
+              disabled={isStreaming}
+              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              <Plus className="h-3.5 w-3.5" /> Novo chat
+            </button>
             {usageLoaded && (
               <div className="flex items-center gap-2">
                 <div className="h-1.5 w-16 rounded-full overflow-hidden bg-muted/50">
@@ -551,7 +653,7 @@ export default function AICoachPage() {
           {activeAccountId && (
              <>
                <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
-                 {(!historyLoaded || !usageLoaded) && (
+                 {(!historyLoaded || !usageLoaded || !conversationsLoaded) && (
                    <div className="h-full flex items-center justify-center">
                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                    </div>
@@ -626,5 +728,17 @@ export default function AICoachPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AICoachPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-full w-full">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <AICoachPageInner />
+    </Suspense>
   );
 }

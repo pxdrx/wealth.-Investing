@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   LineChart,
@@ -15,6 +15,7 @@ import {
   Sparkles,
   CreditCard,
   Scan,
+  Plus,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
@@ -24,12 +25,18 @@ import { useSubscription } from "@/components/context/SubscriptionContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
+interface SidebarConversation {
+  id: string;
+  title: string;
+  updated_at: string;
+}
+
 const navLinks = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/macro", label: "Inteligência Macro", icon: LineChart },
   { href: "/app/journal", label: "Trade Journal", icon: BookOpen },
-  { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
   { href: "/app/analyst", label: "Analista Dexter", icon: Scan, highlight: true },
+  { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
 ];
 
 function logout() {
@@ -42,13 +49,35 @@ function logout() {
   window.location.href = "/login";
 }
 
-export function AppSidebar() {
+function AppSidebarInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const [hasSession, setHasSession] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const { plan } = useSubscription();
+  const [coachConversations, setCoachConversations] = useState<SidebarConversation[]>([]);
+  const isOnCoachPage = pathname?.startsWith("/app/ai-coach") ?? false;
+
+  // Load AI Coach conversations when on coach page
+  useEffect(() => {
+    if (!isOnCoachPage) { setCoachConversations([]); return; }
+    async function loadConversations() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      try {
+        const res = await fetch("/api/ai/conversations", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = await res.json();
+        if (json.ok && json.data) {
+          setCoachConversations(json.data.slice(0, 10));
+        }
+      } catch {}
+    }
+    loadConversations();
+  }, [isOnCoachPage, pathname]);
 
   // Auto-collapse on smaller screens
   useEffect(() => {
@@ -114,8 +143,8 @@ export function AppSidebar() {
             : pathname === link.href || pathname?.startsWith(link.href + "/");
           const Icon = link.icon;
           return (
+            <div key={link.href}>
             <Link
-              key={link.href}
               href={link.href}
               title={collapsed ? link.label : undefined}
               className={cn(
@@ -140,6 +169,29 @@ export function AppSidebar() {
                 </span>
               )}
             </Link>
+            {/* AI Coach conversation sub-items */}
+            {link.href === "/app/ai-coach" && isOnCoachPage && !collapsed && coachConversations.length > 0 && (
+              <div className="ml-8 space-y-0.5 mt-1 mb-1">
+                {coachConversations.map((conv) => {
+                  const isActiveConv = isOnCoachPage && searchParams.get("chat") === conv.id;
+                  return (
+                    <Link
+                      key={conv.id}
+                      href={`/app/ai-coach?chat=${conv.id}`}
+                      className={cn(
+                        "block text-xs truncate py-1 px-2 rounded-lg transition-colors",
+                        isActiveConv
+                          ? "text-foreground bg-primary/10 font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      {conv.title}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           );
         })}
       </div>
@@ -207,5 +259,13 @@ export function AppSidebar() {
         )}
       </div>
     </aside>
+  );
+}
+
+export function AppSidebar() {
+  return (
+    <Suspense>
+      <AppSidebarInner />
+    </Suspense>
   );
 }
