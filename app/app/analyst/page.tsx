@@ -17,6 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { CpuArchitecture } from "@/components/ui/cpu-architecture";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 
 interface AnalysisSectionData {
@@ -400,11 +401,14 @@ export default function AnalystPage() {
           </button>
         </div>
 
-        {/* Status */}
-        {status && (
-          <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {status}
+        {/* Loading with CPU animation */}
+        {loading && (
+          <div className="mb-8 flex flex-col items-center gap-4">
+            <CpuArchitecture width="320" height="160" text="DXT" className="opacity-60" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {status || "Processando..."}
+            </div>
           </div>
         )}
 
@@ -562,13 +566,15 @@ export default function AnalystPage() {
 
         {/* Empty state */}
         {!report && !loading && !error && history.length === 0 && (
-          <div className="text-center py-20">
-            <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+          <div className="text-center py-12">
+            <div className="mx-auto max-w-xs mb-6 opacity-30">
+              <CpuArchitecture width="100%" height="160" text="DXT" animateLines={false} animateMarkers={false} animateText={false} />
+            </div>
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
-              Nenhuma analise ainda
+              Nenhuma análise ainda
             </h3>
             <p className="text-sm text-muted-foreground/70">
-              Digite um ticker acima para gerar uma analise completa com IA
+              Digite um ticker acima para gerar uma análise completa com IA
             </p>
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {["EURUSD", "XAUUSD", "BTC", "AAPL", "DXY"].map((t) => (
