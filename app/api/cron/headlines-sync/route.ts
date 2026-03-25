@@ -206,11 +206,17 @@ export async function POST(req: NextRequest) {
             liveHeadlines: (recentHeadlines || []) as import("@/lib/macro/types").MacroHeadline[],
           });
 
+          const assetImpactsWithDaily = {
+            ...narrative.asset_impacts,
+            daily_update: narrative.daily_update,
+            daily_update_at: new Date().toISOString(),
+          };
+
           const panoramaData = {
             week_start: weekStart,
             week_end: weekEnd,
-            narrative: narrative.summary,
-            asset_impacts: narrative.asset_impacts,
+            narrative: narrative.weekly_bias,
+            asset_impacts: assetImpactsWithDaily,
             regional_analysis: null,
             market_impacts: null,
             decision_intelligence: null,

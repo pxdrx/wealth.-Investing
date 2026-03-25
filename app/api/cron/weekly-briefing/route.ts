@@ -77,8 +77,12 @@ export async function POST(req: NextRequest) {
       week_start: weekStart,
       week_end: weekEnd,
       te_briefing_raw: null,
-      narrative: narrative.summary,
-      asset_impacts: narrative.asset_impacts,
+      narrative: narrative.weekly_bias,
+      asset_impacts: {
+        ...narrative.asset_impacts,
+        daily_update: narrative.daily_update,
+        daily_update_at: new Date().toISOString(),
+      },
       regional_analysis: null,
       market_impacts: null,
       decision_intelligence: null,
@@ -108,7 +112,7 @@ export async function POST(req: NextRequest) {
       weekStart,
       eventsCount: events?.length || 0,
       headlinesCount: liveHeadlines.length,
-      narrativeLength: narrative.summary?.length || 0,
+      narrativeLength: narrative.weekly_bias?.length || 0,
     });
   } catch (error) {
     console.error("[weekly-briefing] Error:", error);

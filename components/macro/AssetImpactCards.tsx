@@ -58,7 +58,9 @@ export function AssetImpactCards({ impacts }: AssetImpactCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {ASSETS.map(({ key, label, icon: Icon }) => {
-        const impact: AssetImpact | undefined = impacts[key as keyof AssetImpacts];
+        const raw = impacts[key as keyof AssetImpacts];
+        // Skip non-AssetImpact fields (daily_update, daily_update_at)
+        const impact: AssetImpact | undefined = (typeof raw === "object" && raw !== null) ? raw as AssetImpact : undefined;
         if (!impact) return null;
 
         return (

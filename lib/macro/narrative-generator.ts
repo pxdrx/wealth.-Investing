@@ -30,7 +30,8 @@ interface NarrativeInput {
 }
 
 interface NarrativeOutput {
-  summary: string;
+  weekly_bias: string;
+  daily_update: string;
   asset_impacts: AssetImpacts;
 }
 
@@ -50,9 +51,11 @@ ${input.liveHeadlines
   .map((h, i) => `${i + 1}. [${h.source === "truth_social" ? "TRUMP" : "FJ"}] ${h.headline.slice(0, 120)}`)
   .join("\n")}
 ` : ""}
-Responda em JSON com a estrutura exata abaixo.
+Responda em JSON com a estrutura exata abaixo. Dois campos de texto + impacto por ativo.
 
-Campo "summary": resumo geral da semana em 2-3 parágrafos (PT-BR, 200-400 palavras). Conciso e acionável. Cubra o tom macro (risk-on/off), principais catalisadores, e o que o trader deve observar.
+Campo "weekly_bias": Viés semanal — análise estável do cenário macro da semana em 2-3 parágrafos (PT-BR, 200-400 palavras). Cubra: tom macro (risk-on/off), política monetária, expectativas do mercado, geopolítica, e principais catalisadores da semana. Esta análise é gerada uma vez por semana e deve ser robusta.
+
+Campo "daily_update": Atualização diária — o que mudou nas últimas horas com base nas headlines ao vivo em 2-3 parágrafos (PT-BR, 150-300 palavras). Cubra: impactos imediatos das notícias recentes, movimentos de mercado intraday, alertas para o trader. Se não houver headlines recentes, escreva um parágrafo indicando que o cenário segue conforme o viés semanal.
 
 Campo "asset_impacts": análise de impacto para 4 categorias de ativos. Para cada uma:
 - bias: "bullish", "bearish" ou "neutral"
@@ -61,7 +64,7 @@ Campo "asset_impacts": análise de impacto para 4 categorias de ativos. Para cad
 - key_levels: níveis técnicos relevantes (ex: "S&P 5800-5900", "XAU/USD 2300-2350")
 
 JSON exato:
-{"summary":"...","asset_impacts":{"indices":{"bias":"bullish","confidence":"alta","reason":"...","key_levels":"S&P 5800-5900"},"gold":{"bias":"bearish","confidence":"media","reason":"...","key_levels":"XAU/USD 2300-2350"},"btc":{"bias":"neutral","confidence":"baixa","reason":"...","key_levels":"BTC 65k-70k"},"dollar":{"bias":"bullish","confidence":"alta","reason":"...","key_levels":"DXY 104-106"}}}`;
+{"weekly_bias":"...","daily_update":"...","asset_impacts":{"indices":{"bias":"bullish","confidence":"alta","reason":"...","key_levels":"S&P 5800-5900"},"gold":{"bias":"bearish","confidence":"media","reason":"...","key_levels":"XAU/USD 2300-2350"},"btc":{"bias":"neutral","confidence":"baixa","reason":"...","key_levels":"BTC 65k-70k"},"dollar":{"bias":"bullish","confidence":"alta","reason":"...","key_levels":"DXY 104-106"}}}`;
 
   const response = await getAnthropic().messages.create({
     model: "claude-haiku-4-5-20251001",

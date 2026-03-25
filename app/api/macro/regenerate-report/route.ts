@@ -111,12 +111,19 @@ export async function POST(req: NextRequest) {
     });
 
     // 4. Upsert panorama
+    // Store daily_update and timestamp inside asset_impacts JSONB
+    const assetImpactsWithDaily = {
+      ...narrative.asset_impacts,
+      daily_update: narrative.daily_update,
+      daily_update_at: new Date().toISOString(),
+    };
+
     const panoramaData = {
       week_start: weekStart,
       week_end: weekEnd,
       te_briefing_raw: teBriefingRaw,
-      narrative: narrative.summary,
-      asset_impacts: narrative.asset_impacts,
+      narrative: narrative.weekly_bias,
+      asset_impacts: assetImpactsWithDaily,
       // Clear legacy fields on regeneration
       regional_analysis: null,
       market_impacts: null,
@@ -147,7 +154,7 @@ export async function POST(req: NextRequest) {
       weekStart,
       eventsCount: events?.length || 0,
       hasTeData: !!teBriefingRaw,
-      narrativeLength: narrative.summary?.length || 0,
+      narrativeLength: narrative.weekly_bias?.length || 0,
     });
   } catch (error) {
     console.error("[regenerate-report] Error:", error);

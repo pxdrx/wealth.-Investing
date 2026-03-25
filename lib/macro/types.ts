@@ -90,6 +90,8 @@ export interface AssetImpacts {
   gold: AssetImpact;
   btc: AssetImpact;
   dollar: AssetImpact;
+  daily_update?: string;
+  daily_update_at?: string;
 }
 
 export interface CentralBankRate {

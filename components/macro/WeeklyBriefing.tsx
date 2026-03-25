@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Calendar, RefreshCw as RefreshCwIcon } from "lucide-react";
 import { LiveIndicator } from "./LiveIndicator";
 import { AssetImpactCards } from "./AssetImpactCards";
 import { cn } from "@/lib/utils";
@@ -220,21 +220,64 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
       )}>
         <div className="overflow-hidden">
           <div className="pt-6 pb-2">
-            {/* Summary text */}
-            <div className="space-y-4 mb-8">
-              {isOldNarrativeFormat(panorama.narrative) ? (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mb-2">
-                    Este relatório está no formato antigo.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Clique em <strong className="text-foreground">Regenerar</strong> acima para gerar o novo formato com análise por ativo e resumo conciso.
-                  </p>
+            {isOldNarrativeFormat(panorama.narrative) ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 mb-8">
+                <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mb-2">
+                  Este relatório está no formato antigo.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Clique em <strong className="text-foreground">Regenerar</strong> acima para gerar o novo formato com viés semanal + atualização diária.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Section 1: Viés Semanal */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Viés Semanal
+                  </h3>
+                  <div className="space-y-4">
+                    {renderMarkdown(panorama.narrative)}
+                  </div>
                 </div>
-              ) : (
-                renderMarkdown(panorama.narrative)
-              )}
-            </div>
+
+                {/* Divider */}
+                <div className="border-t border-border/30 my-6" />
+
+                {/* Section 2: Atualização Diária */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <RefreshCwIcon className="h-4 w-4" />
+                      Atualização Diária
+                    </h3>
+                    {panorama.asset_impacts?.daily_update_at && (
+                      <span className="text-[10px] text-muted-foreground">
+                        Atualizado {new Date(panorama.asset_impacts.daily_update_at).toLocaleString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-4">
+                    {panorama.asset_impacts?.daily_update ? (
+                      renderMarkdown(panorama.asset_impacts.daily_update)
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        Atualização diária ainda não disponível. Clique em &quot;Regenerar&quot; para gerar.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Divider before Asset Cards */}
+            <div className="border-t border-border/30 my-6" />
 
             {/* Asset Impact Cards */}
             <div className="mb-8">

@@ -285,6 +285,23 @@ export default function MacroIntelligencePage() {
     }
   }, []);
 
+  // Auto-refresh daily update if stale (>4 hours old)
+  const dailyRefreshTriggered = useRef(false);
+  useEffect(() => {
+    if (!panorama?.asset_impacts?.daily_update_at || dailyRefreshTriggered.current) return;
+
+    const lastUpdate = new Date(panorama.asset_impacts.daily_update_at);
+    const hoursSince = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSince >= 4) {
+      dailyRefreshTriggered.current = true;
+      console.log(`[macro] Daily update is ${Math.round(hoursSince)}h old, auto-regenerating...`);
+      handleRegenerate().catch((err) =>
+        console.warn("[macro] Auto daily update failed:", err)
+      );
+    }
+  }, [panorama?.asset_impacts?.daily_update_at, handleRegenerate]);
+
   // Auto-poll headlines every 30 minutes
   useEffect(() => {
     const POLL_INTERVAL = 30 * 60 * 1000; // 30 minutes
