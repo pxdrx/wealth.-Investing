@@ -90,6 +90,15 @@ async function gatherData(
     );
   }
 
+  // For indices, try fetching general market news via Finnhub
+  if (assetType === "index") {
+    finnhubPromises.push(
+      getNews(ticker).then((d) => {
+        results.news = d;
+      }).catch(() => { /* Non-critical for indices */ })
+    );
+  }
+
   // --- CoinGecko calls (parallel, no rate issue) ---
   if (assetType === "crypto") {
     finnhubPromises.push(
@@ -106,6 +115,19 @@ async function gatherData(
 
   // --- Alpha Vantage calls (serialized, 1 req/sec) ---
   const avPromise = (async () => {
+    // Indices (DXY, SPX, etc.) are not well supported by Alpha Vantage —
+    // skip technicals entirely and rely on Claude's knowledge + Finnhub data.
+    if (assetType === "index") {
+      // Try quote as stock ticker (some indices have proxy ETFs)
+      try {
+        results.quote = await getQuote(ticker, "stock");
+      } catch {
+        // Non-critical — Claude can still analyze without quote data
+        results.quote = null;
+      }
+      return;
+    }
+
     const quoteType =
       assetType === "crypto"
         ? "crypto"
@@ -173,13 +195,15 @@ export async function generateAnalysis(
   const data = await gatherData(ticker, assetType);
 
   // Validate: if no data returned from any source, ticker is likely invalid
+  // Indices (DXY, SPX, etc.) are always valid — Claude has built-in knowledge
   const hasQuote = data.quote && Object.keys(data.quote).length > 0 && !data.quote["Error Message"] && !data.quote["Note"];
   const hasTechnicals = Object.values(data.technicals).some((v) => v !== null);
   const hasFundamentals = data.fundamentals && Object.keys(data.fundamentals).length > 0;
   const hasCrypto = data.cryptoData && Object.keys(data.cryptoData).length > 0 && !data.cryptoData["error"];
   const hasNews = data.news && data.news.length > 0;
+  const isKnownIndex = assetType === "index";
 
-  if (!hasQuote && !hasTechnicals && !hasFundamentals && !hasCrypto && !hasNews) {
+  if (!isKnownIndex && !hasQuote && !hasTechnicals && !hasFundamentals && !hasCrypto && !hasNews) {
     throw new Error(`Ticker "${ticker}" não encontrado. Verifique o símbolo e tente novamente. Exemplos: EURUSD, AAPL, BTC, XAUUSD`);
   }
 

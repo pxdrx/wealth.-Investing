@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Search,
+  Scan,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -345,11 +346,21 @@ export default function AnalystPage() {
         )}
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Analista Dexter
-          </h1>
+          <div className="flex items-center gap-3">
+            <Scan className="h-6 w-6 text-muted-foreground" />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Analista Dexter
+            </h1>
+            <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              IA
+            </span>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Seu analista financeiro com IA — digite um ativo e receba a análise completa
+            Analise completa de ativos com inteligencia artificial — tecnica, fundamental, sentimento e risco.
           </p>
         </div>
 
