@@ -208,6 +208,7 @@ export default function MacroIntelligencePage() {
 
   // Track if regeneration is in progress (shared between manual + auto)
   const regeneratingRef = useRef(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Regenerate weekly report via Claude
   const handleRegenerate = useCallback(async () => {
@@ -225,6 +226,7 @@ export default function MacroIntelligencePage() {
     }
 
     regeneratingRef.current = true;
+    setIsRegenerating(true);
     console.log("[macro] Starting regeneration for week:", defaultWeek);
 
     try {
@@ -269,6 +271,7 @@ export default function MacroIntelligencePage() {
       return;
     } finally {
       regeneratingRef.current = false;
+      setIsRegenerating(false);
     }
 
     // Refetch panorama to show updated data
@@ -587,7 +590,7 @@ export default function MacroIntelligencePage() {
           <div className="flex flex-col gap-6">
             {/* Weekly Briefing — expanded, no collapse */}
             <section className="w-full rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate px-4 sm:px-6 py-5">
-              <WeeklyBriefing panorama={panorama} onRegenerate={handleRegenerate} defaultExpanded />
+              <WeeklyBriefing panorama={panorama} onRegenerate={handleRegenerate} isRegenerating={isRegenerating} defaultExpanded />
             </section>
 
           </div>

@@ -11,6 +11,7 @@ import type { WeeklyPanorama } from "@/lib/macro/types";
 interface WeeklyBriefingProps {
   panorama: WeeklyPanorama | null;
   onRegenerate?: () => Promise<void>;
+  isRegenerating?: boolean;
   defaultExpanded?: boolean;
 }
 
@@ -120,19 +121,14 @@ function inlineMarkdown(text: string): React.ReactNode {
   });
 }
 
-export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false }: WeeklyBriefingProps) {
+export function WeeklyBriefing({ panorama, onRegenerate, isRegenerating: externalRegenerating, defaultExpanded = false }: WeeklyBriefingProps) {
   const [isOpen, setIsOpen] = useState(defaultExpanded);
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  const isRegenerating = externalRegenerating ?? false;
 
-  const handleRegenerate = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Don't toggle the dropdown
+  const handleRegenerate = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!onRegenerate || isRegenerating) return;
-    setIsRegenerating(true);
-    try {
-      await onRegenerate();
-    } finally {
-      setIsRegenerating(false);
-    }
+    onRegenerate();
   };
 
   if (!panorama) {
