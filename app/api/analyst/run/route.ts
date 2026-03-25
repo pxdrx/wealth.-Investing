@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { generateAnalysis } from "@/lib/analyst/agent/analyst";
+import { createSupabaseClientForUser } from "@/lib/supabase/server";
 
 export const maxDuration = 120;
 export const dynamic = "force-dynamic";
@@ -48,9 +49,31 @@ export async function POST(req: NextRequest) {
           );
         });
 
+        // Persist report to analyst_reports table
+        let savedId: string | null = null;
+        try {
+          const supabaseUser = createSupabaseClientForUser(token);
+          const { data: { user } } = await supabaseUser.auth.getUser();
+          if (user) {
+            const { data: inserted } = await supabaseUser
+              .from("analyst_reports")
+              .insert({
+                user_id: user.id,
+                ticker: report.ticker,
+                asset_type: report.assetType,
+                report: report,
+              })
+              .select("id")
+              .maybeSingle();
+            savedId = inserted?.id ?? null;
+          }
+        } catch {
+          // Non-critical — report still delivered via SSE
+        }
+
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ type: "report", data: JSON.stringify(report) })}\n\n`
+            `data: ${JSON.stringify({ type: "report", data: JSON.stringify(report), savedId })}\n\n`
           )
         );
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));

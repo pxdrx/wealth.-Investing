@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   TrendingUp,
@@ -12,6 +12,8 @@ import {
   Globe,
   Target,
   Loader2,
+  ArrowLeft,
+  Clock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { PaywallGate } from "@/components/billing/PaywallGate";
@@ -99,6 +101,36 @@ export default function AnalystPage() {
   const [status, setStatus] = useState("");
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<
+    Array<{
+      id: string;
+      ticker: string;
+      asset_type: string;
+      created_at: string;
+      report: AnalysisReport;
+    }>
+  >([]);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const res = await fetch("/api/analyst/history", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (data.ok && data.data) setHistory(data.data);
+    } catch {
+      // Silent — history is non-critical
+    }
+  }, []);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   async function handleAnalyze() {
     if (!ticker.trim() || loading) return;
@@ -162,6 +194,7 @@ export default function AnalystPage() {
               const reportData = JSON.parse(event.data);
               setReport(reportData);
               setStatus("");
+              loadHistory();
             } else if (event.type === "error") {
               setError(event.data);
             }
@@ -233,6 +266,17 @@ export default function AnalystPage() {
           <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-500">
             {error}
           </div>
+        )}
+
+        {/* Back button */}
+        {report && (
+          <button
+            onClick={() => setReport(null)}
+            className="mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Voltar as analises
+          </button>
         )}
 
         {/* Report */}
@@ -334,8 +378,36 @@ export default function AnalystPage() {
           </div>
         )}
 
+        {/* History */}
+        {history.length > 0 && !report && !loading && (
+          <div className="mb-8">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              Analises recentes
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {history.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setReport(item.report)}
+                  className="rounded-xl border border-border/40 p-3 text-left hover:bg-muted/50 transition-colors"
+                  style={{ backgroundColor: "hsl(var(--card))" }}
+                >
+                  <div className="font-semibold text-sm">{item.ticker}</div>
+                  <div className="text-[10px] text-muted-foreground capitalize">
+                    {item.asset_type}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Empty state */}
-        {!report && !loading && !error && (
+        {!report && !loading && !error && history.length === 0 && (
           <div className="text-center py-20">
             <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
