@@ -18,6 +18,7 @@ import type { JournalTradeRow } from "./types";
 import { supabase } from "@/lib/supabase/client";
 import { X, Trash2 } from "lucide-react";
 import { PsychologySection } from "./PsychologySection";
+import { PaywallGate } from "@/components/billing/PaywallGate";
 import { validateCustomTags } from "@/lib/psychology-tags";
 
 interface TradeDetailModalProps {
@@ -261,22 +262,24 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
           </div>
 
           {/* Psychology Section */}
-          <PsychologySection
-            emotion={emotion}
-            onEmotionChange={setEmotion}
-            discipline={discipline}
-            onDisciplineChange={setDiscipline}
-            setupQuality={setupQuality}
-            onSetupQualityChange={setSetupQuality}
-            entryRating={entryRating}
-            onEntryRatingChange={setEntryRating}
-            exitRating={exitRating}
-            onExitRatingChange={setExitRating}
-            managementRating={managementRating}
-            onManagementRatingChange={setManagementRating}
-            customTags={customTags}
-            onCustomTagsChange={setCustomTags}
-          />
+          <PaywallGate requiredPlan="pro" blurContent>
+            <PsychologySection
+              emotion={emotion}
+              onEmotionChange={setEmotion}
+              discipline={discipline}
+              onDisciplineChange={setDiscipline}
+              setupQuality={setupQuality}
+              onSetupQualityChange={setSetupQuality}
+              entryRating={entryRating}
+              onEntryRatingChange={setEntryRating}
+              exitRating={exitRating}
+              onExitRatingChange={setExitRating}
+              managementRating={managementRating}
+              onManagementRatingChange={setManagementRating}
+              customTags={customTags}
+              onCustomTagsChange={setCustomTags}
+            />
+          </PaywallGate>
 
           <div className="space-y-2">
             <Label>Erros cometidos</Label>

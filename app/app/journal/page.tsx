@@ -23,6 +23,7 @@ import { TiltmeterGauge } from "@/components/dashboard/TiltmeterGauge";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { JournalReports } from "@/components/journal/JournalReports";
 import { AddTradeModal } from "@/components/journal/AddTradeModal";
+import { PaywallGate } from "@/components/billing/PaywallGate";
 
 type ImportFlowState = "idle" | "previewing" | "importing" | "done";
 
@@ -551,7 +552,9 @@ export default function JournalPage() {
               <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
             )}
             {activeTab === SECTION_REPORTS && (
-              <JournalReports />
+              <PaywallGate requiredPlan="pro" blurContent>
+                <JournalReports />
+              </PaywallGate>
             )}
           </motion.div>
         </AnimatePresence>
