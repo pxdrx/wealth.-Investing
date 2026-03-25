@@ -95,8 +95,100 @@ function BiasTag({
   );
 }
 
+// Name → Ticker mapping for autocomplete
+const ASSET_MAP: Array<{ name: string; ticker: string; type: string }> = [
+  // Forex
+  { name: "Euro Dólar", ticker: "EURUSD", type: "forex" },
+  { name: "Libra Dólar", ticker: "GBPUSD", type: "forex" },
+  { name: "Dólar Iene", ticker: "USDJPY", type: "forex" },
+  { name: "Dólar Franco", ticker: "USDCHF", type: "forex" },
+  { name: "Aussie Dólar", ticker: "AUDUSD", type: "forex" },
+  { name: "Dólar Canadense", ticker: "USDCAD", type: "forex" },
+  { name: "Kiwi Dólar", ticker: "NZDUSD", type: "forex" },
+  { name: "Euro Libra", ticker: "EURGBP", type: "forex" },
+  { name: "Euro Iene", ticker: "EURJPY", type: "forex" },
+  { name: "Libra Iene", ticker: "GBPJPY", type: "forex" },
+  { name: "Dólar Real", ticker: "USDBRL", type: "forex" },
+  // Crypto
+  { name: "Bitcoin", ticker: "BTC", type: "crypto" },
+  { name: "Ethereum", ticker: "ETH", type: "crypto" },
+  { name: "Solana", ticker: "SOL", type: "crypto" },
+  { name: "Ripple", ticker: "XRP", type: "crypto" },
+  { name: "Cardano", ticker: "ADA", type: "crypto" },
+  { name: "Dogecoin", ticker: "DOGE", type: "crypto" },
+  { name: "Polkadot", ticker: "DOT", type: "crypto" },
+  { name: "Avalanche", ticker: "AVAX", type: "crypto" },
+  { name: "Chainlink", ticker: "LINK", type: "crypto" },
+  { name: "Litecoin", ticker: "LTC", type: "crypto" },
+  // Commodities
+  { name: "Ouro", ticker: "XAUUSD", type: "commodity" },
+  { name: "Gold", ticker: "XAUUSD", type: "commodity" },
+  { name: "Prata", ticker: "XAGUSD", type: "commodity" },
+  { name: "Silver", ticker: "XAGUSD", type: "commodity" },
+  { name: "Petróleo WTI", ticker: "WTIUSD", type: "commodity" },
+  { name: "Petróleo Brent", ticker: "BRENT", type: "commodity" },
+  { name: "Oil", ticker: "WTIUSD", type: "commodity" },
+  { name: "Gás Natural", ticker: "NATGAS", type: "commodity" },
+  // Indices
+  { name: "S&P 500", ticker: "SPX", type: "index" },
+  { name: "Nasdaq", ticker: "NDX", type: "index" },
+  { name: "Dow Jones", ticker: "DJI", type: "index" },
+  { name: "Índice Dólar", ticker: "DXY", type: "index" },
+  { name: "Dollar Index", ticker: "DXY", type: "index" },
+  { name: "Ibovespa", ticker: "IBOV", type: "index" },
+  { name: "DAX", ticker: "DAX", type: "index" },
+  { name: "VIX", ticker: "VIX", type: "index" },
+  // Stocks (populares)
+  { name: "Apple", ticker: "AAPL", type: "stock" },
+  { name: "Microsoft", ticker: "MSFT", type: "stock" },
+  { name: "Google", ticker: "GOOGL", type: "stock" },
+  { name: "Amazon", ticker: "AMZN", type: "stock" },
+  { name: "Tesla", ticker: "TSLA", type: "stock" },
+  { name: "Nvidia", ticker: "NVDA", type: "stock" },
+  { name: "Meta", ticker: "META", type: "stock" },
+  { name: "Netflix", ticker: "NFLX", type: "stock" },
+  { name: "Petrobras", ticker: "PBR", type: "stock" },
+  { name: "Vale", ticker: "VALE", type: "stock" },
+  { name: "Itaú", ticker: "ITUB", type: "stock" },
+  { name: "Magazine Luiza", ticker: "MELI", type: "stock" },
+  { name: "Coinbase", ticker: "COIN", type: "stock" },
+];
+
+function resolveTicker(input: string): string {
+  const clean = input.trim();
+  // Direct ticker match
+  const directMatch = ASSET_MAP.find(
+    (a) => a.ticker.toLowerCase() === clean.toLowerCase()
+  );
+  if (directMatch) return directMatch.ticker;
+  // Name match
+  const nameMatch = ASSET_MAP.find(
+    (a) => a.name.toLowerCase() === clean.toLowerCase()
+  );
+  if (nameMatch) return nameMatch.ticker;
+  // Partial name match
+  const partialMatch = ASSET_MAP.find(
+    (a) => a.name.toLowerCase().includes(clean.toLowerCase())
+  );
+  if (partialMatch) return partialMatch.ticker;
+  // Return as-is (might be a valid ticker we don't have mapped)
+  return clean.toUpperCase();
+}
+
+function getSuggestions(input: string): Array<{ name: string; ticker: string; type: string }> {
+  if (!input || input.length < 2) return [];
+  const q = input.toLowerCase();
+  return ASSET_MAP.filter(
+    (a) =>
+      a.name.toLowerCase().includes(q) ||
+      a.ticker.toLowerCase().includes(q)
+  ).slice(0, 6);
+}
+
 export default function AnalystPage() {
   const [ticker, setTicker] = useState("");
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; ticker: string; type: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [report, setReport] = useState<AnalysisReport | null>(null);
@@ -132,8 +224,21 @@ export default function AnalystPage() {
     loadHistory();
   }, [loadHistory]);
 
+  function handleInputChange(value: string) {
+    setTicker(value);
+    const s = getSuggestions(value);
+    setSuggestions(s);
+    setShowSuggestions(s.length > 0);
+  }
+
+  function selectSuggestion(item: { name: string; ticker: string }) {
+    setTicker(item.ticker);
+    setShowSuggestions(false);
+  }
+
   async function handleAnalyze() {
     if (!ticker.trim() || loading) return;
+    setShowSuggestions(false);
 
     setLoading(true);
     setStatus("Iniciando analise...");
@@ -157,7 +262,7 @@ export default function AnalystPage() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ticker: ticker.trim().toUpperCase() }),
+        body: JSON.stringify({ ticker: resolveTicker(ticker) }),
       });
 
       if (!res.ok) {
@@ -217,11 +322,10 @@ export default function AnalystPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Analista de Ativos
+            Dexter
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Analise completa com IA -- tecnica, fundamental, sentimento, risco
-            e veredicto
+            Seu analista financeiro com IA — digite um ativo e receba a análise completa
           </p>
         </div>
 
@@ -232,12 +336,38 @@ export default function AnalystPage() {
             <input
               type="text"
               value={ticker}
-              onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-              placeholder="Digite o ticker (EURUSD, AAPL, BTC, XAUUSD...)"
+              onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { setShowSuggestions(false); handleAnalyze(); }
+                if (e.key === "Escape") setShowSuggestions(false);
+              }}
+              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              placeholder="Bitcoin, Ouro, EURUSD, Apple, S&P 500..."
               className="w-full rounded-xl border border-border/60 bg-transparent pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               disabled={loading}
             />
+            {/* Autocomplete dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                className="absolute top-full left-0 right-0 mt-1 rounded-xl border border-border/60 shadow-lg overflow-hidden z-50"
+                style={{ backgroundColor: "hsl(var(--card))" }}
+              >
+                {suggestions.map((item) => (
+                  <button
+                    key={item.ticker + item.name}
+                    onMouseDown={() => selectSuggestion(item)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors text-left"
+                  >
+                    <div>
+                      <span className="font-medium">{item.ticker}</span>
+                      <span className="text-muted-foreground ml-2">{item.name}</span>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">{item.type}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             onClick={handleAnalyze}
