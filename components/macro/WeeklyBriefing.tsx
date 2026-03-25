@@ -176,7 +176,7 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
           className="flex flex-1 items-center gap-3 group outline-none min-w-0"
         >
           <h3 className="text-xl font-display font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
-            Relatório Macro IA
+            Briefing Macroeconômico
           </h3>
           {weekRange && (
             <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold text-blue-500 uppercase tracking-widest shrink-0">{weekRange}</span>
