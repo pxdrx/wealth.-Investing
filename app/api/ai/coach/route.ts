@@ -191,6 +191,25 @@ export async function POST(req: NextRequest) {
     }
   } catch {}
 
+  // Fetch Dexter analyst reports (best-effort)
+  let dexterReports = "";
+  try {
+    const { data: reports } = await supabase
+      .from("analyst_reports")
+      .select("ticker, asset_type, report, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (reports && reports.length > 0) {
+      const summaries = reports.map((r: { ticker: string; asset_type: string; report: { verdict?: { bias?: string; confidence?: string; summary?: string; keyLevels?: string[] } }; created_at: string }) => {
+        const v = r.report?.verdict;
+        return `- ${r.ticker} (${r.asset_type}, ${new Date(r.created_at).toLocaleDateString("pt-BR")}): ${v?.bias ?? "?"} | Confiança: ${v?.confidence ?? "?"} | ${v?.summary ?? ""} | Níveis: ${v?.keyLevels?.join(", ") ?? "N/A"}`;
+      });
+      dexterReports = `\n\n## Análises recentes do Analista Dexter:\n${summaries.join("\n")}`;
+    }
+  } catch {}
+
   // 6b. If enriched mode, fetch full trade data for analytics + psychology
   let tradeAnalytics: ReturnType<typeof computeTradeAnalytics> | null = null;
   let psychologyProfile: string | null = null;
@@ -223,7 +242,7 @@ export async function POST(req: NextRequest) {
     accountName,
     tradeAnalytics,
     psychologyProfile,
-  });
+  }) + dexterReports;
 
   // 8. Stream from Anthropic
   const encoder = new TextEncoder();

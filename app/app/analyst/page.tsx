@@ -14,6 +14,7 @@ import {
   Loader2,
   ArrowLeft,
   Clock,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { PaywallGate } from "@/components/billing/PaywallGate";
@@ -223,6 +224,22 @@ export default function AnalystPage() {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  async function handleDeleteReport(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm("Excluir esta análise?")) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      await fetch(`/api/analyst/history?id=${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      setHistory((prev) => prev.filter((h) => h.id !== id));
+    } catch {
+      alert("Erro ao excluir análise.");
+    }
+  }
 
   function handleInputChange(value: string) {
     setTicker(value);
@@ -517,12 +534,19 @@ export default function AnalystPage() {
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {history.map((item) => (
-                <button
+                <div
                   key={item.id}
-                  onClick={() => setReport(item.report)}
-                  className="rounded-xl border border-border/40 p-3 text-left hover:bg-muted/50 transition-colors"
+                  className="relative group rounded-xl border border-border/40 p-3 text-left hover:bg-muted/50 transition-colors cursor-pointer"
                   style={{ backgroundColor: "hsl(var(--card))" }}
+                  onClick={() => setReport(item.report)}
                 >
+                  <button
+                    onClick={(e) => handleDeleteReport(item.id, e)}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded-full p-1 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
+                    title="Excluir análise"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
                   <div className="font-semibold text-sm">{item.ticker}</div>
                   <div className="text-[10px] text-muted-foreground capitalize">
                     {item.asset_type}
@@ -530,7 +554,7 @@ export default function AnalystPage() {
                   <div className="text-[10px] text-muted-foreground mt-1">
                     {new Date(item.created_at).toLocaleDateString("pt-BR")}
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>
