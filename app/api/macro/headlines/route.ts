@@ -1,9 +1,10 @@
 // app/api/macro/headlines/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { translateHeadlines } from "@/lib/macro/translate";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 function getSupabase() {
   return createClient(
@@ -41,8 +42,11 @@ async function fetchLiveHeadlines(limit: number) {
       })
       .slice(0, limit);
 
+    // Translate headlines to PT-BR before returning
+    const translated = await translateHeadlines(all);
+
     // Assign temporary IDs for the UI
-    return all.map((h, i) => ({ ...h, id: `live-${i}-${h.external_id}` }));
+    return translated.map((h, i) => ({ ...h, id: `live-${i}-${h.external_id}` }));
   } catch (err) {
     console.error("[macro/headlines] Live fallback error:", err);
     return [];
@@ -88,7 +92,7 @@ export async function GET(req: NextRequest) {
         if (rows.length > 0) {
           await supabaseService
             .from("macro_headlines")
-            .upsert(rows, { onConflict: "source,external_id", ignoreDuplicates: true });
+            .upsert(rows, { onConflict: "source,external_id" });
         }
       } catch (err) {
         console.error("[macro/headlines] Failed to persist live headlines:", err);
@@ -153,7 +157,7 @@ export async function GET(req: NextRequest) {
       if (rows.length > 0) {
         await supabaseService
           .from("macro_headlines")
-          .upsert(rows, { onConflict: "source,external_id", ignoreDuplicates: true });
+          .upsert(rows, { onConflict: "source,external_id" });
       }
     } catch (err) {
       console.error("[macro/headlines] Failed to persist fallback headlines:", err);
