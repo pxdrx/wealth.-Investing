@@ -107,6 +107,7 @@ function AICoachPageInner() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const titleUpdatedRef = useRef(false);
+  const skipNextHistoryLoadRef = useRef(false);
 
   const quotaExhausted = usageCount >= limits.aiCoachMonthly;
   const usagePct = limits.aiCoachMonthly > 0
@@ -168,6 +169,18 @@ function AICoachPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // React to URL searchParams changes (e.g., sidebar conversation clicks, browser back/forward)
+  useEffect(() => {
+    if (!conversationsLoaded) return;
+    const chatId = searchParams.get("chat");
+    if (chatId && chatId !== activeConversationId) {
+      setActiveConversationId(chatId);
+      const found = conversations.find((c) => c.id === chatId);
+      if (found) setActiveConversationTitle(found.title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   // Load current usage
   useEffect(() => {
     async function loadUsage() {
@@ -189,6 +202,11 @@ function AICoachPageInner() {
 
   // Load chat history for active conversation
   useEffect(() => {
+    // Skip loading for brand-new conversations (already cleared by handleNewChat)
+    if (skipNextHistoryLoadRef.current) {
+      skipNextHistoryLoadRef.current = false;
+      return;
+    }
     async function loadHistory() {
       if (!activeConversationId) {
         setHistoryLoaded(true);
@@ -297,10 +315,12 @@ function AICoachPageInner() {
     if (json.ok && json.data) {
       const newConv: Conversation = { ...json.data, updated_at: json.data.created_at };
       setConversations((prev) => [newConv, ...prev]);
+      setMessages([]);
+      setHistoryLoaded(true);
+      titleUpdatedRef.current = false;
+      skipNextHistoryLoadRef.current = true;
       setActiveConversationId(json.data.id);
       setActiveConversationTitle(json.data.title);
-      setMessages([]);
-      titleUpdatedRef.current = false;
       router.push(`/app/ai-coach?chat=${json.data.id}`);
       chatContainerRef.current?.scrollTo(0, 0);
     }
@@ -597,7 +617,33 @@ function AICoachPageInner() {
                  </div>
                </div>
             )}
-            
+
+            {/* Conversation History */}
+            {conversationsLoaded && conversations.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Conversas</h3>
+                <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto custom-scrollbar">
+                  {conversations.map((conv) => (
+                    <button
+                      key={conv.id}
+                      type="button"
+                      disabled={isStreaming}
+                      onClick={() => switchConversation(conv)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-all text-sm",
+                        conv.id === activeConversationId
+                          ? "bg-blue-500/10 border border-blue-500/30 text-foreground font-medium"
+                          : "border border-transparent hover:bg-card/60 hover:border-border/40 text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{conv.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </PaywallGate>
       </div>
@@ -658,7 +704,7 @@ function AICoachPageInner() {
                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                    </div>
                  )}
-                 {historyLoaded && usageLoaded && !hasMessages && (
+                 {historyLoaded && usageLoaded && conversationsLoaded && !hasMessages && (
                    <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto px-4">
                      <div className="mb-6">
                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 mb-4">
