@@ -543,7 +543,7 @@ function DashboardContent({
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-headline font-extrabold tracking-tight text-foreground">
-            Command Center
+            Centro de Comando
           </h1>
           <p className="mt-1 text-sm text-muted-foreground font-medium">
             Visão geral das suas contas.
@@ -892,7 +892,7 @@ function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
       >
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
-            Tiltmeter
+            Termômetro Emocional
           </h3>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             Viés emocional baseado nos seus últimos trades
@@ -903,7 +903,7 @@ function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
         <TiltmeterGauge result={result} size="sm" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">
-            Tilt: {result.label}
+            Controle: {result.label}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
             {zoneDescription}

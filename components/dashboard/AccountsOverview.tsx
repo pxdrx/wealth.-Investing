@@ -56,7 +56,7 @@ export function AccountsOverview({
     [trades]
   );
 
-  // KPI: Capital Total Funded (active prop accounts)
+  // KPI: Capital Total Financiado (active prop accounts)
   const capitalFunded = useMemo(() => {
     return accounts
       .filter((a) => a.is_active && a.kind === "prop")
@@ -179,7 +179,7 @@ export function AccountsOverview({
 
   const kpis = [
     {
-      label: "Capital Total Funded",
+      label: "Capital Total Financiado",
       render: <MoneyDisplay value={capitalFunded} className="metric-value text-[26px] leading-tight" />,
     },
     {

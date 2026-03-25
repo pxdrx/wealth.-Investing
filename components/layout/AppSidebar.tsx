@@ -24,8 +24,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "/app", label: "Overview", icon: LayoutDashboard },
-  { href: "/app/macro", label: "Macro Intelligence", icon: LineChart },
+  { href: "/app", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/app/macro", label: "Inteligência Macro", icon: LineChart },
   { href: "/app/journal", label: "Trade Journal", icon: BookOpen },
   { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
 ];

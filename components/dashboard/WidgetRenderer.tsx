@@ -45,9 +45,9 @@ export const WIDGET_LABELS: Record<string, { title: string; titlePtBr: string; t
   calendar: { title: "Calendar", titlePtBr: "Calendário", tier: "free" },
   news: { title: "Macro Panorama", titlePtBr: "Panorama Macro", tier: "free" },
   "equity-mini": { title: "Equity Curve", titlePtBr: "Curva de Equity", tier: "pro" },
-  tiltmeter: { title: "Tiltmeter", titlePtBr: "Tiltmeter", tier: "pro" },
+  tiltmeter: { title: "Tiltmeter", titlePtBr: "Termômetro Emocional", tier: "pro" },
   "top-symbols": { title: "Top Symbols", titlePtBr: "Top Ativos", tier: "pro" },
-  "session-heatmap": { title: "Session Heatmap", titlePtBr: "Heatmap de Sessões", tier: "pro" },
+  "session-heatmap": { title: "Session Heatmap", titlePtBr: "Mapa de Sessões", tier: "pro" },
   streaks: { title: "Streaks", titlePtBr: "Sequências", tier: "free" },
   "ai-insight": { title: "AI Insight", titlePtBr: "Insight IA", tier: "pro" },
 };

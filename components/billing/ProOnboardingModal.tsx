@@ -46,8 +46,8 @@ const STEPS: OnboardingStep[] = [
     highlights: [
       "Arraste widgets para reordenar",
       "Ative/desative em Configurações",
-      "Curva de equity, heatmap de sessões",
-      "Tiltmeter em tempo real",
+      "Curva de equity, mapa de sessões",
+      "Termômetro Emocional em tempo real",
     ],
     gradient: "from-violet-600 to-purple-600",
   },
@@ -81,11 +81,11 @@ const STEPS: OnboardingStep[] = [
     icon: <Target className="h-10 w-10" />,
     title: "Psicologia & Disciplina",
     description:
-      "Registre emoção, disciplina e qualidade de execução em cada trade. O Tiltmeter te avisa quando você está saindo do plano.",
+      "Registre emoção, disciplina e qualidade de execução em cada trade. O Termômetro Emocional te avisa quando você está saindo do plano.",
     highlights: [
       "Tags de emoção por trade",
       "Score de disciplina",
-      "Tiltmeter no dashboard",
+      "Termômetro Emocional no dashboard",
       "Analytics psicológico nos relatórios",
     ],
     gradient: "from-rose-500 to-pink-600",

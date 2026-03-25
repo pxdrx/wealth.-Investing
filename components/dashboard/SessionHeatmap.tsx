@@ -73,7 +73,7 @@ export function SessionHeatmap({ trades }: SessionHeatmapProps) {
         style={{ borderColor: "hsl(var(--border))" }}
       >
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
-          Heatmap de Sessões
+          Mapa de Sessões
         </h3>
       </div>
 

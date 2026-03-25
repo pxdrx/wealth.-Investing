@@ -2,13 +2,12 @@ import { supabase } from "@/lib/supabase/client";
 
 const DEFAULTS = [
   { name: "Pessoal", kind: "personal" as const, is_active: true },
-  { name: "Crypto Fund Trader", kind: "crypto" as const, is_active: true },
 ];
 
 export const DEFAULT_ACCOUNTS = DEFAULTS;
 
 /**
- * Garante as 2 contas padrão (Pessoal + Crypto Fund Trader).
+ * Garante a conta padrão (Pessoal).
  * Idempotente: não duplica.
  */
 export async function ensureDefaultAccounts(userId: string): Promise<{ ok: boolean }> {
