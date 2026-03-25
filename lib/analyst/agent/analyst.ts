@@ -46,8 +46,15 @@ interface GatherResult {
   cryptoData: Record<string, unknown> | null;
 }
 
+/** Delay helper for rate limiting */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Gather all available data for a ticker.
+ * Alpha Vantage: 1 req/sec rate limit — calls are serialized with delay.
+ * Finnhub: 60 req/min — used as primary source for stocks (no rate issue).
  */
 async function gatherData(
   ticker: string,
@@ -62,87 +69,89 @@ async function gatherData(
     cryptoData: null,
   };
 
-  const promises: Promise<void>[] = [];
+  // --- Finnhub calls (parallel, no rate issue) ---
+  const finnhubPromises: Promise<void>[] = [];
 
-  // Quote (all asset types)
-  const quoteType =
-    assetType === "crypto"
-      ? "crypto"
-      : assetType === "forex" || assetType === "commodity"
-        ? "forex"
-        : "stock";
-  promises.push(
-    getQuote(ticker, quoteType).then((d) => {
-      results.quote = d;
-    })
-  );
-
-  // Technical indicators (stocks, forex, commodities)
-  if (assetType !== "crypto") {
-    const avSymbol =
-      assetType === "forex"
-        ? `${ticker.slice(0, 3)}${ticker.slice(3)}`
-        : ticker;
-    promises.push(
-      Promise.allSettled([
-        getTechnicalIndicator(avSymbol, "RSI"),
-        getTechnicalIndicator(avSymbol, "MACD"),
-        getTechnicalIndicator(avSymbol, "SMA", "daily", 50),
-        getTechnicalIndicator(avSymbol, "EMA", "daily", 20),
-      ]).then(([rsi, macd, sma, ema]) => {
-        results.technicals = {
-          rsi: rsi.status === "fulfilled" ? rsi.value : null,
-          macd: macd.status === "fulfilled" ? macd.value : null,
-          sma50: sma.status === "fulfilled" ? sma.value : null,
-          ema20: ema.status === "fulfilled" ? ema.value : null,
-        };
-      })
-    );
-  }
-
-  // Fundamentals (stocks only)
   if (assetType === "stock") {
-    promises.push(
-      getCompanyOverview(ticker).then((d) => {
+    finnhubPromises.push(
+      getBasicFinancials(ticker).then((d) => {
         results.fundamentals = d;
       })
     );
-    promises.push(
-      getBasicFinancials(ticker).then((d) => {
-        if (d) results.fundamentals = { ...results.fundamentals, ...d };
-      })
-    );
-    promises.push(
+    finnhubPromises.push(
       getRecommendations(ticker).then((d) => {
         results.recommendations = d;
       })
     );
-  }
-
-  // News (stocks)
-  if (assetType === "stock") {
-    promises.push(
+    finnhubPromises.push(
       getNews(ticker).then((d) => {
         results.news = d;
       })
     );
   }
 
-  // Crypto data
+  // --- CoinGecko calls (parallel, no rate issue) ---
   if (assetType === "crypto") {
-    promises.push(
+    finnhubPromises.push(
       getCryptoData(ticker).then((d) => {
         results.cryptoData = d;
       })
     );
-    promises.push(
+    finnhubPromises.push(
       getCryptoChart(ticker, 30).then((d) => {
         if (d) results.technicals = { ...results.technicals, chart30d: d };
       })
     );
   }
 
-  await Promise.allSettled(promises);
+  // --- Alpha Vantage calls (serialized, 1 req/sec) ---
+  const avPromise = (async () => {
+    const quoteType =
+      assetType === "crypto"
+        ? "crypto"
+        : assetType === "forex" || assetType === "commodity"
+          ? "forex"
+          : "stock";
+
+    // 1. Quote
+    results.quote = await getQuote(ticker, quoteType);
+    await delay(1200);
+
+    // 2. Company overview (stocks only)
+    if (assetType === "stock") {
+      const overview = await getCompanyOverview(ticker);
+      if (overview && !overview["Note"] && !overview["Information"]) {
+        results.fundamentals = { ...results.fundamentals, ...overview };
+      }
+      await delay(1200);
+    }
+
+    // 3-6. Technical indicators (stocks, forex, commodities)
+    if (assetType !== "crypto") {
+      const avSymbol =
+        assetType === "forex"
+          ? `${ticker.slice(0, 3)}${ticker.slice(3)}`
+          : ticker;
+
+      const rsi = await getTechnicalIndicator(avSymbol, "RSI");
+      results.technicals = { ...results.technicals, rsi: rsi && !rsi["Note"] ? rsi : null };
+      await delay(1200);
+
+      const macd = await getTechnicalIndicator(avSymbol, "MACD");
+      results.technicals = { ...results.technicals, macd: macd && !macd["Note"] ? macd : null };
+      await delay(1200);
+
+      const sma = await getTechnicalIndicator(avSymbol, "SMA", "daily", 50);
+      results.technicals = { ...results.technicals, sma50: sma && !sma["Note"] ? sma : null };
+      await delay(1200);
+
+      const ema = await getTechnicalIndicator(avSymbol, "EMA", "daily", 20);
+      results.technicals = { ...results.technicals, ema20: ema && !ema["Note"] ? ema : null };
+    }
+  })();
+
+  // Run Finnhub/CoinGecko in parallel with Alpha Vantage (serialized)
+  await Promise.allSettled([...finnhubPromises, avPromise]);
   return results;
 }
 
