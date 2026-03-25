@@ -20,22 +20,19 @@ async function fetchLiveHeadlines(limit: number) {
   try {
     const {
       fetchForexLiveHeadlines,
-      fetchFXStreetHeadlines,
       fetchReutersHeadlines,
     } = await import("@/lib/macro/scrapers/rss-headlines");
 
-    const [flResult, fxResult, rtResult] = await Promise.allSettled([
+    const [flResult, rtResult] = await Promise.allSettled([
       fetchForexLiveHeadlines(),
-      fetchFXStreetHeadlines(),
       fetchReutersHeadlines(),
     ]);
 
     const fl = flResult.status === "fulfilled" ? (flResult.value ?? []) : [];
-    const fx = fxResult.status === "fulfilled" ? (fxResult.value ?? []) : [];
     const rt = rtResult.status === "fulfilled" ? (rtResult.value ?? []) : [];
 
     // Merge and sort by published_at descending
-    const all = [...fl, ...fx, ...rt]
+    const all = [...fl, ...rt]
       .filter((h) => h.published_at)
       .sort((a, b) => {
         const ta = new Date(a.published_at!).getTime();
@@ -58,7 +55,7 @@ export async function GET(req: NextRequest) {
   // Parse query params
   const limitParam = parseInt(searchParams.get("limit") || "30", 10);
   const limit = Math.min(Math.max(1, limitParam), 100);
-  const source = searchParams.get("source") as "forexlive" | "fxstreet" | "reuters" | "truth_social" | "trading_economics" | null;
+  const source = searchParams.get("source") as "forexlive" | "reuters" | "truth_social" | "trading_economics" | null;
   const forceLive = searchParams.get("live") === "1";
   // Extend default window to 7 days to catch more cached headlines
   const since = searchParams.get("since") || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -67,6 +64,37 @@ export async function GET(req: NextRequest) {
   if (forceLive) {
     console.log("[macro/headlines] Force live fetch requested");
     const liveData = await fetchLiveHeadlines(limit);
+
+    // Persist live headlines to DB so they survive page reloads
+    if (liveData.length > 0) {
+      try {
+        const supabaseService = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const rows = liveData
+          .filter((h) => h.external_id)
+          .map((h) => ({
+            source: h.source,
+            headline: h.headline,
+            summary: h.summary,
+            author: h.author,
+            url: h.url,
+            impact: h.impact,
+            published_at: h.published_at,
+            fetched_at: h.fetched_at,
+            external_id: h.external_id?.replace(/^live-\d+-/, "") || h.external_id,
+          }));
+        if (rows.length > 0) {
+          await supabaseService
+            .from("macro_headlines")
+            .upsert(rows, { onConflict: "source,external_id", ignoreDuplicates: true });
+        }
+      } catch (err) {
+        console.error("[macro/headlines] Failed to persist live headlines:", err);
+      }
+    }
+
     return NextResponse.json({ ok: true, data: liveData, source: "live" });
   }
 
@@ -101,5 +129,36 @@ export async function GET(req: NextRequest) {
   // DB is empty — fetch live from RSS feeds as fallback
   console.log("[macro/headlines] DB empty, fetching live from RSS feeds");
   const liveData = await fetchLiveHeadlines(limit);
+
+  // Persist fallback headlines to DB for future page loads
+  if (liveData.length > 0) {
+    try {
+      const supabaseService = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const rows = liveData
+        .filter((h) => h.external_id)
+        .map((h) => ({
+          source: h.source,
+          headline: h.headline,
+          summary: h.summary,
+          author: h.author,
+          url: h.url,
+          impact: h.impact,
+          published_at: h.published_at,
+          fetched_at: h.fetched_at,
+          external_id: h.external_id?.replace(/^live-\d+-/, "") || h.external_id,
+        }));
+      if (rows.length > 0) {
+        await supabaseService
+          .from("macro_headlines")
+          .upsert(rows, { onConflict: "source,external_id", ignoreDuplicates: true });
+      }
+    } catch (err) {
+      console.error("[macro/headlines] Failed to persist fallback headlines:", err);
+    }
+  }
+
   return NextResponse.json({ ok: true, data: liveData, source: "live" });
 }

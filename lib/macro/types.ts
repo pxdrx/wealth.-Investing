@@ -163,7 +163,7 @@ export interface TeEnrichedBriefing {
 
 export interface MacroHeadline {
   id: string;
-  source: "forexlive" | "fxstreet" | "reuters" | "truth_social" | "te_headlines" | "trading_economics";
+  source: "forexlive" | "reuters" | "truth_social" | "te_headlines" | "trading_economics";
   headline: string;
   summary: string | null;
   author: string | null;

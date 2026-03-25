@@ -7,10 +7,6 @@ const FEEDS = {
     "https://www.forexlive.com/feed",
     "https://www.forexlive.com/feed/",
   ],
-  fxstreet: [
-    "https://www.fxstreet.com/rss/news",
-    "https://www.fxstreet.com/rss",
-  ],
   // Google News RSS as reliable replacement for Reuters (which returns 401)
   googlenews: [
     "https://news.google.com/rss/search?q=forex+OR+gold+OR+bitcoin+OR+fed+OR+tariff+OR+treasury+when:1d&hl=en",
@@ -50,10 +46,6 @@ async function fetchWithFallback(
 
 export async function fetchForexLiveHeadlines(): Promise<MacroHeadline[] | null> {
   return fetchRSSHeadlines(FEEDS.forexlive, "forexlive");
-}
-
-export async function fetchFXStreetHeadlines(): Promise<MacroHeadline[] | null> {
-  return fetchRSSHeadlines(FEEDS.fxstreet, "fxstreet");
 }
 
 export async function fetchReutersHeadlines(): Promise<MacroHeadline[] | null> {

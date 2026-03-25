@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import {
   fetchForexLiveHeadlines,
-  fetchFXStreetHeadlines,
   fetchReutersHeadlines,
 } from "@/lib/macro/scrapers/rss-headlines";
 import { fetchTruthSocialPosts } from "@/lib/macro/scrapers/truth-social";
@@ -32,25 +31,20 @@ export async function POST(req: NextRequest) {
 
   try {
     // 1. Fetch headlines from all sources in parallel
-    const [flResult, fxResult, reutersResult, tsResult, teResult] = await Promise.allSettled([
+    const [flResult, reutersResult, tsResult, teResult] = await Promise.allSettled([
       fetchForexLiveHeadlines(),
-      fetchFXStreetHeadlines(),
       fetchReutersHeadlines(),
       fetchTruthSocialPosts(),
       fetchTradingEconomicsHeadlines(),
     ]);
 
     const flHeadlines = flResult.status === "fulfilled" ? (flResult.value ?? []) : [];
-    const fxHeadlines = fxResult.status === "fulfilled" ? (fxResult.value ?? []) : [];
     const reutersHeadlines = reutersResult.status === "fulfilled" ? (reutersResult.value ?? []) : [];
     const tsHeadlines = tsResult.status === "fulfilled" ? (tsResult.value ?? []) : [];
     const teHeadlines = teResult.status === "fulfilled" ? (teResult.value ?? []) : [];
 
     if (flResult.status === "rejected") {
       console.error("[headlines-sync] ForexLive fetch failed:", flResult.reason);
-    }
-    if (fxResult.status === "rejected") {
-      console.error("[headlines-sync] FXStreet fetch failed:", fxResult.reason);
     }
     if (reutersResult.status === "rejected") {
       console.error("[headlines-sync] Reuters fetch failed:", reutersResult.reason);
@@ -77,16 +71,14 @@ export async function POST(req: NextRequest) {
 
     // Filter valid headlines (must have external_id)
     const flValid = flHeadlines.filter((h) => h.external_id);
-    const fxValid = fxHeadlines.filter((h) => h.external_id);
     const reutersValid = reutersHeadlines.filter((h) => h.external_id);
     const tsValid = tsHeadlines.filter((h) => h.external_id);
     const teValid = teHeadlines.filter((h) => h.external_id);
 
     // Translate all sources to PT-BR in parallel
-    const [flTranslated, fxTranslated, reutersTranslated, tsTranslated, teTranslated] =
+    const [flTranslated, reutersTranslated, tsTranslated, teTranslated] =
       await Promise.all([
         flValid.length > 0 ? translateHeadlines(flValid) : Promise.resolve([]),
-        fxValid.length > 0 ? translateHeadlines(fxValid) : Promise.resolve([]),
         reutersValid.length > 0 ? translateHeadlines(reutersValid) : Promise.resolve([]),
         tsValid.length > 0 ? translateHeadlines(tsValid) : Promise.resolve([]),
         teValid.length > 0 ? translateHeadlines(teValid) : Promise.resolve([]),
@@ -108,7 +100,6 @@ export async function POST(req: NextRequest) {
 
     // 2. Upsert all sources
     const flCount = await upsertBatch("ForexLive", flTranslated);
-    const fxCount = await upsertBatch("FXStreet", fxTranslated);
     const reutersCount = await upsertBatch("Reuters", reutersTranslated);
     const tsCount = await upsertBatch("TruthSocial", tsTranslated);
     const teCount = await upsertBatch("TradingEconomics", teTranslated);
@@ -122,7 +113,6 @@ export async function POST(req: NextRequest) {
     // 4. Create adaptive alerts for breaking headlines
     const allHeadlines = [
       ...flTranslated,
-      ...fxTranslated,
       ...reutersTranslated,
       ...tsTranslated,
       ...teTranslated,
@@ -134,7 +124,6 @@ export async function POST(req: NextRequest) {
           case "truth_social": return "Truth Social";
           case "trading_economics": return "Trading Economics";
           case "forexlive": return "ForexLive";
-          case "fxstreet": return "FXStreet";
           case "reuters": return "Reuters";
           default: return s;
         }
@@ -257,13 +246,12 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(
-      `[headlines-sync] FL: ${flCount}, FX: ${fxCount}, Reuters: ${reutersCount}, TS: ${tsCount}, TE: ${teCount}, pruned: ${pruned ?? 0}, breaking: ${breakingHeadlines.length}, cascade: ${cascadeTriggered}`
+      `[headlines-sync] FL: ${flCount}, Reuters: ${reutersCount}, TS: ${tsCount}, TE: ${teCount}, pruned: ${pruned ?? 0}, breaking: ${breakingHeadlines.length}, cascade: ${cascadeTriggered}`
     );
 
     return NextResponse.json({
       ok: true,
       forexlive: flCount,
-      fxstreet: fxCount,
       reuters: reutersCount,
       truth_social: tsCount,
       trading_economics: teCount,

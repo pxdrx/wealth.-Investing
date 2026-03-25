@@ -285,6 +285,25 @@ export default function MacroIntelligencePage() {
     }
   }, []);
 
+  // Auto-poll headlines every 30 minutes
+  useEffect(() => {
+    const POLL_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
+    const pollHeadlines = () => {
+      fetch("/api/macro/headlines?limit=30&live=1")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok && data.data) {
+            setHeadlines(data.data);
+          }
+        })
+        .catch(console.error);
+    };
+
+    const interval = setInterval(pollHeadlines, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
+
   // Poll for actual values during market hours (Mon-Fri, 12:00-22:00 UTC)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {

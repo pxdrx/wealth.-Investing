@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp, Activity, BarChart3, Globe } from "lucide-react";
+import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp, Activity, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
 import type { MacroHeadline } from "@/lib/macro/types";
@@ -13,7 +13,7 @@ interface HeadlinesFeedProps {
   refreshing?: boolean;
 }
 
-type SourceFilter = "all" | "forexlive" | "fxstreet" | "reuters" | "truth_social" | "trading_economics";
+type SourceFilter = "all" | "forexlive" | "reuters" | "truth_social" | "trading_economics";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -33,14 +33,6 @@ function SourceBadge({ source }: { source: string }) {
       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-600 dark:text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded-full">
         <Activity className="w-2.5 h-2.5" />
         FL
-      </span>
-    );
-  }
-  if (source === "fxstreet") {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full">
-        <BarChart3 className="w-2.5 h-2.5" />
-        FX
       </span>
     );
   }
@@ -89,7 +81,6 @@ function BreakingDot() {
 const FILTER_OPTIONS: { key: SourceFilter; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "forexlive", label: "ForexLive" },
-  { key: "fxstreet", label: "FXStreet" },
   { key: "reuters", label: "Reuters" },
   { key: "truth_social", label: "Trump" },
   { key: "trading_economics", label: "Trading Economics" },
@@ -99,7 +90,6 @@ function getBorderClass(source: string, isBreaking: boolean): string {
   if (isBreaking) return "border-l-4 border-red-500 pl-3";
   switch (source) {
     case "forexlive": return "border-l-4 border-orange-500 pl-3";
-    case "fxstreet": return "border-l-4 border-indigo-500 pl-3";
     case "reuters": return "border-l-4 border-blue-500 pl-3";
     case "truth_social": return "border-l-4 border-purple-500 pl-3";
     case "trading_economics": return "border-l-4 border-emerald-500 pl-3";
