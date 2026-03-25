@@ -251,10 +251,10 @@ export default function MacroIntelligencePage() {
     } catch { /* ignore */ }
   }, [defaultWeek]);
 
-  // Headlines manual refresh
+  // Headlines manual refresh — force live fetch to bypass stale DB cache
   const handleHeadlinesRefresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/macro/headlines?limit=15");
+      const res = await fetch("/api/macro/headlines?limit=30&live=1");
       const json = await res.json();
       if (json.ok) setHeadlines(json.data || []);
     } catch (err) {
