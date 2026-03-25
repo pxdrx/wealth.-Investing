@@ -60,10 +60,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     };
   }, [load]);
 
-  // Poll every 5 min to catch webhook updates
+  // Poll every 15 min (reduced from 5 min to avoid unnecessary re-renders)
+  // Also refresh when tab becomes visible after being hidden
   useEffect(() => {
-    const interval = setInterval(load, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    const interval = setInterval(load, 15 * 60 * 1000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [load]);
 
   const plan: Plan = (subscription?.status === "active" || subscription?.status === "trialing")

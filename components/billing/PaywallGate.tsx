@@ -42,7 +42,7 @@ export function PaywallGate({ requiredPlan, children, fallback, blurContent = fa
   if (blurContent) {
     return (
       <div className="relative">
-        <div className="pointer-events-none select-none blur-sm">{children}</div>
+        <div className="pointer-events-none select-none opacity-40" aria-hidden="true">{children}</div>
         <div className="absolute inset-0 flex items-center justify-center">
           {fallback ?? <DefaultFallback requiredPlan={requiredPlan} />}
         </div>
