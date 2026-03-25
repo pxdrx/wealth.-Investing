@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { generateAnalysis } from "@/lib/analyst/agent/analyst";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 
 export const maxDuration = 120;
 export const dynamic = "force-dynamic";
@@ -49,13 +50,18 @@ export async function POST(req: NextRequest) {
           );
         });
 
-        // Persist report to analyst_reports table
+        // Persist report to analyst_reports table (service role bypasses RLS)
         let savedId: string | null = null;
         try {
           const supabaseUser = createSupabaseClientForUser(token);
           const { data: { user } } = await supabaseUser.auth.getUser();
           if (user) {
-            const { data: inserted } = await supabaseUser
+            const supabaseService = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!
+            );
+            console.log("[analyst/run] Saving report for user:", user.id, "ticker:", report.ticker);
+            const { data: inserted, error: insertError } = await supabaseService
               .from("analyst_reports")
               .insert({
                 user_id: user.id,
@@ -65,9 +71,15 @@ export async function POST(req: NextRequest) {
               })
               .select("id")
               .maybeSingle();
+            if (insertError) {
+              console.error("[analyst/run] Insert error:", insertError.message);
+            } else {
+              console.log("[analyst/run] Report saved with id:", inserted?.id);
+            }
             savedId = inserted?.id ?? null;
           }
-        } catch {
+        } catch (persistErr) {
+          console.error("[analyst/run] Persist failed:", persistErr);
           // Non-critical — report still delivered via SSE
         }
 
