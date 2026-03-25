@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  CreditCard
+  CreditCard,
+  Scan,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
@@ -28,6 +29,7 @@ const navLinks = [
   { href: "/app/macro", label: "Inteligência Macro", icon: LineChart },
   { href: "/app/journal", label: "Trade Journal", icon: BookOpen },
   { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
+  { href: "/app/analyst", label: "Analista", icon: Scan, highlight: true },
 ];
 
 function logout() {
