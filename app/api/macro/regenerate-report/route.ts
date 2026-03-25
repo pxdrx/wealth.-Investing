@@ -7,7 +7,7 @@ import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
 import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function getSupabaseAdmin() {
   return createClient(
@@ -70,12 +70,14 @@ export async function POST(req: NextRequest) {
       .order("date", { ascending: true })
       .order("time", { ascending: true });
 
-    // 2. Scrape enriched TE data
+    // 2. Scrape enriched TE data (with 10s timeout — non-critical)
     let teBriefingRaw: string | null = null;
     let teHeadlines: string[] | null = null;
     let weekAheadEditorial: string | null = null;
     try {
-      const enriched = await scrapeTeBriefing();
+      const tePromise = scrapeTeBriefing();
+      const teTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 10_000));
+      const enriched = await Promise.race([tePromise, teTimeout]);
       if (enriched) {
         teBriefingRaw = enriched.raw_text;
         teHeadlines = enriched.headlines.map(h => h.title);

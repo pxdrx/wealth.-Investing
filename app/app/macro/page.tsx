@@ -211,23 +211,35 @@ export default function MacroIntelligencePage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const res = await fetch("/api/macro/regenerate-report", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ week: defaultWeek }),
-    });
-    const json = await res.json();
-    if (!json.ok) {
-      console.error("[macro] Report regeneration failed:", json.error);
+    try {
+      const res = await fetch("/api/macro/regenerate-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ week: defaultWeek }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({ error: "Timeout — tente novamente" }));
+        alert(json.error || "Erro ao regenerar relatório");
+        return;
+      }
+
+      const json = await res.json();
+      if (!json.ok) {
+        alert(json.error || "Erro ao regenerar relatório");
+        return;
+      }
+    } catch {
+      alert("Erro de conexão ao regenerar. Tente novamente.");
       return;
     }
 
     // Refetch panorama to show updated data
-    const panRes = await fetch(`/api/macro/panorama?week=${defaultWeek}`);
     try {
+      const panRes = await fetch(`/api/macro/panorama?week=${defaultWeek}`);
       const panJson = await panRes.json();
       if (panJson.ok && panJson.data) {
         const pan = panJson.data;
