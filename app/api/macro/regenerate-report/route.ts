@@ -7,7 +7,7 @@ import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
 import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 function getSupabaseAdmin() {
   return createClient(
@@ -70,21 +70,35 @@ export async function POST(req: NextRequest) {
       .order("date", { ascending: true })
       .order("time", { ascending: true });
 
-    // 2. Scrape enriched TE data (with 10s timeout — non-critical)
+    // 2. Reuse existing TE data from DB if available (skip live scrape to stay under 60s)
     let teBriefingRaw: string | null = null;
     let teHeadlines: string[] | null = null;
     let weekAheadEditorial: string | null = null;
-    try {
-      const tePromise = scrapeTeBriefing();
-      const teTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 10_000));
-      const enriched = await Promise.race([tePromise, teTimeout]);
-      if (enriched) {
-        teBriefingRaw = enriched.raw_text;
-        teHeadlines = enriched.headlines.map(h => h.title);
-        weekAheadEditorial = enriched.week_ahead_editorial;
+    if (existing) {
+      // Reuse previously scraped TE data from the existing panorama
+      const { data: existingFull } = await supabase
+        .from("weekly_panoramas")
+        .select("te_briefing_raw")
+        .eq("id", existing.id)
+        .maybeSingle();
+      if (existingFull?.te_briefing_raw) {
+        teBriefingRaw = existingFull.te_briefing_raw;
       }
-    } catch (err) {
-      console.warn("[regenerate-report] TE scrape failed:", err);
+    }
+    // Only scrape live if we have no cached TE data, with tight 5s timeout
+    if (!teBriefingRaw) {
+      try {
+        const tePromise = scrapeTeBriefing();
+        const teTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5_000));
+        const enriched = await Promise.race([tePromise, teTimeout]);
+        if (enriched) {
+          teBriefingRaw = enriched.raw_text;
+          teHeadlines = enriched.headlines.map(h => h.title);
+          weekAheadEditorial = enriched.week_ahead_editorial;
+        }
+      } catch (err) {
+        console.warn("[regenerate-report] TE scrape failed:", err);
+      }
     }
 
     // 2b. Fetch latest live headlines from DB for narrative context

@@ -193,8 +193,11 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
             <button
               onClick={handleRegenerate}
               disabled={isRegenerating}
-              className="text-[11px] font-semibold text-blue-500 hover:text-blue-600 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-500 hover:text-blue-600 transition-colors disabled:opacity-50"
             >
+              {isRegenerating && (
+                <RefreshCwIcon className="h-3 w-3 animate-spin" />
+              )}
               {isRegenerating ? "Gerando..." : "Regenerar"}
             </button>
           )}
@@ -212,6 +215,21 @@ export function WeeklyBriefing({ panorama, onRegenerate, defaultExpanded = false
           </button>
         </div>
       </div>
+
+      {/* Regeneration Progress */}
+      {isRegenerating && (
+        <div className="mt-4">
+          <p className="text-[11px] font-medium text-muted-foreground mb-2">
+            Gerando relatório com IA... isso pode levar até 30 segundos.
+          </p>
+          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 rounded-full w-1/3"
+              style={{ animation: "indeterminate 1.5s ease-in-out infinite" }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Collapsible Content */}
       <div className={cn(
