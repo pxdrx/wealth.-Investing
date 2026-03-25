@@ -13,13 +13,20 @@ export interface TierLimits {
   hasCustomAlerts: boolean;
   hasPrioritySupport: boolean;
   hasMacroIntelligence: boolean;
+  hasReports: boolean;
+  hasPsychology: boolean;
+  hasHeadlines: boolean;
+  hasAdvancedReports: boolean;
+  hasPdfExport: boolean;
+  hasHistoryMacro: boolean;
+  hasRegenerateReport: boolean;
 }
 
 const TIER_LIMITS: Record<Plan, TierLimits> = {
   free: {
-    maxTrades: 30,
-    maxAccounts: 2,
-    aiCoachMonthly: 1,
+    maxTrades: 10,
+    maxAccounts: 1,
+    aiCoachMonthly: 0,
     aiCoachDaily: null,
     hasExportCsv: false,
     hasCtrader: false,
@@ -28,6 +35,13 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasCustomAlerts: false,
     hasPrioritySupport: false,
     hasMacroIntelligence: false,
+    hasReports: false,
+    hasPsychology: false,
+    hasHeadlines: false,
+    hasAdvancedReports: false,
+    hasPdfExport: false,
+    hasHistoryMacro: false,
+    hasRegenerateReport: false,
   },
   pro: {
     maxTrades: null,
@@ -41,12 +55,19 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasCustomAlerts: false,
     hasPrioritySupport: false,
     hasMacroIntelligence: true,
+    hasReports: true,
+    hasPsychology: true,
+    hasHeadlines: true,
+    hasAdvancedReports: false,
+    hasPdfExport: false,
+    hasHistoryMacro: false,
+    hasRegenerateReport: false,
   },
   ultra: {
     maxTrades: null,
     maxAccounts: null,
-    aiCoachMonthly: 150,
-    aiCoachDaily: 5,
+    aiCoachMonthly: 300,
+    aiCoachDaily: 10,
     hasExportCsv: true,
     hasCtrader: true,
     hasDashboardOverview: true,
@@ -54,6 +75,13 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasCustomAlerts: true,
     hasPrioritySupport: true,
     hasMacroIntelligence: true,
+    hasReports: true,
+    hasPsychology: true,
+    hasHeadlines: true,
+    hasAdvancedReports: true,
+    hasPdfExport: true,
+    hasHistoryMacro: true,
+    hasRegenerateReport: true,
   },
 };
 
