@@ -13,34 +13,59 @@ function getSupabase() {
   );
 }
 
+/** Source priority: lower = higher priority (Trump > TE > Reuters > ForexLive) */
+const SOURCE_PRIORITY: Record<string, number> = {
+  truth_social: 1,
+  trading_economics: 2,
+  reuters: 3,
+  forexlive: 4,
+};
+
 /**
- * Live-fetch headlines directly from RSS feeds as fallback when DB is empty.
+ * Sort headlines by published_at DESC, with source priority as tiebreaker
+ * when headlines are within 1 minute of each other.
+ */
+function sortByDateAndPriority<T extends { published_at: string | null; source: string }>(items: T[]): T[] {
+  return items.sort((a, b) => {
+    const ta = a.published_at ? new Date(a.published_at).getTime() : 0;
+    const tb = b.published_at ? new Date(b.published_at).getTime() : 0;
+    const timeDiff = tb - ta;
+    // If within 1 minute, use source priority
+    if (Math.abs(timeDiff) < 60_000) {
+      return (SOURCE_PRIORITY[a.source] ?? 5) - (SOURCE_PRIORITY[b.source] ?? 5);
+    }
+    return timeDiff;
+  });
+}
+
+/**
+ * Live-fetch headlines from ALL sources as fallback when DB is empty.
  * This ensures users always see headlines even if the cron hasn't run.
  */
 async function fetchLiveHeadlines(limit: number) {
   try {
-    const {
-      fetchForexLiveHeadlines,
-      fetchReutersHeadlines,
-    } = await import("@/lib/macro/scrapers/rss-headlines");
+    const [rssModule, tsModule, teModule] = await Promise.all([
+      import("@/lib/macro/scrapers/rss-headlines"),
+      import("@/lib/macro/scrapers/truth-social"),
+      import("@/lib/macro/scrapers/trading-economics"),
+    ]);
 
-    const [flResult, rtResult] = await Promise.allSettled([
-      fetchForexLiveHeadlines(),
-      fetchReutersHeadlines(),
+    const [flResult, rtResult, tsResult, teResult] = await Promise.allSettled([
+      rssModule.fetchForexLiveHeadlines(),
+      rssModule.fetchReutersHeadlines(),
+      tsModule.fetchTruthSocialPosts(),
+      teModule.fetchTradingEconomicsHeadlines(),
     ]);
 
     const fl = flResult.status === "fulfilled" ? (flResult.value ?? []) : [];
     const rt = rtResult.status === "fulfilled" ? (rtResult.value ?? []) : [];
+    const ts = tsResult.status === "fulfilled" ? (tsResult.value ?? []) : [];
+    const te = teResult.status === "fulfilled" ? (teResult.value ?? []) : [];
 
-    // Merge and sort by published_at descending
-    const all = [...fl, ...rt]
-      .filter((h) => h.published_at)
-      .sort((a, b) => {
-        const ta = new Date(a.published_at!).getTime();
-        const tb = new Date(b.published_at!).getTime();
-        return tb - ta;
-      })
-      .slice(0, limit);
+    // Merge and sort by date + source priority
+    const all = sortByDateAndPriority(
+      [...ts, ...te, ...fl, ...rt].filter((h) => h.published_at)
+    ).slice(0, limit);
 
     // Translate headlines to PT-BR before returning
     const translated = await translateHeadlines(all);
@@ -125,9 +150,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, data: liveData, source: "live" });
   }
 
-  // If DB returned results, use them
+  // If DB returned results, apply source priority sorting and return
   if (data && data.length > 0) {
-    return NextResponse.json({ ok: true, data });
+    const sorted = sortByDateAndPriority(data);
+    return NextResponse.json({ ok: true, data: sorted });
   }
 
   // DB is empty — fetch live from RSS feeds as fallback

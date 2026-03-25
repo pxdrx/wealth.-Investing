@@ -1,5 +1,5 @@
 import type { MacroHeadline } from "../types";
-import { fetchWithTimeout, stripHtml } from "./utils";
+import { fetchWithTimeout, stripHtml, hashString } from "./utils";
 
 const TRUMP_ACCOUNT_ID = "107780257626128497";
 const API_BASE = "https://truthsocial.com/api/v1";
@@ -13,20 +13,39 @@ interface MastodonStatus {
 }
 
 /**
+ * Keywords to identify Trump-specific market-moving content from Google News.
+ */
+const TRUMP_KEYWORDS =
+  /\b(Trump|POTUS|White House|Truth Social|tariff|tariffs|trade war|executive order|President said|President announces)\b/i;
+
+/**
  * Fetch Trump's Truth Social posts via public Mastodon API.
+ * Falls back to Google News RSS for Trump-related headlines if API is blocked.
  * Returns null on failure (never throws).
  */
 export async function fetchTruthSocialPosts(): Promise<MacroHeadline[] | null> {
+  // Try direct API first
+  const directResult = await fetchFromMastodonApi();
+  if (directResult && directResult.length > 0) return directResult;
+
+  // Fallback: Google News RSS for Trump statements
+  console.log("[truth-social] Direct API failed, falling back to Google News RSS...");
+  return fetchTrumpFromGoogleNews();
+}
+
+async function fetchFromMastodonApi(): Promise<MacroHeadline[] | null> {
   try {
-    console.log("[truth-social] Fetching posts...");
+    console.log("[truth-social] Trying direct Mastodon API...");
 
     const res = await fetchWithTimeout(
       `${API_BASE}/accounts/${TRUMP_ACCOUNT_ID}/statuses?limit=20&exclude_replies=true&exclude_reblogs=true`,
-      30_000,
+      15_000,
       {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; NewsAggregator/1.0)",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
           Accept: "application/json",
+          "Accept-Language": "en-US,en;q=0.9",
         },
       }
     );
@@ -42,7 +61,7 @@ export async function fetchTruthSocialPosts(): Promise<MacroHeadline[] | null> {
       return null;
     }
 
-    console.log(`[truth-social] Got ${posts.length} posts`);
+    console.log(`[truth-social] Got ${posts.length} posts from API`);
 
     return posts
       .filter((p) => p.content && !p.reblog)
@@ -65,7 +84,79 @@ export async function fetchTruthSocialPosts(): Promise<MacroHeadline[] | null> {
       })
       .filter((h) => h.headline.length > 0);
   } catch (err) {
-    console.error("[truth-social] Error:", err);
+    console.error("[truth-social] API error:", err);
+    return null;
+  }
+}
+
+/**
+ * Fallback: fetch Trump-related headlines from Google News RSS.
+ * These are news articles about Trump's statements, tariffs, executive orders, etc.
+ */
+async function fetchTrumpFromGoogleNews(): Promise<MacroHeadline[] | null> {
+  try {
+    const query = encodeURIComponent(
+      '"Trump said" OR "Trump announces" OR "Trump tariff" OR "Trump signs" OR "Truth Social" OR "White House"'
+    );
+    const url = `https://news.google.com/rss/search?q=${query}+when:1d&hl=en`;
+
+    const res = await fetchWithTimeout(url, 15_000, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/rss+xml, text/xml, */*",
+      },
+    });
+
+    if (!res.ok) {
+      console.warn(`[truth-social] Google News RSS returned ${res.status}`);
+      return null;
+    }
+
+    const xml = await res.text();
+    if (!xml || xml.length < 100) return null;
+
+    const cheerio = await import("cheerio");
+    const $ = cheerio.load(xml, { xml: true });
+
+    const items: MacroHeadline[] = [];
+
+    $("item").each((_, el) => {
+      const title = stripHtml($(el).find("title").text().trim());
+      let link = $(el).find("link").text().trim();
+      if (!link) {
+        const linkNode = $(el).find("link");
+        const nextNode = linkNode.length ? linkNode[0].nextSibling : null;
+        if (nextNode && nextNode.type === "text") {
+          link = (nextNode as unknown as { data: string }).data?.trim() || "";
+        }
+      }
+      const pubDate = $(el).find("pubDate").text().trim();
+      const sourceTag = $(el).find("source").text().trim();
+
+      if (!title || title.length < 15) return;
+      // Only include Trump-specific headlines
+      if (!TRUMP_KEYWORDS.test(title)) return;
+      if (items.some((h) => h.headline === title)) return;
+
+      items.push({
+        id: "",
+        source: "truth_social" as const,
+        headline: title,
+        summary: sourceTag ? `Fonte: ${sourceTag}` : null,
+        author: null,
+        url: link || null,
+        impact: "high" as const,
+        published_at: pubDate ? new Date(pubDate).toISOString() : null,
+        fetched_at: new Date().toISOString(),
+        external_id: link ? hashString(link) : hashString(title),
+      });
+    });
+
+    console.log(`[truth-social] Got ${items.length} Trump headlines via Google News`);
+    return items.length > 0 ? items.slice(0, 15) : null;
+  } catch (err) {
+    console.error("[truth-social] Google News fallback error:", err);
     return null;
   }
 }

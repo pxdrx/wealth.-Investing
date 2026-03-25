@@ -80,10 +80,10 @@ function BreakingDot() {
 
 const FILTER_OPTIONS: { key: SourceFilter; label: string }[] = [
   { key: "all", label: "Todos" },
-  { key: "forexlive", label: "ForexLive" },
-  { key: "reuters", label: "Reuters" },
   { key: "truth_social", label: "Trump" },
   { key: "trading_economics", label: "Trading Economics" },
+  { key: "reuters", label: "Reuters" },
+  { key: "forexlive", label: "ForexLive" },
 ];
 
 function getBorderClass(source: string, isBreaking: boolean): string {
