@@ -162,6 +162,18 @@ export async function generateAnalysis(
     data: `Coletando dados para ${ticker} (${assetType})...`,
   });
   const data = await gatherData(ticker, assetType);
+
+  // Validate: if no data returned from any source, ticker is likely invalid
+  const hasQuote = data.quote && Object.keys(data.quote).length > 0 && !data.quote["Error Message"] && !data.quote["Note"];
+  const hasTechnicals = Object.values(data.technicals).some((v) => v !== null);
+  const hasFundamentals = data.fundamentals && Object.keys(data.fundamentals).length > 0;
+  const hasCrypto = data.cryptoData && Object.keys(data.cryptoData).length > 0 && !data.cryptoData["error"];
+  const hasNews = data.news && data.news.length > 0;
+
+  if (!hasQuote && !hasTechnicals && !hasFundamentals && !hasCrypto && !hasNews) {
+    throw new Error(`Ticker "${ticker}" não encontrado. Verifique o símbolo e tente novamente. Exemplos: EURUSD, AAPL, BTC, XAUUSD`);
+  }
+
   onEvent?.({ type: "status", data: "Dados coletados. Gerando analise..." });
 
   // Step 2: Build analysis prompt
