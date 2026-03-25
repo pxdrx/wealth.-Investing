@@ -336,7 +336,11 @@ export default function AnalystPage() {
 
   return (
     <PaywallGate requiredPlan="ultra" blurContent>
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-10">
+        {/* Background CPU Architecture — always visible */}
+        <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 opacity-[0.04]">
+          <CpuArchitecture width="800" height="400" text="DXT" />
+        </div>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">
