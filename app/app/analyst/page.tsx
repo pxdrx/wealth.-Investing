@@ -322,7 +322,7 @@ export default function AnalystPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Dexter
+            Analista Dexter
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Seu analista financeiro com IA — digite um ativo e receba a análise completa

@@ -29,7 +29,7 @@ const navLinks = [
   { href: "/app/macro", label: "Inteligência Macro", icon: LineChart },
   { href: "/app/journal", label: "Trade Journal", icon: BookOpen },
   { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
-  { href: "/app/analyst", label: "Dexter", icon: Scan, highlight: true },
+  { href: "/app/analyst", label: "Analista Dexter", icon: Scan, highlight: true },
 ];
 
 function logout() {
