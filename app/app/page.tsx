@@ -22,6 +22,9 @@ import {
   Flame,
   Trophy,
   Sparkles,
+  CircleDollarSign,
+  Gem,
+  Bitcoin,
 } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { usePrivacy } from "@/components/context/PrivacyContext";
@@ -103,6 +106,14 @@ type PropAccountRow = {
   max_daily_loss_percent?: number;
   max_overall_loss_percent?: number;
 };
+
+const QUICK_ASSETS = [
+  { label: "DXY", symbol: "TVC:DXY", icon: CircleDollarSign },
+  { label: "Ouro", symbol: "OANDA:XAUUSD", icon: Gem },
+  { label: "BTC", symbol: "BITSTAMP:BTCUSD", icon: Bitcoin },
+  { label: "Petróleo", symbol: "TVC:USOIL", icon: Flame },
+  { label: "Nasdaq", symbol: "NASDAQ:NDX", icon: BarChart3 },
+] as const;
 
 export default function DashboardPage() {
   const { activeAccountId, accounts: ctxAccounts } = useActiveAccount();
@@ -523,6 +534,7 @@ function DashboardContent({
 }) {
   const { hidden, toggle } = usePrivacy();
   const [chartExpanded, setChartExpanded] = useState(false);
+  const [chartSymbol, setChartSymbol] = useState("FX:EURUSD");
   const { resolvedTheme } = useTheme();
   const tvTheme = resolvedTheme === "dark" ? "dark" : "light";
 
@@ -600,6 +612,33 @@ function DashboardContent({
             />
           </div>
 
+          {/* Quick asset shortcut buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {QUICK_ASSETS.map((asset) => {
+              const Icon = asset.icon;
+              const isActive = chartSymbol === asset.symbol;
+              return (
+                <button
+                  key={asset.symbol}
+                  onClick={() => {
+                    setChartSymbol(asset.symbol);
+                    setChartExpanded(true);
+                    setIframeVisible(true);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all border",
+                    isActive
+                      ? "bg-foreground text-background border-foreground shadow-sm"
+                      : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {asset.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Advanced chart with full tools — collapsible */}
           <div
             ref={watchlistRef}
@@ -623,9 +662,9 @@ function DashboardContent({
             {chartExpanded && (
               iframeVisible ? (
                 <iframe
-                  key={`chart-${tvTheme}`}
+                  key={`chart-${tvTheme}-${chartSymbol}`}
                   src={
-                    "https://s.tradingview.com/widgetembed/?frameElementId=tradingview_advanced&symbol=FX%3AEURUSD&interval=60" +
+                    `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_advanced&symbol=${encodeURIComponent(chartSymbol)}&interval=60` +
                     "&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6" +
                     "&hide_legend=0&hide_volume=0" +
                     "&studies=%5B%22MAExp%4050%22%2C%22MAExp%40200%22%5D" +
