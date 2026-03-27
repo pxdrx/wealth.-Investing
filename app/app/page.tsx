@@ -713,6 +713,7 @@ function DashboardContent({
         />
 
         {/* ═══════════ Backtest Accounts Section ═══════════ */}
+        <div className="xl:col-span-12">
         <BacktestSection
           accounts={Array.from(accountsById.values())
             .filter((a) => a.kind === "backtest")
@@ -729,6 +730,7 @@ function DashboardContent({
               opened_at: t.opened_at!,
             }))}
         />
+        </div>
       </div>
     </div>
   );
