@@ -87,17 +87,30 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
       }
 
       const openedAt = `${date}T${time}:00`;
+      const sym = symbol.toUpperCase().trim();
+
+      // Auto-detect category from symbol
+      const FOREX_PAIRS = ["EURUSD", "GBPUSD", "USDJPY", "USDCAD", "AUDUSD", "NZDUSD", "USDCHF", "EURGBP", "EURJPY", "GBPJPY"];
+      const INDICES = ["NAS100", "US30", "US500", "SPX500", "DAX", "FTSE", "NIKKEI"];
+      const CRYPTO = ["BTCUSD", "ETHUSD", "BTCUSDT", "ETHUSDT"];
+      const COMMODITIES = ["XAUUSD", "XAGUSD", "USOIL", "UKOIL", "NATGAS"];
+      let category = "forex";
+      if (COMMODITIES.some((c) => sym.includes(c))) category = "commodities";
+      else if (INDICES.some((c) => sym.includes(c))) category = "indices";
+      else if (CRYPTO.some((c) => sym.includes(c))) category = "crypto";
 
       const { error: dbErr } = await supabase.from("journal_trades").insert({
         user_id: session.user.id,
         account_id: accountId,
-        symbol: symbol.toUpperCase().trim(),
+        symbol: sym,
+        category,
         direction,
         pnl_usd: pnlNum,
         fees_usd: 0,
         opened_at: openedAt,
         closed_at: openedAt,
         notes: observation.trim() || null,
+        mistakes: [],
       });
 
       if (dbErr) {
@@ -400,9 +413,8 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
             </div>
 
             {/* Backtest Calendar */}
-            {globalStats.totalTrades > 0 && (
-              <div className="pb-3">
-                <CalendarPnl
+            <div className="pb-3">
+              <CalendarPnl
                   trades={trades.map((t) => ({
                     id: t.id ?? `bt-${t.opened_at}-${t.account_id}`,
                     net_pnl_usd: t.net_pnl_usd,
@@ -415,7 +427,6 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
                   userId={userId}
                 />
               </div>
-            )}
 
             {/* Per-account cards */}
             <div className="space-y-3">
