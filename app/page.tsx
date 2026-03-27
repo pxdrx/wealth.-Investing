@@ -11,6 +11,8 @@ import {
 } from "@/components/landing/FeatureVisuals";
 import { AIAssistant } from "@/components/landing/AIAssistant";
 import { MacroIntelligence } from "@/components/landing/MacroIntelligence";
+import { DexterSection } from "@/components/landing/DexterSection";
+import { BacktestLandingSection } from "@/components/landing/BacktestLandingSection";
 import { Testimonial } from "@/components/landing/Testimonial";
 import { CTASection } from "@/components/landing/CTASection";
 import { EnterpriseTrust } from "@/components/landing/EnterpriseTrust";
@@ -55,6 +57,8 @@ export default function LandingPage() {
 
         <AIAssistant />
         <MacroIntelligence />
+        <DexterSection />
+        <BacktestLandingSection />
         <Testimonial />
         <EnterpriseTrust />
         <LandingPricing />

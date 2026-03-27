@@ -11,6 +11,11 @@ import {
   Brain,
   Shield,
   AlertTriangle,
+  Search,
+  FileText,
+  Sparkles,
+  FlaskConical,
+  Target,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════
@@ -308,6 +313,187 @@ export function ChecklistRisk() {
           >
             <a.Icon className="h-3 w-3 shrink-0" style={{ color: a.color }} />
             <span className="text-[10px] text-l-text">{a.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DEXTER checklist visual
+   ═══════════════════════════════════════════════════════════════ */
+export function ChecklistDexter() {
+  return (
+    <div
+      className="rounded-2xl border p-5"
+      style={{
+        backgroundColor: "hsl(var(--landing-bg-elevated))",
+        borderColor: "hsl(var(--landing-border))",
+        boxShadow: "var(--landing-card-shadow)",
+      }}
+    >
+      <div className="font-mono text-[9px] text-l-text-muted uppercase tracking-wider mb-4">
+        Capacidades do Dexter
+      </div>
+
+      {/* Feature pills */}
+      <div className="space-y-2.5">
+        {[
+          {
+            Icon: Search,
+            title: "Research Autonomo",
+            desc: "Pesquisa noticias, dados macro e precos em tempo real",
+          },
+          {
+            Icon: Brain,
+            title: "Memoria Persistente",
+            desc: "Lembra de cada analise e evolui com o uso",
+          },
+          {
+            Icon: FileText,
+            title: "Relatorios Detalhados",
+            desc: "Analise tecnica, fundamental e macro integradas",
+          },
+          {
+            Icon: Sparkles,
+            title: "Insights Conectados",
+            desc: "Cruza dados passados com analises atuais",
+          },
+        ].map((f) => (
+          <div
+            key={f.title}
+            className="flex items-start gap-3 rounded-xl px-3 py-3"
+            style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
+          >
+            <div
+              className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+              style={{ backgroundColor: "hsl(var(--landing-accent) / 0.1)" }}
+            >
+              <f.Icon
+                className="h-4 w-4"
+                style={{ color: "hsl(var(--landing-accent))" }}
+              />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-l-text">{f.title}</div>
+              <div className="text-[10px] text-l-text-muted">{f.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Stats bar */}
+      <div className="grid grid-cols-3 gap-2 mt-4">
+        {[
+          { label: "Ativos", value: "Todos" },
+          { label: "Memoria", value: "∞" },
+          { label: "Resposta", value: "< 10s" },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="text-center rounded-lg py-2"
+            style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
+          >
+            <div
+              className="font-mono text-sm font-bold"
+              style={{ color: "hsl(var(--landing-accent))" }}
+            >
+              {s.value}
+            </div>
+            <div className="font-mono text-[8px] text-l-text-muted uppercase">
+              {s.label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKTEST checklist visual
+   ═══════════════════════════════════════════════════════════════ */
+export function ChecklistBacktest() {
+  return (
+    <div
+      className="rounded-2xl border p-5"
+      style={{
+        backgroundColor: "hsl(var(--landing-bg-elevated))",
+        borderColor: "hsl(var(--landing-border))",
+        boxShadow: "var(--landing-card-shadow)",
+      }}
+    >
+      <div className="font-mono text-[9px] text-l-text-muted uppercase tracking-wider mb-4">
+        Ferramentas de Backtesting
+      </div>
+
+      {/* Feature pills */}
+      <div className="space-y-2.5">
+        {[
+          {
+            Icon: FlaskConical,
+            title: "Contas Isoladas",
+            desc: "Uma conta por estrategia, dados separados",
+          },
+          {
+            Icon: Calendar,
+            title: "Calendario Heatmap",
+            desc: "Visualize resultados dia a dia por estrategia",
+          },
+          {
+            Icon: Target,
+            title: "Trade Rapido",
+            desc: "Formulario inline com botoes de ativo pre-configurados",
+          },
+        ].map((f) => (
+          <div
+            key={f.title}
+            className="flex items-start gap-3 rounded-xl px-3 py-3"
+            style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
+          >
+            <div
+              className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+              style={{ backgroundColor: "hsl(var(--landing-accent) / 0.1)" }}
+            >
+              <f.Icon
+                className="h-4 w-4"
+                style={{ color: "hsl(var(--landing-accent))" }}
+              />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-l-text">{f.title}</div>
+              <div className="text-[10px] text-l-text-muted">{f.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* KPI preview */}
+      <div className="grid grid-cols-2 gap-2 mt-4">
+        {[
+          { icon: BarChart3, label: "Win Rate", value: "67%" },
+          { icon: TrendingUp, label: "Profit Factor", value: "1.8" },
+          { icon: BarChart3, label: "Max DD", value: "-4.2%" },
+          { icon: TrendingUp, label: "RR Medio", value: "1.6" },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2"
+            style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
+          >
+            <m.icon
+              className="h-3.5 w-3.5 shrink-0"
+              style={{ color: "hsl(var(--landing-accent))" }}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-l-text-muted truncate">
+                {m.label}
+              </div>
+              <div className="font-mono text-xs font-semibold text-l-text">
+                {m.value}
+              </div>
+            </div>
           </div>
         ))}
       </div>

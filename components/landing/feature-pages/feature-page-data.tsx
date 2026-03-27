@@ -16,6 +16,9 @@ import {
   AlertTriangle,
   Bell,
   Gauge,
+  Search,
+  FileText,
+  FlaskConical,
 } from "lucide-react";
 import { MockupImportFlow } from "./mockups/MockupImportFlow";
 import { MockupAnalytics } from "./mockups/MockupAnalytics";
@@ -32,7 +35,13 @@ import {
   ChecklistAnalytics,
   ChecklistJournal,
   ChecklistRisk,
+  ChecklistDexter,
+  ChecklistBacktest,
 } from "./mockups/MockupChecklists";
+import { MockupDexter } from "./mockups/MockupDexter";
+import { MockupBacktest } from "./mockups/MockupBacktest";
+import { MockupDexterDetail } from "./mockups/MockupDexterDetail";
+import { MockupBacktestDetail } from "./mockups/MockupBacktestDetail";
 
 export interface FeaturePageData {
   slug: string;
@@ -406,5 +415,169 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     finalCtaHeadline: "Nunca mais perca uma conta por descuido",
     finalCtaDescription:
       "Monitore seus limites em tempo real e opere com a tranquilidade de saber que está protegido.",
+  },
+
+  dexter: {
+    slug: "dexter",
+    tag: "ANALISTA DEXTER",
+    number: "06",
+    headline: "Analista Dexter — Research com IA e Memoria",
+    heroDescription:
+      "Um assistente de research que pesquisa o mercado por voce, gera relatorios detalhados sobre seus ativos e evolui com memoria persistente. Nao e um chatbot generico — e seu analista pessoal.",
+    ctaText: "Conheca o Dexter",
+    heroMockup: <MockupDexter />,
+    statValue: "∞",
+    statLabel: "Memoria persistente que evolui com cada analise",
+    benefitsHeadline: "Por que ter um analista com IA",
+    benefits: [
+      {
+        icon: iconBox(Brain),
+        title: "Memoria Persistente",
+        description:
+          "O Dexter lembra de cada analise anterior, seus ativos preferidos e seu estilo operacional. Contexto acumulado que melhora cada resposta.",
+      },
+      {
+        icon: iconBox(Search),
+        title: "Research Autonomo",
+        description:
+          "Pesquisa noticias, dados macro, movimentos de preco e gera relatorios automaticamente sobre qualquer ativo.",
+      },
+      {
+        icon: iconBox(FileText),
+        title: "Relatorios Detalhados",
+        description:
+          "Analises com contexto tecnico, fundamental e macroeconomico. Formatadas para decisao rapida.",
+      },
+      {
+        icon: iconBox(Sparkles),
+        title: "Evolui com Voce",
+        description:
+          "Quanto mais voce usa, mais o Dexter entende seu operacional. Recomendacoes cada vez mais relevantes.",
+      },
+    ],
+    howItWorksTitle: "Como o Dexter funciona",
+    steps: [
+      {
+        title: "Peca uma analise",
+        description:
+          "Pergunte sobre qualquer ativo, cenario ou tema de mercado. O Dexter pesquisa em tempo real.",
+      },
+      {
+        title: "Receba o relatorio",
+        description:
+          "Analise completa com contexto macro, tecnico e fundamental. Formatada para leitura rapida.",
+      },
+      {
+        title: "Acumule inteligencia",
+        description:
+          "Cada interacao e memorizada. O Dexter conecta insights passados com analises atuais.",
+      },
+    ],
+    mockupSectionTitle: "Seu analista pessoal de mercado",
+    mockupSectionDescription:
+      "Research profissional com IA que entende seu operacional",
+    detailMockup: <MockupDexterDetail />,
+    checklistTitle: "Capacidades do Dexter",
+    checklist: [
+      "Research autonomo de ativos",
+      "Memoria persistente entre sessoes",
+      "Relatorios com analise tecnica e fundamental",
+      "Integracao com contexto macroeconomico",
+      "Suporte a multiplos ativos simultaneos",
+      "Historico completo de analises",
+      "Personalizacao ao seu estilo operacional",
+      "Alertas de mudancas significativas",
+    ],
+    checklistVisual: <ChecklistDexter />,
+    testimonialQuote:
+      "O Dexter identificou uma correlacao entre o DXY e meus trades de ouro que eu nunca tinha percebido. E como ter um analista senior disponivel 24/7.",
+    testimonialName: "MARCOS OLIVEIRA",
+    testimonialRole: "Swing Trader — Forex + Commodities",
+    testimonialInitials: "MO",
+    finalCtaHeadline: "Tenha um analista que nunca esquece",
+    finalCtaDescription:
+      "O Dexter pesquisa, analisa e evolui com voce. Comece a usar gratuitamente.",
+  },
+
+  backtest: {
+    slug: "backtest",
+    tag: "BACKTESTING",
+    number: "07",
+    headline: "Teste Estrategias Sem Arriscar Capital",
+    heroDescription:
+      "Crie contas simuladas para cada estrategia, registre trades ficticios e valide seu operacional com dados reais antes de colocar dinheiro na mesa.",
+    ctaText: "Comece a testar gratis",
+    heroMockup: <MockupBacktest />,
+    statValue: "0",
+    statLabel: "Risco — valide estrategias sem perder um centavo",
+    benefitsHeadline: "Por que fazer backtest na plataforma",
+    benefits: [
+      {
+        icon: iconBox(FlaskConical),
+        title: "Contas Isoladas",
+        description:
+          "Crie contas separadas para cada estrategia: SMC, ICT, Fundamentalista. Dados completamente isolados das contas reais.",
+      },
+      {
+        icon: iconBox(Calendar),
+        title: "Calendario Heatmap",
+        description:
+          "Visualize a assertividade da estrategia mes a mes. Identifique padroes antes de operar com capital real.",
+      },
+      {
+        icon: iconBox(BarChart3),
+        title: "KPIs Completos",
+        description:
+          "Win rate, profit factor, max drawdown, RR medio — todas as metricas para validar antes de arriscar.",
+      },
+      {
+        icon: iconBox(Target),
+        title: "Trade Rapido",
+        description:
+          "Formulario inline direto no dashboard. Botoes de ativo, Buy/Sell, data e P&L — registre em segundos.",
+      },
+    ],
+    howItWorksTitle: "Como o backtesting funciona",
+    steps: [
+      {
+        title: "Crie uma conta backtest",
+        description:
+          "De um nome a estrategia (SMC, ICT, Price Action) e comece a registrar trades ficticios.",
+      },
+      {
+        title: "Registre operacoes",
+        description:
+          "Use o formulario rapido com botoes de ativo. Selecione Buy/Sell, data, horario e P&L.",
+      },
+      {
+        title: "Analise os resultados",
+        description:
+          "Calendario heatmap, KPIs e metricas mostram se a estrategia e viavel antes de arriscar capital real.",
+      },
+    ],
+    mockupSectionTitle: "Seu laboratorio de estrategias",
+    mockupSectionDescription:
+      "Teste, valide e refine operacionais antes de colocar capital real",
+    detailMockup: <MockupBacktestDetail />,
+    checklistTitle: "Tudo para validar estrategias",
+    checklist: [
+      "Contas backtest ilimitadas",
+      "Formulario rapido de trade inline",
+      "Botoes de ativo pre-configurados",
+      "Calendario heatmap por estrategia",
+      "Win rate, profit factor, max drawdown",
+      "Dados isolados das contas reais",
+      "Observacoes e notas por trade",
+      "Visao consolidada de todas estrategias",
+    ],
+    checklistVisual: <ChecklistBacktest />,
+    testimonialQuote:
+      "Testei 3 estrategias diferentes por 2 meses antes de escolher qual usar na conta real. A que escolhi teve 68% de win rate no backtest e manteve no live.",
+    testimonialName: "ANA BEATRIZ",
+    testimonialRole: "Day Trader — ICT Strategy",
+    testimonialInitials: "AB",
+    finalCtaHeadline: "Teste antes, arrisque depois",
+    finalCtaDescription:
+      "Valide suas estrategias com dados reais em ambiente seguro. Zero risco, maximo aprendizado.",
   },
 };

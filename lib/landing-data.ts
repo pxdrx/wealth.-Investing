@@ -277,6 +277,64 @@ export const MACRO_SECTION = {
   ],
 } as const;
 
+/* ── Dexter Analyst section ────────────────────────────────────── */
+export const DEXTER_SECTION = {
+  label: "ANALISTA DEXTER",
+  number: "06",
+  headline: "Seu analista de mercado pessoal com memória persistente",
+  description:
+    "O Dexter não é um chatbot genérico. Ele pesquisa o mercado, gera relatórios personalizados, lembra das suas análises anteriores e evolui com você. Um assistente de research com IA que entende seu estilo operacional.",
+  features: [
+    {
+      icon: "brain",
+      title: "Memória Persistente",
+      description:
+        "O Dexter lembra de cada análise, cada insight e cada padrão que identificou. Quanto mais você usa, mais inteligente ele fica.",
+    },
+    {
+      icon: "search",
+      title: "Research Autônomo",
+      description:
+        "Pesquisa notícias, dados macroeconômicos e movimentos de preço automaticamente. Entrega relatórios prontos sobre os ativos que você opera.",
+    },
+    {
+      icon: "file-text",
+      title: "Relatórios Personalizados",
+      description:
+        "Gera análises detalhadas dos seus ativos com contexto técnico, fundamental e macro. Tudo adaptado ao seu operacional.",
+    },
+  ],
+} as const;
+
+/* ── Backtesting section ───────────────────────────────────────── */
+export const BACKTEST_SECTION = {
+  label: "BACKTESTING",
+  number: "07",
+  headline: "Teste estratégias antes de arriscar capital real",
+  description:
+    "Simule seus setups em ambiente controlado. Registre trades fictícios, acompanhe win rate, profit factor e drawdown — tudo com o mesmo nível de análise das contas reais, mas sem risco.",
+  features: [
+    {
+      icon: "flask-conical",
+      title: "Contas Simuladas",
+      description:
+        "Crie contas de backtest separadas para cada estratégia. ICT, SMC, Fundamentalista — cada um com seus dados isolados.",
+    },
+    {
+      icon: "calendar",
+      title: "Calendário de Resultados",
+      description:
+        "Calendário heatmap exclusivo para backtest. Veja a assertividade mensal, dias operados e evolução da estratégia.",
+    },
+    {
+      icon: "bar-chart-3",
+      title: "KPIs Completos",
+      description:
+        "Win rate, profit factor, max drawdown, RR médio — todas as métricas para validar sua estratégia antes de operar com dinheiro real.",
+    },
+  ],
+} as const;
+
 /* ── Testimonial ─────────────────────────────────────────────── */
 export const TESTIMONIAL = {
   quote:

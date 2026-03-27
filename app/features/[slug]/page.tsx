@@ -10,6 +10,8 @@ const SLUG_MAP: Record<string, number> = {
   analise: 1,
   evolua: 2,
   proteja: 3,
+  dexter: 4,
+  backtest: 5,
 };
 
 const SLUGS = Object.keys(SLUG_MAP);
@@ -33,6 +35,8 @@ export function generateMetadata({
     analise: "Análise Profunda de Performance",
     evolua: "Diário de Trading Inteligente",
     proteja: "Gestão de Risco e Proteção",
+    dexter: "Analista Dexter — Assistente de Research com IA",
+    backtest: "Backtesting — Teste Estratégias sem Risco",
   };
 
   return {
@@ -55,8 +59,18 @@ export default function FeatureDetailPage({
 
   const prevSlug = idx > 0 ? SLUGS[idx - 1] : null;
   const nextSlug = idx < SLUGS.length - 1 ? SLUGS[idx + 1] : null;
-  const prevTag = prevSlug ? FEATURES[SLUG_MAP[prevSlug]].tag : null;
-  const nextTag = nextSlug ? FEATURES[SLUG_MAP[nextSlug]].tag : null;
+  const prevIdx = prevSlug ? SLUG_MAP[prevSlug] : -1;
+  const nextIdx = nextSlug ? SLUG_MAP[nextSlug] : -1;
+  const prevTag = prevSlug
+    ? prevIdx < FEATURES.length
+      ? FEATURES[prevIdx].tag
+      : FEATURE_PAGES[prevSlug]?.tag ?? null
+    : null;
+  const nextTag = nextSlug
+    ? nextIdx < FEATURES.length
+      ? FEATURES[nextIdx].tag
+      : FEATURE_PAGES[nextSlug]?.tag ?? null
+    : null;
 
   return (
     <FeaturePageClient
