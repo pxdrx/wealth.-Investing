@@ -1,59 +1,44 @@
 "use client";
 
-import { Brain, Search, FileText, Sparkles, Clock, ChevronRight } from "lucide-react";
+import { ScanLine, Cpu, FileText } from "lucide-react";
 import { AnimatedSection } from "./AnimatedSection";
 import { DEXTER_SECTION } from "@/lib/landing-data";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
-  brain: Brain,
-  search: Search,
+  scan: ScanLine,
+  cpu: Cpu,
   "file-text": FileText,
 };
 
-function ResearchCard({ title, tag, time }: { title: string; tag: string; time: string }) {
+function ConfidenceBadge({ label, level }: { label: string; level: "high" | "medium" | "low" }) {
+  const colors = {
+    high: { bg: "hsl(152 40% 38% / 0.12)", text: "hsl(152 40% 38%)" },
+    medium: { bg: "hsl(45 80% 50% / 0.12)", text: "hsl(45 80% 42%)" },
+    low: { bg: "hsl(0 60% 50% / 0.12)", text: "hsl(0 60% 45%)" },
+  };
+  const c = colors[level];
+  return (
+    <span
+      className="inline-flex rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold"
+      style={{ backgroundColor: c.bg, color: c.text }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function MiniCard({ title, badge }: { title: string; badge: string }) {
   return (
     <div
-      className="flex items-start gap-3 rounded-xl px-3.5 py-3 border"
+      className="flex items-center justify-between rounded-lg px-3 py-2 border"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",
       }}
     >
-      <div
-        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-        style={{ backgroundColor: "hsla(270, 70%, 60%, 0.12)" }}
-      >
-        <FileText className="h-3.5 w-3.5" style={{ color: "hsl(270, 70%, 60%)" }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-l-text truncate">{title}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <span
-            className="inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[9px] font-medium"
-            style={{ backgroundColor: "hsla(270, 70%, 60%, 0.1)", color: "hsl(270, 70%, 60%)" }}
-          >
-            {tag}
-          </span>
-          <span className="flex items-center gap-0.5 font-mono text-[9px] text-l-text-muted">
-            <Clock className="h-2.5 w-2.5" />
-            {time}
-          </span>
-        </div>
-      </div>
-      <ChevronRight className="h-3.5 w-3.5 text-l-text-muted mt-1 shrink-0" />
+      <span className="text-[10px] font-semibold text-l-text">{title}</span>
+      <ConfidenceBadge label={badge} level="medium" />
     </div>
-  );
-}
-
-function MemoryBadge({ text }: { text: string }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 font-mono text-[9px] text-l-text-secondary"
-      style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
-    >
-      <Brain className="h-2.5 w-2.5" />
-      {text}
-    </span>
   );
 }
 
@@ -62,7 +47,7 @@ export function DexterSection() {
     <section className="landing-section" aria-label="Analista Dexter">
       <div className="landing-container">
         <div className="grid gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16 items-center">
-          {/* Visual — Dexter chat/research preview */}
+          {/* Visual -- Dexter report preview */}
           <AnimatedSection>
             <div className="landing-card p-0 overflow-hidden">
               {/* Header bar */}
@@ -71,89 +56,100 @@ export function DexterSection() {
                 style={{ borderColor: "hsl(var(--landing-border))" }}
               >
                 <div className="flex items-center gap-2.5">
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: "hsla(270, 70%, 60%, 0.12)" }}
+                  <span className="text-sm font-semibold text-l-text">Analista Dexter</span>
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold"
+                    style={{ backgroundColor: "hsl(152 40% 38% / 0.12)", color: "hsl(152 40% 38%)" }}
                   >
-                    <Sparkles className="h-4 w-4" style={{ color: "hsl(270, 70%, 60%)" }} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-l-text">Dexter</span>
-                    <div className="flex items-center gap-1">
-                      <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "hsl(270, 70%, 60%)" }} />
-                      <span className="font-mono text-[9px] text-l-text-muted">Analisando mercado</span>
-                    </div>
-                  </div>
-                </div>
-                {/* Memory indicator */}
-                <div className="flex items-center gap-1.5">
-                  <Brain className="h-3 w-3 text-l-text-muted" />
-                  <span className="font-mono text-[9px] text-l-text-muted">47 memórias</span>
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "hsl(152 40% 38%)" }} />
+                    IA
+                  </span>
                 </div>
               </div>
 
-              {/* Memory context strip */}
-              <div
-                className="flex items-center gap-2 px-5 py-2.5 border-b overflow-x-auto"
-                style={{ borderColor: "hsl(var(--landing-border))" }}
-              >
-                <span className="font-mono text-[8px] uppercase tracking-wider text-l-text-muted shrink-0">
-                  Contexto:
-                </span>
-                <MemoryBadge text="EURUSD: viés comprador" />
-                <MemoryBadge text="Prefere sessão Londres" />
-                <MemoryBadge text="Foco em ICT" />
-              </div>
-
-              <div className="p-5 space-y-4">
-                {/* User message */}
-                <div className="flex justify-end">
-                  <div
-                    className="max-w-[80%] rounded-2xl rounded-br-md px-3.5 py-2.5"
-                    style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
-                  >
-                    <p className="text-xs text-l-text">
-                      Prepara um relatório do XAUUSD para amanhã. Quero saber se faz sentido comprar.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Dexter response */}
-                <div className="flex justify-start">
-                  <div
-                    className="max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 border"
+              {/* Search bar */}
+              <div className="px-5 py-3 border-b" style={{ borderColor: "hsl(var(--landing-border))" }}>
+                <div
+                  className="flex items-center gap-2 rounded-xl border px-3.5 py-2.5"
+                  style={{
+                    backgroundColor: "hsl(var(--landing-bg-tertiary))",
+                    borderColor: "hsl(var(--landing-border))",
+                  }}
+                >
+                  <span className="text-xs text-l-text-muted flex-1">
+                    Bitcoin, Ouro, EURUSD, Apple, S&P 500...
+                  </span>
+                  <span
+                    className="rounded-lg px-3 py-1.5 font-mono text-[10px] font-semibold"
                     style={{
-                      backgroundColor: "hsl(var(--landing-bg-elevated))",
-                      borderColor: "hsl(var(--landing-border))",
+                      backgroundColor: "hsl(var(--landing-accent))",
+                      color: "white",
                     }}
                   >
-                    <p className="text-xs font-semibold text-l-text mb-2">
-                      Relatório XAUUSD — Análise Completa
-                    </p>
+                    Analisar
+                  </span>
+                </div>
+              </div>
 
-                    <div className="space-y-2.5 text-xs text-l-text-secondary leading-relaxed">
-                      <p>
-                        Com base nas suas <strong className="text-l-text">últimas 12 operações em XAUUSD</strong>, seu
-                        win rate é de <strong style={{ color: "hsl(270, 70%, 60%)" }}>67%</strong> em long —
-                        consistente com seu viés comprador que eu já tenho registrado.
-                      </p>
-
-                      <p>
-                        <strong className="text-l-text">Contexto macro:</strong> DXY em queda (-0.8% na semana),
-                        yields de 10Y recuando, e NFP amanhã pode gerar volatilidade. Cenário
-                        favorável para ouro como hedge.
-                      </p>
-                    </div>
-
-                    {/* Research reports generated */}
-                    <div className="mt-3 space-y-2">
-                      <span className="font-mono text-[8px] uppercase tracking-wider text-l-text-muted">
-                        Relatórios gerados:
-                      </span>
-                      <ResearchCard title="XAUUSD — Técnico + Macro" tag="Completo" time="2 min" />
-                      <ResearchCard title="Correlação DXY vs Gold" tag="Research" time="1 min" />
-                    </div>
+              {/* Report card */}
+              <div className="p-5 space-y-4">
+                {/* Report header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-l-text">XAUUSD</p>
+                    <p className="text-[10px] text-l-text-muted mt-0.5">26 Mar 2026</p>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <ConfidenceBadge label="Neutro" level="medium" />
+                    <span className="font-mono text-[9px] text-l-text-muted">CONFIANCA MEDIA</span>
+                  </div>
+                </div>
+
+                {/* Analysis snippet */}
+                <div
+                  className="rounded-xl border px-4 py-3 space-y-2"
+                  style={{
+                    backgroundColor: "hsl(var(--landing-bg-tertiary))",
+                    borderColor: "hsl(var(--landing-border))",
+                  }}
+                >
+                  <p className="text-[11px] text-l-text-secondary leading-relaxed">
+                    Ouro opera em consolidacao apos rally de 3.2% na semana. DXY estavel em 103.4. Yields de 10Y
+                    recuando para 4.18%. Suporte principal em <strong className="text-l-text">$2,318</strong>,
+                    resistencia em <strong className="text-l-text">$2,365</strong>. Cenario neutro com vies de alta
+                    acima de $2,340.
+                  </p>
+                </div>
+
+                {/* Trade idea */}
+                <div
+                  className="rounded-xl border px-4 py-3"
+                  style={{
+                    backgroundColor: "hsl(var(--landing-bg-elevated))",
+                    borderColor: "hsl(var(--landing-border))",
+                  }}
+                >
+                  <p className="font-mono text-[8px] uppercase tracking-wider text-l-text-muted mb-2">
+                    IDEIA DE TRADE
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] font-semibold text-l-text">Setup A</span>
+                    <span className="text-[10px] text-l-text-secondary">
+                      Long acima de $2,340 &rarr; TP $2,365 &rarr; SL $2,318
+                    </span>
+                    <span
+                      className="ml-auto font-mono text-[9px] font-semibold"
+                      style={{ color: "hsl(152 40% 38%)" }}
+                    >
+                      RR 1:1.14
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom cards */}
+                <div className="grid grid-cols-2 gap-2">
+                  <MiniCard title="Contexto Macro" badge="Neutro" />
+                  <MiniCard title="Analise Tecnica" badge="Alta" />
                 </div>
               </div>
             </div>
@@ -175,14 +171,14 @@ export function DexterSection() {
 
             <div className="space-y-4">
               {DEXTER_SECTION.features.map((feat) => {
-                const Icon = iconMap[feat.icon] || Brain;
+                const Icon = iconMap[feat.icon] || ScanLine;
                 return (
                   <div key={feat.title} className="flex gap-3">
                     <div
                       className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: "hsla(270, 70%, 60%, 0.12)" }}
+                      style={{ backgroundColor: "hsl(var(--landing-accent) / 0.1)" }}
                     >
-                      <Icon className="h-4 w-4" style={{ color: "hsl(270, 70%, 60%)" }} />
+                      <Icon className="h-4 w-4" style={{ color: "hsl(var(--landing-accent))" }} />
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-l-text">{feat.title}</h3>

@@ -281,27 +281,27 @@ export const MACRO_SECTION = {
 export const DEXTER_SECTION = {
   label: "ANALISTA DEXTER",
   number: "06",
-  headline: "Seu analista de mercado pessoal com memória persistente",
+  headline: "Research completo de ativos com IA multi-agente",
   description:
-    "O Dexter não é um chatbot genérico. Ele pesquisa o mercado, gera relatórios personalizados, lembra das suas análises anteriores e evolui com você. Um assistente de research com IA que entende seu estilo operacional.",
+    "O Dexter é um conjunto de agentes de IA alimentados com um dos mais altos níveis de conhecimento de mercado. Aponte qualquer ativo e receba um research completo — técnica, fundamental, sentimento e risco — cruzando mais de 30 confluências e fontes diferentes.",
   features: [
     {
-      icon: "brain",
-      title: "Memória Persistente",
+      icon: "scan",
+      title: "30+ Confluências",
       description:
-        "O Dexter lembra de cada análise, cada insight e cada padrão que identificou. Quanto mais você usa, mais inteligente ele fica.",
+        "Análise técnica, fundamental, macro, sentimento, fluxo institucional, correlações e mais. Tudo cruzado em um único relatório.",
     },
     {
-      icon: "search",
-      title: "Research Autônomo",
+      icon: "cpu",
+      title: "Multi-Agente IA",
       description:
-        "Pesquisa notícias, dados macroeconômicos e movimentos de preço automaticamente. Entrega relatórios prontos sobre os ativos que você opera.",
+        "Não é um chatbot. São múltiplos agentes especializados trabalhando em paralelo — cada um focado em uma dimensão da análise.",
     },
     {
       icon: "file-text",
-      title: "Relatórios Personalizados",
+      title: "Relatórios Acionáveis",
       description:
-        "Gera análises detalhadas dos seus ativos com contexto técnico, fundamental e macro. Tudo adaptado ao seu operacional.",
+        "Suportes, resistências, ideias de trade com RR definido, contexto macro e análise técnica. Tudo pronto para decisão.",
     },
   ],
 } as const;

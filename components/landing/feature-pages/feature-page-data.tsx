@@ -19,6 +19,8 @@ import {
   Search,
   FileText,
   FlaskConical,
+  ScanLine,
+  Cpu,
 } from "lucide-react";
 import { MockupImportFlow } from "./mockups/MockupImportFlow";
 import { MockupAnalytics } from "./mockups/MockupAnalytics";
@@ -421,82 +423,82 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     slug: "dexter",
     tag: "ANALISTA DEXTER",
     number: "06",
-    headline: "Analista Dexter — Research com IA e Memoria",
+    headline: "Research Completo com IA Multi-Agente",
     heroDescription:
-      "Um assistente de research que pesquisa o mercado por voce, gera relatorios detalhados sobre seus ativos e evolui com memoria persistente. Nao e um chatbot generico — e seu analista pessoal.",
+      "Aponte qualquer ativo e receba um research completo com mais de 30 confluencias — analise tecnica, fundamental, contexto macro, sentimento e risco. Nao e um chatbot: sao multiplos agentes de IA trabalhando em paralelo.",
     ctaText: "Conheca o Dexter",
     heroMockup: <MockupDexter />,
-    statValue: "∞",
-    statLabel: "Memoria persistente que evolui com cada analise",
-    benefitsHeadline: "Por que ter um analista com IA",
+    statValue: "30+",
+    statLabel: "Confluencias cruzadas em cada analise",
+    benefitsHeadline: "Por que o Dexter e diferente",
     benefits: [
       {
-        icon: iconBox(Brain),
-        title: "Memoria Persistente",
+        icon: iconBox(ScanLine),
+        title: "30+ Confluencias",
         description:
-          "O Dexter lembra de cada analise anterior, seus ativos preferidos e seu estilo operacional. Contexto acumulado que melhora cada resposta.",
+          "Analise tecnica, fundamental, macro, sentimento, fluxo institucional, correlacoes e mais — tudo cruzado em um unico relatorio.",
       },
       {
-        icon: iconBox(Search),
-        title: "Research Autonomo",
+        icon: iconBox(Cpu),
+        title: "Multi-Agente IA",
         description:
-          "Pesquisa noticias, dados macro, movimentos de preco e gera relatorios automaticamente sobre qualquer ativo.",
+          "Multiplos agentes especializados trabalhando em paralelo. Cada um focado em uma dimensao da analise para cobertura completa.",
       },
       {
         icon: iconBox(FileText),
-        title: "Relatorios Detalhados",
+        title: "Ideias de Trade com RR",
         description:
-          "Analises com contexto tecnico, fundamental e macroeconomico. Formatadas para decisao rapida.",
+          "Cada relatorio inclui setups acionaveis com entrada, alvo e stop definidos. Suportes, resistencias e risk-reward calculados.",
       },
       {
-        icon: iconBox(Sparkles),
-        title: "Evolui com Voce",
+        icon: iconBox(Target),
+        title: "Suportes e Resistencias",
         description:
-          "Quanto mais voce usa, mais o Dexter entende seu operacional. Recomendacoes cada vez mais relevantes.",
+          "Niveis chave identificados automaticamente com confluencia de multiplos timeframes e indicadores.",
       },
     ],
     howItWorksTitle: "Como o Dexter funciona",
     steps: [
       {
-        title: "Peca uma analise",
+        title: "Escolha qualquer ativo",
         description:
-          "Pergunte sobre qualquer ativo, cenario ou tema de mercado. O Dexter pesquisa em tempo real.",
+          "Digite o nome ou ticker — Bitcoin, XAUUSD, NVDA, EURUSD, S&P 500. Qualquer mercado.",
       },
       {
-        title: "Receba o relatorio",
+        title: "Agentes analisam em paralelo",
         description:
-          "Analise completa com contexto macro, tecnico e fundamental. Formatada para leitura rapida.",
+          "Multiplos agentes de IA pesquisam tecnico, fundamental, macro, sentimento e risco simultaneamente.",
       },
       {
-        title: "Acumule inteligencia",
+        title: "Receba o research completo",
         description:
-          "Cada interacao e memorizada. O Dexter conecta insights passados com analises atuais.",
+          "Relatorio com analise detalhada, niveis chave, ideias de trade com RR e contexto macro. Pronto para decisao.",
       },
     ],
-    mockupSectionTitle: "Seu analista pessoal de mercado",
+    mockupSectionTitle: "Research de nivel institucional",
     mockupSectionDescription:
-      "Research profissional com IA que entende seu operacional",
+      "Analise completa com 30+ confluencias gerada por agentes especializados",
     detailMockup: <MockupDexterDetail />,
-    checklistTitle: "Capacidades do Dexter",
+    checklistTitle: "O que cada analise inclui",
     checklist: [
-      "Research autonomo de ativos",
-      "Memoria persistente entre sessoes",
-      "Relatorios com analise tecnica e fundamental",
-      "Integracao com contexto macroeconomico",
-      "Suporte a multiplos ativos simultaneos",
-      "Historico completo de analises",
-      "Personalizacao ao seu estilo operacional",
-      "Alertas de mudancas significativas",
+      "Analise tecnica multi-timeframe",
+      "Contexto macroeconomico e geopolitico",
+      "Sentimento de mercado e fluxo institucional",
+      "Suportes e resistencias com confluencia",
+      "Ideias de trade com entrada, alvo e stop",
+      "Risk-reward calculado para cada setup",
+      "Correlacoes entre ativos relevantes",
+      "Nivel de confianca da analise",
     ],
     checklistVisual: <ChecklistDexter />,
     testimonialQuote:
-      "O Dexter identificou uma correlacao entre o DXY e meus trades de ouro que eu nunca tinha percebido. E como ter um analista senior disponivel 24/7.",
+      "O Dexter cruzou mais de 30 fatores e me mostrou um setup em ouro que eu nunca teria visto sozinho. O relatorio tinha suporte, resistencia, RR e contexto macro — tudo pronto.",
     testimonialName: "MARCOS OLIVEIRA",
     testimonialRole: "Swing Trader — Forex + Commodities",
     testimonialInitials: "MO",
-    finalCtaHeadline: "Tenha um analista que nunca esquece",
+    finalCtaHeadline: "Research de verdade, nao respostas genericas",
     finalCtaDescription:
-      "O Dexter pesquisa, analisa e evolui com voce. Comece a usar gratuitamente.",
+      "30+ confluencias cruzadas por agentes especializados. Aponte o ativo e receba um relatorio completo.",
   },
 
   backtest: {

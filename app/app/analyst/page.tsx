@@ -338,12 +338,7 @@ export default function AnalystPage() {
   return (
     <PaywallGate requiredPlan="ultra" blurContent>
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-10">
-        {/* Background CPU Architecture — static, always visible, esmaecido */}
-        {!loading && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0 opacity-[0.03] overflow-hidden">
-            <CpuArchitecture width="700" height="350" text="DXT" animateLines={false} animateMarkers={false} animateText={false} />
-          </div>
-        )}
+        {/* Background removed — clean empty state per user request */}
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3">
@@ -418,13 +413,13 @@ export default function AnalystPage() {
           </button>
         </div>
 
-        {/* Loading with CPU animation */}
+        {/* Loading with CPU animation — centered, prominent */}
         {loading && (
-          <div className="mb-8 flex flex-col items-center gap-4">
-            <CpuArchitecture width="320" height="160" text="DXT" className="opacity-60" />
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {status || "Processando..."}
+          <div className="flex flex-col items-center justify-center gap-6 py-20">
+            <CpuArchitecture width="480" height="240" text="DXT" className="opacity-80" />
+            <div className="flex items-center gap-2.5 text-base font-medium text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              {status || "Iniciando analise..."}
             </div>
           </div>
         )}
@@ -581,26 +576,23 @@ export default function AnalystPage() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty state — clean, no background */}
         {!report && !loading && !error && history.length === 0 && (
-          <div className="text-center py-12">
-            <div className="mx-auto max-w-xs mb-6 opacity-30">
-              <CpuArchitecture width="100%" height="160" text="DXT" animateLines={false} animateMarkers={false} animateText={false} />
-            </div>
+          <div className="text-center py-16">
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
               Nenhuma análise ainda
             </h3>
-            <p className="text-sm text-muted-foreground/70">
+            <p className="text-sm text-muted-foreground/70 mb-6">
               Digite um ticker acima para gerar uma análise completa com IA
             </p>
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
+            <div className="flex flex-wrap justify-center gap-2">
               {["EURUSD", "XAUUSD", "BTC", "AAPL", "DXY"].map((t) => (
                 <button
                   key={t}
                   onClick={() => {
                     setTicker(t);
                   }}
-                  className="rounded-full bg-muted px-3 py-1 text-xs font-medium hover:bg-muted/80 transition-colors"
+                  className="rounded-full bg-muted px-3.5 py-1.5 text-xs font-medium hover:bg-muted/80 transition-colors"
                 >
                   {t}
                 </button>
