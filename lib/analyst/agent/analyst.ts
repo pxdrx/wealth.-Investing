@@ -16,6 +16,11 @@ import {
   getRecommendations,
 } from "../tools/finance/finnhub";
 import { getCryptoData, getCryptoChart } from "../tools/finance/coingecko";
+import { getFearGreedIndex } from "../tools/finance/alternative-me";
+import { getBTCOnChainData } from "../tools/finance/blockchain-info";
+import { getMacroEconomicData } from "../tools/finance/fred";
+import { getCryptoOptionsData } from "../tools/finance/deribit";
+import { getQuote as getTDQuote, getStockStatistics, getSMA as getTDSMA } from "../tools/finance/twelve-data";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -44,6 +49,11 @@ interface GatherResult {
   news: Array<{ headline: string; summary: string }> | null;
   recommendations: Array<Record<string, unknown>> | null;
   cryptoData: Record<string, unknown> | null;
+  fearGreed: { value: number; classification: string; timestamp: string } | null;
+  onChain: Record<string, unknown> | null;
+  macroEconomic: Record<string, unknown> | null;
+  options: Record<string, unknown> | null;
+  twelveData: Record<string, unknown> | null;
 }
 
 /** Delay helper for rate limiting */
@@ -67,6 +77,11 @@ async function gatherData(
     news: null,
     recommendations: null,
     cryptoData: null,
+    fearGreed: null,
+    onChain: null,
+    macroEconomic: null,
+    options: null,
+    twelveData: null,
   };
 
   // --- Finnhub calls (parallel, no rate issue) ---
@@ -99,7 +114,48 @@ async function gatherData(
     );
   }
 
-  // --- CoinGecko calls (parallel, no rate issue) ---
+  // --- New data sources (parallel) ---
+    // Fear & Greed (all asset types)
+    finnhubPromises.push(
+      getFearGreedIndex().then((d) => { results.fearGreed = d; }).catch(() => {})
+    );
+
+    // Macro economic data (all asset types)
+    finnhubPromises.push(
+      getMacroEconomicData().then((d) => { results.macroEconomic = d as unknown as Record<string, unknown>; }).catch(() => {})
+    );
+
+    // BTC on-chain (crypto BTC only)
+    if (assetType === "crypto" && /BTC|BITCOIN/i.test(ticker)) {
+      finnhubPromises.push(
+        getBTCOnChainData().then((d) => { results.onChain = d as unknown as Record<string, unknown>; }).catch(() => {})
+      );
+    }
+
+    // Crypto options
+    if (assetType === "crypto") {
+      const cur = /ETH/i.test(ticker) ? "ETH" : "BTC";
+      finnhubPromises.push(
+        getCryptoOptionsData(cur).then((d) => { results.options = d as unknown as Record<string, unknown>; }).catch(() => {})
+      );
+    }
+
+    // Twelve Data (non-crypto)
+    if (assetType !== "crypto") {
+      const sym = assetType === "forex" ? `${ticker.slice(0,3)}/${ticker.slice(3)}` : ticker;
+      finnhubPromises.push(
+        (async () => {
+          const [q, sma] = await Promise.allSettled([getTDQuote(sym), getTDSMA(sym, 200)]);
+          results.twelveData = {
+            quote: q.status === "fulfilled" ? q.value : null,
+            sma200: sma.status === "fulfilled" ? sma.value : null,
+            statistics: assetType === "stock" ? await getStockStatistics(ticker).catch(() => null) : null,
+          };
+        })().catch(() => {})
+      );
+    }
+
+    // --- CoinGecko calls (parallel, no rate issue) ---
   if (assetType === "crypto") {
     finnhubPromises.push(
       getCryptoData(ticker).then((d) => {
@@ -212,9 +268,12 @@ export async function generateAnalysis(
   // Step 2: Build analysis prompt
   const dataContext = JSON.stringify(data, null, 2).slice(0, 30000);
 
+  const sourceCount = Object.values(data).filter(Boolean).length;
+  onEvent?.({ type: "status", data: `${sourceCount} fontes coletadas. Cruzando confluencias...` });
+
   const prompt = `Analise o ativo ${ticker} (tipo: ${assetType}).
 
-## Dados coletados de fontes reais:
+## Dados coletados de 8+ fontes reais (Alpha Vantage, Finnhub, CoinGecko, Blockchain.info, Alternative.me, FRED, Deribit, Twelve Data):
 \`\`\`json
 ${dataContext}
 \`\`\`
