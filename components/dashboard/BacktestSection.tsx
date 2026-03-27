@@ -284,25 +284,42 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
 
       {expanded && (
         <div className="border-t border-border/40 px-4 pb-4">
-          {/* Account selector dropdown + Add account button */}
-          <div className="flex items-center gap-2 pt-3 pb-2">
-            <select
-              value={selectedAccountId ?? "__all__"}
-              onChange={(e) => setSelectedAccountId(e.target.value === "__all__" ? null : e.target.value)}
-              className="flex-1 rounded-lg border border-border/40 bg-transparent px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-purple-500"
+          {/* Account selector pills + Add account button */}
+          <div className="flex items-center gap-2 pt-3 pb-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setSelectedAccountId(null)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
+                !selectedAccountId
+                  ? "bg-purple-500 text-white border-purple-500"
+                  : "border-border/60 text-muted-foreground hover:border-purple-500/40 hover:text-foreground"
+              )}
             >
-              <option value="__all__">Todas as contas</option>
-              {activeAccounts.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
+              Todas
+            </button>
+            {activeAccounts.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setSelectedAccountId(a.id)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
+                  selectedAccountId === a.id
+                    ? "bg-purple-500 text-white border-purple-500"
+                    : "border-border/60 text-muted-foreground hover:border-purple-500/40 hover:text-foreground"
+                )}
+              >
+                {a.name}
+              </button>
+            ))}
             <button
               type="button"
               onClick={() => setAddModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-dashed border-purple-500/40 px-3 py-2 text-[10px] font-medium text-purple-600 dark:text-purple-400 transition-colors hover:bg-purple-500/5"
+              className="flex items-center gap-1 rounded-full border border-dashed border-purple-500/30 px-3 py-1.5 text-[10px] font-medium text-purple-500 transition-colors hover:bg-purple-500/5"
             >
-              <PlusCircle className="h-3.5 w-3.5" />
-              Nova conta
+              <PlusCircle className="h-3 w-3" />
+              Nova
             </button>
           </div>
 

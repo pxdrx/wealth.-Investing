@@ -148,6 +148,16 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
 
   const handleClose = (v: boolean) => {
     if (!v) reset();
+    if (v) {
+      // When opening, respect defaultKind
+      if (defaultKind) {
+        setStep("details");
+        setAccountKind(defaultKind);
+      } else {
+        setStep("type");
+        setAccountKind(null);
+      }
+    }
     onOpenChange(v);
   };
 
@@ -422,13 +432,15 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
         {/* Step: Details */}
         {step === "details" && (
           <div className="space-y-4">
-            <button
-              type="button"
-              onClick={() => setStep((accountKind === "prop" || cryptoSubKind === "prop") ? "firm" : accountKind === "crypto" ? "crypto-sub" : "type")}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ChevronLeft className="h-3 w-3" /> Voltar
-            </button>
+            {!defaultKind && (
+              <button
+                type="button"
+                onClick={() => setStep((accountKind === "prop" || cryptoSubKind === "prop") ? "firm" : accountKind === "crypto" ? "crypto-sub" : "type")}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <ChevronLeft className="h-3 w-3" /> Voltar
+              </button>
+            )}
 
             {(accountKind === "prop" || cryptoSubKind === "prop") && selectedFirm && (
               <>
