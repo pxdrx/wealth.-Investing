@@ -205,7 +205,10 @@ export function CalendarPnl({
         className={cn("flex flex-col lg:flex-row", !compact && "border-t")}
         style={{ borderColor: "hsl(var(--landing-border))" }}
       >
-        <div className={cn("flex-1", compact ? "p-2" : "p-4 md:p-5")}>
+        <div
+          className={cn("flex-1 overflow-hidden", compact ? "p-1" : "p-4 md:p-5")}
+          style={compact ? { transform: "scale(0.88)", transformOrigin: "top center", marginBottom: "-3%" } : undefined}
+        >
           <CalendarGrid
             year={displayYear}
             month={displayMonth}
@@ -220,13 +223,15 @@ export function CalendarPnl({
           />
         </div>
 
-        <DayDetailPanel
-          selectedDate={selectedDate}
-          dayData={selectedDayData}
-          dayNote={selectedDayNote}
-          userId={userId}
-          onNoteSaved={onNoteSaved}
-        />
+        {!compact && (
+          <DayDetailPanel
+            selectedDate={selectedDate}
+            dayData={selectedDayData}
+            dayNote={selectedDayNote}
+            userId={userId}
+            onNoteSaved={onNoteSaved}
+          />
+        )}
       </div>
     </div>
   );

@@ -287,10 +287,16 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       setSaving(false);
       clearTimeout(safetyTimer);
       onAccountCreated?.(accountId);
-      setStep("done");
 
-      // Fire-and-forget with timeout protection — never blocks UI
-      safeRefresh();
+      if (defaultKind) {
+        // For inline creation (e.g., backtest), close modal and auto-select new account
+        handleClose(false);
+        safeRefresh();
+      } else {
+        setStep("done");
+        // Fire-and-forget with timeout protection — never blocks UI
+        safeRefresh();
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao criar conta";
       console.error("[AddAccountModal] handleSave error:", msg);
@@ -556,7 +562,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                 <Input
                   value={accountName}
                   onChange={(e) => setAccountName(e.target.value)}
-                  placeholder={accountKind === "crypto" ? "Ex: Binance, Bybit..." : "Ex: XP, Clear..."}
+                  placeholder={accountKind === "crypto" ? "Ex: Binance, Bybit..." : accountKind === "backtest" ? "Ex: SMC, ICT, Fundamentalista..." : "Ex: XP, Clear..."}
                 />
               </div>
             )}
