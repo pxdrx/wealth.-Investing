@@ -28,20 +28,50 @@ export interface AnalysisSection {
 export interface AnalysisReport {
   ticker: string;
   assetType: string;
+  category: string;
   generatedAt: string;
+
+  // WHAT IS [TICKER]?
+  description: string;
+
+  // BY THE NUMBERS
+  metrics: Record<string, string>;
+
+  // THE ANALYSIS (3-5 paragraphs)
+  analysis: string;
+
+  // SCENARIOS
+  scenarios: {
+    bear: { probability: number; description: string; target?: string };
+    base: { probability: number; description: string; target?: string };
+    bull: { probability: number; description: string; target?: string };
+  };
+
+  // ASSET SCORE
+  score: {
+    value: number;
+    reasoning: string;
+  };
+
+  // VERDICT
+  verdict: {
+    type: "INVESTMENT" | "TRADING" | "HEDGE" | "AVOID";
+    bias: "bullish" | "bearish" | "neutral";
+    confidence: "alta" | "media" | "baixa";
+    text: string;
+    // Legacy
+    summary?: string;
+    keyLevels?: string[];
+    tradeIdea?: string;
+  };
+
+  // Legacy — keep for backward compat
   sections: {
     macro: AnalysisSection;
     technical: AnalysisSection;
     fundamental: AnalysisSection;
     sentiment: AnalysisSection;
     risk: AnalysisSection;
-  };
-  verdict: {
-    bias: "bullish" | "bearish" | "neutral";
-    confidence: "alta" | "media" | "baixa";
-    summary: string;
-    keyLevels: string[];
-    tradeIdea: string;
   };
 }
 

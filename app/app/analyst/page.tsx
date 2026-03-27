@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Clock,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { CpuArchitecture } from "@/components/ui/cpu-architecture";
@@ -28,10 +29,29 @@ interface AnalysisSectionData {
   confidence?: "alta" | "media" | "baixa";
 }
 
+interface ScenarioData {
+  probability: number;
+  description: string;
+  target: string;
+}
+
 interface AnalysisReport {
   ticker: string;
   assetType: string;
   generatedAt: string;
+  category?: string;
+  description?: string;
+  metrics?: Record<string, string>;
+  analysis?: string;
+  scenarios?: {
+    bear: ScenarioData;
+    base: ScenarioData;
+    bull: ScenarioData;
+  };
+  score?: {
+    value: number;
+    reasoning: string;
+  };
   sections: {
     macro: AnalysisSectionData;
     technical: AnalysisSectionData;
@@ -40,6 +60,8 @@ interface AnalysisReport {
     risk: AnalysisSectionData;
   };
   verdict: {
+    type?: "INVESTMENT" | "TRADING" | "HEDGE" | "AVOID";
+    text?: string;
     bias: "bullish" | "bearish" | "neutral";
     confidence: "alta" | "media" | "baixa";
     summary: string;
@@ -186,6 +208,371 @@ function getSuggestions(input: string): Array<{ name: string; ticker: string; ty
       a.name.toLowerCase().includes(q) ||
       a.ticker.toLowerCase().includes(q)
   ).slice(0, 6);
+}
+
+function ScoreBar({ value }: { value: number }) {
+  const pct = Math.max(0, Math.min(100, (value / 10) * 100));
+  const color =
+    value < 4
+      ? "bg-red-500"
+      : value <= 6
+        ? "bg-yellow-500"
+        : "bg-emerald-500";
+
+  return (
+    <div className="w-full h-3 rounded-full bg-muted/60 overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all duration-500 ${color}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function VerdictTypeLabel({ type }: { type: string }) {
+  const config: Record<string, { bg: string; text: string }> = {
+    INVESTMENT: {
+      bg: "bg-emerald-500/10 border-emerald-500/30",
+      text: "text-emerald-600 dark:text-emerald-400",
+    },
+    TRADING: {
+      bg: "bg-blue-500/10 border-blue-500/30",
+      text: "text-blue-600 dark:text-blue-400",
+    },
+    HEDGE: {
+      bg: "bg-amber-500/10 border-amber-500/30",
+      text: "text-amber-600 dark:text-amber-400",
+    },
+    AVOID: {
+      bg: "bg-red-500/10 border-red-500/30",
+      text: "text-red-600 dark:text-red-400",
+    },
+  };
+  const c = config[type] || config.TRADING;
+
+  return (
+    <span
+      className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider ${c.bg} ${c.text}`}
+    >
+      {type}
+    </span>
+  );
+}
+
+function ReportDisplay({ report }: { report: AnalysisReport }) {
+  const [sectionsOpen, setSectionsOpen] = useState(false);
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Header */}
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">{report.ticker}</h2>
+        <div className="flex items-center gap-2 mt-1">
+          {report.category && (
+            <span className="text-sm text-muted-foreground">{report.category}</span>
+          )}
+          {report.category && <span className="text-muted-foreground/40">·</span>}
+          <span className="text-sm text-muted-foreground capitalize">
+            {report.assetType}
+          </span>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="text-sm text-muted-foreground">
+            {new Date(report.generatedAt).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        </div>
+      </div>
+
+      {/* 2. WHAT IS [TICKER]? */}
+      {report.description && (
+        <div
+          className="rounded-[22px] border border-border/40 p-6 isolate"
+          style={{ backgroundColor: "hsl(var(--card))" }}
+        >
+          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-3">
+            O que e {report.ticker}?
+          </span>
+          <p className="text-sm leading-relaxed text-foreground/90">
+            {report.description}
+          </p>
+        </div>
+      )}
+
+      {/* 3. BY THE NUMBERS */}
+      {report.metrics && Object.keys(report.metrics).length > 0 && (
+        <div
+          className="rounded-[22px] border border-border/40 p-6 isolate"
+          style={{ backgroundColor: "hsl(var(--card))" }}
+        >
+          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-4">
+            Numeros-chave
+          </span>
+          <div className="divide-y divide-border/30">
+            {Object.entries(report.metrics).map(([key, value]) => (
+              <div
+                key={key}
+                className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
+              >
+                <span className="text-sm text-muted-foreground">{key}</span>
+                <span className="text-sm font-medium font-mono">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4. THE ANALYSIS */}
+      {report.analysis && (
+        <div
+          className="rounded-[22px] border border-border/40 p-6 isolate"
+          style={{ backgroundColor: "hsl(var(--card))" }}
+        >
+          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-4">
+            A Analise
+          </span>
+          <div className="space-y-4">
+            {report.analysis.split("\n\n").map((paragraph, i) => (
+              <p key={i} className="text-sm leading-relaxed text-foreground/90">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. SCENARIOS */}
+      {report.scenarios && (
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-4">
+            Cenarios
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Bear */}
+            {report.scenarios.bear && (
+              <div
+                className="rounded-[16px] border-2 border-red-500/30 p-5 isolate relative"
+                style={{ backgroundColor: "hsl(var(--card))" }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="h-4 w-4 text-red-500" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-red-500">
+                      Bear
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-red-500">
+                    {report.scenarios.bear.probability}%
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed text-foreground/80 mb-3">
+                  {report.scenarios.bear.description}
+                </p>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Target className="h-3 w-3" />
+                  <span className="font-mono font-medium">{report.scenarios.bear.target}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Base */}
+            {report.scenarios.base && (
+              <div
+                className="rounded-[16px] border-2 border-border/60 p-5 isolate relative"
+                style={{ backgroundColor: "hsl(var(--card))" }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Minus className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Base
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-foreground/70">
+                    {report.scenarios.base.probability}%
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed text-foreground/80 mb-3">
+                  {report.scenarios.base.description}
+                </p>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Target className="h-3 w-3" />
+                  <span className="font-mono font-medium">{report.scenarios.base.target}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Bull */}
+            {report.scenarios.bull && (
+              <div
+                className="rounded-[16px] border-2 border-emerald-500/30 p-5 isolate relative"
+                style={{ backgroundColor: "hsl(var(--card))" }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">
+                      Bull
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-emerald-500">
+                    {report.scenarios.bull.probability}%
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed text-foreground/80 mb-3">
+                  {report.scenarios.bull.description}
+                </p>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Target className="h-3 w-3" />
+                  <span className="font-mono font-medium">{report.scenarios.bull.target}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 6. ASSET SCORE */}
+      {report.score && (
+        <div
+          className="rounded-[22px] border border-border/40 p-6 isolate"
+          style={{ backgroundColor: "hsl(var(--card))" }}
+        >
+          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-4">
+            Score do Ativo
+          </span>
+          <div className="flex items-center gap-6 mb-4">
+            <span
+              className={`text-5xl font-bold tracking-tight ${
+                report.score.value < 4
+                  ? "text-red-500"
+                  : report.score.value <= 6
+                    ? "text-yellow-500"
+                    : "text-emerald-500"
+              }`}
+            >
+              {report.score.value}
+            </span>
+            <span className="text-2xl font-light text-muted-foreground/50">/10</span>
+            <div className="flex-1">
+              <ScoreBar value={report.score.value} />
+            </div>
+          </div>
+          <p className="text-sm leading-relaxed text-foreground/80">
+            {report.score.reasoning}
+          </p>
+        </div>
+      )}
+
+      {/* 7. VERDICT */}
+      <div
+        className="rounded-[22px] border-2 border-emerald-500/40 p-6 isolate"
+        style={{ backgroundColor: "hsl(var(--card))" }}
+      >
+        <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-3">
+          Veredito
+        </span>
+        <div className="flex items-center gap-3 mb-3">
+          {report.verdict.type && (
+            <VerdictTypeLabel type={report.verdict.type} />
+          )}
+          <BiasTag bias={report.verdict.bias} confidence={report.verdict.confidence} />
+        </div>
+        {report.verdict.text ? (
+          <p className="text-sm leading-relaxed text-foreground/90">
+            {report.verdict.text}
+          </p>
+        ) : (
+          <p className="text-sm leading-relaxed text-foreground/90">
+            {report.verdict.summary}
+          </p>
+        )}
+
+        {/* Key Levels */}
+        {report.verdict.keyLevels?.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {report.verdict.keyLevels.map((level, i) => (
+              <span
+                key={i}
+                className="rounded-full bg-muted px-3 py-1 text-xs font-mono"
+              >
+                {level}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Trade Idea */}
+        {report.verdict.tradeIdea && (
+          <div className="rounded-xl bg-muted/50 p-4 text-sm mt-4">
+            <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground block mb-1">
+              Ideia de Trade
+            </span>
+            {report.verdict.tradeIdea}
+          </div>
+        )}
+      </div>
+
+      {/* 8. Detailed Sections — Collapsible */}
+      {report.sections && (
+        <div
+          className="rounded-[22px] border border-border/40 isolate overflow-hidden"
+          style={{ backgroundColor: "hsl(var(--card))" }}
+        >
+          <button
+            onClick={() => setSectionsOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between p-5 text-left hover:bg-muted/30 transition-colors"
+          >
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              Analise Detalhada (5 secoes)
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                sectionsOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {sectionsOpen && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-5 pt-0">
+              {SECTION_CONFIG.map(({ key, icon: Icon, label }) => {
+                const section =
+                  report.sections[key as keyof typeof report.sections];
+                if (!section) return null;
+
+                return (
+                  <div
+                    key={key}
+                    className="rounded-[16px] border border-border/30 p-5"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold tracking-tight">
+                          {label}
+                        </h3>
+                      </div>
+                      {section.bias && (
+                        <BiasTag
+                          bias={section.bias}
+                          confidence={section.confidence}
+                        />
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {section.content}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AnalystPage() {
@@ -442,103 +829,9 @@ export default function AnalystPage() {
           </button>
         )}
 
-        {/* Report */}
+        {/* Report — Radar/0x100x style */}
         {report && (
-          <div className="space-y-6">
-            {/* Verdict Card */}
-            <div
-              className="rounded-[22px] border border-border/40 p-6 isolate"
-              style={{ backgroundColor: "hsl(var(--card))" }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold tracking-tight">
-                    {report.ticker}
-                  </h2>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {report.assetType} · Gerado{" "}
-                    {new Date(report.generatedAt).toLocaleString("pt-BR")}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {report.verdict.bias === "bullish" ? (
-                    <TrendingUp className="h-6 w-6 text-emerald-500" />
-                  ) : report.verdict.bias === "bearish" ? (
-                    <TrendingDown className="h-6 w-6 text-red-500" />
-                  ) : (
-                    <Minus className="h-6 w-6 text-gray-400" />
-                  )}
-                  <BiasTag
-                    bias={report.verdict.bias}
-                    confidence={report.verdict.confidence}
-                  />
-                </div>
-              </div>
-
-              <p className="text-sm leading-relaxed mb-4">
-                {report.verdict.summary}
-              </p>
-
-              {/* Key Levels */}
-              {report.verdict.keyLevels.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {report.verdict.keyLevels.map((level, i) => (
-                    <span
-                      key={i}
-                      className="rounded-full bg-muted px-3 py-1 text-xs font-mono"
-                    >
-                      {level}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Trade Idea */}
-              {report.verdict.tradeIdea && (
-                <div className="rounded-xl bg-muted/50 p-4 text-sm">
-                  <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground block mb-1">
-                    Ideia de Trade
-                  </span>
-                  {report.verdict.tradeIdea}
-                </div>
-              )}
-            </div>
-
-            {/* Analysis Sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {SECTION_CONFIG.map(({ key, icon: Icon, label }) => {
-                const section =
-                  report.sections[key as keyof typeof report.sections];
-                if (!section) return null;
-
-                return (
-                  <div
-                    key={key}
-                    className="rounded-[22px] border border-border/40 p-5 isolate"
-                    style={{ backgroundColor: "hsl(var(--card))" }}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="text-sm font-semibold tracking-tight">
-                          {label}
-                        </h3>
-                      </div>
-                      {section.bias && (
-                        <BiasTag
-                          bias={section.bias}
-                          confidence={section.confidence}
-                        />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                      {section.content}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <ReportDisplay report={report} />
         )}
 
         {/* History */}

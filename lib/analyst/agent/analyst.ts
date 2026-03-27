@@ -214,38 +214,59 @@ export async function generateAnalysis(
 
   const prompt = `Analise o ativo ${ticker} (tipo: ${assetType}).
 
-## Dados coletados:
+## Dados coletados de fontes reais:
 \`\`\`json
 ${dataContext}
 \`\`\`
 
-## Instrucoes:
-Gere um relatorio de analise completo em JSON com esta estrutura EXATA:
+## INSTRUCOES CRITICAS:
+1. USE APENAS os dados fornecidos acima para numeros e metricas. Nao invente precos, volumes ou indicadores.
+2. Se os dados mostram tendencia de queda, o bias DEVE ser bearish. Nunca seja otimista contra os dados.
+3. Considere o contexto geopolitico ATUAL (marco 2026): guerras, sancoes, ciclo de juros, decisoes de bancos centrais.
+4. Probabilidades de Bear+Base+Bull DEVEM somar exatamente 100%.
+5. O score de 1-10 deve ser coerente com o verdict e os cenarios.
 
+## Responda em JSON com esta estrutura EXATA:
 {
-  "sections": {
-    "macro": { "title": "Contexto Macro", "content": "...", "bias": "bullish|bearish|neutral", "confidence": "alta|media|baixa" },
-    "technical": { "title": "Analise Tecnica", "content": "...", "bias": "...", "confidence": "..." },
-    "fundamental": { "title": "Analise Fundamental", "content": "...", "bias": "...", "confidence": "..." },
-    "sentiment": { "title": "Sentimento", "content": "...", "bias": "...", "confidence": "..." },
-    "risk": { "title": "Gestao de Risco", "content": "...", "bias": "...", "confidence": "..." }
+  "category": "classificacao do ativo (ex: Digital gold (Cryptocurrency), Major Pair (Forex), Tech Stock (Equity))",
+  "description": "3-4 frases explicando o que e o ativo para qualquer pessoa",
+  "metrics": {
+    "Price": "valor atual do ativo",
+    "Market Cap": "se disponivel",
+    "Volume 24h": "se disponivel",
+    "Category": "mesma categoria",
+    ... outros campos relevantes ao tipo de ativo
+  },
+  "analysis": "3-5 paragrafos DENSOS de analise. Cite dados especificos: precos, percentuais, datas, indicadores. Cubra: contexto macro/geopolitico, dados tecnicos (RSI, MACD, medias), fundamentos, sentimento, fluxo institucional. NAO seja generico.",
+  "scenarios": {
+    "bear": { "probability": 40, "description": "Descricao detalhada do cenario negativo com triggers e contexto", "target": "$XX,XXX-$XX,XXX" },
+    "base": { "probability": 35, "description": "Cenario base com condicoes de manutencao", "target": "$XX,XXX-$XX,XXX" },
+    "bull": { "probability": 25, "description": "Cenario positivo com triggers necessarios", "target": "$XX,XXX-$XX,XXX" }
+  },
+  "score": {
+    "value": 6,
+    "reasoning": "Uma frase explicando o score baseado nos dados"
   },
   "verdict": {
+    "type": "INVESTMENT|TRADING|HEDGE|AVOID",
     "bias": "bullish|bearish|neutral",
     "confidence": "alta|media|baixa",
-    "summary": "Resumo do veredicto em 2-3 frases",
-    "keyLevels": ["Suporte: 1.0800", "Resistencia: 1.1000"],
-    "tradeIdea": "Descricao da ideia de trade com entry, SL e TP"
+    "text": "2-3 frases de recomendacao final acionavel"
+  },
+  "sections": {
+    "macro": { "title": "Contexto Macro", "content": "3-5 paragrafos", "bias": "bullish|bearish|neutral", "confidence": "alta|media|baixa" },
+    "technical": { "title": "Analise Tecnica", "content": "3-5 paragrafos", "bias": "...", "confidence": "..." },
+    "fundamental": { "title": "Analise Fundamental", "content": "3-5 paragrafos", "bias": "...", "confidence": "..." },
+    "sentiment": { "title": "Sentimento", "content": "3-5 paragrafos", "bias": "...", "confidence": "..." },
+    "risk": { "title": "Gestao de Risco", "content": "3-5 paragrafos", "bias": "...", "confidence": "..." }
   }
 }
 
-Regras:
-- content de cada secao: 3-5 paragrafos detalhados
-- Use dados reais dos dados coletados, nunca invente numeros
-- Se dados insuficientes para uma secao, explique o que falta e de a melhor analise possivel
+Regras finais:
 - Responda em PT-BR
-- Se for forex/commodity, foque em macro + tecnico. Se stock, foque em fundamental + tecnico. Se crypto, foque em sentimento + tecnico.
-- Retorne APENAS o JSON, sem markdown fencing`;
+- Retorne APENAS o JSON, sem markdown fencing
+- Se dados insuficientes para uma metrica, use "N/A"
+- analysis deve ser um unico string com paragrafos separados por \\n\\n`;
 
   // Step 3: Call Claude
   const response = await getClient().messages.create({
@@ -264,14 +285,10 @@ Regras:
     .replace(/```\n?/g, "")
     .trim();
 
-  let parsed: {
-    sections: Record<string, AnalysisSection>;
-    verdict: AnalysisReport["verdict"];
-  };
+  let parsed: Record<string, unknown>;
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    // Try to extract JSON from text
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       parsed = JSON.parse(jsonMatch[0]);
@@ -282,17 +299,43 @@ Regras:
 
   onEvent?.({ type: "status", data: "Analise completa!" });
 
+  const sections = (parsed.sections as Record<string, AnalysisSection>) ?? {};
+  const verdict = (parsed.verdict as Record<string, unknown>) ?? {};
+  const scenarios = (parsed.scenarios as Record<string, Record<string, unknown>>) ?? {};
+  const score = (parsed.score as Record<string, unknown>) ?? {};
+
   return {
     ticker: ticker.toUpperCase(),
     assetType,
+    category: (parsed.category as string) ?? assetType,
     generatedAt: new Date().toISOString(),
-    sections: {
-      macro: parsed.sections.macro,
-      technical: parsed.sections.technical,
-      fundamental: parsed.sections.fundamental,
-      sentiment: parsed.sections.sentiment,
-      risk: parsed.sections.risk,
+    description: (parsed.description as string) ?? "",
+    metrics: (parsed.metrics as Record<string, string>) ?? {},
+    analysis: (parsed.analysis as string) ?? "",
+    scenarios: {
+      bear: { probability: (scenarios.bear?.probability as number) ?? 33, description: (scenarios.bear?.description as string) ?? "", target: (scenarios.bear?.target as string) ?? undefined },
+      base: { probability: (scenarios.base?.probability as number) ?? 34, description: (scenarios.base?.description as string) ?? "", target: (scenarios.base?.target as string) ?? undefined },
+      bull: { probability: (scenarios.bull?.probability as number) ?? 33, description: (scenarios.bull?.description as string) ?? "", target: (scenarios.bull?.target as string) ?? undefined },
     },
-    verdict: parsed.verdict,
+    score: {
+      value: (score.value as number) ?? 5,
+      reasoning: (score.reasoning as string) ?? "",
+    },
+    verdict: {
+      type: ((verdict.type as string) ?? "TRADING") as "INVESTMENT" | "TRADING" | "HEDGE" | "AVOID",
+      bias: ((verdict.bias as string) ?? "neutral") as "bullish" | "bearish" | "neutral",
+      confidence: ((verdict.confidence as string) ?? "media") as "alta" | "media" | "baixa",
+      text: (verdict.text as string) ?? (verdict.summary as string) ?? "",
+      summary: (verdict.summary as string) ?? (verdict.text as string) ?? "",
+      keyLevels: (verdict.keyLevels as string[]) ?? [],
+      tradeIdea: (verdict.tradeIdea as string) ?? "",
+    },
+    sections: {
+      macro: sections.macro ?? { title: "Contexto Macro", content: "", bias: "neutral", confidence: "baixa" },
+      technical: sections.technical ?? { title: "Analise Tecnica", content: "", bias: "neutral", confidence: "baixa" },
+      fundamental: sections.fundamental ?? { title: "Analise Fundamental", content: "", bias: "neutral", confidence: "baixa" },
+      sentiment: sections.sentiment ?? { title: "Sentimento", content: "", bias: "neutral", confidence: "baixa" },
+      risk: sections.risk ?? { title: "Gestao de Risco", content: "", bias: "neutral", confidence: "baixa" },
+    },
   };
 }
