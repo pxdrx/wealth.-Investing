@@ -1,11 +1,17 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { ChevronDown, FlaskConical, Plus, TrendingUp, TrendingDown } from "lucide-react";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { cn } from "@/lib/utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { supabase } from "@/lib/supabase/client";
+
+const CalendarPnl = dynamic(
+  () => import("@/components/calendar/CalendarPnl").then((m) => ({ default: m.CalendarPnl })),
+  { ssr: false, loading: () => <div className="h-[320px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
 
 interface BacktestAccount {
   id: string;
@@ -14,15 +20,19 @@ interface BacktestAccount {
 }
 
 interface BacktestTrade {
+  id?: string;
   account_id: string;
   pnl_usd: number;
   net_pnl_usd: number;
   opened_at: string;
+  symbol?: string;
+  direction?: string;
 }
 
 interface BacktestSectionProps {
   accounts: BacktestAccount[];
   trades: BacktestTrade[];
+  userId?: string | null;
   onTradeAdded?: () => void;
 }
 
@@ -84,7 +94,7 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
         symbol: symbol.toUpperCase().trim(),
         direction,
         pnl_usd: pnlNum,
-        net_pnl_usd: pnlNum,
+        fees_usd: 0,
         opened_at: openedAt,
         closed_at: openedAt,
         notes: observation.trim() || null,
@@ -249,7 +259,7 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
 }
 
 // ── Main Section ──
-export function BacktestSection({ accounts, trades, onTradeAdded }: BacktestSectionProps) {
+export function BacktestSection({ accounts, trades, userId, onTradeAdded }: BacktestSectionProps) {
   const [expanded, setExpanded] = useState(true);
   const { mask } = usePrivacy();
 
@@ -388,6 +398,24 @@ export function BacktestSection({ accounts, trades, onTradeAdded }: BacktestSect
                 </div>
               ))}
             </div>
+
+            {/* Backtest Calendar */}
+            {globalStats.totalTrades > 0 && (
+              <div className="pb-3">
+                <CalendarPnl
+                  trades={trades.map((t) => ({
+                    id: t.id ?? `bt-${t.opened_at}-${t.account_id}`,
+                    net_pnl_usd: t.net_pnl_usd,
+                    opened_at: t.opened_at,
+                    account_id: t.account_id,
+                    symbol: t.symbol ?? "",
+                    direction: t.direction ?? "long",
+                  }))}
+                  accounts={activeAccounts.map((a) => ({ id: a.id, name: a.name }))}
+                  userId={userId}
+                />
+              </div>
+            )}
 
             {/* Per-account cards */}
             <div className="space-y-3">

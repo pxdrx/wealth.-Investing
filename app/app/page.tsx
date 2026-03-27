@@ -471,6 +471,7 @@ export default function DashboardPage() {
       newsError={newsError}
       dashboardLayout={dashboardLayout}
       onRefreshData={() => setRefreshKey((k) => k + 1)}
+      userId={userId}
     />
   );
 }
@@ -524,6 +525,7 @@ function DashboardContent({
   newsError,
   dashboardLayout,
   onRefreshData,
+  userId,
 }: {
   activeAccountId: string | null;
   journalTrades: JournalTradeKpiRow[];
@@ -540,6 +542,7 @@ function DashboardContent({
   newsError: string | null;
   dashboardLayout: DashboardLayout;
   onRefreshData?: () => void;
+  userId?: string | null;
 }) {
   const { hidden, toggle } = usePrivacy();
   const [chartExpanded, setChartExpanded] = useState(false);
@@ -727,11 +730,15 @@ function DashboardContent({
               return acc?.kind === "backtest" && t.opened_at && t.net_pnl_usd !== null;
             })
             .map((t) => ({
+              id: t.id,
               account_id: t.account_id!,
               pnl_usd: t.net_pnl_usd ?? 0,
               net_pnl_usd: t.net_pnl_usd ?? 0,
               opened_at: t.opened_at!,
+              symbol: t.symbol ?? "",
+              direction: t.direction ?? "long",
             }))}
+          userId={userId}
           onTradeAdded={onRefreshData}
         />
         </div>
