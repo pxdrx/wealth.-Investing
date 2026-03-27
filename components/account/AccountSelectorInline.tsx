@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, Plus, Briefcase, Wallet, Bitcoin, Settings } from "lucide-react";
+import { ChevronDown, Plus, Briefcase, Wallet, Bitcoin, Settings, FlaskConical } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import type { AccountWithProp } from "@/lib/accounts";
 function getAccountIcon(account: AccountWithProp) {
   if (account.kind === "crypto") return Bitcoin;
   if (account.kind === "personal") return Wallet;
+  if (account.kind === "backtest") return FlaskConical;
   return Briefcase;
 }
 
@@ -42,6 +43,7 @@ function getKindLabel(kind: string) {
   if (kind === "prop") return "Mesa Proprietária";
   if (kind === "personal") return "Capital Pessoal";
   if (kind === "crypto") return "Crypto";
+  if (kind === "backtest") return "Backtest";
   return kind;
 }
 
@@ -86,7 +88,7 @@ export function AccountSelectorInline({ showAddButton = false }: AccountSelector
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[340px]">
             {/* Group by kind */}
-            {(["prop", "personal", "crypto"] as const).map((kind) => {
+            {(["prop", "personal", "crypto", "backtest"] as const).map((kind) => {
               const kindAccounts = sortedAccounts.filter((a) => a.kind === kind);
               if (kindAccounts.length === 0) return null;
               return (

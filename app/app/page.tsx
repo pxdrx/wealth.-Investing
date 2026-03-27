@@ -470,6 +470,7 @@ export default function DashboardPage() {
       newsLoading={newsLoading}
       newsError={newsError}
       dashboardLayout={dashboardLayout}
+      onRefreshData={() => setRefreshKey((k) => k + 1)}
     />
   );
 }
@@ -522,6 +523,7 @@ function DashboardContent({
   newsLoading,
   newsError,
   dashboardLayout,
+  onRefreshData,
 }: {
   activeAccountId: string | null;
   journalTrades: JournalTradeKpiRow[];
@@ -537,6 +539,7 @@ function DashboardContent({
   newsLoading: boolean;
   newsError: string | null;
   dashboardLayout: DashboardLayout;
+  onRefreshData?: () => void;
 }) {
   const { hidden, toggle } = usePrivacy();
   const [chartExpanded, setChartExpanded] = useState(false);
@@ -729,6 +732,7 @@ function DashboardContent({
               net_pnl_usd: t.net_pnl_usd ?? 0,
               opened_at: t.opened_at!,
             }))}
+          onTradeAdded={onRefreshData}
         />
         </div>
       </div>
