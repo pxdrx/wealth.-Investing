@@ -343,10 +343,17 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
           )}
 
           {activeAccounts.length > 0 && (<>
-            {/* Quick Trade Form */}
-            <div className="pb-2">
-              <QuickTradeForm accountId={currentAccountId} onTradeAdded={onTradeAdded} />
-            </div>
+            {/* Quick Trade Form — hidden in "Todas" mode */}
+            {selectedAccountId && (
+              <div className="pb-2">
+                <QuickTradeForm accountId={selectedAccountId} onTradeAdded={onTradeAdded} />
+              </div>
+            )}
+            {!selectedAccountId && (
+              <p className="text-[10px] text-muted-foreground pt-2 pb-1 italic">
+                Selecione uma conta para adicionar trades.
+              </p>
+            )}
 
             {/* KPIs */}
             <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 pt-2 pb-3">

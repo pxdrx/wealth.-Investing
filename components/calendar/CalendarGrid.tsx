@@ -140,7 +140,7 @@ export function CalendarGrid({
               }}
             >
               <span
-                className="text-[10px] tabular-nums"
+                className="text-sm tabular-nums"
                 style={{
                   color: hasTrades
                     ? "hsl(var(--landing-text))"
@@ -152,7 +152,7 @@ export function CalendarGrid({
               </span>
               {hasTrades && pnl !== null && (
                 <span
-                  className="text-[7px] font-semibold tabular-nums"
+                  className="text-[10px] font-semibold tabular-nums"
                   style={{
                     color:
                       pnl > 0

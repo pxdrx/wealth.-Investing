@@ -223,15 +223,13 @@ export function CalendarPnl({
           />
         </div>
 
-        {!compact && (
-          <DayDetailPanel
-            selectedDate={selectedDate}
-            dayData={selectedDayData}
-            dayNote={selectedDayNote}
-            userId={userId}
-            onNoteSaved={onNoteSaved}
-          />
-        )}
+        <DayDetailPanel
+          selectedDate={selectedDate}
+          dayData={selectedDayData}
+          dayNote={selectedDayNote}
+          userId={userId}
+          onNoteSaved={onNoteSaved}
+        />
       </div>
     </div>
   );
