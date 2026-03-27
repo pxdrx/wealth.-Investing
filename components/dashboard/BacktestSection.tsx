@@ -111,13 +111,22 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
 
       if (dbErr) { setError(dbErr.message); return; }
 
-      setSuccess(true);
+      // Reset form immediately
       setSymbol("");
       setPnl("");
       setObservation("");
+      setShowObs(false);
       setDate(todayStr());
       setTime(nowTimeStr());
-      setTimeout(() => { setSuccess(false); onTradeAdded?.(); }, 300);
+      setSuccess(true);
+      setSaving(false);
+
+      // Refresh data immediately so calendar/KPIs update
+      onTradeAdded?.();
+
+      // Clear success badge after 1.5s
+      setTimeout(() => setSuccess(false), 1500);
+      return; // skip finally setSaving since we already did it
     } catch (err) {
       setError("Erro ao salvar trade.");
       console.error("[backtest] Save error:", err);
@@ -381,9 +390,9 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
     <AddAccountModal
       open={addModalOpen}
       onOpenChange={setAddModalOpen}
-      onAccountCreated={(id) => {
+      onAccountCreated={async (id) => {
         setSelectedAccountId(id);
-        refreshAccounts();
+        await refreshAccounts();
         onTradeAdded?.();
       }}
       onRefreshAccounts={refreshAccounts}
