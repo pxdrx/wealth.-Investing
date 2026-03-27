@@ -2,15 +2,17 @@
 
 import { useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { ChevronDown, FlaskConical, Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronDown, FlaskConical, Plus, TrendingUp, TrendingDown, PlusCircle } from "lucide-react";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { cn } from "@/lib/utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { supabase } from "@/lib/supabase/client";
+import { AddAccountModal } from "@/components/account/AddAccountModal";
+import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 
 const CalendarPnl = dynamic(
   () => import("@/components/calendar/CalendarPnl").then((m) => ({ default: m.CalendarPnl })),
-  { ssr: false, loading: () => <div className="h-[320px] w-full rounded-xl bg-muted animate-pulse" /> },
+  { ssr: false, loading: () => <div className="h-[260px] w-full rounded-xl bg-muted animate-pulse" /> },
 );
 
 interface BacktestAccount {
@@ -36,9 +38,7 @@ interface BacktestSectionProps {
   onTradeAdded?: () => void;
 }
 
-const QUICK_SYMBOLS = [
-  "XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NAS100", "US30", "BTCUSD", "USOIL",
-];
+const QUICK_SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NAS100", "US30", "BTCUSD", "USOIL"];
 
 function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
@@ -52,14 +52,23 @@ function nowTimeStr(): string {
   return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
+function detectCategory(sym: string): string {
+  const COMMODITIES = ["XAUUSD", "XAGUSD", "USOIL", "UKOIL", "NATGAS"];
+  const INDICES = ["NAS100", "US30", "US500", "SPX500", "DAX", "FTSE", "NIKKEI"];
+  const CRYPTO = ["BTCUSD", "ETHUSD", "BTCUSDT", "ETHUSDT"];
+  if (COMMODITIES.some((c) => sym.includes(c))) return "commodities";
+  if (INDICES.some((c) => sym.includes(c))) return "indices";
+  if (CRYPTO.some((c) => sym.includes(c))) return "crypto";
+  return "forex";
+}
+
 // ── Inline Trade Form ──
-function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[]; onTradeAdded?: () => void }) {
+function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTradeAdded?: () => void }) {
   const [symbol, setSymbol] = useState("");
   const [direction, setDirection] = useState<"long" | "short">("long");
   const [pnl, setPnl] = useState("");
   const [date, setDate] = useState(todayStr);
   const [time, setTime] = useState(nowTimeStr);
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [observation, setObservation] = useState("");
   const [showObs, setShowObs] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -68,7 +77,7 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
 
   const handleSubmit = useCallback(async () => {
     if (!symbol.trim() || !pnl.trim() || !accountId) {
-      setError("Preencha ativo, P&L e conta.");
+      setError("Preencha ativo e P&L.");
       return;
     }
     const pnlNum = parseFloat(pnl);
@@ -81,29 +90,16 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
     setError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        setError("Sessão inválida.");
-        return;
-      }
+      if (!session?.user?.id) { setError("Sessão inválida."); return; }
 
       const openedAt = `${date}T${time}:00`;
       const sym = symbol.toUpperCase().trim();
-
-      // Auto-detect category from symbol
-      const FOREX_PAIRS = ["EURUSD", "GBPUSD", "USDJPY", "USDCAD", "AUDUSD", "NZDUSD", "USDCHF", "EURGBP", "EURJPY", "GBPJPY"];
-      const INDICES = ["NAS100", "US30", "US500", "SPX500", "DAX", "FTSE", "NIKKEI"];
-      const CRYPTO = ["BTCUSD", "ETHUSD", "BTCUSDT", "ETHUSDT"];
-      const COMMODITIES = ["XAUUSD", "XAGUSD", "USOIL", "UKOIL", "NATGAS"];
-      let category = "forex";
-      if (COMMODITIES.some((c) => sym.includes(c))) category = "commodities";
-      else if (INDICES.some((c) => sym.includes(c))) category = "indices";
-      else if (CRYPTO.some((c) => sym.includes(c))) category = "crypto";
 
       const { error: dbErr } = await supabase.from("journal_trades").insert({
         user_id: session.user.id,
         account_id: accountId,
         symbol: sym,
-        category,
+        category: detectCategory(sym),
         direction,
         pnl_usd: pnlNum,
         fees_usd: 0,
@@ -113,10 +109,7 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
         mistakes: [],
       });
 
-      if (dbErr) {
-        setError(dbErr.message);
-        return;
-      }
+      if (dbErr) { setError(dbErr.message); return; }
 
       setSuccess(true);
       setSymbol("");
@@ -124,8 +117,7 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
       setObservation("");
       setDate(todayStr());
       setTime(nowTimeStr());
-      onTradeAdded?.();
-      setTimeout(() => setSuccess(false), 2000);
+      setTimeout(() => { setSuccess(false); onTradeAdded?.(); }, 300);
     } catch (err) {
       setError("Erro ao salvar trade.");
       console.error("[backtest] Save error:", err);
@@ -135,24 +127,24 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
   }, [symbol, direction, pnl, date, time, accountId, observation, onTradeAdded]);
 
   return (
-    <div className="rounded-[16px] border border-purple-500/20 p-4 space-y-3" style={{ backgroundColor: "hsl(var(--background))" }}>
-      <div className="flex items-center gap-2 mb-1">
-        <Plus className="h-3.5 w-3.5 text-purple-500" />
-        <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Adicionar Trade</span>
+    <div className="rounded-[14px] border border-purple-500/20 p-3 space-y-2.5" style={{ backgroundColor: "hsl(var(--background))" }}>
+      <div className="flex items-center gap-2">
+        <Plus className="h-3 w-3 text-purple-500" />
+        <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Adicionar Trade</span>
       </div>
 
       {/* Quick symbol buttons */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1">
         {QUICK_SYMBOLS.map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => setSymbol(s)}
             className={cn(
-              "rounded-full px-2.5 py-1 text-[10px] font-medium transition-all border",
+              "rounded-full px-2 py-0.5 text-[9px] font-medium transition-all border",
               symbol === s
                 ? "bg-purple-500 text-white border-purple-500"
-                : "border-border/60 text-muted-foreground hover:border-purple-500/40 hover:text-foreground"
+                : "border-border/60 text-muted-foreground hover:border-purple-500/40"
             )}
           >
             {s}
@@ -160,49 +152,28 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
         ))}
       </div>
 
-      {/* Account selector (if multiple) */}
-      {accounts.length > 1 && (
-        <select
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          className="w-full rounded-lg border border-border/40 bg-transparent px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
-        >
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>{a.name}</option>
-          ))}
-        </select>
-      )}
-
-      {/* Main row: Symbol + Direction + PnL */}
-      <div className="flex gap-2">
+      {/* Symbol + Direction + PnL */}
+      <div className="flex gap-1.5">
         <input
           type="text"
           value={symbol}
           onChange={(e) => setSymbol(e.target.value)}
-          placeholder="Ativo (ex: XAUUSD)"
-          className="flex-1 rounded-lg border border-border/40 bg-transparent px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-purple-500 uppercase"
+          placeholder="Ativo"
+          className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-purple-500 uppercase"
         />
         <div className="flex rounded-lg border border-border/40 overflow-hidden">
           <button
             type="button"
             onClick={() => setDirection("long")}
-            className={cn(
-              "flex items-center gap-1 px-3 py-2 text-xs font-medium transition-colors",
-              direction === "long" ? "bg-green-500 text-white" : "text-muted-foreground hover:bg-muted/50"
-            )}
+            className={cn("px-2.5 py-1.5 text-[10px] font-medium transition-colors", direction === "long" ? "bg-green-500 text-white" : "text-muted-foreground")}
           >
-            <TrendingUp className="h-3 w-3" />
             Buy
           </button>
           <button
             type="button"
             onClick={() => setDirection("short")}
-            className={cn(
-              "flex items-center gap-1 px-3 py-2 text-xs font-medium transition-colors",
-              direction === "short" ? "bg-red-500 text-white" : "text-muted-foreground hover:bg-muted/50"
-            )}
+            className={cn("px-2.5 py-1.5 text-[10px] font-medium transition-colors", direction === "short" ? "bg-red-500 text-white" : "text-muted-foreground")}
           >
-            <TrendingDown className="h-3 w-3" />
             Sell
           </button>
         </div>
@@ -212,61 +183,34 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
           onChange={(e) => setPnl(e.target.value)}
           placeholder="P&L ($)"
           step="0.01"
-          className="w-24 rounded-lg border border-border/40 bg-transparent px-3 py-2 text-xs font-medium tabular-nums focus:outline-none focus:ring-1 focus:ring-purple-500"
+          className="w-20 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium tabular-nums focus:outline-none focus:ring-1 focus:ring-purple-500"
         />
       </div>
 
-      {/* Date + Time row */}
-      <div className="flex gap-2">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="flex-1 rounded-lg border border-border/40 bg-transparent px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
-        />
-        <input
-          type="time"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-          className="w-28 rounded-lg border border-border/40 bg-transparent px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
-        />
+      {/* Date + Time */}
+      <div className="flex gap-1.5">
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-24 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
       </div>
 
       {/* Observation — collapsible */}
-      <button
-        type="button"
-        onClick={() => setShowObs((v) => !v)}
-        className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-      >
+      <button type="button" onClick={() => setShowObs((v) => !v)} className="text-[9px] text-muted-foreground hover:text-foreground transition-colors">
         {showObs ? "▾ Ocultar observações" : "▸ Adicionar observações"}
       </button>
       {showObs && (
-        <textarea
-          value={observation}
-          onChange={(e) => setObservation(e.target.value)}
-          placeholder="Contexto, motivo da entrada, observações..."
-          rows={2}
-          className="w-full rounded-lg border border-border/40 bg-transparent px-3 py-2 text-[11px] focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none"
-        />
+        <textarea value={observation} onChange={(e) => setObservation(e.target.value)} placeholder="Contexto, motivo da entrada..." rows={2} className="w-full rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none" />
       )}
 
       {/* Submit */}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={saving}
-          className={cn(
-            "flex-1 rounded-lg py-2.5 text-xs font-semibold transition-all",
-            success
-              ? "bg-green-500 text-white"
-              : "bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
-          )}
-        >
-          {saving ? "Salvando..." : success ? "Trade adicionado!" : "Adicionar trade"}
-        </button>
-      </div>
-      {error && <p className="text-[11px] text-red-500">{error}</p>}
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={saving}
+        className={cn("w-full rounded-lg py-2 text-xs font-semibold transition-all", success ? "bg-green-500 text-white" : "bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50")}
+      >
+        {saving ? "Salvando..." : success ? "Trade adicionado!" : "Adicionar trade"}
+      </button>
+      {error && <p className="text-[10px] text-red-500">{error}</p>}
     </div>
   );
 }
@@ -274,98 +218,64 @@ function QuickTradeForm({ accounts, onTradeAdded }: { accounts: BacktestAccount[
 // ── Main Section ──
 export function BacktestSection({ accounts, trades, userId, onTradeAdded }: BacktestSectionProps) {
   const [expanded, setExpanded] = useState(true);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null); // null = all
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const { mask } = usePrivacy();
+  const { refreshAccounts } = useActiveAccount();
 
-  const activeAccounts = useMemo(
-    () => accounts.filter((a) => a.is_active),
-    [accounts]
-  );
+  const activeAccounts = useMemo(() => accounts.filter((a) => a.is_active), [accounts]);
 
-  // Per-account stats
-  const accountStats = useMemo(() => {
-    return activeAccounts.map((account) => {
-      const accTrades = trades.filter((t) => t.account_id === account.id);
-      const totalPnl = accTrades.reduce((s, t) => s + t.net_pnl_usd, 0);
-      const wins = accTrades.filter((t) => t.net_pnl_usd > 0).length;
-      const losses = accTrades.filter((t) => t.net_pnl_usd < 0).length;
-      const totalTrades = accTrades.length;
-      const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+  // Filter trades by selected account
+  const filteredTrades = useMemo(() => {
+    if (!selectedAccountId) return trades.filter((t) => activeAccounts.some((a) => a.id === t.account_id));
+    return trades.filter((t) => t.account_id === selectedAccountId);
+  }, [trades, selectedAccountId, activeAccounts]);
 
-      const totalWinAmount = accTrades
-        .filter((t) => t.net_pnl_usd > 0)
-        .reduce((s, t) => s + t.net_pnl_usd, 0);
-      const totalLossAmount = accTrades
-        .filter((t) => t.net_pnl_usd < 0)
-        .reduce((s, t) => s + Math.abs(t.net_pnl_usd), 0);
-      const profitFactor = totalLossAmount > 0
-        ? totalWinAmount / totalLossAmount
-        : totalWinAmount > 0 ? Infinity : 0;
-
-      let peak = 0;
-      let maxDD = 0;
-      let cumPnl = 0;
-      const sorted = [...accTrades].sort((a, b) => a.opened_at.localeCompare(b.opened_at));
-      for (const t of sorted) {
-        cumPnl += t.net_pnl_usd;
-        if (cumPnl > peak) peak = cumPnl;
-        const dd = peak - cumPnl;
-        if (dd > maxDD) maxDD = dd;
-      }
-
-      const monthlyMap = new Map<string, { pnl: number; wins: number; total: number }>();
-      for (const t of accTrades) {
-        const month = t.opened_at.slice(0, 7);
-        const entry = monthlyMap.get(month) ?? { pnl: 0, wins: 0, total: 0 };
-        entry.pnl += t.net_pnl_usd;
-        entry.total += 1;
-        if (t.net_pnl_usd > 0) entry.wins += 1;
-        monthlyMap.set(month, entry);
-      }
-
-      const months = Array.from(monthlyMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([month, data]) => ({
-          month,
-          pnl: data.pnl,
-          winRate: data.total > 0 ? (data.wins / data.total) * 100 : 0,
-          trades: data.total,
-        }));
-
-      return { account, totalPnl, wins, losses, totalTrades, winRate, profitFactor, maxDD, months };
-    });
-  }, [activeAccounts, trades]);
-
-  // Global stats
-  const globalStats = useMemo(() => {
-    const allTrades = trades.filter((t) => activeAccounts.some((a) => a.id === t.account_id));
-    const totalPnl = allTrades.reduce((s, t) => s + t.net_pnl_usd, 0);
-    const wins = allTrades.filter((t) => t.net_pnl_usd > 0).length;
-    const total = allTrades.length;
+  // Stats for filtered trades
+  const stats = useMemo(() => {
+    const totalPnl = filteredTrades.reduce((s, t) => s + t.net_pnl_usd, 0);
+    const wins = filteredTrades.filter((t) => t.net_pnl_usd > 0).length;
+    const total = filteredTrades.length;
     const winRate = total > 0 ? (wins / total) * 100 : 0;
-    const totalWinAmount = allTrades.filter((t) => t.net_pnl_usd > 0).reduce((s, t) => s + t.net_pnl_usd, 0);
-    const totalLossAmount = allTrades.filter((t) => t.net_pnl_usd < 0).reduce((s, t) => s + Math.abs(t.net_pnl_usd), 0);
+    const totalWinAmount = filteredTrades.filter((t) => t.net_pnl_usd > 0).reduce((s, t) => s + t.net_pnl_usd, 0);
+    const totalLossAmount = filteredTrades.filter((t) => t.net_pnl_usd < 0).reduce((s, t) => s + Math.abs(t.net_pnl_usd), 0);
     const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : totalWinAmount > 0 ? Infinity : 0;
-    return { totalPnl, wins, losses: total - wins, totalTrades: total, winRate, profitFactor };
-  }, [trades, activeAccounts]);
+
+    let peak = 0, maxDD = 0, cumPnl = 0;
+    const sorted = [...filteredTrades].sort((a, b) => a.opened_at.localeCompare(b.opened_at));
+    for (const t of sorted) {
+      cumPnl += t.net_pnl_usd;
+      if (cumPnl > peak) peak = cumPnl;
+      const dd = peak - cumPnl;
+      if (dd > maxDD) maxDD = dd;
+    }
+
+    return { totalPnl, wins, losses: total - wins, totalTrades: total, winRate, profitFactor, maxDD };
+  }, [filteredTrades]);
 
   const pnlColor = (v: number) =>
     v > 0 ? "hsl(var(--pnl-positive))" : v < 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))";
 
+  const selectedAccount = selectedAccountId ? activeAccounts.find((a) => a.id === selectedAccountId) : null;
+  const currentAccountId = selectedAccountId ?? activeAccounts[0]?.id ?? "";
+
   return (
+    <>
     <div className="bg-card rounded-[22px] overflow-hidden relative isolate border border-border/40 shadow-sm">
+      {/* Header */}
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-accent/50"
+        className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-accent/50"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10">
-          <FlaskConical className="h-4 w-4 text-purple-500" />
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10">
+          <FlaskConical className="h-3.5 w-3.5 text-purple-500" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-semibold tracking-tight">Contas em Backtest</h3>
-          <p className="text-[11px] text-muted-foreground">
+          <h3 className="text-sm font-semibold tracking-tight">Backtest</h3>
+          <p className="text-[10px] text-muted-foreground">
             {activeAccounts.length > 0
-              ? `${activeAccounts.length} conta${activeAccounts.length !== 1 ? "s" : ""} · ${globalStats.totalTrades} trades`
+              ? `${activeAccounts.length} conta${activeAccounts.length !== 1 ? "s" : ""} · ${stats.totalTrades} trades`
               : "Simule estratégias sem arriscar capital real"}
           </p>
         </div>
@@ -373,127 +283,90 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
       </button>
 
       {expanded && (
-        <div className="border-t border-border/40 px-5 pb-5">
+        <div className="border-t border-border/40 px-4 pb-4">
+          {/* Account selector dropdown + Add account button */}
+          <div className="flex items-center gap-2 pt-3 pb-2">
+            <select
+              value={selectedAccountId ?? "__all__"}
+              onChange={(e) => setSelectedAccountId(e.target.value === "__all__" ? null : e.target.value)}
+              className="flex-1 rounded-lg border border-border/40 bg-transparent px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-purple-500"
+            >
+              <option value="__all__">Todas as contas</option>
+              {activeAccounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setAddModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-dashed border-purple-500/40 px-3 py-2 text-[10px] font-medium text-purple-600 dark:text-purple-400 transition-colors hover:bg-purple-500/5"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Nova conta
+            </button>
+          </div>
+
           {activeAccounts.length === 0 && (
-            <div className="py-8 text-center">
-              <FlaskConical className="mx-auto h-8 w-8 text-purple-500/40 mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">Nenhuma conta de backtest</p>
-              <p className="text-xs text-muted-foreground mb-4">
-                Crie uma conta do tipo &quot;Backtest&quot; para simular estratégias e acompanhar resultados.
+            <div className="py-6 text-center">
+              <FlaskConical className="mx-auto h-7 w-7 text-purple-500/40 mb-2" />
+              <p className="text-xs font-medium text-foreground mb-1">Nenhuma conta de backtest</p>
+              <p className="text-[10px] text-muted-foreground mb-3">
+                Crie uma conta &quot;Backtest&quot; para simular estratégias.
               </p>
             </div>
           )}
+
           {activeAccounts.length > 0 && (<>
             {/* Quick Trade Form */}
-            <div className="pt-4 pb-3">
-              <QuickTradeForm accounts={activeAccounts} onTradeAdded={onTradeAdded} />
+            <div className="pb-2">
+              <QuickTradeForm accountId={currentAccountId} onTradeAdded={onTradeAdded} />
             </div>
 
-            {/* Global KPIs */}
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 pt-2 pb-4">
+            {/* KPIs */}
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 pt-2 pb-3">
               {[
-                { label: "P&L TOTAL", value: mask(`$${Math.abs(globalStats.totalPnl).toFixed(0)}`), color: pnlColor(globalStats.totalPnl), prefix: globalStats.totalPnl >= 0 ? "+" : "-" },
-                { label: "WIN RATE", value: globalStats.totalTrades > 0 ? formatPercent(globalStats.winRate) : "—", color: globalStats.winRate >= 50 ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))" },
-                { label: "PROFIT FACTOR", value: globalStats.profitFactor === Infinity ? "∞" : globalStats.profitFactor > 0 ? globalStats.profitFactor.toFixed(2) : "—", color: globalStats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))" },
-                { label: "TRADES", value: `${globalStats.wins}W / ${globalStats.losses}L`, color: "hsl(var(--landing-text))" },
-                { label: "CONTAS", value: activeAccounts.length.toString(), color: "hsl(var(--landing-text))" },
-                { label: "TOTAL TRADES", value: globalStats.totalTrades.toString(), color: "hsl(var(--landing-text))" },
+                { label: "P&L", value: mask(`$${Math.abs(stats.totalPnl).toFixed(0)}`), color: pnlColor(stats.totalPnl), prefix: stats.totalPnl >= 0 ? "+" : "-" },
+                { label: "WIN RATE", value: stats.totalTrades > 0 ? formatPercent(stats.winRate) : "—", color: stats.winRate >= 50 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
+                { label: "PF", value: stats.profitFactor === Infinity ? "∞" : stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : "—", color: stats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
+                { label: "TRADES", value: `${stats.wins}W / ${stats.losses}L`, color: "hsl(var(--landing-text))" },
+                { label: "MAX DD", value: stats.maxDD > 0 ? mask(`-$${stats.maxDD.toFixed(0)}`) : "—", color: stats.maxDD > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
+                { label: "TOTAL", value: stats.totalTrades.toString(), color: "hsl(var(--landing-text))" },
               ].map((kpi) => (
-                <div
-                  key={kpi.label}
-                  className="rounded-lg px-3 py-2.5"
-                  style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
-                >
-                  <p className="text-[9px] uppercase tracking-wider mb-1 text-muted-foreground">{kpi.label}</p>
-                  <p className="text-sm font-semibold tabular-nums" style={{ color: kpi.color }}>
+                <div key={kpi.label} className="rounded-lg px-2.5 py-2" style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}>
+                  <p className="text-[8px] uppercase tracking-wider mb-0.5 text-muted-foreground">{kpi.label}</p>
+                  <p className="text-xs font-semibold tabular-nums" style={{ color: kpi.color }}>
                     {"prefix" in kpi && kpi.prefix ? `${kpi.prefix}${kpi.value}` : kpi.value}
                   </p>
                 </div>
               ))}
             </div>
 
-            {/* Backtest Calendar */}
-            <div className="pb-3">
-              <CalendarPnl
-                  trades={trades.map((t) => ({
-                    id: t.id ?? `bt-${t.opened_at}-${t.account_id}`,
-                    net_pnl_usd: t.net_pnl_usd,
-                    opened_at: t.opened_at,
-                    account_id: t.account_id,
-                    symbol: t.symbol ?? "",
-                    direction: t.direction ?? "long",
-                  }))}
-                  accounts={activeAccounts.map((a) => ({ id: a.id, name: a.name }))}
-                  userId={userId}
-                />
-              </div>
-
-            {/* Per-account cards */}
-            <div className="space-y-3">
-              {accountStats.map(({ account, totalPnl, winRate, profitFactor, maxDD, totalTrades, wins, losses, months }) => (
-                <div
-                  key={account.id}
-                  className="rounded-[16px] border border-border/30 overflow-hidden"
-                  style={{ backgroundColor: "hsl(var(--background))" }}
-                >
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: "hsl(var(--landing-text))" }}>{account.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{totalTrades} trades · {wins}W / {losses}L</p>
-                    </div>
-                    <div className="text-right">
-                      <MoneyDisplay value={totalPnl} showSign colorize className="text-sm font-semibold" />
-                      <p className="text-[11px] text-muted-foreground">
-                        WR {formatPercent(winRate)} · PF {profitFactor === Infinity ? "∞" : profitFactor.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {months.length > 0 && (
-                    <div className="border-t border-border/20 px-4 py-3">
-                      <p className="text-[9px] uppercase tracking-wider mb-2 text-muted-foreground">Assertividade mensal</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {months.map((m) => {
-                          const [, mm] = m.month.split("-");
-                          const monthLabel = new Date(2024, Number(mm) - 1).toLocaleDateString("pt-BR", { month: "short" });
-                          return (
-                            <div
-                              key={m.month}
-                              className="flex flex-col items-center rounded-lg px-2.5 py-1.5 min-w-[52px]"
-                              style={{
-                                backgroundColor: m.pnl > 0
-                                  ? "hsl(var(--pnl-positive) / 0.1)"
-                                  : m.pnl < 0
-                                    ? "hsl(var(--pnl-negative) / 0.1)"
-                                    : "hsl(var(--muted) / 0.3)",
-                              }}
-                            >
-                              <span className="text-[10px] font-medium text-muted-foreground">{monthLabel}</span>
-                              <span className="text-xs font-bold tabular-nums" style={{ color: m.winRate >= 50 ? "hsl(var(--pnl-positive))" : "hsl(var(--pnl-negative))" }}>
-                                {formatPercent(m.winRate)}
-                              </span>
-                              <span className="text-[9px] text-muted-foreground">{m.trades}t</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {maxDD > 0 && (
-                    <div className="border-t border-border/20 px-4 py-2 flex items-center justify-between">
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Max Drawdown</span>
-                      <span className="text-xs font-semibold tabular-nums" style={{ color: "hsl(var(--pnl-negative))" }}>
-                        {mask(`-$${maxDD.toFixed(0)}`)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            {/* Calendar */}
+            <CalendarPnl
+              trades={filteredTrades.map((t) => ({
+                id: t.id ?? `bt-${t.opened_at}-${t.account_id}`,
+                net_pnl_usd: t.net_pnl_usd,
+                opened_at: t.opened_at,
+                account_id: t.account_id,
+                symbol: t.symbol ?? "",
+                direction: t.direction ?? "long",
+              }))}
+              accounts={selectedAccountId ? undefined : activeAccounts.map((a) => ({ id: a.id, name: a.name }))}
+              userId={userId}
+              title={selectedAccount ? selectedAccount.name : "Calendário Backtest"}
+              compact
+            />
           </>)}
         </div>
       )}
     </div>
+
+    <AddAccountModal
+      open={addModalOpen}
+      onOpenChange={setAddModalOpen}
+      onAccountCreated={() => { refreshAccounts(); onTradeAdded?.(); }}
+      onRefreshAccounts={refreshAccounts}
+    />
+    </>
   );
 }

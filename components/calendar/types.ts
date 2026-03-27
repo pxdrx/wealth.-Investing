@@ -35,4 +35,6 @@ export interface CalendarPnlProps {
   dayNotes?: Record<string, DayNote>;
   userId?: string | null;
   onNoteSaved?: (date: string, note: DayNote) => void;
+  title?: string;
+  compact?: boolean;
 }

@@ -18,6 +18,8 @@ export function CalendarPnl({
   dayNotes,
   userId,
   onNoteSaved,
+  title: customTitle,
+  compact,
 }: CalendarPnlProps) {
   const now = new Date();
   const [displayYear, setDisplayYear] = useState(now.getFullYear());
@@ -100,7 +102,7 @@ export function CalendarPnl({
         : "hsl(var(--landing-text-muted))";
 
   const { mask } = usePrivacy();
-  const title = accounts ? "Consolidado de Contas" : "Calendário P&L";
+  const title = customTitle ?? (accounts ? "Consolidado de Contas" : "Calendário P&L");
 
   const selectedDayData = selectedDate ? dailyData.get(selectedDate) ?? null : null;
   const selectedDayNote = selectedDate && dayNotes ? dayNotes[selectedDate] ?? null : null;
