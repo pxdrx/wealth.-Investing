@@ -366,6 +366,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
       onOpenChange={setAddModalOpen}
       onAccountCreated={() => { refreshAccounts(); onTradeAdded?.(); }}
       onRefreshAccounts={refreshAccounts}
+      defaultKind="backtest"
     />
     </>
   );

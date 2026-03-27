@@ -6,6 +6,7 @@ import { aggregateByDay, formatPnl } from "./utils";
 import { CalendarGrid } from "./CalendarGrid";
 import { DayDetailPanel } from "./DayDetailPanel";
 import { usePrivacy } from "@/components/context/PrivacyContext";
+import { cn } from "@/lib/utils";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -147,54 +148,64 @@ export function CalendarPnl({
   ];
 
   return (
-    <div className="landing-card overflow-hidden">
-      {/* KPI Strip */}
-      <div className="px-4 md:px-5 pt-4 md:pt-5 pb-3">
-        <div className="flex items-baseline justify-between mb-3">
-          <h3
-            className="text-sm font-semibold tracking-tight"
-            style={{ color: "hsl(var(--landing-text))" }}
-          >
-            {title}
-          </h3>
-          <span
-            className="text-[11px] text-muted-foreground"
-          >
-            {MONTH_NAMES[displayMonth]} {displayYear}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-          {kpis.map((kpi) => (
-            <div
-              key={kpi.label}
-              className="rounded-lg px-3 py-2.5"
-              style={{
-                backgroundColor: "hsl(var(--landing-bg-tertiary))",
-              }}
+    <div className={cn("landing-card overflow-hidden", compact && "border-0 shadow-none")}>
+      {/* KPI Strip — hidden in compact mode */}
+      {!compact && (
+        <div className="px-4 md:px-5 pt-4 md:pt-5 pb-3">
+          <div className="flex items-baseline justify-between mb-3">
+            <h3
+              className="text-sm font-semibold tracking-tight"
+              style={{ color: "hsl(var(--landing-text))" }}
             >
-              <p
-                className="text-[9px] uppercase tracking-wider mb-1 text-muted-foreground"
+              {title}
+            </h3>
+            <span
+              className="text-[11px] text-muted-foreground"
+            >
+              {MONTH_NAMES[displayMonth]} {displayYear}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+            {kpis.map((kpi) => (
+              <div
+                key={kpi.label}
+                className="rounded-lg px-3 py-2.5"
+                style={{
+                  backgroundColor: "hsl(var(--landing-bg-tertiary))",
+                }}
               >
-                {kpi.label}
-              </p>
-              <p
-                className="text-sm font-semibold tabular-nums"
-                style={{ color: kpi.color }}
-              >
-                {mask(kpi.value)}
-              </p>
-            </div>
-          ))}
+                <p
+                  className="text-[9px] uppercase tracking-wider mb-1 text-muted-foreground"
+                >
+                  {kpi.label}
+                </p>
+                <p
+                  className="text-sm font-semibold tabular-nums"
+                  style={{ color: kpi.color }}
+                >
+                  {mask(kpi.value)}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Compact header */}
+      {compact && (
+        <div className="px-3 pt-3 pb-2 flex items-baseline justify-between">
+          <h3 className="text-xs font-semibold tracking-tight" style={{ color: "hsl(var(--landing-text))" }}>{title}</h3>
+          <span className="text-[10px] text-muted-foreground">{MONTH_NAMES[displayMonth]} {displayYear}</span>
+        </div>
+      )}
 
       {/* Calendar + Detail Panel */}
       <div
-        className="flex flex-col lg:flex-row border-t"
+        className={cn("flex flex-col lg:flex-row", !compact && "border-t")}
         style={{ borderColor: "hsl(var(--landing-border))" }}
       >
-        <div className="flex-1 p-4 md:p-5">
+        <div className={cn("flex-1", compact ? "p-2" : "p-4 md:p-5")}>
           <CalendarGrid
             year={displayYear}
             month={displayMonth}

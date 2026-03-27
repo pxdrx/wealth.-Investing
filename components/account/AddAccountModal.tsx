@@ -21,6 +21,7 @@ interface AddAccountModalProps {
   onOpenChange: (open: boolean) => void;
   onAccountCreated?: (id: string) => void;
   onRefreshAccounts?: () => Promise<void>;
+  defaultKind?: AccountKind;
 }
 
 type Step = "type" | "crypto-sub" | "firm" | "details" | "done" | "rename";
@@ -108,9 +109,9 @@ const PROP_FIRMS: PropFirmPreset[] = [
 
 const ACCOUNT_SIZES = [5000, 10000, 25000, 50000, 100000, 200000];
 
-export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefreshAccounts }: AddAccountModalProps) {
-  const [step, setStep] = useState<Step>("type");
-  const [accountKind, setAccountKind] = useState<AccountKind | null>(null);
+export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefreshAccounts, defaultKind }: AddAccountModalProps) {
+  const [step, setStep] = useState<Step>(defaultKind ? "details" : "type");
+  const [accountKind, setAccountKind] = useState<AccountKind | null>(defaultKind ?? null);
   const [selectedFirm, setSelectedFirm] = useState<PropFirmPreset | null>(null);
   const [customFirmName, setCustomFirmName] = useState("");
   const [accountName, setAccountName] = useState("");
@@ -127,8 +128,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
   const [renameSaving, setRenameSaving] = useState(false);
 
   const reset = () => {
-    setStep("type");
-    setAccountKind(null);
+    setStep(defaultKind ? "details" : "type");
+    setAccountKind(defaultKind ?? null);
     setSelectedFirm(null);
     setCustomFirmName("");
     setAccountName("");
