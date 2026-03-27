@@ -127,8 +127,6 @@ export function BacktestSection({ accounts, trades }: BacktestSectionProps) {
     return { totalPnl, wins, losses: total - wins, totalTrades: total, winRate, profitFactor };
   }, [trades, activeAccounts]);
 
-  if (activeAccounts.length === 0) return null;
-
   const pnlColor = (v: number) =>
     v > 0 ? "hsl(var(--pnl-positive))" : v < 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))";
 
@@ -146,7 +144,9 @@ export function BacktestSection({ accounts, trades }: BacktestSectionProps) {
         <div className="flex-1">
           <h3 className="text-sm font-semibold tracking-tight">Contas em Backtest</h3>
           <p className="text-[11px] text-muted-foreground">
-            {activeAccounts.length} conta{activeAccounts.length !== 1 ? "s" : ""} · {globalStats.totalTrades} trades
+            {activeAccounts.length > 0
+              ? `${activeAccounts.length} conta${activeAccounts.length !== 1 ? "s" : ""} · ${globalStats.totalTrades} trades`
+              : "Simule estratégias sem arriscar capital real"}
           </p>
         </div>
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
@@ -154,6 +154,16 @@ export function BacktestSection({ accounts, trades }: BacktestSectionProps) {
 
       {expanded && (
         <div className="border-t border-border/40 px-5 pb-5">
+          {activeAccounts.length === 0 && (
+            <div className="py-8 text-center">
+              <FlaskConical className="mx-auto h-8 w-8 text-purple-500/40 mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">Nenhuma conta de backtest</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Crie uma conta do tipo &quot;Backtest&quot; para simular estratégias e acompanhar resultados.
+              </p>
+            </div>
+          )}
+          {activeAccounts.length > 0 && (<>
           {/* Global KPIs */}
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 pt-4 pb-4">
             {[
@@ -252,6 +262,7 @@ export function BacktestSection({ accounts, trades }: BacktestSectionProps) {
               </div>
             ))}
           </div>
+          </>)}
         </div>
       )}
     </div>

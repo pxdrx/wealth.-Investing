@@ -118,7 +118,7 @@ const QUICK_ASSETS = [
   { label: "Petróleo", symbol: "TVC:USOIL", icon: Flame },
   { label: "Brent", symbol: "TVC:UKOIL", icon: Flame },
   { label: "Nasdaq", symbol: "PEPPERSTONE:NAS100", icon: BarChart3 },
-  { label: "DXY", symbol: "TVC:DXY", icon: CircleDollarSign },
+  { label: "DXY", symbol: "CAPITALCOM:DXY", icon: CircleDollarSign },
 ] as const;
 
 export default function DashboardPage() {
