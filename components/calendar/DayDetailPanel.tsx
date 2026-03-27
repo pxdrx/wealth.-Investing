@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { StickyNote, Save, Check } from "lucide-react";
+import { Notebook, Save, Check, TrendingUp, TrendingDown, List } from "lucide-react";
 import type { DayData, DayNote } from "./types";
 import { formatPnl } from "./utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
@@ -40,6 +40,17 @@ export function DayDetailPanel({
   const [saved, setSaved] = useState(false);
   const [noteId, setNoteId] = useState<string | null>(null);
 
+  // Individual trades for the selected day
+  const [dayTrades, setDayTrades] = useState<Array<{
+    id: string;
+    symbol: string;
+    direction: string;
+    pnl_usd: number;
+    net_pnl_usd: number;
+    opened_at: string;
+    notes: string | null;
+  }>>([]);
+
   // Sync local state when selectedDate or dayNote changes
   useEffect(() => {
     setObservation(dayNote?.observation ?? "");
@@ -47,7 +58,22 @@ export function DayDetailPanel({
     setTagInput("");
     setSaved(false);
     setNoteId(null);
-  }, [selectedDate, dayNote]);
+    setDayTrades([]);
+
+    // Fetch individual trades for this day
+    if (selectedDate && userId) {
+      (async () => {
+        const { data } = await supabase
+          .from("journal_trades")
+          .select("id, symbol, direction, pnl_usd, net_pnl_usd, opened_at, notes")
+          .eq("user_id", userId)
+          .gte("opened_at", `${selectedDate}T00:00:00`)
+          .lt("opened_at", `${selectedDate}T23:59:59.999`)
+          .order("opened_at", { ascending: true });
+        if (data) setDayTrades(data);
+      })();
+    }
+  }, [selectedDate, dayNote, userId]);
 
   const addTag = useCallback(() => {
     const tag = tagInput.trim().toLowerCase();
@@ -226,8 +252,8 @@ export function DayDetailPanel({
       {userId ? (
         <div>
           <p className="text-[9px] uppercase tracking-wider mb-1.5 text-muted-foreground flex items-center gap-1">
-            <StickyNote className="h-3 w-3" />
-            Observacao do dia
+            <Notebook className="h-3 w-3" />
+            Observação do dia
           </p>
           <textarea
             value={observation}
@@ -349,6 +375,45 @@ export function DayDetailPanel({
                   style={{ color: pnlColor(acc.pnl) }}
                 >
                   {mask(formatPnl(acc.pnl))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Individual trades list */}
+      {dayTrades.length > 0 && (
+        <div>
+          <p className="text-[9px] uppercase tracking-wider mb-1.5 text-muted-foreground flex items-center gap-1">
+            <List className="h-3 w-3" />
+            Operações
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {dayTrades.map((trade) => (
+              <div
+                key={trade.id}
+                className="flex items-center gap-2 rounded-lg p-2"
+                style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
+              >
+                {trade.direction === "buy" ? (
+                  <TrendingUp className="h-3 w-3 shrink-0 text-green-500" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 shrink-0 text-red-500" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold" style={{ color: "hsl(var(--landing-text))" }}>
+                    {trade.symbol}
+                  </p>
+                  {trade.notes && (
+                    <p className="text-[9px] text-muted-foreground truncate">{trade.notes}</p>
+                  )}
+                </div>
+                <span
+                  className="text-[11px] font-semibold tabular-nums shrink-0"
+                  style={{ color: pnlColor(trade.net_pnl_usd) }}
+                >
+                  {mask(formatPnl(trade.net_pnl_usd))}
                 </span>
               </div>
             ))}
