@@ -305,7 +305,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -353,7 +353,13 @@ export default function DashboardPage() {
     expectancy,
     perAccountSummaries,
   } = useMemo(() => {
-    if (!journalTrades.length) {
+    // Exclude backtest trades from main KPIs
+    const realTrades = journalTrades.filter((t) => {
+      const acc = accountsById.get(t.account_id ?? "");
+      return !acc || acc.kind !== "backtest";
+    });
+
+    if (!realTrades.length) {
       return {
         totalTrades: 0,
         winratePct: 0,
@@ -372,7 +378,7 @@ export default function DashboardPage() {
 
     const perAccount = new Map<string, { trades: number; wins: number }>();
 
-    for (const row of journalTrades) {
+    for (const row of realTrades) {
       const net =
         typeof row.net_pnl_usd === "number" && !Number.isNaN(row.net_pnl_usd)
           ? row.net_pnl_usd
@@ -414,7 +420,7 @@ export default function DashboardPage() {
         }),
       ),
     };
-  }, [journalTrades]);
+  }, [journalTrades, accountsById]);
 
   // Lazy-load TradingView iframe via IntersectionObserver
   const watchlistRef = useRef<HTMLDivElement>(null);
@@ -777,7 +783,11 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
   } = input;
 
   const accountsList = Array.from(accountsById.values());
-  const accountsSimple = accountsList.map((a) => ({ id: a.id, name: a.name }));
+  // Exclude backtest accounts from main dashboard views
+  const realAccounts = accountsList.filter((a) => a.kind !== "backtest");
+  const accountsSimple = realAccounts.map((a) => ({ id: a.id, name: a.name }));
+  const realAccountIds = new Set(realAccounts.map((a) => a.id));
+  const realTrades = journalTrades.filter((t) => realAccountIds.has(t.account_id ?? ""));
 
   // Find starting balance for active account (prop accounts only)
   const activeProp = activeAccountId
@@ -789,7 +799,7 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     // ── Calendar ──
     calendar: (
       <CalendarPnl
-        trades={journalTrades as unknown as TradeRow[]}
+        trades={realTrades as unknown as TradeRow[]}
         accounts={accountsSimple}
         dayNotes={dayNotes}
       />
@@ -798,7 +808,7 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     // ── KPI / Journal Briefing ──
     kpi: (
       <JournalBriefing
-        trades={journalTrades as unknown as TradeRow[]}
+        trades={realTrades as unknown as TradeRow[]}
         accounts={accountsSimple}
       />
     ),
@@ -806,14 +816,14 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     // ── Accounts Overview ──
     accounts: (
       <AccountsOverview
-        accounts={accountsList.map((a) => ({
+        accounts={realAccounts.map((a) => ({
           id: a.id,
           name: a.name,
           kind: a.kind,
           is_active: a.is_active,
         }))}
         propAccounts={propAccounts}
-        trades={journalTrades
+        trades={realTrades
           .filter(
             (t) =>
               t.account_id !== null &&
@@ -838,19 +848,19 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     "macro-events": <MacroWidgetEvents />,
 
     // ── Equity Curve Mini ──
-    "equity-mini": <EquityCurveMini trades={journalTrades} startingBalanceUsd={activeStartingBalance} />,
+    "equity-mini": <EquityCurveMini trades={realTrades} startingBalanceUsd={activeStartingBalance} />,
 
     // ── Session Heatmap ──
-    "session-heatmap": <SessionHeatmap trades={journalTrades} />,
+    "session-heatmap": <SessionHeatmap trades={realTrades} />,
 
     // ── Tiltmeter ──
-    tiltmeter: <TiltmeterWidget trades={journalTrades as unknown as JournalTradeRow[]} />,
+    tiltmeter: <TiltmeterWidget trades={realTrades as unknown as JournalTradeRow[]} />,
 
     // ── Top Symbols ──
-    "top-symbols": <TopSymbolsWidget trades={journalTrades} />,
+    "top-symbols": <TopSymbolsWidget trades={realTrades} />,
 
     // ── Streaks ──
-    streaks: <StreaksWidget trades={journalTrades} />,
+    streaks: <StreaksWidget trades={realTrades} />,
 
     // ── AI Insight ──
     "ai-insight": <AiInsightWidget />,

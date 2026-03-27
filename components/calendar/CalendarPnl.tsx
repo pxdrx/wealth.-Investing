@@ -207,7 +207,7 @@ export function CalendarPnl({
       >
         <div
           className={cn("flex-1 overflow-hidden", compact ? "p-1" : "p-4 md:p-5")}
-          style={compact ? { transform: "scale(0.95)", transformOrigin: "top center", marginBottom: "-1.5%" } : undefined}
+          style={undefined}
         >
           <CalendarGrid
             year={displayYear}
