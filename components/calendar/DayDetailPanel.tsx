@@ -11,7 +11,6 @@ interface DayDetailPanelProps {
   selectedDate: string | null;
   dayData: DayData | null;
   dayNote: DayNote | null;
-  showConsolidatedToggle?: boolean;
   userId?: string | null;
   onNoteSaved?: (date: string, note: DayNote) => void;
 }
@@ -28,14 +27,10 @@ export function DayDetailPanel({
   selectedDate,
   dayData,
   dayNote,
-  showConsolidatedToggle,
   userId,
   onNoteSaved,
 }: DayDetailPanelProps) {
   const { mask } = usePrivacy();
-  const [viewMode, setViewMode] = useState<"consolidated" | "per-account">(
-    "consolidated"
-  );
 
   // Editable note state
   const [observation, setObservation] = useState("");
@@ -323,72 +318,41 @@ export function DayDetailPanel({
         </button>
       )}
 
-      {/* Consolidated / Per-account toggle */}
-      {showConsolidatedToggle && dayData?.byAccount && (
+      {/* Per-account breakdown */}
+      {dayData?.byAccount && (
         <div>
-          <div
-            className="flex rounded-lg overflow-hidden mb-3"
-            style={{
-              backgroundColor: "hsl(var(--landing-bg-tertiary))",
-            }}
-          >
-            {(
-              [
-                { key: "consolidated", label: "Consolidado" },
-                { key: "per-account", label: "Por conta" },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setViewMode(tab.key)}
-                className="flex-1 py-1.5 text-center text-[10px] font-medium transition-colors"
+          <p className="text-[9px] uppercase tracking-wider mb-1.5 text-muted-foreground">
+            Por conta
+          </p>
+          <div className="flex flex-col gap-2">
+            {Object.entries(dayData.byAccount).map(([accId, acc]) => (
+              <div
+                key={accId}
+                className="flex items-center justify-between rounded-lg p-2.5"
                 style={{
-                  backgroundColor:
-                    viewMode === tab.key
-                      ? "hsl(var(--landing-text))"
-                      : "transparent",
-                  color:
-                    viewMode === tab.key
-                      ? "hsl(var(--landing-bg))"
-                      : "hsl(var(--landing-text-muted))",
+                  backgroundColor: "hsl(var(--landing-bg-tertiary))",
                 }}
               >
-                {tab.label}
-              </button>
+                <div>
+                  <p
+                    className="text-[11px] font-medium"
+                    style={{ color: "hsl(var(--landing-text))" }}
+                  >
+                    {acc.accountName}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">
+                    {acc.trades} trade{acc.trades !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <span
+                  className="text-xs font-semibold tabular-nums"
+                  style={{ color: pnlColor(acc.pnl) }}
+                >
+                  {mask(formatPnl(acc.pnl))}
+                </span>
+              </div>
             ))}
           </div>
-
-          {viewMode === "per-account" && (
-            <div className="flex flex-col gap-2">
-              {Object.entries(dayData.byAccount).map(([accId, acc]) => (
-                <div
-                  key={accId}
-                  className="flex items-center justify-between rounded-lg p-2.5"
-                  style={{
-                    backgroundColor: "hsl(var(--landing-bg-tertiary))",
-                  }}
-                >
-                  <div>
-                    <p
-                      className="text-[11px] font-medium"
-                      style={{ color: "hsl(var(--landing-text))" }}
-                    >
-                      {acc.accountName}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground">
-                      {acc.trades} trade{acc.trades !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                  <span
-                    className="text-xs font-semibold tabular-nums"
-                    style={{ color: pnlColor(acc.pnl) }}
-                  >
-                    {mask(formatPnl(acc.pnl))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 

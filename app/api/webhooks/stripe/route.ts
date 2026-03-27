@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { getStripe, planFromPriceId } from "@/lib/stripe";
+import { getStripe, planFromPriceId, intervalFromPriceId } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 
 /** Extract current_period_end from a subscription object.
@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
         const sub = await getStripe().subscriptions.retrieve(subscriptionId);
         const priceId = sub.items.data[0]?.price.id;
         const plan = planFromPriceId(priceId ?? "") ?? "pro";
+        const billingInterval = intervalFromPriceId(priceId ?? "") ?? "month";
 
         await supabaseAdmin.from("subscriptions").upsert({
           user_id: userId,
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
           stripe_subscription_id: subscriptionId,
           stripe_event_id: event.id,
           plan,
+          billing_interval: billingInterval,
           status: "active",
           current_period_end: getPeriodEnd(sub as unknown as Record<string, unknown>),
           cancel_at_period_end: sub.cancel_at_period_end,
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
 
         const priceId = sub.items.data[0]?.price.id;
         const plan = planFromPriceId(priceId ?? "");
+        const billingInterval = intervalFromPriceId(priceId ?? "");
 
         await supabaseAdmin.from("subscriptions").upsert({
           user_id: userId,
@@ -86,6 +89,7 @@ export async function POST(req: NextRequest) {
           stripe_subscription_id: sub.id,
           stripe_event_id: event.id,
           plan: plan ?? "free",
+          billing_interval: billingInterval ?? "month",
           status: sub.status === "active" ? "active"
             : sub.status === "past_due" ? "past_due"
             : sub.status === "canceled" ? "canceled"

@@ -17,9 +17,9 @@ const FEEDS = {
 const HIGH_IMPACT_KEYWORDS =
   /\b(rate|rates|CPI|NFP|GDP|FOMC|Fed|ECB|BoJ|BoE|RBA|SNB|BoC|RBNZ|tariff|tariffs|trade war|trade deal|oil|crude|WTI|Brent|gold|silver|copper|bitcoin|BTC|ETH|crypto|inflation|deflation|employment|jobs|unemployment|PMI|ISM|retail sales|housing|PPI|PCE|treasury|treasuries|yield|yields|bond|bonds|dollar|DXY|euro|EUR|yen|JPY|pound|GBP|franc|CHF|AUD|NZD|CAD|central bank|monetary policy|recession|stimulus|sanctions|war|geopolitical|stock|stocks|market|markets|economy|economic|bank|banking|policy|trade|export|import|China|Russia|Ukraine|Iran|OPEC|Nasdaq|S&P|Dow|equities|rally|crash|surge|plunge|cut|hike|dovish|hawkish|risk|volatility|VIX|forex|FX|currency|commodit)\b/i;
 
-// Keywords to EXCLUDE (noise)
+// Keywords to EXCLUDE (noise + non-macro content)
 const EXCLUDE_KEYWORDS =
-  /\b(sponsored|advertisement|partner content|webinar|course|academy|broker review|sign up|subscribe now|open account|demo account|trading platform review)\b/i;
+  /\b(sponsored|advertisement|partner content|webinar|course|academy|broker review|sign up|subscribe now|open account|demo account|trading platform review|sport|football|soccer|baseball|basketball|tennis|NFL|NBA|MLB|NHL|FIFA|championship|tournament|athlete|coach|player transfer|celebrity|entertainment|movie|film|TV show|series|actor|actress|singer|concert|album|Grammy|Oscar|Emmy|art|museum|statue|sculpture|gallery|exhibition|painting|fashion|shoe|sneaker|designer|runway|clothing|apparel|robot|humanoid|space launch|SpaceX launch|Mars|moon landing|recipe|cooking|restaurant|chef|food truck)\b/i;
 
 /**
  * Try fetching from a list of URLs, return first successful response.

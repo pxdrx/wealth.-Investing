@@ -15,6 +15,7 @@ export interface SubscriptionRow {
   stripe_subscription_id: string | null;
   plan: PlanType;
   status: SubStatusType;
+  billing_interval: "month" | "year" | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
 }

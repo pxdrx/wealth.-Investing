@@ -3,7 +3,7 @@
 import { useState } from "react";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
-import { Check } from "lucide-react";
+import { Check, ArrowDown, ArrowUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ interface TierDef {
   highlighted?: boolean;
   badge?: string;
 }
+
+const PLAN_RANK: Record<Plan, number> = { free: 0, pro: 1, ultra: 2 };
 
 const tiers: TierDef[] = [
   {
@@ -81,10 +83,67 @@ function fireConfetti() {
   confetti({ ...defaults, particleCount: 50, origin: { x: 0.7, y: 0.6 } });
 }
 
+/** Determine the button label and action for a tier card */
+function getButtonState(
+  tierId: Plan,
+  currentPlan: Plan,
+  currentInterval: "month" | "year" | null,
+  viewingAnnual: boolean,
+): { label: string; action: "none" | "subscribe" | "upgrade" | "downgrade" | "manage"; disabled: boolean; icon?: "up" | "down" } {
+  const isPaid = currentPlan !== "free";
+  const currentIsAnnual = currentInterval === "year";
+
+  // Free card: always disabled/dimmed if user has a paid plan
+  if (tierId === "free") {
+    if (currentPlan === "free") {
+      return { label: "Plano atual", action: "none", disabled: true };
+    }
+    return { label: "Plano atual", action: "none", disabled: true };
+  }
+
+  // Exact match: same tier AND same interval
+  if (tierId === currentPlan && ((viewingAnnual && currentIsAnnual) || (!viewingAnnual && !currentIsAnnual))) {
+    return { label: "Plano atual", action: "manage", disabled: false };
+  }
+
+  // Same tier, different interval (e.g., Ultra Monthly viewing Annual tab)
+  if (tierId === currentPlan && viewingAnnual && !currentIsAnnual) {
+    return { label: "Upgrade para Anual", action: "upgrade", disabled: false, icon: "up" };
+  }
+  if (tierId === currentPlan && !viewingAnnual && currentIsAnnual) {
+    return { label: "Mudar para Mensal", action: "subscribe", disabled: false };
+  }
+
+  // Different tier
+  if (!isPaid) {
+    return { label: "Assinar", action: "subscribe", disabled: false };
+  }
+
+  const tierRank = PLAN_RANK[tierId];
+  const currentRank = PLAN_RANK[currentPlan];
+
+  // Viewing annual tab while on monthly — any paid tier is an upgrade
+  if (viewingAnnual && !currentIsAnnual) {
+    return { label: "Upgrade para Anual", action: "upgrade", disabled: false, icon: "up" };
+  }
+
+  // Same interval comparison
+  if (tierRank > currentRank) {
+    return { label: "Upgrade", action: "upgrade", disabled: false, icon: "up" };
+  }
+  if (tierRank < currentRank) {
+    return { label: "Downgrade", action: "downgrade", disabled: false, icon: "down" };
+  }
+
+  return { label: "Assinar", action: "subscribe", disabled: false };
+}
+
 export function PricingCards() {
   const [annual, setAnnual] = useState(false);
   const [loadingTier, setLoadingTier] = useState<Plan | null>(null);
   const { plan: currentPlan, subscription } = useSubscription();
+
+  const currentInterval = subscription?.billing_interval ?? null;
 
   function handleToggle() {
     const goingAnnual = !annual;
@@ -154,6 +213,19 @@ export function PricingCards() {
     }
   }
 
+  function handleButtonClick(tierId: Plan, action: string) {
+    if (action === "manage") {
+      handleManageSubscription();
+    } else if (action === "subscribe" || action === "upgrade" || action === "downgrade") {
+      // For upgrades/downgrades with existing subscription, use Stripe Portal
+      if (subscription?.stripe_customer_id && (action === "upgrade" || action === "downgrade")) {
+        handleManageSubscription();
+      } else {
+        handleSubscribe(tierId);
+      }
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Toggle */}
@@ -192,16 +264,19 @@ export function PricingCards() {
       {/* Cards */}
       <div className="grid gap-6 md:grid-cols-3">
         {tiers.map((tier) => {
-          const isCurrent = currentPlan === tier.id;
           const price = annual ? tier.annualPrice : tier.monthlyPrice;
           const isFree = tier.id === "free";
+          const btnState = getButtonState(tier.id, currentPlan, currentInterval, annual);
+          const isCurrentCard = btnState.action === "manage" || (btnState.label === "Plano atual" && btnState.disabled);
+          const isLoading = loadingTier === tier.id || (loadingTier === "free" && btnState.action === "manage");
 
           return (
             <Card
               key={tier.id}
               className={cn(
                 "relative flex flex-col rounded-[22px] p-6",
-                tier.highlighted && "border-blue-500 border-2 shadow-lg"
+                tier.highlighted && "border-blue-500 border-2 shadow-lg",
+                isCurrentCard && !isFree && "ring-2 ring-green-500/30"
               )}
               style={{ backgroundColor: "hsl(var(--card))" }}
             >
@@ -245,60 +320,45 @@ export function PricingCards() {
                 ))}
               </ul>
 
-              <div className="mt-6">
-                {isCurrent ? (
-                  <Button
-                    className="w-full rounded-full"
-                    variant="outline"
-                    disabled
-                  >
-                    Plano atual
-                  </Button>
-                ) : isFree ? (
-                  currentPlan === "free" ? (
-                    <Button
-                      className="w-full rounded-full"
-                      variant="outline"
-                      disabled
-                    >
-                      Plano atual
-                    </Button>
-                  ) : subscription?.stripe_customer_id ? (
-                    <Button
-                      className="w-full rounded-full"
-                      variant="outline"
-                      disabled={loadingTier === "free"}
-                      onClick={handleManageSubscription}
-                    >
-                      {loadingTier === "free" ? "Redirecionando..." : "Gerenciar assinatura"}
-                    </Button>
+              <div className="mt-6 space-y-2">
+                <Button
+                  className={cn(
+                    "w-full rounded-full",
+                    btnState.action === "manage" && "bg-green-600 text-white hover:bg-green-700",
+                    btnState.action === "upgrade" && "bg-blue-600 text-white hover:bg-blue-700",
+                    btnState.action === "downgrade" && "border-orange-500/50 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20",
+                    btnState.disabled && isFree && currentPlan !== "free" && "opacity-40",
+                  )}
+                  variant={
+                    btnState.action === "manage" ? "default"
+                      : btnState.action === "upgrade" ? "default"
+                      : btnState.action === "downgrade" ? "outline"
+                      : btnState.disabled ? "outline"
+                      : tier.highlighted ? "default" : "outline"
+                  }
+                  disabled={btnState.disabled || isLoading}
+                  onClick={() => handleButtonClick(tier.id, btnState.action)}
+                >
+                  {isLoading ? (
+                    "Redirecionando..."
                   ) : (
-                    <Button
-                      className="w-full rounded-full"
-                      variant="outline"
-                      disabled
-                    >
-                      Plano atual
-                    </Button>
-                  )
-                ) : (
-                  <Button
-                    className={cn(
-                      "w-full rounded-full",
-                      tier.highlighted
-                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : ""
-                    )}
-                    variant={tier.highlighted ? "default" : "outline"}
-                    disabled={loadingTier === tier.id}
-                    onClick={() => handleSubscribe(tier.id)}
+                    <span className="inline-flex items-center gap-1.5">
+                      {btnState.icon === "up" && <ArrowUp className="h-3.5 w-3.5" />}
+                      {btnState.icon === "down" && <ArrowDown className="h-3.5 w-3.5" />}
+                      {btnState.label}
+                    </span>
+                  )}
+                </Button>
+
+                {/* "Gerenciar assinatura" link on the current plan card */}
+                {btnState.action === "manage" && (
+                  <button
+                    type="button"
+                    onClick={handleManageSubscription}
+                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
                   >
-                    {loadingTier === tier.id
-                      ? "Redirecionando..."
-                      : currentPlan === tier.id
-                        ? "Trocar período"
-                        : "Assinar"}
-                  </Button>
+                    Gerenciar assinatura
+                  </button>
                 )}
               </div>
             </Card>

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
-import { Briefcase, Wallet, Bitcoin, Building2, ChevronLeft, Check, Upload } from "lucide-react";
+import { Briefcase, Wallet, Bitcoin, Building2, ChevronLeft, Check, Upload, FlaskConical } from "lucide-react";
 import type { AccountKind } from "@/lib/accounts";
 
 interface AddAccountModalProps {
@@ -205,7 +205,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       const isPropFlow = accountKind === "prop" || cryptoSubKind === "prop";
       const baseName = isPropFlow
         ? `${firmName} ${finalBalance >= 1000 ? `${(finalBalance / 1000).toFixed(0)}k` : finalBalance}`
-        : accountName || (accountKind === "crypto" ? "Crypto" : "Capital Pessoal");
+        : accountName || (accountKind === "crypto" ? "Crypto" : accountKind === "backtest" ? "Backtest" : "Capital Pessoal");
 
       // Dedup name: if "FTMO 50k" exists, try "FTMO 50k (2)", "FTMO 50k (3)", etc.
       let name = baseName;
@@ -318,6 +318,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
               { kind: "prop" as const, label: "Mesa Proprietária", desc: "FTMO, The5ers, FundedNext...", icon: Briefcase, color: "text-blue-500" },
               { kind: "personal" as const, label: "Capital Pessoal", desc: "Conta com capital próprio", icon: Wallet, color: "text-emerald-500" },
               { kind: "crypto" as const, label: "Crypto", desc: "Conta de criptomoedas", icon: Bitcoin, color: "text-amber-500" },
+              { kind: "backtest" as const, label: "Backtest", desc: "Conta para testes e simulações", icon: FlaskConical, color: "text-purple-500" },
             ]).map((opt) => (
               <button
                 key={opt.kind}

@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 
-export type AccountKind = "prop" | "personal" | "crypto";
+export type AccountKind = "prop" | "personal" | "crypto" | "backtest";
 
 export interface Account {
   id: string;
@@ -33,6 +33,7 @@ const KIND_ORDER: Record<AccountKind, number> = {
   prop: 0,
   personal: 1,
   crypto: 2,
+  backtest: 3,
 };
 
 function sortAccounts(a: Account, b: Account): number {

@@ -56,13 +56,15 @@ export function AccountsOverview({
     [trades]
   );
 
-  // KPI: Capital Total Financiado (active prop accounts)
+  // KPI: Capital Funded (only funded prop accounts)
   const capitalFunded = useMemo(() => {
     return accounts
       .filter((a) => a.is_active && a.kind === "prop")
       .reduce((sum, a) => {
         const pa = propAccountMap.get(a.id);
-        return sum + (pa?.starting_balance_usd ?? 0);
+        // Only count funded accounts, not challenge/evaluation
+        if (!pa || pa.phase !== "funded") return sum;
+        return sum + (pa.starting_balance_usd ?? 0);
       }, 0);
   }, [accounts, propAccountMap]);
 
@@ -81,7 +83,7 @@ export function AccountsOverview({
   // Per-account metrics
   const accountRows = useMemo(() => {
     return accounts
-      .filter((a) => a.is_active)
+      .filter((a) => a.is_active && a.kind !== "backtest")
       .map((account) => {
         const pa = propAccountMap.get(account.id);
         const monthTrades = currentMonthTrades.filter(
@@ -179,7 +181,7 @@ export function AccountsOverview({
 
   const kpis = [
     {
-      label: "Capital Total Financiado",
+      label: "Capital Funded",
       render: <MoneyDisplay value={capitalFunded} className="metric-value text-[26px] leading-tight" />,
     },
     {

@@ -540,7 +540,6 @@ export default function JournalPage() {
                 <CalendarPnl
                   trades={trades as unknown as TradeRow[]}
                   dayNotes={dayNotes}
-                  showConsolidatedToggle={false}
                   userId={userId}
                   onNoteSaved={(date, note) => {
                     setDayNotes((prev) => ({ ...prev, [date]: note }));

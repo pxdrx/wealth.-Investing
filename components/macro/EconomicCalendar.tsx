@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Clock, RefreshCw, ChevronsUpDown } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Clock, ExternalLink, RefreshCw, ChevronsUpDown } from "lucide-react";
 import { IMPACT_COLORS } from "@/lib/macro/constants";
 import { cn } from "@/lib/utils";
 import type { EconomicEvent } from "@/lib/macro/types";
@@ -153,17 +153,6 @@ function isSpeechEvent(title: string): boolean {
   return lower.includes("speaks") || lower.includes("speech") || lower.includes("testimony") || lower.includes("conference") || lower.includes("hearing");
 }
 
-/** Color-code actual vs forecast: green=beat, red=miss, neutral=inline */
-function getActualColor(actual: string | null, forecast: string | null): string {
-  if (!actual) return "";
-  if (!forecast) return "font-semibold text-foreground";
-  const a = parseFloat(actual.replace(/[%,K]/gi, ""));
-  const f = parseFloat(forecast.replace(/[%,K]/gi, ""));
-  if (isNaN(a) || isNaN(f)) return "font-semibold text-foreground";
-  if (a > f) return "font-bold text-emerald-600 dark:text-emerald-400";
-  if (a < f) return "font-bold text-red-600 dark:text-red-400";
-  return "font-semibold text-foreground";
-}
 
 export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }: EconomicCalendarProps) {
   const [impactFilter, setImpactFilter] = useState<ImpactFilter>("all");
@@ -204,7 +193,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
     : events.filter((e) => e.impact === impactFilter);
 
   // Find highlighted events (based on ALL events, not just filtered)
-  const { lastOccurredId, nextUpcomingId } = useMemo(
+  const { nextUpcomingId } = useMemo(
     () => findHighlightedEvents(events),
     [events]
   );
@@ -383,10 +372,6 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
       {/* Legend for event highlighting */}
       <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
-          Último evento divulgado
-        </span>
-        <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500/60" />
           Próximo evento
         </span>
@@ -455,16 +440,13 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
               <div className="border-t border-border/30 px-2 pb-2">
                 {dayEvents.map((event) => {
                   const colors = IMPACT_COLORS[event.impact];
-                  const isLastOccurred = event.id === lastOccurredId;
                   const isNextUpcoming = event.id === nextUpcomingId;
-                  const actualColor = getActualColor(event.actual, event.forecast);
 
                   return (
                     <div
                       key={event.id}
                       className={cn(
                         "mt-1 flex items-center gap-3 rounded-[10px] px-3 py-2 transition-colors",
-                        isLastOccurred && "bg-emerald-500/[0.08] ring-1 ring-emerald-500/20",
                         isNextUpcoming && "bg-blue-500/[0.08] ring-1 ring-blue-500/20",
                       )}
                     >
@@ -479,14 +461,19 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
                       {/* Flag */}
                       <FlagIcon country={event.country} />
 
-                      {/* Title */}
-                      <span className={cn(
-                        "min-w-0 flex-1 truncate text-sm",
-                        isLastOccurred && "font-medium text-emerald-700 dark:text-emerald-400",
-                        isNextUpcoming && "font-medium text-blue-700 dark:text-blue-400",
-                      )}>
+                      {/* Title — links to Trading Economics */}
+                      <a
+                        href="https://tradingeconomics.com/calendar"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "min-w-0 flex-1 truncate text-sm group inline-flex items-center gap-1 hover:underline",
+                          isNextUpcoming && "font-medium text-blue-700 dark:text-blue-400",
+                        )}
+                      >
                         {event.title}
-                      </span>
+                        <ExternalLink className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                      </a>
 
                       {/* Values — hidden for speech/testimony events */}
                       {!isSpeechEvent(event.title) ? (
@@ -498,12 +485,6 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
                           <div className="w-14 text-center">
                             <div className="text-[10px] text-muted-foreground">Previsão</div>
                             <div>{event.forecast || "—"}</div>
-                          </div>
-                          <div className="w-14 text-center">
-                            <div className="text-[10px] text-muted-foreground">Real</div>
-                            <div className={actualColor}>
-                              {event.actual || "—"}
-                            </div>
                           </div>
                         </div>
                       ) : (

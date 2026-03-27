@@ -37,3 +37,10 @@ export function planFromPriceId(priceId: string): "pro" | "ultra" | null {
   if (priceId === PRICE_IDS.ultra_monthly || priceId === PRICE_IDS.ultra_annual) return "ultra";
   return null;
 }
+
+/** Map Stripe price ID → billing interval */
+export function intervalFromPriceId(priceId: string): "month" | "year" | null {
+  if (priceId === PRICE_IDS.pro_monthly || priceId === PRICE_IDS.ultra_monthly) return "month";
+  if (priceId === PRICE_IDS.pro_annual || priceId === PRICE_IDS.ultra_annual) return "year";
+  return null;
+}

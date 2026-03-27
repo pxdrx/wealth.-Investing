@@ -16,7 +16,6 @@ export function CalendarPnl({
   trades,
   accounts,
   dayNotes,
-  showConsolidatedToggle,
   userId,
   onNoteSaved,
 }: CalendarPnlProps) {
@@ -68,7 +67,9 @@ export function CalendarPnl({
     const avgWin = totalWins > 0 ? totalWinAmount / totalWins : 0;
     const avgLoss = totalLosses > 0 ? totalLossAmount / totalLosses : 0;
     const avgRR = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? Infinity : 0);
-    return { totalPnl, totalTrades, avgRR, daysOperated };
+    const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+    const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : (totalWinAmount > 0 ? Infinity : 0);
+    return { totalPnl, totalTrades, avgRR, daysOperated, totalWins, totalLosses, winRate, profitFactor };
   }, [dailyData, displayYear, displayMonth]);
 
   const handlePrevMonth = () => {
@@ -99,10 +100,16 @@ export function CalendarPnl({
         : "hsl(var(--landing-text-muted))";
 
   const { mask } = usePrivacy();
-  const title = showConsolidatedToggle ? "Consolidado de Contas" : "Calendário P&L";
+  const title = accounts ? "Consolidado de Contas" : "Calendário P&L";
 
   const selectedDayData = selectedDate ? dailyData.get(selectedDate) ?? null : null;
   const selectedDayNote = selectedDate && dayNotes ? dayNotes[selectedDate] ?? null : null;
+
+  const winRateColor = monthStats.winRate >= 50
+    ? "hsl(var(--pnl-positive))"
+    : monthStats.winRate > 0
+      ? "hsl(var(--pnl-negative))"
+      : "hsl(var(--landing-text-muted))";
 
   const kpis = [
     {
@@ -111,13 +118,23 @@ export function CalendarPnl({
       color: pnlColor(monthStats.totalPnl),
     },
     {
+      label: "WIN RATE",
+      value: monthStats.totalTrades > 0 ? `${monthStats.winRate.toFixed(1)}%` : "—",
+      color: winRateColor,
+    },
+    {
+      label: "PROFIT FACTOR",
+      value: monthStats.profitFactor === Infinity ? "∞" : monthStats.profitFactor > 0 ? monthStats.profitFactor.toFixed(2) : "—",
+      color: monthStats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : monthStats.profitFactor > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))",
+    },
+    {
       label: "RR MÉDIO",
       value: monthStats.avgRR === Infinity ? "∞" : monthStats.avgRR > 0 ? monthStats.avgRR.toFixed(2) : "0",
       color: "hsl(var(--landing-text))",
     },
     {
       label: "TRADES",
-      value: monthStats.totalTrades.toString(),
+      value: monthStats.totalTrades > 0 ? `${monthStats.totalWins}W / ${monthStats.totalLosses}L` : "0",
       color: "hsl(var(--landing-text))",
     },
     {
@@ -145,7 +162,7 @@ export function CalendarPnl({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {kpis.map((kpi) => (
             <div
               key={kpi.label}
@@ -194,7 +211,6 @@ export function CalendarPnl({
           selectedDate={selectedDate}
           dayData={selectedDayData}
           dayNote={selectedDayNote}
-          showConsolidatedToggle={showConsolidatedToggle}
           userId={userId}
           onNoteSaved={onNoteSaved}
         />

@@ -56,6 +56,10 @@ const AccountsOverview = dynamic(
   () => import("@/components/dashboard/AccountsOverview").then((m) => ({ default: m.AccountsOverview })),
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
 );
+const BacktestSection = dynamic(
+  () => import("@/components/dashboard/BacktestSection").then((m) => ({ default: m.BacktestSection })),
+  { ssr: false },
+);
 const EquityCurveMini = dynamic(
   () => import("@/components/dashboard/EquityCurveMini").then((m) => ({ default: m.EquityCurveMini })),
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
@@ -108,11 +112,13 @@ type PropAccountRow = {
 };
 
 const QUICK_ASSETS = [
-  { label: "DXY", symbol: "TVC:DXY", icon: CircleDollarSign },
-  { label: "Ouro", symbol: "OANDA:XAUUSD", icon: Gem },
+  { label: "EUR/USD", symbol: "FX:EURUSD", icon: CircleDollarSign },
+  { label: "Ouro", symbol: "TVC:GOLD", icon: Gem },
   { label: "BTC", symbol: "BITSTAMP:BTCUSD", icon: Bitcoin },
   { label: "Petróleo", symbol: "TVC:USOIL", icon: Flame },
-  { label: "Nasdaq", symbol: "NASDAQ:NDX", icon: BarChart3 },
+  { label: "Brent", symbol: "TVC:UKOIL", icon: Flame },
+  { label: "Nasdaq", symbol: "PEPPERSTONE:NAS100", icon: BarChart3 },
+  { label: "DXY", symbol: "TVC:DXY", icon: CircleDollarSign },
 ] as const;
 
 export default function DashboardPage() {
@@ -705,6 +711,24 @@ function DashboardContent({
             activeAccountId,
           })}
         />
+
+        {/* ═══════════ Backtest Accounts Section ═══════════ */}
+        <BacktestSection
+          accounts={Array.from(accountsById.values())
+            .filter((a) => a.kind === "backtest")
+            .map((a) => ({ id: a.id, name: a.name, is_active: a.is_active }))}
+          trades={journalTrades
+            .filter((t) => {
+              const acc = accountsById.get(t.account_id ?? "");
+              return acc?.kind === "backtest" && t.opened_at && t.net_pnl_usd !== null;
+            })
+            .map((t) => ({
+              account_id: t.account_id!,
+              pnl_usd: t.net_pnl_usd ?? 0,
+              net_pnl_usd: t.net_pnl_usd ?? 0,
+              opened_at: t.opened_at!,
+            }))}
+        />
       </div>
     </div>
   );
@@ -755,7 +779,6 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
         trades={journalTrades as unknown as TradeRow[]}
         accounts={accountsSimple}
         dayNotes={dayNotes}
-        showConsolidatedToggle
       />
     ),
 

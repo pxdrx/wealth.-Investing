@@ -36,6 +36,7 @@ export default function MacroIntelligencePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
   const [hasUnseenReport, setHasUnseenReport] = useState(false);
+  const [headlinesRefreshing, setHeadlinesRefreshing] = useState(false);
 
   // Week navigation: always default to current week's Monday
   const defaultWeek = getWeekStart();
@@ -210,6 +211,11 @@ export default function MacroIntelligencePage() {
   const regeneratingRef = useRef(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
 
+  // Reset regeneration guard on mount (prevents stuck state from previous page load)
+  useEffect(() => {
+    regeneratingRef.current = false;
+  }, []);
+
   // Regenerate weekly report via Claude
   const handleRegenerate = useCallback(async () => {
     // Prevent concurrent regenerations
@@ -302,12 +308,15 @@ export default function MacroIntelligencePage() {
 
   // Headlines manual refresh — force live fetch to bypass stale DB cache
   const handleHeadlinesRefresh = useCallback(async () => {
+    setHeadlinesRefreshing(true);
     try {
       const res = await fetch("/api/macro/headlines?limit=30&live=1");
       const json = await res.json();
       if (json.ok) setHeadlines(json.data || []);
     } catch (err) {
       console.error("[macro] Headlines refresh failed:", err);
+    } finally {
+      setHeadlinesRefreshing(false);
     }
   }, []);
 
@@ -573,6 +582,7 @@ export default function MacroIntelligencePage() {
             <HeadlinesFeed
               headlines={headlines}
               onRefresh={handleHeadlinesRefresh}
+              refreshing={headlinesRefreshing}
             />
 
             {/* Weekly History */}
