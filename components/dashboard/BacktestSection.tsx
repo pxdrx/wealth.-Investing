@@ -65,7 +65,7 @@ function detectCategory(sym: string): string {
 // ── Inline Trade Form ──
 function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTradeAdded?: () => void }) {
   const [symbol, setSymbol] = useState("");
-  const [direction, setDirection] = useState<"long" | "short">("long");
+  const [direction, setDirection] = useState<"buy" | "sell">("buy");
   const [pnl, setPnl] = useState("");
   const [date, setDate] = useState(todayStr);
   const [time, setTime] = useState(nowTimeStr);
@@ -164,15 +164,15 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
         <div className="flex rounded-lg border border-border/40 overflow-hidden">
           <button
             type="button"
-            onClick={() => setDirection("long")}
-            className={cn("px-2.5 py-1.5 text-[10px] font-medium transition-colors", direction === "long" ? "bg-green-500 text-white" : "text-muted-foreground")}
+            onClick={() => setDirection("buy")}
+            className={cn("px-2.5 py-1.5 text-[10px] font-medium transition-colors", direction === "buy" ? "bg-green-500 text-white" : "text-muted-foreground")}
           >
             Buy
           </button>
           <button
             type="button"
-            onClick={() => setDirection("short")}
-            className={cn("px-2.5 py-1.5 text-[10px] font-medium transition-colors", direction === "short" ? "bg-red-500 text-white" : "text-muted-foreground")}
+            onClick={() => setDirection("sell")}
+            className={cn("px-2.5 py-1.5 text-[10px] font-medium transition-colors", direction === "sell" ? "bg-red-500 text-white" : "text-muted-foreground")}
           >
             Sell
           </button>
