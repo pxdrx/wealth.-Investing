@@ -10,12 +10,13 @@ import { fetchTruthSocialPosts } from "@/lib/macro/scrapers/truth-social";
 import { fetchTradingEconomicsHeadlines } from "@/lib/macro/scrapers/trading-economics";
 import { translateHeadlines } from "@/lib/macro/translate";
 import { getWeekStart } from "@/lib/macro/constants";
+import { requireEnv } from "@/lib/env";
 import type { MacroHeadline } from "@/lib/macro/types";
 
 function getSupabaseAdmin() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY")
   );
 }
 

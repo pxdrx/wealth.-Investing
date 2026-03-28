@@ -4,11 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { scrapeTeCalendarActuals } from "@/lib/macro/te-scraper";
 import { mergeTeActuals } from "@/lib/macro/actuals-merger";
+import { requireEnv } from "@/lib/env";
 
 function getSupabaseAdmin() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY")
   );
 }
 

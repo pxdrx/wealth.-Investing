@@ -1,7 +1,12 @@
 import { fetchWithTimeout } from "@/lib/macro/scrapers/utils";
 
-const API_KEY = process.env.FINNHUB_API_KEY || "";
+const API_KEY = process.env.FINNHUB_API_KEY ?? "";
 const BASE = "https://finnhub.io/api/v1";
+
+const FINNHUB_CONFIGURED = API_KEY.length > 0;
+if (!FINNHUB_CONFIGURED) {
+  console.warn("[finnhub] FINNHUB_API_KEY is not configured — finnhub tools will return null.");
+}
 
 interface NewsItem {
   headline: string;
@@ -18,6 +23,7 @@ export async function getNews(
   symbol: string,
   daysBack: number = 7
 ): Promise<NewsItem[] | null> {
+  if (!FINNHUB_CONFIGURED) return null;
   try {
     const to = new Date().toISOString().split("T")[0];
     const from = new Date(Date.now() - daysBack * 86400000)
@@ -42,6 +48,7 @@ export async function getNews(
 export async function getBasicFinancials(
   symbol: string
 ): Promise<Record<string, unknown> | null> {
+  if (!FINNHUB_CONFIGURED) return null;
   try {
     const res = await fetchWithTimeout(
       `${BASE}/stock/metric?symbol=${symbol}&metric=all&token=${API_KEY}`,
@@ -60,6 +67,7 @@ export async function getBasicFinancials(
 export async function getRecommendations(
   symbol: string
 ): Promise<Array<Record<string, unknown>> | null> {
+  if (!FINNHUB_CONFIGURED) return null;
   try {
     const res = await fetchWithTimeout(
       `${BASE}/stock/recommendation?symbol=${symbol}&token=${API_KEY}`,

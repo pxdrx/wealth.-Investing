@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { scrapeTeBriefing } from "@/lib/macro/te-scraper";
 import { generateWeeklyNarrative } from "@/lib/macro/narrative-generator";
 import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
+import { requireEnv } from "@/lib/env";
 import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +12,8 @@ export const maxDuration = 60;
 
 function getSupabaseAdmin() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY")
   );
 }
 
@@ -26,8 +27,8 @@ export async function POST(req: NextRequest) {
   // Verify the token is valid by creating a user-scoped client
   const token = authHeader.slice(7);
   const userClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     { global: { headers: { Authorization: `Bearer ${token}` } } }
   );
   const { data: { user }, error: authErr } = await userClient.auth.getUser();

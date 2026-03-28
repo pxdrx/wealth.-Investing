@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireEnv } from "@/lib/env";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -56,8 +57,8 @@ export async function DELETE(req: NextRequest) {
 
     // 3. Delete auth user (requires service role)
     const serviceSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+      requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     );
     const { error: authError } = await serviceSupabase.auth.admin.deleteUser(userId);
     if (authError) {

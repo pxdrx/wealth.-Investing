@@ -67,15 +67,25 @@ export function ManageAccountsModal({
     setError(null);
 
     try {
+      // SEC-024: Get user_id for defense-in-depth filtering
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) {
+        setError("Sessao expirada. Faca login novamente.");
+        setDeletingId(null);
+        return;
+      }
+
       // Delete prop_accounts row first if prop kind
       if (account.kind === "prop") {
         const { error: propErr } = await supabase
           .from("prop_accounts")
           .delete()
-          .eq("account_id", account.id);
+          .eq("account_id", account.id)
+          .eq("user_id", userId);
 
         if (propErr) {
-          setError(`Erro ao excluir dados prop: ${propErr.message}`);
+          setError("Erro ao excluir dados prop.");
           setDeletingId(null);
           return;
         }
@@ -85,10 +95,11 @@ export function ManageAccountsModal({
       const { error: accErr } = await supabase
         .from("accounts")
         .delete()
-        .eq("id", account.id);
+        .eq("id", account.id)
+        .eq("user_id", userId);
 
       if (accErr) {
-        setError(`Erro ao excluir conta: ${accErr.message}`);
+        setError("Erro ao excluir conta.");
         setDeletingId(null);
         return;
       }

@@ -4,11 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
 import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
+import { requireEnv } from "@/lib/env";
 
 function getSupabaseAdmin() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY")
   );
 }
 

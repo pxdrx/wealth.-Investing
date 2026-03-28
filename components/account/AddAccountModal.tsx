@@ -275,7 +275,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
 
         if (propError) {
           // Rollback: remove the account we just created
-          await supabase.from("accounts").delete().eq("id", accountId);
+          await supabase.from("accounts").delete().eq("id", accountId).eq("user_id", session.user.id);
           throw propError;
         }
       }

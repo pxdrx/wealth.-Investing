@@ -265,19 +265,32 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
   });
   maxDrawdown = Math.abs(maxDrawdown);
 
+  // ── Average equity (used by Sharpe, Sortino, Calmar) ──
+  const avgEquity = equityCurve.length > 0
+    ? equityCurve.reduce((s, p) => s + Math.abs(p.equity), 0) / equityCurve.length
+    : 0;
+
   // ── Sharpe Ratio (annualized, need 20+ trading days) ──
+  // FIX TECH-012: Subtract daily risk-free rate (~5% annual / 252 trading days)
+  const ANNUAL_RISK_FREE_RATE = 0.05;
+  const dailyRiskFreeRate = ANNUAL_RISK_FREE_RATE / 252;
+  // Convert daily risk-free to same unit as meanDaily (USD) using avg equity
+  const dailyRfUsd = avgEquity > 0 ? dailyRiskFreeRate * avgEquity : 0;
+  const excessMeanDaily = meanDaily - dailyRfUsd;
   const sharpeRatio = tradingDays >= 20 && dailyStdDev > 0
-    ? (meanDaily / dailyStdDev) * Math.sqrt(252)
+    ? (excessMeanDaily / dailyStdDev) * Math.sqrt(252)
     : null;
 
   // ── Sortino Ratio (annualized, need 20+ trading days) ──
-  const downsidePnls = dailyPnlValues.filter((v) => v < 0);
+  // FIX TECH-012: Use excess returns (subtract risk-free rate) for Sortino as well
+  const excessDailyPnls = dailyPnlValues.map((v) => v - dailyRfUsd);
+  const downsidePnls = excessDailyPnls.filter((v) => v < 0);
   const downsideVariance = downsidePnls.length > 0
     ? downsidePnls.reduce((s, v) => s + v ** 2, 0) / tradingDays
     : 0;
   const downsideStdDev = Math.sqrt(downsideVariance);
   const sortinoRatio = tradingDays >= 20 && downsideStdDev > 0
-    ? (meanDaily / downsideStdDev) * Math.sqrt(252)
+    ? (excessMeanDaily / downsideStdDev) * Math.sqrt(252)
     : null;
 
   // ── Calmar Ratio ──
@@ -289,9 +302,6 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
   // Simplified: calmar = (meanDaily * 252) / maxDrawdown, where both are in % of equity.
   // Since meanDaily is in USD and maxDrawdown is in %, we normalize by dividing meanDaily
   // by the average equity to get a percentage, then annualize.
-  const avgEquity = equityCurve.length > 0
-    ? equityCurve.reduce((s, p) => s + Math.abs(p.equity), 0) / equityCurve.length
-    : 0;
   const annualReturnPct = avgEquity > 0 && tradingDays > 0
     ? (meanDaily / avgEquity) * 252 * 100
     : 0;

@@ -4,12 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { generateAdaptiveUpdate } from "@/lib/macro/narrative-generator";
 import { getWeekStart } from "@/lib/macro/constants";
+import { requireEnv } from "@/lib/env";
 import type { EconomicEvent } from "@/lib/macro/types";
 
 function getSupabaseAdmin() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY")
   );
 }
 

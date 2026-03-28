@@ -117,7 +117,7 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
         onOpenChange(false);
       }, 600);
     } catch (e) {
-      setToast({ type: "error", message: e instanceof Error ? e.message : "Erro ao salvar." });
+      setToast({ type: "error", message: "Erro ao salvar." });
     } finally {
       setSaving(false);
     }
@@ -129,13 +129,21 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
 
     setDeleting(true);
     try {
+      // SEC-024: Get user_id for defense-in-depth filtering
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        setToast({ type: "error", message: "Sessao expirada. Faca login novamente." });
+        return;
+      }
+
       const { error } = await supabase
         .from("journal_trades")
         .delete()
-        .eq("id", trade.id);
+        .eq("id", trade.id)
+        .eq("user_id", session.user.id);
 
       if (error) {
-        setToast({ type: "error", message: "Erro ao excluir: " + error.message });
+        setToast({ type: "error", message: "Erro ao excluir trade." });
         return;
       }
 

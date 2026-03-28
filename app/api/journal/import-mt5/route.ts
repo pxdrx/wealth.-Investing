@@ -384,7 +384,7 @@ export async function POST(request: Request) {
           for (let j = 0; j < batch.length; j++) {
             failed += 1;
             const lineNum = i + j + 1;
-            skippedDetails.push({ line: lineNum, reason: error.message ?? "Batch insert error", data: batch[j].symbol });
+            skippedDetails.push({ line: lineNum, reason: "Batch insert error", data: batch[j].symbol });
           }
           console.warn("[import-mt5] batch insert error:", error.message);
         }
@@ -523,7 +523,7 @@ export async function POST(request: Request) {
     }
     const isParseError = err instanceof Error && err.message.startsWith("MT5 HTML parse failed");
     const status = isParseError ? 400 : 500;
-    const errMsg = isParseError ? err.message : "Import failed";
+    const errMsg = isParseError ? "Invalid MT5 report format" : "Import failed";
     return NextResponse.json({ error: errMsg }, { status });
   }
 }
