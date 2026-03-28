@@ -20,6 +20,7 @@ export function CalendarPnl({
   userId,
   accountId,
   accountIds,
+  defaultReadOnly,
   onNoteSaved,
   title: customTitle,
   compact,
@@ -232,6 +233,7 @@ export function CalendarPnl({
         userId={userId ?? null}
         accountId={accountId}
         accountIds={accountIds}
+        defaultReadOnly={defaultReadOnly}
         open={modalOpen}
         onOpenChange={setModalOpen}
         onNoteSaved={() => {

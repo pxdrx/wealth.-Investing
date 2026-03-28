@@ -20,6 +20,8 @@ interface DayDetailModalProps {
   accountId?: string | null;
   /** When set, only show trades from these accounts (e.g. backtest-only view) */
   accountIds?: string[];
+  /** When true, modal opens in read-only mode with a single "Editar" button */
+  defaultReadOnly?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNoteSaved?: () => void;
@@ -59,7 +61,7 @@ const TAG_PRESETS = [
   "Sessão NY",
 ];
 
-export function DayDetailModal({ date, userId, accountId, accountIds, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
+export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [dayNote, setDayNote] = useState<DayNote>({ observation: "", tags: [] });
@@ -171,7 +173,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, open, onOp
       } else {
         setDayNote({ observation: "", tags: [] });
         originalNote.current = { observation: "", tags: [] };
-        setEditMode(true);
+        setEditMode(defaultReadOnly ? false : true);
       }
     } catch {
       setAccountSummaries([]);
@@ -325,7 +327,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, open, onOp
             )}
 
             {/* Notes section — View or Edit mode */}
-            {!editMode && dayNote.id ? (
+            {!editMode && (dayNote.id || defaultReadOnly) ? (
               /* ---- VIEW MODE ---- */
               <div className="space-y-3">
                 <div className="flex items-center justify-between">

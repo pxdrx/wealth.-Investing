@@ -38,6 +38,8 @@ export interface CalendarPnlProps {
   accountId?: string | null;
   /** When set, modal only shows trades from these accounts (e.g. backtest accounts) */
   accountIds?: string[];
+  /** When true, day popup opens in read-only mode */
+  defaultReadOnly?: boolean;
   title?: string;
   compact?: boolean;
 }

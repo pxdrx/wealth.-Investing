@@ -388,6 +388,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
               userId={userId}
               accountId={selectedAccountId ?? null}
               accountIds={activeAccounts.map((a) => a.id)}
+              defaultReadOnly
               title={selectedAccount ? selectedAccount.name : "Calendário Backtest"}
               compact
             />
