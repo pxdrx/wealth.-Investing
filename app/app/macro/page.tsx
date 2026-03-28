@@ -127,6 +127,9 @@ export default function MacroIntelligencePage() {
   // Initial load: fetch everything
   useEffect(() => {
     fetchData();
+  // Run once on mount — fetchData is intentionally omitted to prevent
+  // re-fetching when its useCallback dependencies change. Week changes
+  // are handled by the separate effect below.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

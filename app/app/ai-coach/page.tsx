@@ -166,6 +166,8 @@ function AICoachPageInner() {
       setConversationsLoaded(true);
     }
     initConversations();
+    // Run once on mount — loads or creates the initial conversation list.
+    // supabase and searchParams at mount time are the only inputs needed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -178,6 +180,9 @@ function AICoachPageInner() {
       const found = conversations.find((c) => c.id === chatId);
       if (found) setActiveConversationTitle(found.title);
     }
+    // Only re-run when searchParams changes (URL navigation). Including
+    // activeConversationId or conversations would cause infinite loops
+    // since this effect mutates them.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -197,6 +202,8 @@ function AICoachPageInner() {
       setUsageLoaded(true);
     }
     loadUsage();
+    // Run once on mount — usage count is loaded once and updated after
+    // each AI message send, not via re-running this effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

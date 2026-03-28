@@ -125,6 +125,8 @@ export default function SettingsPage() {
     return () => {
       mounted = false;
     };
+  // Run once on mount — loads profile and session data for initial render.
+  // Dependencies (getMyProfile, supabase) are stable module-level singletons.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

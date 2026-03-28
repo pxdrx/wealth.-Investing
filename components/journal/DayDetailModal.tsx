@@ -192,6 +192,9 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     } finally {
       setLoading(false);
     }
+  // JSON.stringify(accountIds) is used for stable array comparison since
+  // accountIds is a new array reference on each render. This is intentional
+  // and the standard workaround for array dependencies.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, userId, accountId, JSON.stringify(accountIds)]);
 
