@@ -5,6 +5,7 @@ import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { fetchCentralBankRates } from "@/lib/macro/rates-fetcher";
 import { fetchRatesViaApify } from "@/lib/macro/apify/rates-scraper";
 import { requireEnv } from "@/lib/env";
+import { invalidateCache } from "@/lib/cache";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -73,6 +74,9 @@ export async function POST(req: NextRequest) {
         .upsert(rate, { onConflict: "bank_code" });
       if (!error) upserted++;
     }
+
+    // Invalidate Redis cache after refresh
+    await invalidateCache("macro:rates");
 
     return NextResponse.json({ ok: true, source, upserted });
   } catch (error) {

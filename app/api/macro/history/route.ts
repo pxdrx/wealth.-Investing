@@ -1,7 +1,9 @@
 // app/api/macro/history/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireEnv } from "@/lib/env";
+import { cached } from "@/lib/cache";
+import { apiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,7 @@ function getSupabase() {
   );
 }
 
-export async function GET() {
+async function fetchHistoryData() {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("weekly_panoramas")
@@ -21,11 +23,29 @@ export async function GET() {
     .limit(12);
 
   if (error) {
-    console.error("[macro/history]", error.message);
+    throw new Error(error.message);
+  }
+
+  return data || [];
+}
+
+export async function GET(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "anonymous";
+  const { success } = await apiRateLimit.limit(ip);
+  if (!success) {
+    return NextResponse.json({ ok: false, error: "Too many requests" }, { status: 429 });
+  }
+
+  let data: Awaited<ReturnType<typeof fetchHistoryData>>;
+  try {
+    data = await cached("macro:history", fetchHistoryData, { ttl: 600 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[macro/history]", message);
     return NextResponse.json({ ok: false, error: "Failed to fetch history data" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, data: data || [] }, {
+  return NextResponse.json({ ok: true, data }, {
     headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
   });
 }

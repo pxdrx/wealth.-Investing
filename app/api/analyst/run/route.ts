@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { generateAnalysis } from "@/lib/analyst/agent/analyst";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { analystRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 120;
 export const dynamic = "force-dynamic";
@@ -40,13 +41,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // SEC-015: Verify user has pro subscription
+  // SEC-015: Verify user identity
   const supabaseAuth = createSupabaseClientForUser(token);
   const { data: { user: authUser } } = await supabaseAuth.auth.getUser();
   if (!authUser) {
     return new Response(
       JSON.stringify({ ok: false, error: "Invalid token" }),
       { status: 401 }
+    );
+  }
+
+  // Burst rate limit (Upstash Redis sliding window)
+  const { success: withinLimit } = await analystRateLimit.limit(authUser.id);
+  if (!withinLimit) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Rate limit exceeded. Please wait before running another analysis." }),
+      { status: 429, headers: { "Content-Type": "application/json" } }
     );
   }
 

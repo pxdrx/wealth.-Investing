@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getWeekStart } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
+import { cached } from "@/lib/cache";
+import { apiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +15,7 @@ function getSupabase() {
   );
 }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const weekParam = searchParams.get("week") || getWeekStart();
-
+async function fetchCalendarData(weekParam: string) {
   const supabase = getSupabase();
   let { data, error } = await supabase
     .from("economic_events")
@@ -47,7 +46,32 @@ export async function GET(req: NextRequest) {
   }
 
   if (error) {
-    console.error("[macro/calendar]", error.message);
+    throw new Error(error.message);
+  }
+
+  return data || [];
+}
+
+export async function GET(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "anonymous";
+  const { success } = await apiRateLimit.limit(ip);
+  if (!success) {
+    return NextResponse.json({ ok: false, error: "Too many requests" }, { status: 429 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const weekParam = searchParams.get("week") || getWeekStart();
+
+  let data: Awaited<ReturnType<typeof fetchCalendarData>>;
+  try {
+    data = await cached(
+      `macro:calendar:${weekParam}`,
+      () => fetchCalendarData(weekParam),
+      { ttl: 300 }
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[macro/calendar]", message);
     return NextResponse.json({ ok: false, error: "Failed to fetch calendar data" }, { status: 500 });
   }
 

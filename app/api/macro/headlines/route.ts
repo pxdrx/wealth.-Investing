@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { translateHeadlines } from "@/lib/macro/translate";
 import { requireEnv } from "@/lib/env";
+import { cached } from "@/lib/cache";
+import { apiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -81,6 +83,12 @@ async function fetchLiveHeadlines(limit: number) {
 }
 
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "anonymous";
+  const { success } = await apiRateLimit.limit(ip);
+  if (!success) {
+    return NextResponse.json({ ok: false, error: "Too many requests" }, { status: 429 });
+  }
+
   const { searchParams } = new URL(req.url);
 
   // Parse query params
@@ -109,35 +117,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, data: liveData, source: "live" });
   }
 
-  const supabase = getSupabase();
+  const cacheHeaders = { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" };
 
-  let query = supabase
-    .from("macro_headlines")
-    .select("*")
-    .gte("fetched_at", since)
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("fetched_at", { ascending: false })
-    .limit(limit);
+  const fetchFromDb = async () => {
+    const supabase = getSupabase();
+    let query = supabase
+      .from("macro_headlines")
+      .select("*")
+      .gte("fetched_at", since)
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .order("fetched_at", { ascending: false })
+      .limit(limit);
 
-  if (source) {
-    query = query.eq("source", source);
-  }
+    if (source) {
+      query = query.eq("source", source);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    console.error("[macro/headlines] DB error:", error.message);
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data && data.length > 0) {
+      return sortByDateAndPriority(data);
+    }
+
+    return [];
+  };
+
+  let data: Awaited<ReturnType<typeof fetchFromDb>>;
+  try {
+    data = await cached("macro:headlines", fetchFromDb, { ttl: 300 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[macro/headlines] DB error:", message);
     return NextResponse.json({ ok: false, error: "Failed to fetch headlines" }, { status: 500 });
   }
 
-  const cacheHeaders = { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" };
-
-  // If DB returned results, apply source priority sorting and return
-  if (data && data.length > 0) {
-    const sorted = sortByDateAndPriority(data);
-    return NextResponse.json({ ok: true, data: sorted }, { headers: cacheHeaders });
-  }
-
-  // DB is empty — return empty array (cron job handles population)
-  return NextResponse.json({ ok: true, data: [] }, { headers: cacheHeaders });
+  return NextResponse.json({ ok: true, data }, { headers: cacheHeaders });
 }

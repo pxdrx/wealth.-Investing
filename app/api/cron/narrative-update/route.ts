@@ -5,6 +5,7 @@ import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { generateAdaptiveUpdate } from "@/lib/macro/narrative-generator";
 import { getWeekStart } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
+import { invalidateCache } from "@/lib/cache";
 import type { EconomicEvent } from "@/lib/macro/types";
 
 function getSupabaseAdmin() {
@@ -76,6 +77,9 @@ export async function POST(req: NextRequest) {
       .from("weekly_panoramas")
       .update({ narrative: updatedNarrative, updated_at: new Date().toISOString() })
       .eq("id", panorama.id);
+
+    // Invalidate Redis cache after panorama update
+    await invalidateCache("macro:panorama");
 
     return NextResponse.json({ ok: true, alert: update.alert_title });
   } catch (error) {

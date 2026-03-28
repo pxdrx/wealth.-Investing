@@ -6,6 +6,7 @@ import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
 import { getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
+import { invalidateCachePattern, invalidateCache } from "@/lib/cache";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -194,6 +195,12 @@ export async function POST(req: NextRequest) {
         ratesUpdated++;
         console.log(`[calendar-sync] Updated ${bankCode} rate to ${rateValue}%`);
       }
+    }
+
+    // Invalidate Redis cache after successful sync
+    await invalidateCachePattern("macro:calendar:*");
+    if (ratesUpdated > 0) {
+      await invalidateCache("macro:rates");
     }
 
     return NextResponse.json({

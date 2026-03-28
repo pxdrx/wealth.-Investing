@@ -5,6 +5,7 @@ import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
 import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
+import { invalidateCachePattern } from "@/lib/cache";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -148,6 +149,9 @@ export async function POST(req: NextRequest) {
     } catch (icErr) {
       console.warn("[refresh-calendar] Investing.com enrichment failed:", icErr);
     }
+
+    // Invalidate Redis cache after refresh
+    await invalidateCachePattern("macro:calendar:*");
 
     return NextResponse.json({
       ok: true,

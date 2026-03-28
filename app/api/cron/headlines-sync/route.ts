@@ -11,6 +11,7 @@ import { fetchTradingEconomicsHeadlines } from "@/lib/macro/scrapers/trading-eco
 import { translateHeadlines } from "@/lib/macro/translate";
 import { getWeekStart } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
+import { invalidateCache } from "@/lib/cache";
 import type { MacroHeadline } from "@/lib/macro/types";
 
 function getSupabaseAdmin() {
@@ -250,6 +251,12 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         console.error("[headlines-sync] Cascade regen failed:", err);
       }
+    }
+
+    // Invalidate Redis cache after successful sync
+    await invalidateCache("macro:headlines");
+    if (cascadeTriggered) {
+      await invalidateCache("macro:panorama");
     }
 
     console.log(

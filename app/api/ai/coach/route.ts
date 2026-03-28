@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { validateAccountOwnership } from "@/lib/account-validation";
@@ -9,6 +9,7 @@ import { getCommunityIntelligence } from "@/lib/ai-community-stats";
 import { buildSystemPrompt, formatPsychologyProfile } from "@/lib/ai-prompts";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import type { JournalTradeRow } from "@/components/journal/types";
+import { aiCoachRateLimit } from "@/lib/rate-limit";
 
 // Lazy-init to prevent build-time crash if ANTHROPIC_API_KEY is missing
 let _anthropic: Anthropic | null = null;
@@ -17,29 +18,6 @@ function getAnthropic(): Anthropic {
   return _anthropic;
 }
 
-// Per-user burst rate limit: max 3 messages per 60 seconds
-// Uses Supabase query instead of in-memory Map (serverless-safe)
-const BURST_LIMIT = 3;
-
-async function checkBurstRateLimit(
-  supabase: ReturnType<typeof createSupabaseClientForUser>,
-  userId: string
-): Promise<boolean> {
-  const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
-  const { count, error } = await supabase
-    .from("ai_coach_messages")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", oneMinuteAgo);
-
-  if (error) {
-    // If the table doesn't exist or query fails, allow the request
-    // but log the error for debugging
-    console.warn("[ai-coach] burst rate limit check failed:", error.message);
-    return true;
-  }
-  return (count ?? 0) < BURST_LIMIT;
-}
 
 interface CoachRequestBody {
   type: "session" | "weekly" | "chat";
@@ -104,10 +82,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: false, error: "Conteúdo total muito longo" }, { status: 400 });
   }
 
-  // 3. Burst rate limit (serverless-safe, queries Supabase)
-  const withinBurstLimit = await checkBurstRateLimit(supabase, userId);
+  // 3. Burst rate limit (Upstash Redis sliding window)
+  const { success: withinBurstLimit, remaining } = await aiCoachRateLimit.limit(userId);
   if (!withinBurstLimit) {
-    return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
+    return NextResponse.json(
+      { ok: false, error: "Rate limit exceeded. Please wait before sending another message." },
+      { status: 429, headers: { "X-RateLimit-Remaining": String(remaining) } }
+    );
   }
 
   // 3b. Validate account ownership before any data access or quota increment
