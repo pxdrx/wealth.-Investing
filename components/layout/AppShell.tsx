@@ -4,6 +4,7 @@ import { ActiveAccountProvider } from "@/components/context/ActiveAccountContext
 import { SubscriptionProvider } from "@/components/context/SubscriptionContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { AppMobileNav } from "@/components/layout/AppMobileNav";
 import { usePathname } from "next/navigation";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -35,10 +36,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               
               {/* Scrollable Content Area */}
-              <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar scroll-smooth">
+              <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar scroll-smooth pb-20 md:pb-0">
                 {children}
               </main>
             </div>
+
+            {/* Bottom Tab Bar for Mobile */}
+            <AppMobileNav />
           </div>
         ) : (
           <main className="flex-1">{children}</main>

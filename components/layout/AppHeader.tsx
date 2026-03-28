@@ -20,6 +20,12 @@ const navLinks = [
   { href: "/app/pricing", label: "Planos" },
 ];
 
+/** Links shown only in the mobile hamburger menu (secondary items not in the bottom tab bar) */
+const mobileMenuLinks = [
+  { href: "/app/prop", label: "Prop Accounts" },
+  { href: "/app/pricing", label: "Planos" },
+];
+
 function UserAvatar({ name }: { name: string }) {
   const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "U";
   return (
@@ -136,7 +142,7 @@ export function AppHeader() {
       {mobileOpen && (
         <div className="border-t border-border/60 bg-background/95 backdrop-blur-xl md:hidden">
           <nav className="flex flex-col gap-1 px-6 py-4">
-            {navLinks.map((link) => (
+            {mobileMenuLinks.map((link) => (
               <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
                 className={cn("rounded-input px-4 py-3 text-sm font-medium transition-colors",
                   pathname === link.href ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
