@@ -1,5 +1,7 @@
 "use client";
 
+import { AlertTriangle, CheckCircle2, Bell } from "lucide-react";
+
 export function VisualRegistre() {
   const connections = [
     { label: "MT5", detail: "342 trades", pos: "top-1 left-1" },
@@ -94,19 +96,22 @@ export function VisualEvolua() {
 
 export function VisualProteja() {
   const alerts = [
-    { icon: "⚠️", text: "DD diário: 4.2% / Limite: 5%", type: "warning" as const },
-    { icon: "✅", text: "Meta atingida: +R$1.240", type: "success" as const },
-    { icon: "🔔", text: "6/8 trades hoje", type: "info" as const },
+    { icon: AlertTriangle, text: "DD diário: 4.2% / Limite: 5%", color: "text-amber-500" },
+    { icon: CheckCircle2, text: "Meta atingida: +R$1.240", color: "text-emerald-500" },
+    { icon: Bell, text: "6/8 trades hoje", color: "text-l-text-secondary" },
   ];
 
   return (
     <div className="space-y-2">
-      {alerts.map((alert) => (
-        <div key={alert.text} className="landing-card px-4 py-3 flex items-center gap-2.5">
-          <span className="text-base shrink-0">{alert.icon}</span>
-          <span className="text-[12px] text-l-text">{alert.text}</span>
-        </div>
-      ))}
+      {alerts.map((alert) => {
+        const Icon = alert.icon;
+        return (
+          <div key={alert.text} className="landing-card px-4 py-3 flex items-center gap-2.5">
+            <Icon className={`h-4 w-4 shrink-0 ${alert.color}`} />
+            <span className="text-[12px] text-l-text">{alert.text}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
