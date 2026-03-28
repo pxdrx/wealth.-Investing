@@ -1,11 +1,10 @@
-// TODO: [TECH-DEBT] Multiple onAuthStateChange listeners (AuthGate, ActiveAccountContext, SubscriptionContext)
-// cause redundant session fetches. Consider centralizing auth state in a single provider.
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/lib/supabase/client";
 import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
+import { useAuthEvent } from "@/components/context/AuthEventContext";
 
 /** Five minutes in milliseconds */
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
@@ -50,7 +49,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const retriesRef = useRef(0);
   const bootstrapRanRef = useRef(false);
   const lastActivityWriteRef = useRef(0);
+  const { event: authEvent } = useAuthEvent();
 
+  // React to centralized auth events (replaces local onAuthStateChange)
+  useEffect(() => {
+    if (authEvent === "SIGNED_OUT") {
+      sessionRef.current = null;
+      clearSessionAndRedirect();
+    }
+  }, [authEvent]);
 
   // Throttled activity tracker
   const handleActivity = useCallback(() => {
@@ -154,21 +161,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
     gate();
 
-    // Only redirect on explicit SIGNED_OUT — ignore transient session nulls
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event) => {
-        if (!mounted) return;
-        if (event === "SIGNED_OUT") {
-          sessionRef.current = null;
-          clearSessionAndRedirect();
-        }
-      }
-    );
-
     return () => {
       mounted = false;
-      subscription?.unsubscribe();
     };
+  // Run once on mount — performs initial auth gate check and subscribes to
+  // auth state changes. All referenced functions (gate, clearSessionAndRedirect)
+  // use refs internally and are stable across renders.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

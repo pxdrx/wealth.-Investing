@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -29,19 +29,16 @@ import {
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { PaywallGate } from "@/components/billing/PaywallGate";
-import {
-  DEFAULT_LAYOUT,
-  mergeLayout,
-  type DashboardLayout,
-} from "@/components/dashboard/WidgetRenderer";
+import type { DashboardLayout } from "@/components/dashboard/WidgetRenderer";
 import { computeTiltmeter, type TiltmeterResult } from "@/lib/psychology-tags";
 import { formatPnl } from "@/components/calendar/utils";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
 import type { JournalTradeRow } from "@/components/journal/types";
-import { supabase } from "@/lib/supabase/client";
 import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
+import { useDashboardData, type JournalTradeKpiRow, type PropAccountRow } from "@/hooks/useDashboardData";
+import { useNewsData, type NewsItem } from "@/hooks/useNewsData";
 
 // ── Dynamic imports for heavy components (perf: code-split) ──
 const CalendarPnl = dynamic(
@@ -85,31 +82,7 @@ const MacroWidgetEvents = dynamic(
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
 );
 
-type JournalTradeKpiRow = {
-  id: string;
-  net_pnl_usd: number | null;
-  opened_at: string | null;
-  account_id: string | null;
-  symbol: string | null;
-  direction: string | null;
-};
-
-type NewsItem = {
-  title: string;
-  source: string;
-  publishedAt: string | null;
-  url: string;
-  impact: "HIGH" | "MEDIUM" | "LOW";
-};
-
-type PropAccountRow = {
-  account_id: string;
-  firm_name: string;
-  phase: string;
-  starting_balance_usd: number;
-  max_daily_loss_percent?: number;
-  max_overall_loss_percent?: number;
-};
+// Types moved to hooks/useDashboardData.ts and hooks/useNewsData.ts
 
 const QUICK_ASSETS = [
   { label: "EUR/USD", symbol: "FX:EURUSD", icon: CircleDollarSign },
@@ -122,304 +95,9 @@ const QUICK_ASSETS = [
 ] as const;
 
 export default function DashboardPage() {
-  const { activeAccountId, accounts: ctxAccounts } = useActiveAccount();
-
-  const [userId, setUserId] = useState<string | null>(null);
-  const [sessionChecked, setSessionChecked] = useState(false);
-
-  const [journalTrades, setJournalTrades] = useState<JournalTradeKpiRow[]>([]);
-  const [journalLoading, setJournalLoading] = useState(true);
-
-  const [accountsById, setAccountsById] = useState<Map<string, Account>>(new Map());
-  const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
-
-  const [propAccounts, setPropAccounts] = useState<PropAccountRow[]>([]);
-  const [propPayoutsTotal, setPropPayoutsTotal] = useState<number>(0);
-
-  const [news, setNews] = useState<NewsItem[] | null>(null);
-  const [newsLoading, setNewsLoading] = useState(false);
-  const [newsError, setNewsError] = useState<string | null>(null);
-
-  const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT);
-
-  // Re-fetch trigger: increments when the page regains visibility (e.g. SPA nav back)
-  const [refreshKey, setRefreshKey] = useState(0);
-  const initialLoadDone = useRef(false);
-  const prevCtxAccountLen = useRef(ctxAccounts.length);
-  const lastRefetch = useRef(0);
-
-  // Sync dashboard data when accounts change in context (e.g., deletion)
-  useEffect(() => {
-    if (prevCtxAccountLen.current !== ctxAccounts.length && ctxAccounts.length > 0) {
-      prevCtxAccountLen.current = ctxAccounts.length;
-      setRefreshKey((k) => k + 1);
-    }
-  }, [ctxAccounts]);
-
-  // PERF-002: Only use visibilitychange (not focus) with 30s cooldown to prevent double-fetch
-  useEffect(() => {
-    function handleVisibility() {
-      if (
-        document.visibilityState === "visible" &&
-        initialLoadDone.current &&
-        Date.now() - lastRefetch.current > 30_000
-      ) {
-        lastRefetch.current = Date.now();
-        setRefreshKey((k) => k + 1);
-      }
-    }
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (error) {
-        console.warn("[dashboard] getSession error", error.message);
-        setUserId(null);
-        return;
-      }
-      const uid = session?.user?.id ?? null;
-      setUserId(uid);
-      setSessionChecked(true);
-      initialLoadDone.current = true;
-
-      // Load dashboard layout from profile (DB first, localStorage fallback)
-      if (uid) {
-        let loaded = false;
-        try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("dashboard_layout")
-            .eq("id", uid)
-            .maybeSingle();
-          if (!cancelled && profile?.dashboard_layout) {
-            setDashboardLayout(mergeLayout(profile.dashboard_layout as DashboardLayout));
-            loaded = true;
-          }
-        } catch {}
-        if (!loaded && !cancelled) {
-          try {
-            const stored = localStorage.getItem(`wealth-dash-layout-${uid}`);
-            if (stored) setDashboardLayout(mergeLayout(JSON.parse(stored)));
-          } catch {}
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
-
-  useEffect(() => {
-    if (!userId) {
-      setJournalTrades([]);
-      setAccountsById(new Map());
-      return;
-    }
-    let cancelled = false;
-    setJournalLoading(true);
-    (async () => {
-      try {
-        const [{ data, error }, accountsRes] = await Promise.all([
-          supabase
-            .from("journal_trades")
-            .select("id, net_pnl_usd, opened_at, account_id, symbol, direction")
-            .eq("user_id", userId)
-            .order("opened_at", { ascending: false }),
-          supabase
-            .from("accounts")
-            .select("id, name, kind, is_active, created_at" as const)
-            .eq("user_id", userId),
-        ]);
-        if (cancelled) return;
-        if (error) {
-          console.warn("[dashboard] journal kpis error", error.message);
-          setJournalTrades([]);
-        } else {
-          setJournalTrades((data ?? []) as JournalTradeKpiRow[]);
-        }
-        const accountsMap = new Map<string, Account>();
-        for (const row of accountsRes.data ?? []) {
-          const acc = row as Account;
-          accountsMap.set(acc.id, acc);
-        }
-        setAccountsById(accountsMap);
-
-        // Fetch prop_accounts and prop_payouts
-        const accountIds = (accountsRes.data ?? []).map((a) => a.id);
-        if (accountIds.length > 0) {
-          const [propAccountsRes, propPayoutsRes] = await Promise.all([
-            supabase
-              .from("prop_accounts")
-              .select("account_id, firm_name, phase, starting_balance_usd, max_daily_loss_percent, max_overall_loss_percent")
-              .in("account_id", accountIds),
-            supabase
-              .from("prop_payouts")
-              .select("amount_usd")
-              .eq("user_id", userId),
-          ]);
-          if (!cancelled) {
-            setPropAccounts((propAccountsRes.data ?? []) as PropAccountRow[]);
-            const total = (propPayoutsRes.data ?? []).reduce(
-              (sum, row) => sum + (row.amount_usd ?? 0),
-              0
-            );
-            setPropPayoutsTotal(total);
-          }
-        }
-
-        // Fetch day notes for calendar
-        const { data: notesData } = await supabase
-          .from("day_notes")
-          .select("date, observation, tags")
-          .eq("user_id", userId);
-        if (!cancelled && notesData) {
-          const notesMap: Record<string, DayNote> = {};
-          for (const n of notesData) {
-            notesMap[n.date] = { observation: n.observation, tags: n.tags };
-          }
-          setDayNotes(notesMap);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          console.warn("[dashboard] journal kpis exception", e);
-          setJournalTrades([]);
-          setAccountsById(new Map());
-        }
-      } finally {
-        if (!cancelled) {
-          setJournalLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, refreshKey]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchNews() {
-      setNewsLoading(true);
-      try {
-        const res = await fetch("/api/news");
-        const json = (await res.json().catch(() => ({}))) as {
-          data?: NewsItem[];
-          error?: string;
-        };
-        if (cancelled) return;
-        if (!res.ok) {
-          setNewsError(json.error ?? `Erro ${res.status}`);
-          setNews([]);
-          return;
-        }
-        setNews(json.data ?? []);
-        setNewsError(null);
-      } catch (e) {
-        if (!cancelled) {
-          console.warn("[dashboard] news fetch error", e);
-          setNewsError("Não foi possível carregar as notícias");
-          setNews([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setNewsLoading(false);
-        }
-      }
-    }
-
-    fetchNews();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const {
-    totalTrades,
-    winratePct,
-    payoff,
-    expectancy,
-    perAccountSummaries,
-  } = useMemo(() => {
-    // Exclude backtest trades from main KPIs
-    const realTrades = journalTrades.filter((t) => {
-      const acc = accountsById.get(t.account_id ?? "");
-      return !acc || acc.kind !== "backtest";
-    });
-
-    if (!realTrades.length) {
-      return {
-        totalTrades: 0,
-        winratePct: 0,
-        payoff: null as number | null,
-        expectancy: null as number | null,
-        perAccountSummaries: [] as { accountId: string; trades: number; wins: number }[],
-      };
-    }
-
-    let total = 0;
-    let wins = 0;
-    let winSum = 0;
-    let losses = 0;
-    let lossSum = 0;
-    let totalNet = 0;
-
-    const perAccount = new Map<string, { trades: number; wins: number }>();
-
-    for (const row of realTrades) {
-      const net =
-        typeof row.net_pnl_usd === "number" && !Number.isNaN(row.net_pnl_usd)
-          ? row.net_pnl_usd
-          : 0;
-      total += 1;
-      totalNet += net;
-      if (net > 0) {
-        wins += 1;
-        winSum += net;
-      } else if (net < 0) {
-        losses += 1;
-        lossSum += net;
-      }
-      if (row.account_id) {
-        const current = perAccount.get(row.account_id) ?? { trades: 0, wins: 0 };
-        current.trades += 1;
-        if (net > 0) current.wins += 1;
-        perAccount.set(row.account_id, current);
-      }
-    }
-
-    const winrate = total > 0 ? (wins / total) * 100 : 0;
-    const avgWin = wins > 0 ? winSum / wins : 0;
-    const avgLoss = losses > 0 ? lossSum / losses : 0;
-    const payoffVal =
-      wins > 0 && losses > 0 && avgLoss !== 0 ? avgWin / Math.abs(avgLoss) : null;
-    const expectancyVal = total > 0 ? totalNet / total : null;
-
-    return {
-      totalTrades: total,
-      winratePct: winrate,
-      payoff: payoffVal,
-      expectancy: expectancyVal,
-      perAccountSummaries: Array.from(perAccount.entries()).map(
-        ([accountId, v]) => ({
-          accountId,
-          trades: v.trades,
-          wins: v.wins,
-        }),
-      ),
-    };
-  }, [journalTrades, accountsById]);
+  const { activeAccountId } = useActiveAccount();
+  const dashData = useDashboardData();
+  const newsData = useNewsData();
 
   // Lazy-load TradingView iframe via IntersectionObserver
   const watchlistRef = useRef<HTMLDivElement>(null);
@@ -441,42 +119,24 @@ export default function DashboardPage() {
     return () => observer.disconnect();
   }, []);
 
-  const formattedNews = useMemo(() => {
-    if (!news) return [];
-    return news.slice(0, 6).map((item) => {
-      let timeLabel = "";
-      if (item.publishedAt) {
-        const d = new Date(item.publishedAt);
-        if (!Number.isNaN(d.getTime())) {
-          timeLabel = d.toLocaleTimeString("pt-BR", {
-            timeZone: "America/Sao_Paulo",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-        }
-      }
-      return { ...item, timeLabel };
-    });
-  }, [news]);
-
   return (
     <DashboardContent
       activeAccountId={activeAccountId}
-      journalTrades={journalTrades}
-      journalLoading={journalLoading || !sessionChecked}
-      accountsById={accountsById}
-      dayNotes={dayNotes}
-      propAccounts={propAccounts}
-      propPayoutsTotal={propPayoutsTotal}
+      journalTrades={dashData.journalTrades}
+      journalLoading={dashData.journalLoading || !dashData.sessionChecked}
+      accountsById={dashData.accountsById}
+      dayNotes={dashData.dayNotes}
+      propAccounts={dashData.propAccounts}
+      propPayoutsTotal={dashData.propPayoutsTotal}
       watchlistRef={watchlistRef}
       iframeVisible={iframeVisible}
       setIframeVisible={setIframeVisible}
-      formattedNews={formattedNews}
-      newsLoading={newsLoading}
-      newsError={newsError}
-      dashboardLayout={dashboardLayout}
-      onRefreshData={() => setRefreshKey((k) => k + 1)}
-      userId={userId}
+      formattedNews={newsData.formattedNews}
+      newsLoading={newsData.newsLoading}
+      newsError={newsData.newsError}
+      dashboardLayout={dashData.dashboardLayout}
+      onRefreshData={dashData.refreshData}
+      userId={dashData.userId}
     />
   );
 }

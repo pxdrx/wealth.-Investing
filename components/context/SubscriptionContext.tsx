@@ -1,11 +1,10 @@
-// TODO: [TECH-DEBT] Multiple onAuthStateChange listeners (AuthGate, ActiveAccountContext, SubscriptionContext)
-// cause redundant session fetches. Consider centralizing auth state in a single provider.
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { fetchMySubscription, getTierLimits, isProOrAbove, isUltra } from "@/lib/subscription";
 import type { Plan, SubscriptionRow, TierLimits } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase/client";
+import { useAuthEvent } from "@/components/context/AuthEventContext";
 
 interface SubscriptionContextValue {
   plan: Plan;
@@ -23,6 +22,7 @@ const SubscriptionContext = createContext<SubscriptionContextValue | null>(null)
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { event: authEvent } = useAuthEvent();
 
   const load = useCallback(async () => {
     try {
@@ -35,6 +35,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
+  // Initial load on mount
   useEffect(() => {
     let mounted = true;
 
@@ -47,20 +48,20 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
     init();
 
-    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event) => {
-      if (!mounted) return;
-      if (event === "SIGNED_IN") load();
-      else if (event === "SIGNED_OUT") {
-        setSubscription(null);
-        setIsLoading(false);
-      }
-    });
-
     return () => {
       mounted = false;
-      authSub.unsubscribe();
     };
   }, [load]);
+
+  // React to centralized auth events (replaces local onAuthStateChange)
+  useEffect(() => {
+    if (authEvent === "SIGNED_IN") {
+      load();
+    } else if (authEvent === "SIGNED_OUT") {
+      setSubscription(null);
+      setIsLoading(false);
+    }
+  }, [authEvent, load]);
 
   // Poll every 15 min — no visibility change handler to avoid re-renders on tab switch
   useEffect(() => {

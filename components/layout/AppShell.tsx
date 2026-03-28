@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthEventProvider } from "@/components/context/AuthEventContext";
 import { ActiveAccountProvider } from "@/components/context/ActiveAccountContext";
 import { SubscriptionProvider } from "@/components/context/SubscriptionContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -22,6 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname === "/risk-disclaimer";
 
   return (
+    <AuthEventProvider>
     <ActiveAccountProvider>
       <SubscriptionProvider>
         {!hideHeader ? (
@@ -49,5 +51,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </SubscriptionProvider>
     </ActiveAccountProvider>
+    </AuthEventProvider>
   );
 }

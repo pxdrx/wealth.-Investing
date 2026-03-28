@@ -1,10 +1,9 @@
-// TODO: [TECH-DEBT] Multiple onAuthStateChange listeners (AuthGate, ActiveAccountContext, SubscriptionContext)
-// cause redundant session fetches. Consider centralizing auth state in a single provider.
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { listMyAccountsWithProp, type AccountWithProp } from "@/lib/accounts";
 import { supabase } from "@/lib/supabase/client";
+import { useAuthEvent } from "@/components/context/AuthEventContext";
 
 const STORAGE_KEY = "activeAccountId";
 
@@ -53,6 +52,7 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
   const [accounts, setAccounts] = useState<AccountWithProp[]>([]);
   const [activeAccountId, setActiveAccountIdState] = useState<string | null>(readStoredId);
   const [isLoading, setIsLoading] = useState(true);
+  const { event: authEvent } = useAuthEvent();
 
   const setActiveAccountId = useCallback((id: string | null) => {
     setActiveAccountIdState(id);
@@ -82,6 +82,7 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
     }
   }, [applyAccounts]);
 
+  // Initial load on mount
   useEffect(() => {
     let mounted = true;
 
@@ -108,23 +109,29 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
 
     load();
 
-    // Re-fetch accounts when auth state changes (fixes race condition after login redirect)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (!mounted) return;
-      if (event === "SIGNED_IN") {
-        load();
-      } else if (event === "SIGNED_OUT") {
-        setAccounts([]);
-        setActiveAccountIdState(null);
-        persistId(null);
-      }
-    });
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, [applyAccounts]);
+
+  // React to centralized auth events (replaces local onAuthStateChange)
+  useEffect(() => {
+    if (authEvent === "SIGNED_IN") {
+      // Re-fetch accounts on sign-in (fixes race condition after login redirect)
+      (async () => {
+        try {
+          const list = await listMyAccountsWithProp();
+          applyAccounts(list);
+        } catch {
+          // ignora
+        }
+      })();
+    } else if (authEvent === "SIGNED_OUT") {
+      setAccounts([]);
+      setActiveAccountIdState(null);
+      persistId(null);
+    }
+  }, [authEvent, applyAccounts]);
 
   const value = useMemo<ActiveAccountContextValue>(
     () => ({ accounts, activeAccountId, setActiveAccountId, refreshAccounts, isLoading }),
