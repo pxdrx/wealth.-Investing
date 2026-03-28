@@ -56,7 +56,7 @@ export function FeatureSection({ data, reversed, visual }: FeatureSectionProps) 
             <span className="inline-block font-mono text-xs tracking-[0.15em] uppercase text-l-text-muted mb-4">
               [{data.number}] {data.tag}
             </span>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-headline font-extrabold tracking-tight text-l-text mb-4">{data.headline}</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-headline font-bold tracking-tighter-apple text-l-text mb-4">{data.headline}</h2>
             <p className="text-base leading-relaxed text-l-text-secondary mb-8">{data.description}</p>
             <span className="inline-block font-mono text-[11px] tracking-[0.12em] uppercase text-l-text-muted mb-4">{data.subLabel}</span>
 
