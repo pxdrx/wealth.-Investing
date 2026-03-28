@@ -5,4 +5,4 @@ Disallow: /api/
 Disallow: /auth/
 Disallow: /onboarding
 
-Sitemap: https://wealth-investing.vercel.app/sitemap.xml
+Sitemap: https://owealthinvesting.com/sitemap.xml
