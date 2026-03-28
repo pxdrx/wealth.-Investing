@@ -14,7 +14,7 @@ const endpoints = [
   "/api/cron/calendar-sync",
   "/api/cron/rates-sync",
   "/api/cron/headlines-sync",
-  "/api/cron/narrative-update",
+  // narrative-update requires event_id — skip in seed, it runs via cron
 ];
 
 async function seed() {
@@ -22,6 +22,7 @@ async function seed() {
     console.log(`Seeding ${endpoint}...`);
     try {
       const res = await fetch(`${BASE_URL}${endpoint}`, {
+        method: "POST",
         headers: { Authorization: `Bearer ${CRON_SECRET}` },
       });
       const data = await res.json();
