@@ -63,15 +63,27 @@ function parseNumber(v: unknown): number {
   return 0;
 }
 
+// TECH-021: MT5 server time is UTC+2 (same as HTML parser). Apply offset to get true UTC.
+const MT5_TO_UTC_MS = -2 * 60 * 60 * 1000;
+
 function parseDate(v: unknown): string {
-  if (v instanceof Date) return v.toISOString();
+  if (v instanceof Date) {
+    const adjusted = new Date(v.getTime() + MT5_TO_UTC_MS);
+    return adjusted.toISOString();
+  }
   if (typeof v === "number") {
     const d = XLSX.SSF.parse_date_code(v);
-    if (d) return new Date(d.y, d.m - 1, d.d, d.H ?? 0, d.M ?? 0, d.S ?? 0).toISOString();
+    if (d) {
+      const local = new Date(d.y, d.m - 1, d.d, d.H ?? 0, d.M ?? 0, d.S ?? 0);
+      const adjusted = new Date(local.getTime() + MT5_TO_UTC_MS);
+      return adjusted.toISOString();
+    }
   }
   if (typeof v === "string") {
     const d = new Date(v);
-    return isNaN(d.getTime()) ? "" : d.toISOString();
+    if (isNaN(d.getTime())) return "";
+    const adjusted = new Date(d.getTime() + MT5_TO_UTC_MS);
+    return adjusted.toISOString();
   }
   return "";
 }

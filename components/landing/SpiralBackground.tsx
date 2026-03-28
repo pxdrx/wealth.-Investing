@@ -133,7 +133,14 @@
      // Pause animation when canvas is not visible (saves CPU)
      let isVisible = true;
      const observer = new IntersectionObserver(
-       ([entry]) => { isVisible = entry.isIntersecting; },
+       ([entry]) => {
+         const wasVisible = isVisible;
+         isVisible = entry.isIntersecting;
+         // TECH-017: restart rAF loop when becoming visible again
+         if (!wasVisible && isVisible) {
+           raf = requestAnimationFrame(render);
+         }
+       },
        { threshold: 0 }
      );
      observer.observe(canvas);
@@ -151,7 +158,7 @@
      }
  
     function render(ts: number) {
-      if (!isVisible) { raf = requestAnimationFrame(render); return; }
+      if (!isVisible) return; // TECH-017: stop rAF loop when not visible
       const animTime = (ts * 0.001 * 0.067) % 1;
       const light = canvas!.dataset.light === "true";
 

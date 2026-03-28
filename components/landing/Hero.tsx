@@ -1,13 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, type Variants, type TargetAndTransition } from "framer-motion";
 import { Bitcoin, ArrowUpRight, TrendingUp } from "lucide-react";
 import { JournalMockup } from "./JournalMockup";
 import { GridPattern } from "./GridPattern";
 import { HERO } from "@/lib/landing-data";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 
-const floatingCoin1: any = {
+const floatingCoin1: TargetAndTransition = {
   y: ["-20px", "20px"],
   rotateX: [15, -15],
   rotateY: [-15, 15],
@@ -19,7 +19,7 @@ const floatingCoin1: any = {
   },
 };
 
-const floatingCoin2: any = {
+const floatingCoin2: TargetAndTransition = {
   y: ["20px", "-20px"],
   rotateX: [-10, 10],
   rotateY: [15, -15],
@@ -31,7 +31,7 @@ const floatingCoin2: any = {
   },
 };
 
-const staggerContainer: any = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -39,7 +39,7 @@ const staggerContainer: any = {
   },
 };
 
-const fadeUp: any = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 50, damping: 12 } },
 };

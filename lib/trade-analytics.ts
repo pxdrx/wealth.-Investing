@@ -160,6 +160,7 @@ function totalPnlOf(trades: JournalTradeRow[]): number {
 
 function toLocalDateStr(isoDate: string, timeZone: string): string {
   const d = new Date(isoDate);
+  if (isNaN(d.getTime())) return "unknown";
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d);
   const y = parts.find((p) => p.type === "year")!.value;
   const m = parts.find((p) => p.type === "month")!.value;

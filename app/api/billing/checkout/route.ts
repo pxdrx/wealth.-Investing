@@ -48,15 +48,15 @@ export async function POST(req: NextRequest) {
       customerId = customer.id;
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/app/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/app/pricing`,
+      success_url: `${appUrl}/app/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/app/pricing`,
       metadata: { user_id: user.id },
       subscription_data: {
         metadata: { user_id: user.id },

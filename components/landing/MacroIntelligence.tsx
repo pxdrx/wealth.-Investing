@@ -1,11 +1,11 @@
 "use client";
 
 import { Globe, Calendar, Newspaper, AlertTriangle } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, type TargetAndTransition } from "framer-motion";
 import { AnimatedSection } from "./AnimatedSection";
 import { MACRO_SECTION } from "@/lib/landing-data";
 
-const floatAnim: any = {
+const floatAnim: TargetAndTransition = {
   y: ["15px", "-15px"],
   rotateZ: [2, -2],
   rotateY: [-5, 5],

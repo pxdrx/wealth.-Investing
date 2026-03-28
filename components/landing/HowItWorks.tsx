@@ -1,12 +1,12 @@
 "use client";
 
 import { ArrowUp, Activity } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, type TargetAndTransition } from "framer-motion";
 import { AnimatedSection } from "./AnimatedSection";
 import { StatCounter } from "./StatCounter";
 import { STATS_SECTION } from "@/lib/landing-data";
 
-const floatAnim: any = {
+const floatAnim: TargetAndTransition = {
   y: ["-15px", "15px"],
   rotateZ: [-3, 3],
   rotateX: [5, -5],
