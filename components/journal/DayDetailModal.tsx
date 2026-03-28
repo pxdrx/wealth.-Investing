@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { X, Save, Tag, FileText, Pencil, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -268,7 +269,6 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
 
   const handleDeleteTrade = async (tradeId: string) => {
     if (!userId) return;
-    if (!confirm("Tem certeza que deseja excluir este trade?")) return;
     setDeletingTradeId(tradeId);
     try {
       const { error } = await supabase
@@ -278,10 +278,30 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
         .eq("user_id", userId);
       if (error) {
         console.error("[DayDetailModal] delete error:", error);
+        setDeletingTradeId(null);
         return;
       }
-      // Refresh the modal data
-      await loadDayData();
+      // Optimistic removal: update local state instead of reloading
+      const deleted = individualTrades.find((t) => t.id === tradeId);
+      setIndividualTrades((prev) => prev.filter((t) => t.id !== tradeId));
+      if (deleted) {
+        setAccountSummaries((prev) => {
+          const updated = prev.map((acc) => {
+            if (acc.accountId !== deleted.account_id) return acc;
+            const net = deleted.net_pnl_usd;
+            return {
+              ...acc,
+              trades: acc.trades - 1,
+              pnl: acc.pnl - net,
+              wins: net > 0 ? acc.wins - 1 : acc.wins,
+              losses: net < 0 ? acc.losses - 1 : acc.losses,
+              breakeven: net === 0 ? acc.breakeven - 1 : acc.breakeven,
+            };
+          });
+          return updated.filter((acc) => acc.trades > 0);
+        });
+      }
+      // Notify parent to refresh data in background (calendar, KPIs)
       onTradeDeleted?.();
     } catch (err) {
       console.error("[DayDetailModal] delete error:", err);
@@ -401,55 +421,61 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
             {individualTrades.length > 0 && (
               <div className="space-y-1.5">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Operações</h4>
-                {individualTrades.map((t) => {
-                  const dirLower = t.direction.toLowerCase();
-                  const isBuy = dirLower === "buy" || dirLower === "long";
-                  const time = new Date(t.opened_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
-                  return (
-                    <div
-                      key={t.id}
-                      className="flex items-center justify-between rounded-lg border border-border/30 px-3 py-2"
-                      style={{ backgroundColor: "hsl(var(--muted) / 0.06)" }}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium text-foreground">{t.symbol}</span>
-                            <span className={cn(
-                              "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
-                              isBuy ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
-                            )}>
-                              {t.direction}
+                <AnimatePresence initial={false}>
+                  {individualTrades.map((t) => {
+                    const dirLower = t.direction.toLowerCase();
+                    const isBuy = dirLower === "buy" || dirLower === "long";
+                    const time = new Date(t.opened_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                    return (
+                      <motion.div
+                        key={t.id}
+                        layout
+                        initial={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, overflow: "hidden" }}
+                        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                        className="flex items-center justify-between rounded-lg border border-border/30 px-3 py-2"
+                        style={{ backgroundColor: "hsl(var(--muted) / 0.06)" }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium text-foreground">{t.symbol}</span>
+                              <span className={cn(
+                                "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                                isBuy ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
+                              )}>
+                                {t.direction}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              {time}{accountSummaries.length > 1 ? ` · ${t.accountName}` : ""}
                             </span>
                           </div>
-                          <span className="text-[10px] text-muted-foreground">
-                            {time}{accountSummaries.length > 1 ? ` · ${t.accountName}` : ""}
-                          </span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-sm font-bold tabular-nums",
-                          t.net_pnl_usd > 0 ? "text-emerald-700 dark:text-emerald-400"
-                          : t.net_pnl_usd < 0 ? "text-red-700 dark:text-red-400"
-                          : "text-muted-foreground"
-                        )}>
-                          {t.net_pnl_usd > 0 ? "+" : ""}{t.net_pnl_usd < 0 ? "-" : ""}${Math.abs(t.net_pnl_usd).toFixed(2)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTrade(t.id)}
-                          disabled={deletingTradeId === t.id}
-                          className="rounded-md p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                          title="Excluir trade"
-                          aria-label={`Excluir trade ${t.symbol}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "text-sm font-bold tabular-nums",
+                            t.net_pnl_usd > 0 ? "text-emerald-700 dark:text-emerald-400"
+                            : t.net_pnl_usd < 0 ? "text-red-700 dark:text-red-400"
+                            : "text-muted-foreground"
+                          )}>
+                            {t.net_pnl_usd > 0 ? "+" : ""}{t.net_pnl_usd < 0 ? "-" : ""}${Math.abs(t.net_pnl_usd).toFixed(2)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTrade(t.id)}
+                            disabled={deletingTradeId === t.id}
+                            className="rounded-md p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                            title="Excluir trade"
+                            aria-label={`Excluir trade ${t.symbol}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               </div>
             )}
 
