@@ -19,6 +19,7 @@ export function CalendarPnl({
   dayNotes,
   userId,
   accountId,
+  accountIds,
   onNoteSaved,
   title: customTitle,
   compact,
@@ -230,6 +231,7 @@ export function CalendarPnl({
         date={selectedDate}
         userId={userId ?? null}
         accountId={accountId}
+        accountIds={accountIds}
         open={modalOpen}
         onOpenChange={setModalOpen}
         onNoteSaved={() => {

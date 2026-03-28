@@ -18,6 +18,8 @@ interface DayDetailModalProps {
   date: string | null;
   userId: string | null;
   accountId?: string | null;
+  /** When set, only show trades from these accounts (e.g. backtest-only view) */
+  accountIds?: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNoteSaved?: () => void;
@@ -57,7 +59,7 @@ const TAG_PRESETS = [
   "Sessão NY",
 ];
 
-export function DayDetailModal({ date, userId, accountId, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
+export function DayDetailModal({ date, userId, accountId, accountIds, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [dayNote, setDayNote] = useState<DayNote>({ observation: "", tags: [] });
@@ -96,7 +98,11 @@ export function DayDetailModal({ date, userId, accountId, open, onOpenChange, on
         .eq("user_id", userId)
         .gte("opened_at", startOfDay)
         .lte("opened_at", endOfDay);
-      if (accountId) tradesQuery = tradesQuery.eq("account_id", accountId);
+      if (accountId) {
+        tradesQuery = tradesQuery.eq("account_id", accountId);
+      } else if (accountIds && accountIds.length > 0) {
+        tradesQuery = tradesQuery.in("account_id", accountIds);
+      }
 
       const [tradesRes, accountsRes] = await Promise.all([
         tradesQuery,
@@ -173,7 +179,8 @@ export function DayDetailModal({ date, userId, accountId, open, onOpenChange, on
     } finally {
       setLoading(false);
     }
-  }, [date, userId, accountId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, userId, accountId, JSON.stringify(accountIds)]);
 
   useEffect(() => {
     if (open && date && userId) loadDayData();

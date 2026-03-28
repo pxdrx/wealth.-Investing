@@ -36,6 +36,8 @@ export interface CalendarPnlProps {
   userId?: string | null;
   onNoteSaved?: (date: string, note: DayNote) => void;
   accountId?: string | null;
+  /** When set, modal only shows trades from these accounts (e.g. backtest accounts) */
+  accountIds?: string[];
   title?: string;
   compact?: boolean;
 }

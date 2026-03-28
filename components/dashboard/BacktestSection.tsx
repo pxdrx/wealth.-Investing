@@ -387,6 +387,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
               accounts={selectedAccountId ? undefined : activeAccounts.map((a) => ({ id: a.id, name: a.name }))}
               userId={userId}
               accountId={selectedAccountId ?? null}
+              accountIds={activeAccounts.map((a) => a.id)}
               title={selectedAccount ? selectedAccount.name : "Calendário Backtest"}
               compact
             />
