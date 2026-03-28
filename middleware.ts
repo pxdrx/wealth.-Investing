@@ -10,7 +10,7 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/app")) {
     const hasAuthCookie = request.cookies.getAll().some(
-      (cookie) => cookie.name.startsWith("sb-") && cookie.name.endsWith("-auth-token")
+      (cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("-auth-token")
     );
 
     if (!hasAuthCookie) {
