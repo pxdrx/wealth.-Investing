@@ -67,6 +67,9 @@ const SECTION_TRADES = 1;
 const SECTION_REPORTS = 2;
 const SECTION_IMPORT = 4;
 
+/** TECH-022: Pagination — load trades in pages instead of all at once */
+const PAGE_SIZE = 100;
+
 export default function JournalPage() {
   const { activeAccountId, isLoading: accountsLoading } = useActiveAccount();
   const [activeTab, setActiveTab] = useState(0);
@@ -89,6 +92,9 @@ export default function JournalPage() {
   const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showAddTrade, setShowAddTrade] = useState(false);
+  const [tradesPage, setTradesPage] = useState(0);
+  const [hasMoreTrades, setHasMoreTrades] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   // Get userId once on mount — AuthGate already validates the session
   useEffect(() => {
     let cancelled = false;
@@ -97,28 +103,62 @@ export default function JournalPage() {
       if (!cancelled) setUserId(session?.user?.id ?? null);
     })();
     return () => { cancelled = true; };
+  // Run once on mount — AuthGate already validates the session, this just
+  // extracts the user ID. supabase client is a stable singleton.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** TECH-022: Paginated initial load — fetches first PAGE_SIZE trades */
   const loadTrades = useCallback(async () => {
-    if (!activeAccountId) { setTrades([]); return; }
+    if (!activeAccountId) { setTrades([]); setHasMoreTrades(true); setTradesPage(0); return; }
     setLoadingTrades(true);
     setTradesError(null);
+    setTradesPage(0);
     try {
-      // PERF-006: Limit to 500 most recent trades to prevent loading 10,000+ rows
       const { data, error: err } = await supabase
         .from("journal_trades")
         .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, notes, mistakes, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
         .eq("account_id", activeAccountId)
         .order("opened_at", { ascending: false })
-        .limit(500);
-      if (err) { setTradesError(err.message); setTrades([]); }
-      // Reverse back to ascending for display (loaded desc for recency)
-      else setTrades(((data ?? []) as JournalTradeRow[]).reverse());
+        .range(0, PAGE_SIZE - 1);
+      if (err) { setTradesError(err.message); setTrades([]); setHasMoreTrades(false); }
+      else {
+        const rows = (data ?? []) as JournalTradeRow[];
+        setHasMoreTrades(rows.length >= PAGE_SIZE);
+        // Reverse back to ascending for display (loaded desc for recency)
+        setTrades(rows.reverse());
+      }
     } finally {
       setLoadingTrades(false);
     }
   }, [activeAccountId]);
+
+  /** TECH-022: Load next page of trades and append */
+  const loadMoreTrades = useCallback(async () => {
+    if (!activeAccountId || !hasMoreTrades || loadingMore) return;
+    setLoadingMore(true);
+    const nextPage = tradesPage + 1;
+    try {
+      const from = nextPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, error: err } = await supabase
+        .from("journal_trades")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, notes, mistakes, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
+        .eq("account_id", activeAccountId)
+        .order("opened_at", { ascending: false })
+        .range(from, to);
+      if (err) { setTradesError(err.message); }
+      else {
+        const rows = (data ?? []) as JournalTradeRow[];
+        setHasMoreTrades(rows.length >= PAGE_SIZE);
+        setTradesPage(nextPage);
+        // Prepend older trades (they come desc, reverse to asc, then prepend)
+        setTrades((prev) => [...rows.reverse(), ...prev]);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeAccountId, hasMoreTrades, loadingMore, tradesPage]);
 
   // PERF-008: AbortController to cancel stale fetches on re-render
   useEffect(() => {
@@ -563,7 +603,27 @@ export default function JournalPage() {
               </div>
             )}
             {activeTab === SECTION_TRADES && (
-              <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
+              <div className="space-y-4">
+                <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
+                {hasMoreTrades && (
+                  <div className="flex justify-center pt-2 pb-4">
+                    <button
+                      onClick={loadMoreTrades}
+                      disabled={loadingMore}
+                      className="flex items-center gap-2 rounded-full border border-border/60 px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-50"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          Carregando...
+                        </>
+                      ) : (
+                        "Carregar mais"
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             {activeTab === SECTION_REPORTS && (
               <PaywallGate requiredPlan="pro" blurContent>
