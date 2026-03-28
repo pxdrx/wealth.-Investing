@@ -1,2 +1,0 @@
-[   75068ms] [WARNING] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. @ webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:467
-[   75069ms] [WARNING] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. @ webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:467
