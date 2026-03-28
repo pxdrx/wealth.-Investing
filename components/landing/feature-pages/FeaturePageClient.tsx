@@ -146,7 +146,7 @@ export function FeaturePageClient({
                   >
                     {benefit.icon}
                   </div>
-                  <h3 className="text-sm font-semibold text-l-text mb-2">
+                  <h3 className="text-base font-semibold text-l-text mb-2">
                     {benefit.title}
                   </h3>
                   <p className="text-sm leading-relaxed text-l-text-muted flex-1">

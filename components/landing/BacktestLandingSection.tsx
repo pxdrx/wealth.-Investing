@@ -190,7 +190,7 @@ export function BacktestLandingSection() {
                           <Icon className="h-3.5 w-3.5" style={{ color: "hsl(270, 70%, 60%)" }} />
                         </div>
                         <div>
-                          <h3 className="text-xs font-semibold text-l-text">{feat.title}</h3>
+                          <h3 className="text-sm font-semibold text-l-text">{feat.title}</h3>
                           <p className="mt-0.5 text-[11px] leading-relaxed text-l-text-muted">
                             {feat.description}
                           </p>

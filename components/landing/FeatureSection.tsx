@@ -69,7 +69,7 @@ export function FeatureSection({ data, reversed, visual }: FeatureSectionProps) 
                       <Icon className="h-4 w-4 text-l-text-secondary" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-l-text">{feat.title}</h3>
+                      <h3 className="text-base font-semibold text-l-text">{feat.title}</h3>
                       <p className="mt-0.5 text-sm leading-relaxed text-l-text-secondary">{feat.description}</p>
                     </div>
                   </div>
