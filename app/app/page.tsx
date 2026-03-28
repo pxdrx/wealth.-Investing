@@ -412,6 +412,7 @@ function DashboardContent({
             newsError,
             activeAccountId,
             userId: userId ?? null,
+            refreshData: onRefreshData,
           })}
         />
 
@@ -459,6 +460,7 @@ interface WidgetRegistryInput {
   newsError: string | null;
   activeAccountId: string | null;
   userId: string | null;
+  refreshData?: () => void;
 }
 
 function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.ReactNode> {
@@ -473,6 +475,7 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     newsError,
     activeAccountId,
     userId,
+    refreshData,
   } = input;
 
   const accountsList = Array.from(accountsById.values());
@@ -496,6 +499,7 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
         accounts={accountsSimple}
         dayNotes={dayNotes}
         userId={userId}
+        onTradeDeleted={refreshData}
       />
     ),
 

@@ -42,4 +42,6 @@ export interface CalendarPnlProps {
   defaultReadOnly?: boolean;
   title?: string;
   compact?: boolean;
+  /** Called after a trade is deleted from the day detail modal */
+  onTradeDeleted?: () => void;
 }

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
-import { X, Save, Tag, FileText, Pencil } from "lucide-react";
+import { X, Save, Tag, FileText, Pencil, Trash2 } from "lucide-react";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -25,6 +25,8 @@ interface DayDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNoteSaved?: () => void;
+  /** Called after a trade is deleted so parent can refresh */
+  onTradeDeleted?: () => void;
 }
 
 interface AccountTradesSummary {
@@ -37,14 +39,26 @@ interface AccountTradesSummary {
   pnl: number;
 }
 
+interface IndividualTrade {
+  id: string;
+  symbol: string;
+  direction: string;
+  net_pnl_usd: number;
+  opened_at: string;
+  account_id: string;
+  accountName: string;
+}
+
 interface DayNote {
   id?: string;
   observation: string;
   tags: string[];
 }
 
-export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
+export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, open, onOpenChange, onNoteSaved, onTradeDeleted }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
+  const [individualTrades, setIndividualTrades] = useState<IndividualTrade[]>([]);
+  const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dayNote, setDayNote] = useState<DayNote>({ observation: "", tags: [] });
   const [saving, setSaving] = useState(false);
@@ -107,7 +121,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
 
       let tradesQuery = supabase
         .from("journal_trades")
-        .select("account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction")
+        .select("id, account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction, opened_at")
         .eq("user_id", userId)
         .gte("opened_at", startOfDay)
         .lte("opened_at", endOfDay);
@@ -146,12 +160,17 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       }
 
       const byAccount = new Map<string, AccountTradesSummary>();
+      const tradesList: IndividualTrade[] = [];
       for (const row of tradesRes.data ?? []) {
         const r = row as {
+          id: string;
           account_id: string | null;
           net_pnl_usd: number | null;
           pnl_usd: number | null;
           fees_usd: number | null;
+          symbol: string | null;
+          direction: string | null;
+          opened_at: string;
         };
         if (!r.account_id) continue;
         const net = typeof r.net_pnl_usd === "number" && !Number.isNaN(r.net_pnl_usd)
@@ -171,9 +190,20 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
         if (net > 0) s.wins += 1;
         else if (net < 0) s.losses += 1;
         else s.breakeven += 1;
+
+        tradesList.push({
+          id: r.id,
+          symbol: r.symbol ?? "—",
+          direction: r.direction ?? "—",
+          net_pnl_usd: net,
+          opened_at: r.opened_at,
+          account_id: r.account_id,
+          accountName: accountNames.get(r.account_id) ?? "Conta",
+        });
       }
 
       setAccountSummaries(Array.from(byAccount.values()).sort((a, b) => b.pnl - a.pnl));
+      setIndividualTrades(tradesList.sort((a, b) => a.opened_at.localeCompare(b.opened_at)));
 
       if (noteResult) {
         const obs = noteResult.observation ?? "";
@@ -188,6 +218,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       }
     } catch {
       setAccountSummaries([]);
+      setIndividualTrades([]);
       setDayNote({ observation: "", tags: [] });
     } finally {
       setLoading(false);
@@ -232,6 +263,30 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       setSaveError("Erro ao salvar. Tente novamente.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteTrade = async (tradeId: string) => {
+    if (!userId) return;
+    if (!confirm("Tem certeza que deseja excluir este trade?")) return;
+    setDeletingTradeId(tradeId);
+    try {
+      const { error } = await supabase
+        .from("journal_trades")
+        .delete()
+        .eq("id", tradeId)
+        .eq("user_id", userId);
+      if (error) {
+        console.error("[DayDetailModal] delete error:", error);
+        return;
+      }
+      // Refresh the modal data
+      await loadDayData();
+      onTradeDeleted?.();
+    } catch (err) {
+      console.error("[DayDetailModal] delete error:", err);
+    } finally {
+      setDeletingTradeId(null);
     }
   };
 
@@ -339,6 +394,62 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                     </p>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Individual trades with delete */}
+            {individualTrades.length > 0 && (
+              <div className="space-y-1.5">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Operações</h4>
+                {individualTrades.map((t) => {
+                  const dirLower = t.direction.toLowerCase();
+                  const isBuy = dirLower === "buy" || dirLower === "long";
+                  const time = new Date(t.opened_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                  return (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between rounded-lg border border-border/30 px-3 py-2"
+                      style={{ backgroundColor: "hsl(var(--muted) / 0.06)" }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-foreground">{t.symbol}</span>
+                            <span className={cn(
+                              "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                              isBuy ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
+                            )}>
+                              {t.direction}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {time}{accountSummaries.length > 1 ? ` · ${t.accountName}` : ""}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "text-sm font-bold tabular-nums",
+                          t.net_pnl_usd > 0 ? "text-emerald-700 dark:text-emerald-400"
+                          : t.net_pnl_usd < 0 ? "text-red-700 dark:text-red-400"
+                          : "text-muted-foreground"
+                        )}>
+                          {t.net_pnl_usd > 0 ? "+" : ""}{t.net_pnl_usd < 0 ? "-" : ""}${Math.abs(t.net_pnl_usd).toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTrade(t.id)}
+                          disabled={deletingTradeId === t.id}
+                          className="rounded-md p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                          title="Excluir trade"
+                          aria-label={`Excluir trade ${t.symbol}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

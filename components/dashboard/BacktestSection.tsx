@@ -393,6 +393,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
               defaultReadOnly
               title={selectedAccount ? selectedAccount.name : "Calendário Backtest"}
               compact
+              onTradeDeleted={onTradeAdded}
             />
           </>)}
         </div>

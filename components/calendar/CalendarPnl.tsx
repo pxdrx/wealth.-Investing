@@ -22,6 +22,7 @@ export function CalendarPnl({
   accountIds,
   defaultReadOnly,
   onNoteSaved,
+  onTradeDeleted,
   title: customTitle,
   compact,
 }: CalendarPnlProps) {
@@ -236,6 +237,7 @@ export function CalendarPnl({
         defaultReadOnly={defaultReadOnly}
         open={modalOpen}
         onOpenChange={setModalOpen}
+        onTradeDeleted={onTradeDeleted}
         onNoteSaved={() => {
           // Refresh day notes in parent by calling onNoteSaved
           if (selectedDate && onNoteSaved) {

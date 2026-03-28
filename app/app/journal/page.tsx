@@ -631,6 +631,7 @@ export default function JournalPage() {
                   onNoteSaved={(date, note) => {
                     setDayNotes((prev) => ({ ...prev, [date]: note }));
                   }}
+                  onTradeDeleted={loadTrades}
                 />
               </div>
             )}
