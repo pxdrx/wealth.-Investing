@@ -537,6 +537,13 @@ export default function OnboardingPage() {
                     {importState === "previewing" && (
                       <p className="mt-2 text-center text-xs text-muted-foreground">Processando arquivo...</p>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => { window.location.href = "/app"; }}
+                      className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer py-1"
+                    >
+                      Pular por agora
+                    </button>
                   </div>
                 )}
 

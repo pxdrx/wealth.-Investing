@@ -54,6 +54,7 @@ export function AppMobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              data-tour-id={`mobile-${item.href.replace("/app/", "").replace("/app", "dashboard")}`}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-3 py-1 rounded-xl transition-colors duration-200",
                 isActive

@@ -147,10 +147,11 @@ function AppSidebarInner() {
             <Link
               href={link.href}
               title={collapsed ? link.label : undefined}
+              data-tour-id={`sidebar-${link.href.replace("/app/", "").replace("/app", "dashboard")}`}
               className={cn(
                 "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
-                isActive 
-                  ? "bg-primary/10 text-primary font-medium" 
+                isActive
+                  ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 link.highlight && !isActive && "text-indigo-400 hover:text-indigo-300"
               )}
