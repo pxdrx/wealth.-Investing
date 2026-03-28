@@ -168,7 +168,8 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
           value={symbol}
           onChange={(e) => setSymbol(e.target.value)}
           placeholder="Ativo"
-          className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-purple-500 uppercase"
+          aria-label="Ativo"
+          className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 uppercase"
         />
         <div className="flex rounded-lg border border-border/40 overflow-hidden">
           <button
@@ -191,15 +192,16 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
           value={pnl}
           onChange={(e) => setPnl(e.target.value)}
           placeholder="P&L ($)"
+          aria-label="P&L em dólares"
           step="0.01"
-          className="w-20 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium tabular-nums focus:outline-none focus:ring-1 focus:ring-purple-500"
+          className="w-20 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500"
         />
       </div>
 
       {/* Date + Time */}
       <div className="flex gap-1.5">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-24 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Data da operação" className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500" />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Hora da operação" className="w-24 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500" />
       </div>
 
       {/* Observation — collapsible */}
@@ -207,7 +209,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
         {showObs ? "▾ Ocultar observações" : "▸ Adicionar observações"}
       </button>
       {showObs && (
-        <textarea value={observation} onChange={(e) => setObservation(e.target.value)} placeholder="Contexto, motivo da entrada..." rows={2} className="w-full rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none" />
+        <textarea value={observation} onChange={(e) => setObservation(e.target.value)} placeholder="Contexto, motivo da entrada..." aria-label="Observações" rows={2} className="w-full rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-[10px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 resize-none" />
       )}
 
       {/* Submit */}

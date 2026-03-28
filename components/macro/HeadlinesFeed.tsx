@@ -130,6 +130,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
             className="h-8 w-8"
             onClick={onRefresh}
             disabled={refreshing}
+            aria-label="Atualizar headlines"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
           </Button>

@@ -14,7 +14,7 @@
     --secondary: 0 0% 93%;
     --secondary-foreground: 0 0% 10%;
     --muted: 0 0% 93%;
-    --muted-foreground: 0 0% 35%; /* #595959 — WCAG AA 4.5:1 on light bg */
+    --muted-foreground: 0 0% 36%; /* #5C5C5C — WCAG AA 4.5:1 on light bg */
     --accent: 0 0% 93%;
     --accent-foreground: 0 0% 10%;
     --border: 0 0% 82%; /* #D1D1D1 (Linhas divisórias mais visíveis) */

@@ -39,6 +39,14 @@ export const metadata: Metadata = {
       "Centralize operações, analise padrões e transforme dados em insights acionáveis para operar com disciplina.",
     type: "website",
     locale: "pt_BR",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "wealth.Investing — Plataforma de trading analytics",
+      },
+    ],
   },
 };
 

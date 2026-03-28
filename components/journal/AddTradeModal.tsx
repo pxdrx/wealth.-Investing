@@ -69,7 +69,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       });
 
       if (error) {
-        alert("Erro ao salvar trade: " + error.message);
+        console.error("[add-trade] DB error:", error.message);
         return;
       }
 
@@ -87,7 +87,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       onClose();
     } catch (err) {
       console.error("[add-trade] Error:", err);
-      alert("Erro ao salvar trade. Tente novamente.");
+      console.error("[add-trade] Unexpected error:", err);
     } finally {
       setSaving(false);
     }
@@ -104,7 +104,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold tracking-tight">Adicionar Trade</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted transition-colors">
+          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted transition-colors" aria-label="Fechar modal">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -112,14 +112,15 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         <div className="space-y-4">
           {/* Symbol */}
           <div>
-            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Ativo</label>
+            <label htmlFor="add-trade-symbol" className="text-sm font-medium text-muted-foreground mb-1.5 block">Ativo</label>
             <input
+              id="add-trade-symbol"
               type="text"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
               placeholder="ex: EURUSD"
               list="symbol-suggestions"
-              className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <datalist id="symbol-suggestions">
               {symbolSuggestions.map((s) => (
@@ -160,21 +161,23 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Abertura</label>
+              <label htmlFor="add-trade-opened" className="text-sm font-medium text-muted-foreground mb-1.5 block">Abertura</label>
               <input
+                id="add-trade-opened"
                 type="datetime-local"
                 value={openedAt}
                 onChange={(e) => setOpenedAt(e.target.value)}
-                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Fechamento</label>
+              <label htmlFor="add-trade-closed" className="text-sm font-medium text-muted-foreground mb-1.5 block">Fechamento</label>
               <input
+                id="add-trade-closed"
                 type="datetime-local"
                 value={closedAt}
                 onChange={(e) => setClosedAt(e.target.value)}
-                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -182,14 +185,15 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
           {/* PnL + Fees */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">P&L (USD)</label>
+              <label htmlFor="add-trade-pnl" className="text-sm font-medium text-muted-foreground mb-1.5 block">P&L (USD)</label>
               <input
+                id="add-trade-pnl"
                 type="number"
                 step="0.01"
                 value={pnlUsd}
                 onChange={(e) => setPnlUsd(e.target.value)}
                 placeholder="ex: 150.00"
-                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
             <div>

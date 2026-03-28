@@ -170,7 +170,7 @@ export function PricingCards() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Erro ao processar assinatura. Tente novamente.");
+        console.error("[billing] Checkout error:", data.error || "Unknown error");
         return;
       }
       if (data.url) {
@@ -200,7 +200,7 @@ export function PricingCards() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(res.status === 404 ? "Nenhuma assinatura ativa encontrada." : (data.error || "Erro ao acessar portal. Tente novamente."));
+        console.error("[billing] Portal error:", res.status === 404 ? "No active subscription" : (data.error || "Unknown error"));
         return;
       }
       if (data.url) {

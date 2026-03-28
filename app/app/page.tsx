@@ -1153,7 +1153,7 @@ function StreaksWidget({
         </h3>
         <Flame className="h-4 w-4 text-muted-foreground" />
       </div>
-      <div className="grid grid-cols-3 divide-x" style={{ borderColor: "hsl(var(--border))" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x" style={{ borderColor: "hsl(var(--border))" }}>
         <div className="px-4 py-4 text-center">
           <p className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground mb-1">
             Atual

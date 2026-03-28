@@ -25,7 +25,7 @@ function BiasLabel({ bias }: { bias: string }) {
   const config = {
     bullish: { text: "Bullish", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
     bearish: { text: "Bearish", color: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30" },
-    neutral: { text: "Neutro", color: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30" },
+    neutral: { text: "Neutro", color: "bg-muted text-muted-foreground border-border" },
   };
   const c = config[bias as keyof typeof config] || config.neutral;
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${c.color}`}>{c.text}</span>;

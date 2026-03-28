@@ -269,14 +269,14 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
         <div className="px-5 pb-5 pt-3" style={{ backgroundColor: "hsl(var(--card))" }}>
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-3">
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goPrev}>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goPrev} aria-label="Mês anterior">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="text-center">
               <h2 className="text-lg font-bold tracking-tight text-foreground">{monthTitle}</h2>
               <div className="mx-auto mt-1 h-[2px] w-8 rounded-full bg-blue-500" />
             </div>
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goNext}>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goNext} aria-label="Próximo mês">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
