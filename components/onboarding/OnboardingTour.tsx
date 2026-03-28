@@ -137,6 +137,121 @@ function getTooltipStyle(
   }
 }
 
+interface TourCardProps {
+  step: TourStep;
+  currentStep: number;
+  isFirstStep: boolean;
+  isLastStep: boolean;
+  onNext: () => void;
+  onSkip: () => void;
+  onImportNow: () => void;
+}
+
+function TourCard({
+  step,
+  currentStep,
+  isFirstStep,
+  isLastStep,
+  onNext,
+  onSkip,
+  onImportNow,
+}: TourCardProps) {
+  return (
+    <div
+      className="rounded-[18px] border border-border/60 p-6 shadow-xl"
+      style={{ backgroundColor: "hsl(var(--card))" }}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-lg font-semibold tracking-tight text-foreground">
+          {step.title}
+        </h3>
+        {!isLastStep && (
+          <button
+            onClick={onSkip}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors -mt-1 -mr-1 shrink-0"
+            aria-label="Pular tour"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Description */}
+      <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+        {step.description}
+      </p>
+
+      {/* Progress dots */}
+      <div className="flex items-center gap-1.5 mb-5">
+        {TOUR_STEPS.map((_, i) => (
+          <div
+            key={i}
+            className="h-1.5 rounded-full transition-all duration-300"
+            style={{
+              width: i === currentStep ? 20 : 6,
+              backgroundColor:
+                i === currentStep
+                  ? "hsl(var(--primary))"
+                  : i < currentStep
+                    ? "hsl(var(--primary) / 0.4)"
+                    : "hsl(var(--muted-foreground) / 0.2)",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Actions */}
+      {isLastStep ? (
+        <div className="flex gap-3">
+          <button
+            onClick={onImportNow}
+            className="flex-1 flex items-center justify-center gap-2 rounded-[14px] py-3 text-sm font-semibold transition-all duration-200"
+            style={{
+              backgroundColor: "hsl(var(--foreground))",
+              color: "hsl(var(--background))",
+            }}
+          >
+            <BookOpen className="h-4 w-4" />
+            Importar agora
+          </button>
+          <button
+            onClick={onSkip}
+            className="flex-1 flex items-center justify-center gap-2 rounded-[14px] py-3 text-sm font-medium border transition-all duration-200"
+            style={{
+              borderColor: "hsl(var(--border))",
+              color: "hsl(var(--foreground))",
+            }}
+          >
+            <Sparkles className="h-4 w-4" />
+            Explorar
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onSkip}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors py-2 px-1"
+          >
+            Pular tour
+          </button>
+          <button
+            onClick={onNext}
+            className="flex items-center gap-2 rounded-[14px] px-5 py-2.5 text-sm font-semibold transition-all duration-200"
+            style={{
+              backgroundColor: "hsl(var(--foreground))",
+              color: "hsl(var(--background))",
+            }}
+          >
+            {isFirstStep ? "Comecar" : "Proximo"}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function OnboardingTour({ onComplete }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<SpotlightRect | null>(null);
@@ -304,19 +419,37 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
 
         {/* Tooltip / Centered Modal */}
         <AnimatePresence mode="wait">
-          <motion.div
-            key={step.id}
-            className="absolute z-10"
-            style={
-              step.centered
-                ? {
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    maxWidth: 400,
-                    width: "calc(100% - 48px)",
-                  }
-                : targetRect
+          {step.centered ? (
+            <div
+              key={`center-wrap-${step.id}`}
+              className="fixed inset-0 z-10 flex items-center justify-center pointer-events-none"
+            >
+              <motion.div
+                key={step.id}
+                className="pointer-events-auto"
+                style={{ maxWidth: 400, width: "calc(100% - 48px)" }}
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                transition={{ duration: 0.3, ease: easeApple }}
+              >
+                <TourCard
+                  step={step}
+                  currentStep={currentStep}
+                  isFirstStep={isFirstStep}
+                  isLastStep={isLastStep}
+                  onNext={handleNext}
+                  onSkip={handleSkip}
+                  onImportNow={handleImportNow}
+                />
+              </motion.div>
+            </div>
+          ) : (
+            <motion.div
+              key={step.id}
+              className="absolute z-10"
+              style={
+                targetRect
                   ? getTooltipStyle(
                       targetRect,
                       getTooltipPosition(targetRect, isMobile)
@@ -328,105 +461,23 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
                       maxWidth: 400,
                       width: "calc(100% - 48px)",
                     }
-            }
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.3, ease: easeApple }}
-          >
-            <div
-              className="rounded-[18px] border border-border/60 p-6 shadow-xl"
-              style={{ backgroundColor: "hsl(var(--card))" }}
+              }
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ duration: 0.3, ease: easeApple }}
             >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                  {step.title}
-                </h3>
-                {!isLastStep && (
-                  <button
-                    onClick={handleSkip}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors -mt-1 -mr-1 shrink-0"
-                    aria-label="Pular tour"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              {/* Description */}
-              <p className="text-sm text-muted-foreground leading-relaxed mb-5">
-                {step.description}
-              </p>
-
-              {/* Progress dots */}
-              <div className="flex items-center gap-1.5 mb-5">
-                {TOUR_STEPS.map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-1.5 rounded-full transition-all duration-300"
-                    style={{
-                      width: i === currentStep ? 20 : 6,
-                      backgroundColor:
-                        i === currentStep
-                          ? "hsl(var(--primary))"
-                          : i < currentStep
-                            ? "hsl(var(--primary) / 0.4)"
-                            : "hsl(var(--muted-foreground) / 0.2)",
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Actions */}
-              {isLastStep ? (
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleImportNow}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-[14px] py-3 text-sm font-semibold transition-all duration-200"
-                    style={{
-                      backgroundColor: "hsl(var(--foreground))",
-                      color: "hsl(var(--background))",
-                    }}
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    Importar agora
-                  </button>
-                  <button
-                    onClick={handleSkip}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-[14px] py-3 text-sm font-medium border transition-all duration-200"
-                    style={{
-                      borderColor: "hsl(var(--border))",
-                      color: "hsl(var(--foreground))",
-                    }}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Explorar
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={handleSkip}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors py-2 px-1"
-                  >
-                    Pular tour
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    className="flex items-center gap-2 rounded-[14px] px-5 py-2.5 text-sm font-semibold transition-all duration-200"
-                    style={{
-                      backgroundColor: "hsl(var(--foreground))",
-                      color: "hsl(var(--background))",
-                    }}
-                  >
-                    {isFirstStep ? "Comecar" : "Proximo"}
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </motion.div>
+              <TourCard
+                step={step}
+                currentStep={currentStep}
+                isFirstStep={isFirstStep}
+                isLastStep={isLastStep}
+                onNext={handleNext}
+                onSkip={handleSkip}
+                onImportNow={handleImportNow}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
       </motion.div>
     </AnimatePresence>

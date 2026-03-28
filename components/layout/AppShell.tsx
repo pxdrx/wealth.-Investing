@@ -9,8 +9,11 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { AppMobileNav } from "@/components/layout/AppMobileNav";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
 
 const TOUR_STORAGE_KEY = "onboarding_tour_completed";
+/** Only show tour if account was created within this window (ms) */
+const NEW_ACCOUNT_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -21,14 +24,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!pathname?.startsWith("/app")) return;
     try {
       const completed = localStorage.getItem(TOUR_STORAGE_KEY);
-      if (!completed) {
-        // Small delay to let the layout render so targets are measurable
-        const timer = setTimeout(() => setShowTour(true), 600);
-        return () => clearTimeout(timer);
-      }
+      if (completed) return; // Already completed, skip everything
     } catch {
       // localStorage unavailable, skip tour
+      return;
     }
+
+    // Check if user account is new enough to warrant showing the tour
+    let cancelled = false;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      const createdAt = data?.user?.created_at;
+      if (!createdAt) return;
+
+      const accountAgeMs = Date.now() - new Date(createdAt).getTime();
+      if (accountAgeMs <= NEW_ACCOUNT_THRESHOLD_MS) {
+        // New user — show tour after a small delay for layout to render
+        setTimeout(() => {
+          if (!cancelled) setShowTour(true);
+        }, 600);
+      } else {
+        // Existing user — auto-dismiss tour forever
+        try {
+          localStorage.setItem(TOUR_STORAGE_KEY, new Date().toISOString());
+        } catch {
+          // localStorage unavailable
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTourComplete() {
