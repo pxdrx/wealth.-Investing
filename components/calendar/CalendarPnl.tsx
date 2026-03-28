@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { CalendarPnlProps, DayData } from "./types";
 import { aggregateByDay, formatPnl } from "./utils";
 import { CalendarGrid } from "./CalendarGrid";
-import { DayDetailPanel } from "./DayDetailPanel";
+import { DayDetailModal } from "@/components/journal/DayDetailModal";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ export function CalendarPnl({
   accounts,
   dayNotes,
   userId,
+  accountId,
   onNoteSaved,
   title: customTitle,
   compact,
@@ -26,6 +27,7 @@ export function CalendarPnl({
   const [displayYear, setDisplayYear] = useState(now.getFullYear());
   const [displayMonth, setDisplayMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const dailyData = useMemo(
     () => aggregateByDay(trades, accounts),
@@ -95,6 +97,11 @@ export function CalendarPnl({
     }
   };
 
+  const handleSelectDate = (date: string) => {
+    setSelectedDate(date);
+    setModalOpen(true);
+  };
+
   const pnlColor = (value: number) =>
     value > 0
       ? "hsl(var(--pnl-positive))"
@@ -104,9 +111,6 @@ export function CalendarPnl({
 
   const { mask } = usePrivacy();
   const title = customTitle ?? (accounts ? "Consolidado de Contas" : "Calendário P&L");
-
-  const selectedDayData = selectedDate ? dailyData.get(selectedDate) ?? null : null;
-  const selectedDayNote = selectedDate && dayNotes ? dayNotes[selectedDate] ?? null : null;
 
   const winRateColor = monthStats.winRate >= 50
     ? "hsl(var(--pnl-positive))"
@@ -200,15 +204,12 @@ export function CalendarPnl({
         </div>
       )}
 
-      {/* Calendar + Detail Panel */}
+      {/* Calendar — full width, no sidebar */}
       <div
-        className={cn("flex flex-col lg:flex-row", !compact && "border-t")}
+        className={cn(!compact && "border-t")}
         style={{ borderColor: "hsl(var(--landing-border))" }}
       >
-        <div
-          className={cn("flex-1 overflow-hidden", compact ? "p-1" : "p-4 md:p-5")}
-          style={undefined}
-        >
+        <div className={cn(compact ? "p-1" : "p-4 md:p-5")}>
           <CalendarGrid
             year={displayYear}
             month={displayMonth}
@@ -216,21 +217,29 @@ export function CalendarPnl({
             dayNotes={dayNotes}
             hasTradeNotes={hasTradeNotes}
             selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
+            onSelectDate={handleSelectDate}
             onPrevMonth={handlePrevMonth}
             onNextMonth={handleNextMonth}
             monthPnl={monthStats.totalPnl}
           />
         </div>
-
-        <DayDetailPanel
-          selectedDate={selectedDate}
-          dayData={selectedDayData}
-          dayNote={selectedDayNote}
-          userId={userId}
-          onNoteSaved={onNoteSaved}
-        />
       </div>
+
+      {/* Day detail popup */}
+      <DayDetailModal
+        date={selectedDate}
+        userId={userId ?? null}
+        accountId={accountId}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onNoteSaved={() => {
+          // Refresh day notes in parent by calling onNoteSaved
+          if (selectedDate && onNoteSaved) {
+            // Re-fetch the updated note
+            onNoteSaved(selectedDate, { observation: "", tags: null });
+          }
+        }}
+      />
     </div>
   );
 }

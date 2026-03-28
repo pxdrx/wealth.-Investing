@@ -47,7 +47,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event) => {
       if (!mounted) return;
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") load();
+      if (event === "SIGNED_IN") load();
       else if (event === "SIGNED_OUT") {
         setSubscription(null);
         setIsLoading(false);
@@ -60,18 +60,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     };
   }, [load]);
 
-  // Poll every 15 min (reduced from 5 min to avoid unnecessary re-renders)
-  // Also refresh when tab becomes visible after being hidden
+  // Poll every 15 min — no visibility change handler to avoid re-renders on tab switch
   useEffect(() => {
     const interval = setInterval(load, 15 * 60 * 1000);
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") load();
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
+    return () => clearInterval(interval);
   }, [load]);
 
   const plan: Plan = (subscription?.status === "active" || subscription?.status === "trialing")

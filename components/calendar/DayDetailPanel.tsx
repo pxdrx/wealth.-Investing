@@ -12,6 +12,7 @@ interface DayDetailPanelProps {
   dayData: DayData | null;
   dayNote: DayNote | null;
   userId?: string | null;
+  accountId?: string | null;
   onNoteSaved?: (date: string, note: DayNote) => void;
 }
 
@@ -28,6 +29,7 @@ export function DayDetailPanel({
   dayData,
   dayNote,
   userId,
+  accountId,
   onNoteSaved,
 }: DayDetailPanelProps) {
   const { mask } = usePrivacy();
@@ -63,17 +65,18 @@ export function DayDetailPanel({
     // Fetch individual trades for this day
     if (selectedDate && userId) {
       (async () => {
-        const { data } = await supabase
+        let query = supabase
           .from("journal_trades")
           .select("id, symbol, direction, pnl_usd, net_pnl_usd, opened_at, notes")
           .eq("user_id", userId)
           .gte("opened_at", `${selectedDate}T00:00:00`)
-          .lt("opened_at", `${selectedDate}T23:59:59.999`)
-          .order("opened_at", { ascending: true });
+          .lt("opened_at", `${selectedDate}T23:59:59.999`);
+        if (accountId) query = query.eq("account_id", accountId);
+        const { data } = await query.order("opened_at", { ascending: true });
         if (data) setDayTrades(data);
       })();
     }
-  }, [selectedDate, dayNote, userId]);
+  }, [selectedDate, dayNote, userId, accountId]);
 
   const addTag = useCallback(() => {
     const tag = tagInput.trim().toLowerCase();

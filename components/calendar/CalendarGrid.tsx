@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DayData, DayNote } from "./types";
-import { cellColor, formatPnl, getMonthDays } from "./utils";
+import { cellColor, formatPnl, getMonthGrid } from "./utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 
 interface CalendarGridProps {
@@ -18,7 +18,7 @@ interface CalendarGridProps {
   monthPnl: number;
 }
 
-const DAY_HEADERS = ["D", "S", "T", "Q", "Q", "S", "S"];
+const DAY_HEADERS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 const MONTH_NAMES = [
   "Janeiro",
@@ -48,20 +48,12 @@ export function CalendarGrid({
   monthPnl,
 }: CalendarGridProps) {
   const { mask } = usePrivacy();
-  const { firstDay, daysInMonth } = getMonthDays(year, month);
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) {
-    cells.push(null);
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push(d);
-  }
+  const cells = getMonthGrid(year, month);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       {/* Month header */}
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between px-1 mb-2">
         <div className="flex items-center gap-2">
           <button
             onClick={onPrevMonth}
@@ -97,12 +89,12 @@ export function CalendarGrid({
       </div>
 
       {/* Day headers */}
-      <div className="grid grid-cols-7 text-center">
+      <div className="grid grid-cols-7">
         {DAY_HEADERS.map((label, i) => (
           <div
             key={i}
-            className="py-1 text-[9px] font-medium uppercase tracking-wide"
-            style={{ color: "hsl(var(--landing-text-muted))" }}
+            className="py-1.5 text-[10px] font-semibold uppercase tracking-wider text-center border-b"
+            style={{ color: "hsl(var(--landing-text-muted))", borderColor: "hsl(var(--landing-border))" }}
           >
             {label}
           </div>
@@ -110,37 +102,35 @@ export function CalendarGrid({
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((day, i) => {
-          if (day === null) {
-            return <div key={`empty-${i}`} className="aspect-square" />;
-          }
-
-          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-          const data = dailyData.get(dateStr);
+      <div className="grid grid-cols-7">
+        {cells.map((cell, i) => {
+          const dateStr = `${cell.year}-${String(cell.month + 1).padStart(2, "0")}-${String(cell.day).padStart(2, "0")}`;
+          const data = cell.isCurrentMonth ? dailyData.get(dateStr) : undefined;
           const hasTrades = !!data && data.tradeCount > 0;
           const pnl = data?.totalPnl ?? null;
           const isSelected = selectedDate === dateStr;
-          const dayOfWeek = (firstDay + day - 1) % 7;
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-          const hasDayNote = !!(dayNotes && dayNotes[dateStr]?.observation);
-          const hasTradeNote = !!(hasTradeNotes && hasTradeNotes.has(dateStr));
+          const colIndex = i % 7;
+          const isWeekend = colIndex >= 5; // Sat=5, Sun=6
+          const hasDayNote = !!(cell.isCurrentMonth && dayNotes && dayNotes[dateStr]?.observation);
+          const hasTradeNote = !!(cell.isCurrentMonth && hasTradeNotes && hasTradeNotes.has(dateStr));
 
           return (
             <button
-              key={dateStr}
+              key={`${cell.year}-${cell.month}-${cell.day}`}
               onClick={() => onSelectDate(dateStr)}
-              className="relative flex aspect-square flex-col items-center justify-center rounded-lg transition-transform hover:scale-105"
+              disabled={!cell.isCurrentMonth}
+              className="relative flex min-h-[68px] flex-col items-start justify-start p-1.5 border-b border-r transition-colors hover:bg-[hsl(var(--landing-border)/0.3)]"
               style={{
                 backgroundColor: hasTrades ? cellColor(pnl) : "transparent",
-                border: isSelected
-                  ? "1.5px solid hsl(var(--landing-text) / 0.4)"
-                  : "1px solid transparent",
-                opacity: !hasTrades && isWeekend ? 0.3 : 1,
+                borderColor: "hsl(var(--landing-border) / 0.5)",
+                opacity: !cell.isCurrentMonth ? 0.3 : (!hasTrades && isWeekend ? 0.5 : 1),
+                outline: isSelected ? "2px solid hsl(var(--landing-text) / 0.4)" : "none",
+                outlineOffset: "-2px",
               }}
             >
+              {/* Day number */}
               <span
-                className="text-sm tabular-nums"
+                className="text-xs tabular-nums"
                 style={{
                   color: hasTrades
                     ? "hsl(var(--landing-text))"
@@ -148,11 +138,23 @@ export function CalendarGrid({
                   fontWeight: isSelected ? 700 : 500,
                 }}
               >
-                {day}
+                {cell.day}
               </span>
+
+              {/* Trade count */}
+              {hasTrades && (
+                <span
+                  className="text-[9px] mt-auto"
+                  style={{ color: "hsl(var(--landing-text-muted))" }}
+                >
+                  {data!.tradeCount} trade{data!.tradeCount !== 1 ? "s" : ""}
+                </span>
+              )}
+
+              {/* P&L value */}
               {hasTrades && pnl !== null && (
                 <span
-                  className="text-[10px] font-semibold tabular-nums"
+                  className="text-[11px] font-bold tabular-nums"
                   style={{
                     color:
                       pnl > 0
@@ -165,12 +167,13 @@ export function CalendarGrid({
                   {mask(formatPnl(pnl))}
                 </span>
               )}
+
               {/* Note indicator */}
               {(hasDayNote || hasTradeNote) && (
                 <span
-                  className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
+                  className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
                   style={{ backgroundColor: "#3b82f6" }}
-                  title={hasDayNote ? "Dia com anotacao" : "Trades com notas"}
+                  title={hasDayNote ? "Dia com anotação" : "Trades com notas"}
                 />
               )}
             </button>

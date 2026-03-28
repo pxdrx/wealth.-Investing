@@ -17,6 +17,7 @@ import { X, Save, Tag, FileText, Pencil } from "lucide-react";
 interface DayDetailModalProps {
   date: string | null;
   userId: string | null;
+  accountId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNoteSaved?: () => void;
@@ -56,7 +57,7 @@ const TAG_PRESETS = [
   "Sessão NY",
 ];
 
-export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
+export function DayDetailModal({ date, userId, accountId, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [dayNote, setDayNote] = useState<DayNote>({ observation: "", tags: [] });
@@ -89,13 +90,16 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
       const startOfDay = new Date(date + "T00:00:00").toISOString();
       const endOfDay = new Date(date + "T23:59:59.999").toISOString();
 
+      let tradesQuery = supabase
+        .from("journal_trades")
+        .select("account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction")
+        .eq("user_id", userId)
+        .gte("opened_at", startOfDay)
+        .lte("opened_at", endOfDay);
+      if (accountId) tradesQuery = tradesQuery.eq("account_id", accountId);
+
       const [tradesRes, accountsRes] = await Promise.all([
-        supabase
-          .from("journal_trades")
-          .select("account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction")
-          .eq("user_id", userId)
-          .gte("opened_at", startOfDay)
-          .lte("opened_at", endOfDay),
+        tradesQuery,
         supabase
           .from("accounts")
           .select("id, name, kind")
@@ -169,7 +173,7 @@ export function DayDetailModal({ date, userId, open, onOpenChange, onNoteSaved }
     } finally {
       setLoading(false);
     }
-  }, [date, userId]);
+  }, [date, userId, accountId]);
 
   useEffect(() => {
     if (open && date && userId) loadDayData();

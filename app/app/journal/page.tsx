@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { usePathname } from "next/navigation";
+
 import { AnimatePresence, motion } from "framer-motion";
 import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
@@ -89,9 +89,7 @@ export default function JournalPage() {
   const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showAddTrade, setShowAddTrade] = useState(false);
-  const pathname = usePathname();
-
-  // Get userId — re-run on navigation (pathname change) so data loads on soft nav
+  // Get userId once on mount — AuthGate already validates the session
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -99,7 +97,8 @@ export default function JournalPage() {
       if (!cancelled) setUserId(session?.user?.id ?? null);
     })();
     return () => { cancelled = true; };
-  }, [pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadTrades = useCallback(async () => {
     if (!activeAccountId) { setTrades([]); return; }
@@ -541,6 +540,7 @@ export default function JournalPage() {
                   trades={trades as unknown as TradeRow[]}
                   dayNotes={dayNotes}
                   userId={userId}
+                  accountId={activeAccountId}
                   onNoteSaved={(date, note) => {
                     setDayNotes((prev) => ({ ...prev, [date]: note }));
                   }}

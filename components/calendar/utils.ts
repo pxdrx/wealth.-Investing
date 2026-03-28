@@ -135,3 +135,47 @@ export function getMonthDays(
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   return { firstDay, daysInMonth };
 }
+
+export interface GridCell {
+  day: number;
+  month: number;
+  year: number;
+  isCurrentMonth: boolean;
+}
+
+/**
+ * Returns a 42-cell (6 rows x 7 cols) Monday-first grid for the given month.
+ * Includes trailing days from previous month and leading days from next month.
+ */
+export function getMonthGrid(year: number, month: number): GridCell[] {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // 0=Sun → convert to Monday-first: Mon=0, Tue=1, ..., Sun=6
+  const firstDaySun = new Date(year, month, 1).getDay();
+  const firstDayMon = firstDaySun === 0 ? 6 : firstDaySun - 1;
+
+  const cells: GridCell[] = [];
+
+  // Previous month trailing days
+  const prevMonth = month === 0 ? 11 : month - 1;
+  const prevYear = month === 0 ? year - 1 : year;
+  const daysInPrevMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
+  for (let i = firstDayMon - 1; i >= 0; i--) {
+    cells.push({ day: daysInPrevMonth - i, month: prevMonth, year: prevYear, isCurrentMonth: false });
+  }
+
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ day: d, month, year, isCurrentMonth: true });
+  }
+
+  // Next month leading days to fill to 42 cells (or fewer if 35 is enough)
+  const nextMonth = month === 11 ? 0 : month + 1;
+  const nextYear = month === 11 ? year + 1 : year;
+  const totalRows = cells.length <= 35 ? 35 : 42;
+  let nextDay = 1;
+  while (cells.length < totalRows) {
+    cells.push({ day: nextDay++, month: nextMonth, year: nextYear, isCurrentMonth: false });
+  }
+
+  return cells;
+}
