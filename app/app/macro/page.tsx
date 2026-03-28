@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Globe, RefreshCw, CalendarDays, FileText, AlertTriangle } from "lucide-react";
+import { Globe, RefreshCw, CalendarDays, FileText, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -564,6 +564,38 @@ export default function MacroIntelligencePage() {
           <button type="button" onClick={() => setToastMsg(null)} className="text-destructive/60 hover:text-destructive ml-3" aria-label="Fechar">
             &times;
           </button>
+        </div>
+      )}
+
+      {/* Empty state — macro data not yet loaded (before cron jobs run) */}
+      {events.length === 0 && !panorama && rates.length === 0 && headlines.length === 0 && (
+        <div className="mb-6 flex justify-center">
+          <div
+            className="flex flex-col items-center gap-4 rounded-[22px] border-2 border-dashed border-border/60 px-10 py-12 text-center max-w-md"
+            style={{ backgroundColor: "hsl(var(--card))" }}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
+              <Clock className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold tracking-tight text-foreground">
+                Dados macroeconômicos em carregamento
+              </h3>
+              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                Os dados macroeconômicos estão sendo carregados. Tente novamente em alguns minutos.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setRefreshing(true); fetchData(); }}
+              disabled={refreshing}
+              className="mt-2 gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              Tentar novamente
+            </Button>
+          </div>
         </div>
       )}
 

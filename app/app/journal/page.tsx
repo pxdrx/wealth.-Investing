@@ -577,8 +577,40 @@ export default function JournalPage() {
         <p className="text-sm text-destructive">{tradesError}</p>
       )}
 
+      {/* Empty state — no trades yet */}
+      {hasData && trades.length === 0 && (
+        <div className="flex flex-col items-center gap-5 py-16 text-center">
+          <div
+            className="flex flex-col items-center gap-4 rounded-[22px] border-2 border-dashed border-border/60 px-10 py-12 max-w-md"
+            style={{ backgroundColor: "hsl(var(--card))" }}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
+              <Upload className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold tracking-tight text-foreground">
+                Nenhuma operação encontrada
+              </h3>
+              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                Importe seu primeiro relatório MT5 para começar a registrar suas operações.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setShowImportPanel(true);
+                setActiveTab(SECTION_OVERVIEW);
+              }}
+              className="mt-2 inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            >
+              <Upload className="h-4 w-4" />
+              Importar MT5
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tab content */}
-      {hasData && (
+      {hasData && trades.length > 0 && (
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
