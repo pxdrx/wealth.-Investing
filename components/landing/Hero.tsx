@@ -52,7 +52,7 @@ export function Hero() {
       {/* Ambient 3D Glass Widgets (Pushed to background) */}
       <motion.div
         animate={floatingCoin1}
-        className="absolute top-[8%] right-[5%] -z-10 hidden xl:flex flex-col w-[280px] rounded-3xl bg-white/5 dark:bg-black/10 border border-white/20 dark:border-white/5 backdrop-blur-[40px] shadow-[0_40px_80px_rgba(0,0,0,0.1)] overflow-hidden pointer-events-none opacity-70 scale-90"
+        className="absolute top-[8%] right-[5%] -z-10 hidden xl:flex flex-col w-[280px] rounded-[22px] bg-white/5 dark:bg-black/10 border border-white/20 dark:border-white/5 backdrop-blur-[40px] shadow-[0_40px_80px_rgba(0,0,0,0.1)] overflow-hidden pointer-events-none opacity-70 scale-90"
         style={{ transformStyle: "preserve-3d", perspective: 1200 }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent opacity-80" />
@@ -78,7 +78,7 @@ export function Hero() {
 
       <motion.div
         animate={floatingCoin2}
-        className="absolute bottom-[25%] left-[-2%] -z-10 hidden xl:flex flex-col w-[260px] rounded-3xl bg-white/5 dark:bg-black/10 border border-white/20 dark:border-white/5 backdrop-blur-[40px] shadow-[0_40px_80px_rgba(0,0,0,0.1)] overflow-hidden pointer-events-none opacity-60 scale-90"
+        className="absolute bottom-[25%] left-[-2%] -z-10 hidden xl:flex flex-col w-[260px] rounded-[22px] bg-white/5 dark:bg-black/10 border border-white/20 dark:border-white/5 backdrop-blur-[40px] shadow-[0_40px_80px_rgba(0,0,0,0.1)] overflow-hidden pointer-events-none opacity-60 scale-90"
         style={{ transformStyle: "preserve-3d", perspective: 1200 }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent opacity-80" />

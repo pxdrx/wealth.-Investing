@@ -28,7 +28,7 @@ export function ImportPreview({
   const displayed = trades.slice(0, displayCount);
 
   return (
-    <div className="rounded-2xl border p-4" style={{ backgroundColor: "hsl(var(--card))" }}>
+    <div className="rounded-[22px] border p-4" style={{ backgroundColor: "hsl(var(--card))" }}>
       <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-sm font-semibold">{fileName}</p>

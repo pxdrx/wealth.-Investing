@@ -31,7 +31,7 @@ export function ChecklistImport() {
 
   return (
     <div
-      className="rounded-2xl border p-5"
+      className="rounded-[22px] border p-5"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",
@@ -102,7 +102,7 @@ export function ChecklistImport() {
 export function ChecklistAnalytics() {
   return (
     <div
-      className="rounded-2xl border p-5"
+      className="rounded-[22px] border p-5"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",
@@ -153,7 +153,7 @@ export function ChecklistAnalytics() {
 export function ChecklistJournal() {
   return (
     <div
-      className="rounded-2xl border p-5"
+      className="rounded-[22px] border p-5"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",
@@ -251,7 +251,7 @@ export function ChecklistRisk() {
 
   return (
     <div
-      className="rounded-2xl border p-5"
+      className="rounded-[22px] border p-5"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",
@@ -326,7 +326,7 @@ export function ChecklistRisk() {
 export function ChecklistDexter() {
   return (
     <div
-      className="rounded-2xl border p-5"
+      className="rounded-[22px] border p-5"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",
@@ -417,7 +417,7 @@ export function ChecklistDexter() {
 export function ChecklistBacktest() {
   return (
     <div
-      className="rounded-2xl border p-5"
+      className="rounded-[22px] border p-5"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",

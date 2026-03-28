@@ -63,7 +63,7 @@ export function ImportDropZone({ onFileSelected, compact = false, disabled = fal
         onDragOver={handleDrag}
         onDrop={handleDrop}
         animate={{ borderColor: isDragging ? "hsl(var(--pnl-positive))" : "hsl(var(--border))" }}
-        className={`border-2 border-dashed rounded-2xl ${py} px-6 text-center transition-colors cursor-pointer ${
+        className={`border-2 border-dashed rounded-[22px] ${py} px-6 text-center transition-colors cursor-pointer ${
           isDragging ? "bg-[hsl(var(--pnl-positive)/0.05)]" : "bg-transparent"
         } ${disabled ? "opacity-50 pointer-events-none" : ""}`}
         onClick={() => inputRef.current?.click()}

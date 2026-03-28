@@ -32,7 +32,7 @@ export function ImportResult({
   ];
 
   return (
-    <div className="rounded-2xl border p-6 text-center" style={{ backgroundColor: "hsl(var(--card))" }}>
+    <div className="rounded-[22px] border p-6 text-center" style={{ backgroundColor: "hsl(var(--card))" }}>
       <CheckCircle className="mx-auto mb-2 text-[hsl(var(--pnl-positive))]" size={36} />
       <p className="text-base font-semibold mb-4">Import concluído</p>
 

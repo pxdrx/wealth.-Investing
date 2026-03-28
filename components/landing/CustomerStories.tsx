@@ -18,7 +18,7 @@ export function CustomerStories() {
       <div className="landing-container">
         <AnimatedSection>
           <div
-            className="rounded-2xl border p-8 md:p-12 overflow-hidden relative"
+            className="rounded-[22px] border p-8 md:p-12 overflow-hidden relative"
             style={{
               backgroundColor: "hsl(var(--landing-bg-elevated))",
               borderColor: "hsl(var(--landing-border))",

@@ -98,7 +98,7 @@ export function FeaturePageClient({
         <div className="landing-container">
           <AnimatedSection>
             <div
-              className="rounded-2xl border px-6 py-5 md:px-10 md:py-6 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 text-center"
+              className="rounded-[22px] border px-6 py-5 md:px-10 md:py-6 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 text-center"
               style={{
                 backgroundColor: "hsl(var(--landing-accent) / 0.05)",
                 borderColor: "hsl(var(--landing-accent) / 0.15)",
@@ -227,7 +227,7 @@ export function FeaturePageClient({
 
           <AnimatedSection delay={0.1}>
             <div
-              className="rounded-2xl border overflow-hidden"
+              className="rounded-[22px] border overflow-hidden"
               style={{
                 backgroundColor: "hsl(var(--landing-bg-elevated))",
                 borderColor: "hsl(var(--landing-border))",
@@ -289,7 +289,7 @@ export function FeaturePageClient({
         <div className="landing-container">
           <AnimatedSection>
             <div
-              className="rounded-2xl border p-8 md:p-12 text-center"
+              className="rounded-[22px] border p-8 md:p-12 text-center"
               style={{
                 backgroundColor: "hsl(var(--landing-bg-elevated))",
                 borderColor: "hsl(var(--landing-border))",
@@ -327,7 +327,7 @@ export function FeaturePageClient({
         <div className="landing-container">
           <AnimatedSection>
             <div
-              className="rounded-2xl border p-10 md:p-16 text-center"
+              className="rounded-[22px] border p-10 md:p-16 text-center"
               style={{
                 backgroundColor: "hsl(var(--landing-bg-elevated))",
                 borderColor: "hsl(var(--landing-border))",

@@ -176,7 +176,7 @@ export default function BlogPage() {
           <GridPattern className="opacity-15" />
           <AnimatedSection className="landing-container relative z-10 text-center">
             <div
-              className="mx-auto max-w-lg rounded-2xl p-8 md:p-10"
+              className="mx-auto max-w-lg rounded-[22px] p-8 md:p-10"
               style={{
                 backgroundColor: "hsl(var(--landing-bg-elevated))",
                 border: "1px solid hsl(var(--landing-border))",

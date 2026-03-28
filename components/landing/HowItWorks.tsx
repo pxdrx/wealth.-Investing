@@ -22,7 +22,7 @@ export function HowItWorks() {
         {/* Premium Floating Widget - Win Rate */}
         <motion.div
           animate={floatAnim}
-          className="absolute -left-4 md:left-[2%] top-[10%] hidden lg:flex flex-col w-[180px] rounded-2xl bg-gradient-to-b from-white/20 to-white/5 dark:from-white/10 dark:to-transparent border border-white/30 dark:border-white/10 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.15)] overflow-hidden -z-10 pointer-events-none opacity-70 scale-90"
+          className="absolute -left-4 md:left-[2%] top-[10%] hidden lg:flex flex-col w-[180px] rounded-[22px] bg-gradient-to-b from-white/20 to-white/5 dark:from-white/10 dark:to-transparent border border-white/30 dark:border-white/10 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.15)] overflow-hidden -z-10 pointer-events-none opacity-70 scale-90"
           style={{ transformStyle: "preserve-3d", perspective: 1000 }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-transparent opacity-60 pointer-events-none" />

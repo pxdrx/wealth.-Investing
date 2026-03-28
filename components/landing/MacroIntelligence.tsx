@@ -26,7 +26,7 @@ export function MacroIntelligence() {
         {/* Floating Headline Widget */}
         <motion.div
           animate={floatAnim}
-          className="absolute -right-4 md:right-[-2%] top-[30%] hidden lg:flex flex-col w-[240px] rounded-3xl bg-gradient-to-b from-white/20 to-white/5 dark:from-white/10 dark:to-transparent border border-white/30 dark:border-white/10 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.15)] overflow-hidden -z-10 pointer-events-none opacity-70 scale-90"
+          className="absolute -right-4 md:right-[-2%] top-[30%] hidden lg:flex flex-col w-[240px] rounded-[22px] bg-gradient-to-b from-white/20 to-white/5 dark:from-white/10 dark:to-transparent border border-white/30 dark:border-white/10 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.15)] overflow-hidden -z-10 pointer-events-none opacity-70 scale-90"
           style={{ transformStyle: "preserve-3d", perspective: 1000 }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-transparent opacity-60 pointer-events-none" />

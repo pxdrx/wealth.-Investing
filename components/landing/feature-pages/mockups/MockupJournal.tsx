@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 export function MockupJournal() {
   return (
     <div
-      className="relative rounded-2xl border p-5 md:p-6 overflow-hidden"
+      className="relative rounded-[22px] border p-5 md:p-6 overflow-hidden"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",

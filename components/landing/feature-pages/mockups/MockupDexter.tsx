@@ -12,7 +12,7 @@ const recentAnalyses = [
 export function MockupDexter() {
   return (
     <div
-      className="relative rounded-2xl border overflow-hidden"
+      className="relative rounded-[22px] border overflow-hidden"
       style={{
         backgroundColor: "hsl(var(--landing-bg-elevated))",
         borderColor: "hsl(var(--landing-border))",

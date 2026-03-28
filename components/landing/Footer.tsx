@@ -123,7 +123,7 @@ export function Footer() {
           <div>
             <a
               href={FOOTER_MANIFESTO.href}
-              className="group block rounded-2xl border overflow-hidden transition-all hover:-translate-y-0.5"
+              className="group block rounded-[22px] border overflow-hidden transition-all hover:-translate-y-0.5"
               style={{
                 backgroundColor: "hsl(var(--landing-bg-elevated))",
                 borderColor: "hsl(var(--landing-border))",

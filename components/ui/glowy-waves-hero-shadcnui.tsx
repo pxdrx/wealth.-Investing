@@ -344,7 +344,7 @@ export function GlowyWavesHero() {
 
           <motion.div
             variants={statsVariants}
-            className="grid gap-4 rounded-2xl border border-border/30 bg-background/60 p-6 backdrop-blur-sm dark:border-border/60 dark:bg-background/70 sm:grid-cols-3"
+            className="grid gap-4 rounded-[22px] border border-border/30 bg-background/60 p-6 backdrop-blur-sm dark:border-border/60 dark:bg-background/70 sm:grid-cols-3"
           >
             {heroStats.map((stat) => (
               <motion.div

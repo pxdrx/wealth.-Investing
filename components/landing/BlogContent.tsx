@@ -28,7 +28,7 @@ export function BlogContent() {
             <AnimatedSection key={post.title} delay={i * 0.1}>
               <a href={post.href} className="group block h-full">
                 <div
-                  className="h-full rounded-2xl border p-6 transition-all group-hover:-translate-y-1"
+                  className="h-full rounded-[22px] border p-6 transition-all group-hover:-translate-y-1"
                   style={{
                     backgroundColor: "hsl(var(--landing-bg-elevated))",
                     borderColor: "hsl(var(--landing-border))",

@@ -149,7 +149,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
 
   return (
     <div
-      className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden relative isolate"
+      className="bg-card rounded-[22px] border border-border/40 shadow-sm overflow-hidden relative isolate"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
       {/* Header */}
