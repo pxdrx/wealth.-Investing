@@ -100,6 +100,8 @@ export function CalendarPnl({
   };
 
   const handleSelectDate = (date: string) => {
+    // Only open modal if the day has trades
+    if (!dailyData.has(date)) return;
     setSelectedDate(date);
     setModalOpen(true);
   };

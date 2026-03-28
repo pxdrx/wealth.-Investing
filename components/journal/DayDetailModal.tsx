@@ -61,6 +61,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
   const [individualTrades, setIndividualTrades] = useState<IndividualTrade[]>([]);
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
   const [confirmingTradeId, setConfirmingTradeId] = useState<string | null>(null);
+  const pendingRefresh = useRef(false);
   const [loading, setLoading] = useState(false);
   const [dayNote, setDayNote] = useState<DayNote>({ observation: "", tags: [] });
   const [saving, setSaving] = useState(false);
@@ -304,8 +305,8 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
           return updated.filter((acc) => acc.trades > 0);
         });
       }
-      // Notify parent to refresh data in background (calendar, KPIs)
-      onTradeDeleted?.();
+      // Defer parent refresh to modal close to prevent page re-render while modal is open
+      pendingRefresh.current = true;
     } catch (err) {
       console.error("[DayDetailModal] delete error:", err);
     } finally {
@@ -331,13 +332,19 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     }
   };
 
-  // Auto-save unsaved changes when modal closes
+  // Auto-save unsaved changes when modal closes + flush pending refresh
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && editMode && isDirty() && date && userId) {
-      // Fire-and-forget auto-save
-      handleSaveNote().catch((err) => {
-        console.warn("[DayDetailModal] auto-save on close failed:", err);
-      });
+    if (!nextOpen) {
+      if (editMode && isDirty() && date && userId) {
+        handleSaveNote().catch((err) => {
+          console.warn("[DayDetailModal] auto-save on close failed:", err);
+        });
+      }
+      // Flush deferred parent refresh after trade deletion
+      if (pendingRefresh.current) {
+        pendingRefresh.current = false;
+        onTradeDeleted?.();
+      }
     }
     onOpenChange(nextOpen);
   };
