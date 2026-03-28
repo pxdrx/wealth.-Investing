@@ -77,8 +77,8 @@ export function FeatureSection({ data, reversed, visual }: FeatureSectionProps) 
               })}
             </div>
 
-            <a href={data.link.href} className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-l-text-secondary hover:text-l-text transition-colors">
-              {data.link.text} <ArrowRight className="h-3.5 w-3.5" />
+            <a href={data.link.href} className="mt-6 inline-flex items-center gap-1.5 py-2 text-sm font-medium text-l-text-secondary hover:text-l-text transition-colors underline-offset-4 hover:underline">
+              {data.link.text} <ArrowRight className="h-4 w-4" />
             </a>
           </AnimatedSection>
 

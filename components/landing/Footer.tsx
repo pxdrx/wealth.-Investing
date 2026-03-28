@@ -52,7 +52,7 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={isLoggedIn ? link.hrefAuth : link.hrefGuest}
-                    className="text-sm text-l-text-secondary hover:text-l-text transition-colors"
+                    className="text-sm text-l-text-secondary hover:text-l-text transition-colors py-1 inline-block"
                   >
                     {link.label}
                   </a>
@@ -71,7 +71,7 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-l-text-secondary hover:text-l-text transition-colors"
+                    className="text-sm text-l-text-secondary hover:text-l-text transition-colors py-1 inline-block"
                   >
                     {link.label}
                   </a>
@@ -92,7 +92,7 @@ export function Footer() {
                     href={link.href}
                     target={link.external ? "_blank" : undefined}
                     rel={link.external ? "noopener noreferrer" : undefined}
-                    className="text-sm text-l-text-secondary hover:text-l-text transition-colors"
+                    className="text-sm text-l-text-secondary hover:text-l-text transition-colors py-1 inline-block"
                   >
                     {link.label}
                   </a>
@@ -110,7 +110,7 @@ export function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-l-text-secondary hover:text-l-text transition-colors"
+                    className="text-sm text-l-text-secondary hover:text-l-text transition-colors py-1 inline-block"
                   >
                     {link.label}
                   </a>
