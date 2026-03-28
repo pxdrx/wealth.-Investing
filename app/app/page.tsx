@@ -721,6 +721,7 @@ function DashboardContent({
             newsLoading,
             newsError,
             activeAccountId,
+            userId: userId ?? null,
           })}
         />
 
@@ -767,6 +768,7 @@ interface WidgetRegistryInput {
   newsLoading: boolean;
   newsError: string | null;
   activeAccountId: string | null;
+  userId: string | null;
 }
 
 function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.ReactNode> {
@@ -780,6 +782,7 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     newsLoading,
     newsError,
     activeAccountId,
+    userId,
   } = input;
 
   const accountsList = Array.from(accountsById.values());
@@ -802,6 +805,7 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
         trades={realTrades as unknown as TradeRow[]}
         accounts={accountsSimple}
         dayNotes={dayNotes}
+        userId={userId}
       />
     ),
 
