@@ -4,12 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { generateWeeklyNarrative } from "@/lib/macro/narrative-generator";
 import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
+import { requireEnv } from "@/lib/env";
 import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
 
 function getSupabaseAdmin() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY")
   );
 }
 
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[weekly-briefing] Error:", error);
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { ok: false, error: "Internal server error" },
       { status: 500 }
     );
   }

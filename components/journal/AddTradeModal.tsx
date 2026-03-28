@@ -59,7 +59,9 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         closed_at: closedAt ? new Date(closedAt).toISOString() : new Date().toISOString(),
         pnl_usd: pnl,
         fees_usd: fees,
-        net_pnl_usd: pnl + fees,
+        // FIX TECH-007: Fees are always a cost — subtract absolute value to ensure
+        // fees reduce P&L regardless of whether user entered positive or negative.
+        net_pnl_usd: pnl - Math.abs(fees),
         context: context.trim() || null,
         notes: notes.trim() || null,
         external_source: "manual",

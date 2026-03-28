@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getWeekStart } from "@/lib/macro/constants";
-import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +9,6 @@ function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
 
@@ -70,45 +62,13 @@ export async function GET(req: NextRequest) {
       ok: true,
       data,
       meta: { last_synced: lastSynced, events_with_actuals: eventsWithActuals, total: data.length },
+    }, {
+      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
     });
   }
 
-  // Auto-sync: if DB is empty, try scraping from ForexFactory
-  if (!data || data.length === 0) {
-    try {
-      const admin = getSupabaseAdmin();
-      const events = await scrapeForexFactoryCalendar();
-
-      if (events.length > 0) {
-        const eventWeekStart = events[0].week_start;
-
-        // Insert events into DB
-        for (let i = 0; i < events.length; i += 50) {
-          const batch = events.slice(i, i + 50);
-          await admin.from("economic_events").upsert(batch, {
-            onConflict: "event_uid",
-            ignoreDuplicates: true,
-          });
-        }
-
-        // If these events match the requested week, query them back
-        if (eventWeekStart === weekParam) {
-          const { data: freshData } = await supabase
-            .from("economic_events")
-            .select("*")
-            .filter("week_start", "eq", weekParam)
-            .order("date", { ascending: true })
-            .order("time", { ascending: true });
-
-          if (freshData && freshData.length > 0) {
-            return NextResponse.json({ ok: true, data: freshData });
-          }
-        }
-      }
-    } catch (err) {
-      console.error("[macro/calendar] Auto-sync from ForexFactory failed:", err);
-    }
-  }
-
-  return NextResponse.json({ ok: true, data: data || [] });
+  // DB is empty — return empty array (cron job handles population)
+  return NextResponse.json({ ok: true, data: data || [] }, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+  });
 }

@@ -42,5 +42,7 @@ export async function GET() {
     ok: true,
     data: rates,
     meta: { last_updated: lastUpdated, is_stale: isStale },
+  }, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
   });
 }

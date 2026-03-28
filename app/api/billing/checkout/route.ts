@@ -13,7 +13,13 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
 
-    const body = await req.json();
+    // FIX TECH-011: Guard req.json() against malformed request bodies
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+    }
     // Support both "pro_monthly" and { plan: "pro", interval: "month" } formats
     let planInterval: PlanInterval;
     if (body.interval) {

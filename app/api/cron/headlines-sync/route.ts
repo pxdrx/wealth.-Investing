@@ -267,7 +267,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[headlines-sync] Error:", error);
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { ok: false, error: "Internal server error" },
       { status: 500 }
     );
   }

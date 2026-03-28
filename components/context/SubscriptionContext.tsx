@@ -1,3 +1,5 @@
+// TODO: [TECH-DEBT] Multiple onAuthStateChange listeners (AuthGate, ActiveAccountContext, SubscriptionContext)
+// cause redundant session fetches. Consider centralizing auth state in a single provider.
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";

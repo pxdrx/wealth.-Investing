@@ -46,16 +46,30 @@ export async function getDrawdownStats(
 
   const denominator =
     drawdownType === "trailing" ? highWaterMark : startingBalance;
-  const safeDenom = denominator > 0 ? denominator : 1;
+
+  // FIX TECH-008: If starting balance (or HWM for trailing) is 0, we cannot
+  // calculate a meaningful drawdown percentage. Return 0% instead of dividing
+  // by 1 which would produce absurd percentages.
+  if (denominator <= 0) {
+    return {
+      dailyPnl,
+      overallPnl,
+      highWaterMark,
+      startingBalance,
+      drawdownType,
+      dailyDdPct: 0,
+      overallDdPct: 0,
+    };
+  }
 
   // Drawdown is loss as positive %, so negate negative PnL
   const dailyDdPct =
     dailyPnl < 0
-      ? Math.min(Math.abs(dailyPnl / safeDenom) * 100, maxDailyLossPct)
+      ? Math.min(Math.abs(dailyPnl / denominator) * 100, maxDailyLossPct)
       : 0;
   const overallDdPct =
     overallPnl < 0
-      ? Math.min(Math.abs(overallPnl / safeDenom) * 100, maxOverallLossPct)
+      ? Math.min(Math.abs(overallPnl / denominator) * 100, maxOverallLossPct)
       : 0;
 
   return {

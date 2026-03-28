@@ -32,8 +32,8 @@ function decodeUtf16Le(buffer: ArrayBuffer): string {
   return new TextDecoder("utf-16le", { fatal: false }).decode(buffer);
 }
 
-/** MT5 report times are UTC+2 (broker server). Convert to UTC then store. Offset: -5h */
-const MT5_TO_UTC_MS = -5 * 60 * 60 * 1000;
+// MT5 server time is UTC+2 (UTC+3 during DST). Using -2 as standard offset.
+const MT5_TO_UTC_MS = -2 * 60 * 60 * 1000;
 
 /** MT5 date format "2026.02.09 17:45:29" (UTC+2) → ISO in UTC */
 function mt5DateToIso(s: string): string {

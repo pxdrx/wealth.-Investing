@@ -147,7 +147,7 @@ function AICoachPageInner() {
         const latest = json.data[0];
         setActiveConversationId(latest.id);
         setActiveConversationTitle(latest.title);
-        router.replace(`/app/ai-coach?chat=${latest.id}`);
+        window.history.replaceState(null, "", `/app/ai-coach?chat=${latest.id}`);
       } else {
         // No conversations exist — create one
         const createRes = await fetch("/api/ai/conversations", {
@@ -160,7 +160,7 @@ function AICoachPageInner() {
           setActiveConversationId(createJson.data.id);
           setActiveConversationTitle(createJson.data.title);
           setConversations([{ ...createJson.data, updated_at: createJson.data.created_at }]);
-          router.replace(`/app/ai-coach?chat=${createJson.data.id}`);
+          window.history.replaceState(null, "", `/app/ai-coach?chat=${createJson.data.id}`);
         }
       }
       setConversationsLoaded(true);
@@ -522,7 +522,7 @@ function AICoachPageInner() {
           <div className="flex flex-col gap-6">
             {/* Quick Actions Bento */}
             <div className="flex flex-col gap-3">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ações Rápidas</h3>
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ações Rápidas</h2>
               <div className="grid grid-cols-1 gap-3">
                 {QUICK_ACTIONS.map((action, i) => {
                   const Icon = action.icon;
@@ -560,7 +560,7 @@ function AICoachPageInner() {
             {/* Context Data Source */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Contexto de Dados</h3>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Contexto de Dados</h2>
                 {!dataMode ? (
                   <button
                     onClick={() => setDataMode(true)}
@@ -594,7 +594,7 @@ function AICoachPageInner() {
             {/* Deep Insights */}
             {dataMode && tradesLoaded && (
                <div className="flex flex-col gap-3">
-                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Insights Profundos</h3>
+                 <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Insights Profundos</h2>
                  <div className="flex flex-wrap gap-2">
                    {INSIGHT_BUTTONS.map((btn, i) => {
                      const Icon = btn.icon;
@@ -621,7 +621,7 @@ function AICoachPageInner() {
             {/* Conversation History */}
             {conversationsLoaded && conversations.length > 0 && (
               <div className="flex flex-col gap-3">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Conversas</h3>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Conversas</h2>
                 <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto custom-scrollbar">
                   {conversations.map((conv) => (
                     <button

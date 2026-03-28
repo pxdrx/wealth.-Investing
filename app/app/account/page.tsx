@@ -41,9 +41,9 @@ export default function AccountPage() {
   }
 
   function handleLogout() {
-    supabase.auth.signOut().finally(() => {
-      window.location.replace("/login");
-    });
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "/login";
   }
 
   return (
@@ -57,15 +57,15 @@ export default function AccountPage() {
 
       <section className="mb-8">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Perfil</h2>
-        <div className="rounded-[16px] border border-border bg-card p-6">
+        <div className="rounded-[16px] border border-border bg-card p-6 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
           <form onSubmit={handleSave} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Nome de exibicao</label>
-              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="input-ios" placeholder="Seu nome" />
+              <label htmlFor="account-name" className="mb-1.5 block text-sm font-medium text-foreground">Nome de exibicao</label>
+              <input id="account-name" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="input-ios" placeholder="Seu nome" />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
-              <input type="email" value={email} disabled className="input-ios opacity-50 cursor-not-allowed" />
+              <label htmlFor="account-email" className="mb-1.5 block text-sm font-medium text-foreground">E-mail</label>
+              <input id="account-email" type="email" value={email} disabled className="input-ios opacity-50 cursor-not-allowed" />
               <p className="mt-1 text-xs text-muted-foreground">O e-mail nao pode ser alterado aqui.</p>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
@@ -77,7 +77,7 @@ export default function AccountPage() {
 
       <section className="mb-8">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Aparencia</h2>
-        <div className="rounded-[16px] border border-border bg-card p-6">
+        <div className="rounded-[16px] border border-border bg-card p-6 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
           <p className="text-sm font-medium text-foreground mb-4">Tema</p>
           <div className="flex gap-3">
             {(["light", "dark", "system"] as const).map((t) => (
@@ -94,7 +94,7 @@ export default function AccountPage() {
 
       <section>
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Conta</h2>
-        <div className="rounded-[16px] border border-border bg-card p-6">
+        <div className="rounded-[16px] border border-border bg-card p-6 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
           <p className="text-sm text-muted-foreground mb-4">
             Para excluir sua conta ou alterar o e-mail, entre em contato com o suporte.
           </p>

@@ -33,7 +33,9 @@ export async function GET(req: NextRequest) {
 
     // If exact match found, return it
     if (rows && rows.length > 0) {
-      return NextResponse.json({ ok: true, data: rows[0] });
+      return NextResponse.json({ ok: true, data: rows[0] }, {
+        headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+      });
     }
   }
 
@@ -49,5 +51,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Failed to fetch panorama data" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, data: latest?.[0] || null });
+  return NextResponse.json({ ok: true, data: latest?.[0] || null }, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+  });
 }

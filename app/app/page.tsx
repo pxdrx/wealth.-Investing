@@ -146,6 +146,7 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const initialLoadDone = useRef(false);
   const prevCtxAccountLen = useRef(ctxAccounts.length);
+  const lastRefetch = useRef(0);
 
   // Sync dashboard data when accounts change in context (e.g., deletion)
   useEffect(() => {
@@ -155,23 +156,21 @@ export default function DashboardPage() {
     }
   }, [ctxAccounts]);
 
+  // PERF-002: Only use visibilitychange (not focus) with 30s cooldown to prevent double-fetch
   useEffect(() => {
     function handleVisibility() {
-      if (document.visibilityState === "visible" && initialLoadDone.current) {
-        setRefreshKey((k) => k + 1);
-      }
-    }
-    // Also listen for focus, which fires on SPA navigation back
-    function handleFocus() {
-      if (initialLoadDone.current) {
+      if (
+        document.visibilityState === "visible" &&
+        initialLoadDone.current &&
+        Date.now() - lastRefetch.current > 30_000
+      ) {
+        lastRefetch.current = Date.now();
         setRefreshKey((k) => k + 1);
       }
     }
     document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("focus", handleFocus);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
@@ -597,7 +596,8 @@ function DashboardContent({
         <div className="lg:col-span-12 flex flex-col gap-3">
           {/* Ticker tape */}
           <div
-            className="w-full rounded-xl border border-border/40 bg-card overflow-hidden shadow-sm"
+            className="w-full rounded-xl border border-border/40 bg-card overflow-hidden shadow-sm isolate"
+            style={{ backgroundColor: "hsl(var(--card))" }}
           >
             <iframe
               key={`ticker-${tvTheme}`}
@@ -660,7 +660,8 @@ function DashboardContent({
           {/* Advanced chart with full tools — collapsible */}
           <div
             ref={watchlistRef}
-            className="w-full rounded-[22px] border border-border/40 bg-card overflow-hidden shadow-sm"
+            className="w-full rounded-[22px] border border-border/40 bg-card overflow-hidden shadow-sm isolate"
+            style={{ backgroundColor: "hsl(var(--card))" }}
           >
             <button
               type="button"

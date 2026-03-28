@@ -270,7 +270,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
 
   return (
     <>
-    <div className="bg-card rounded-[22px] overflow-hidden relative isolate border border-border/40 shadow-sm">
+    <div className="bg-card rounded-[22px] overflow-hidden relative isolate border border-border/40 shadow-sm" style={{ backgroundColor: "hsl(var(--card))" }}>
       {/* Header */}
       <button
         type="button"

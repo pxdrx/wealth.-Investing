@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { scrapeTradingEconomicsRates } from "@/lib/macro/scrapers/te-rates";
+import { verifyCronAuth } from "@/lib/macro/cron-auth";
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,6 +17,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
+  if (!verifyCronAuth(req)) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const supabase = getSupabaseAdmin();
     const now = new Date();
@@ -133,7 +138,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("[check-rate-update] Error:", err);
     return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : "Internal error" },
+      { ok: false, error: "Internal server error" },
       { status: 500 }
     );
   }

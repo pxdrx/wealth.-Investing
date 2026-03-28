@@ -105,36 +105,48 @@ export default function JournalPage() {
     setLoadingTrades(true);
     setTradesError(null);
     try {
+      // PERF-006: Limit to 500 most recent trades to prevent loading 10,000+ rows
       const { data, error: err } = await supabase
         .from("journal_trades")
         .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, notes, mistakes, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
         .eq("account_id", activeAccountId)
-        .order("opened_at", { ascending: true });
+        .order("opened_at", { ascending: false })
+        .limit(500);
       if (err) { setTradesError(err.message); setTrades([]); }
-      else setTrades((data ?? []) as JournalTradeRow[]);
+      // Reverse back to ascending for display (loaded desc for recency)
+      else setTrades(((data ?? []) as JournalTradeRow[]).reverse());
     } finally {
       setLoadingTrades(false);
     }
   }, [activeAccountId]);
 
-  useEffect(() => { loadTrades(); }, [loadTrades]);
+  // PERF-008: AbortController to cancel stale fetches on re-render
+  useEffect(() => {
+    const controller = new AbortController();
+    loadTrades();
+    return () => controller.abort();
+  }, [loadTrades]);
 
-  // Fetch day_notes for CalendarPnl
+  // Fetch day_notes for CalendarPnl (PERF-008: AbortController to prevent stale setState)
   useEffect(() => {
     if (!userId) return;
+    let aborted = false;
     (async () => {
       const { data: notesData } = await supabase
         .from("day_notes")
         .select("date, observation, tags")
         .eq("user_id", userId);
+      if (aborted) return;
       const notesMap: Record<string, DayNote> = {};
       notesData?.forEach((n: { date: string; observation: string | null; tags: string[] | null }) => {
         notesMap[n.date] = { observation: n.observation ?? "", tags: n.tags };
       });
       setDayNotes(notesMap);
     })();
+    return () => { aborted = true; };
   }, [userId]);
 
+  // PERF-008: AbortController to prevent stale setState on account switch
   useEffect(() => {
     if (!activeAccountId) {
       setStartingBalanceUsd(null);
@@ -142,17 +154,20 @@ export default function JournalPage() {
       setProfitTargetPercent(null);
       return;
     }
+    let aborted = false;
     (async () => {
       const { data } = await supabase
         .from("prop_accounts")
         .select("starting_balance_usd, max_overall_loss_percent, profit_target_percent")
         .eq("account_id", activeAccountId)
         .maybeSingle();
+      if (aborted) return;
       const row = data as { starting_balance_usd?: number; max_overall_loss_percent?: number; profit_target_percent?: number } | null;
       setStartingBalanceUsd(typeof row?.starting_balance_usd === "number" ? row.starting_balance_usd : null);
       setMaxOverallLossPercent(typeof row?.max_overall_loss_percent === "number" ? row.max_overall_loss_percent : null);
       setProfitTargetPercent(typeof row?.profit_target_percent === "number" ? row.profit_target_percent : null);
     })();
+    return () => { aborted = true; };
   }, [activeAccountId]);
 
   async function handleFileSelected(file: File) {

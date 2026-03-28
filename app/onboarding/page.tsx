@@ -81,8 +81,8 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function gate() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { window.location.href = "/login?from=" + encodeURIComponent("/onboarding"); return; }
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { window.location.href = "/login?from=" + encodeURIComponent("/onboarding"); return; }
         const profile = await getMyProfile();
         if (profile?.display_name?.trim()) { window.location.href = "/app"; return; }
       } catch (err) {

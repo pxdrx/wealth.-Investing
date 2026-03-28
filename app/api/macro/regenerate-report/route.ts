@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[regenerate-report] Error:", error);
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Erro ao gerar relatório" },
+      { ok: false, error: "Internal server error" },
       { status: 500 }
     );
   }

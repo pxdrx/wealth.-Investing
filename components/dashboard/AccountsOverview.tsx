@@ -206,6 +206,7 @@ export function AccountsOverview({
           <div
             key={kpi.label}
             className="bg-card rounded-[22px] p-5 relative isolate overflow-hidden border border-border/40 shadow-sm"
+            style={{ backgroundColor: "hsl(var(--card))" }}
           >
             <p className="text-[11px] uppercase font-semibold tracking-wider text-muted-foreground mb-1.5">
               {kpi.label}
@@ -217,6 +218,7 @@ export function AccountsOverview({
 
       <div
         className="bg-card rounded-[22px] overflow-hidden relative isolate border border-border/40 shadow-sm"
+        style={{ backgroundColor: "hsl(var(--card))" }}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

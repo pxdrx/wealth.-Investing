@@ -246,7 +246,13 @@ export default function PropPage() {
   // Drawdown values from RPC (or fallback to cycle-based)
   const dailyDdPct = drawdownStats?.dailyDdPct ?? 0;
   const overallDdPct = drawdownStats?.overallDdPct ?? 0;
-  const overallLossUsed = Math.max(0, -profit);
+  // FIX TECH-009: For trailing drawdown firms, measure loss from high water mark,
+  // not just cycle profit. For static DD, -profit is correct.
+  const hwm = drawdownStats?.highWaterMark ?? startingBalance;
+  const currentEquity = startingBalance + profit;
+  const overallLossUsed = propInfo.drawdown_type === "trailing"
+    ? Math.max(0, hwm - currentEquity)
+    : Math.max(0, -profit);
   const overallDistance = Math.max(0, maxOverallLoss - overallLossUsed);
 
   const metaProgressPct = profitTarget > 0 ? Math.min(100, (profit / profitTarget) * 100) : 0;

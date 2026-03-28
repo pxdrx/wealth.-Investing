@@ -31,8 +31,9 @@ export async function GET(req: NextRequest) {
     .limit(20);
 
   if (error) {
+    console.error("[analyst/history] GET error:", error.message);
     return NextResponse.json(
-      { ok: false, error: error.message },
+      { ok: false, error: "Failed to fetch reports" },
       { status: 500 }
     );
   }
@@ -76,8 +77,9 @@ export async function DELETE(req: NextRequest) {
     .eq("user_id", user.id);
 
   if (error) {
+    console.error("[analyst/history] DELETE error:", error.message);
     return NextResponse.json(
-      { ok: false, error: error.message },
+      { ok: false, error: "Failed to delete report" },
       { status: 500 }
     );
   }

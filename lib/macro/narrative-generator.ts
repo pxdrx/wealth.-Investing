@@ -81,10 +81,28 @@ JSON exato:
   // Parse JSON from response (strip any markdown fencing)
   let jsonStr = textBlock.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
+  // FIX TECH-010: Wrap all JSON.parse calls in try/catch with fallback.
+  // LLM responses may not always be valid JSON.
+  const fallbackOutput: NarrativeOutput = {
+    weekly_bias: "Análise indisponível no momento. Tente novamente.",
+    daily_update: "Atualização indisponível no momento.",
+    asset_impacts: {
+      indices: { bias: "neutral", confidence: "baixa", reason: "Dados insuficientes", key_levels: "N/A" },
+      gold: { bias: "neutral", confidence: "baixa", reason: "Dados insuficientes", key_levels: "N/A" },
+      btc: { bias: "neutral", confidence: "baixa", reason: "Dados insuficientes", key_levels: "N/A" },
+      dollar: { bias: "neutral", confidence: "baixa", reason: "Dados insuficientes", key_levels: "N/A" },
+    },
+  };
+
   // If JSON is truncated (stop_reason: max_tokens), try to salvage
   if (response.stop_reason === "end_turn") {
-    const parsed: NarrativeOutput = JSON.parse(jsonStr);
-    return parsed;
+    try {
+      const parsed: NarrativeOutput = JSON.parse(jsonStr);
+      return parsed;
+    } catch (e) {
+      console.error("[narrative-generator] Failed to parse LLM JSON (end_turn):", e);
+      return fallbackOutput;
+    }
   }
 
   // Truncated response — attempt to close open JSON
@@ -105,8 +123,13 @@ JSON exato:
     jsonStr += "}".repeat(Math.max(0, openBraces));
   }
 
-  const parsed: NarrativeOutput = JSON.parse(jsonStr);
-  return parsed;
+  try {
+    const parsed: NarrativeOutput = JSON.parse(jsonStr);
+    return parsed;
+  } catch (e) {
+    console.error("[narrative-generator] Failed to parse repaired LLM JSON:", e);
+    return fallbackOutput;
+  }
 }
 
 /**
@@ -148,5 +171,13 @@ Com base no estilo Smart Money Lab, gere um JSON com:
   }
 
   const jsonStr = textBlock.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-  return JSON.parse(jsonStr);
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    console.error("[narrative-generator] Failed to parse adaptive update JSON:", e);
+    return {
+      alert_title: "Atualização indisponível",
+      update_text: "Não foi possível processar a análise do evento. Tente novamente.",
+    };
+  }
 }

@@ -110,7 +110,7 @@ export function AppHeader() {
                 <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", userMenuOpen && "rotate-180")} />
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-44 rounded-[14px] border border-border/60 bg-card shadow-lg py-1.5 z-50">
+                <div className="absolute right-0 top-full mt-2 w-44 rounded-[14px] border border-border/60 bg-card shadow-lg py-1.5 z-50 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
                   <Link href="/app/settings" onClick={() => setUserMenuOpen(false)}
                     className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-foreground hover:bg-accent transition-colors rounded-[8px] mx-1" style={{width: "calc(100% - 8px)"}}>
                     <Settings className="h-3.5 w-3.5 text-muted-foreground" />

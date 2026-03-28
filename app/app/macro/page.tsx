@@ -37,15 +37,44 @@ export default function MacroIntelligencePage() {
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
   const [hasUnseenReport, setHasUnseenReport] = useState(false);
   const [headlinesRefreshing, setHeadlinesRefreshing] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // Week navigation: always default to current week's Monday
   const defaultWeek = getWeekStart();
   const [calendarWeek, setCalendarWeek] = useState(defaultWeek);
 
-  const fetchData = useCallback(async () => {
+  // Helper to safely parse JSON from a fetch result
+  const safeJson = useCallback(async (result: PromiseSettledResult<Response>) => {
+    if (result.status === "rejected") return { ok: false };
+    try { return await result.value.json(); } catch { return { ok: false }; }
+  }, []);
+
+  // Helper to parse JSONB string fields from panorama
+  const parsePanoramaFields = useCallback((pan: Record<string, unknown>) => {
+    const jsonbFields = ["regional_analysis", "decision_intelligence", "sentiment", "market_impacts", "asset_impacts"];
+    for (const field of jsonbFields) {
+      if (typeof pan[field] === "string") {
+        try { pan[field] = JSON.parse(pan[field] as string); } catch { pan[field] = null; }
+      }
+    }
+    return pan;
+  }, []);
+
+  // PERF-004: Fetch calendar data separately (depends on calendarWeek)
+  const fetchCalendar = useCallback(async () => {
     try {
-      const [calRes, panRes, ratesRes, alertsRes, histRes, hdlRes] = await Promise.allSettled([
-        fetch(`/api/macro/calendar?week=${calendarWeek}`),
+      const calRes = await fetch(`/api/macro/calendar?week=${calendarWeek}`);
+      const calJson = await calRes.json();
+      if (calJson.ok) setEvents(calJson.data || []);
+    } catch (error) {
+      console.error("[macro] Failed to fetch calendar:", error);
+    }
+  }, [calendarWeek]);
+
+  // PERF-004: Fetch non-calendar data separately (depends only on mount/defaultWeek)
+  const fetchGlobalData = useCallback(async () => {
+    try {
+      const [panRes, ratesRes, alertsRes, histRes, hdlRes] = await Promise.allSettled([
         fetch(`/api/macro/panorama?week=${defaultWeek}`),
         fetch("/api/macro/rates"),
         fetch(`/api/macro/alerts?week=${defaultWeek}`),
@@ -53,13 +82,7 @@ export default function MacroIntelligencePage() {
         fetch("/api/macro/headlines?limit=15"),
       ]);
 
-      const safeJson = async (result: PromiseSettledResult<Response>) => {
-        if (result.status === "rejected") return { ok: false };
-        try { return await result.value.json(); } catch { return { ok: false }; }
-      };
-
-      const [calJson, panJson, ratesJson, alertsJson, histJson, hdlJson] = await Promise.all([
-        safeJson(calRes),
+      const [panJson, ratesJson, alertsJson, histJson, hdlJson] = await Promise.all([
         safeJson(panRes),
         safeJson(ratesRes),
         safeJson(alertsRes),
@@ -67,25 +90,9 @@ export default function MacroIntelligencePage() {
         safeJson(hdlRes),
       ]);
 
-      if (calJson.ok) setEvents(calJson.data || []);
       if (panJson.ok && panJson.data) {
-        const pan = panJson.data;
-        // Ensure JSONB fields are parsed (Supabase may return strings in edge cases)
-        if (typeof pan.regional_analysis === "string") {
-          try { pan.regional_analysis = JSON.parse(pan.regional_analysis); } catch { pan.regional_analysis = null; }
-        }
-        if (typeof pan.decision_intelligence === "string") {
-          try { pan.decision_intelligence = JSON.parse(pan.decision_intelligence); } catch { pan.decision_intelligence = null; }
-        }
-        if (typeof pan.sentiment === "string") {
-          try { pan.sentiment = JSON.parse(pan.sentiment); } catch { pan.sentiment = null; }
-        }
-        if (typeof pan.market_impacts === "string") {
-          try { pan.market_impacts = JSON.parse(pan.market_impacts); } catch { pan.market_impacts = null; }
-        }
-        if (typeof pan.asset_impacts === "string") {
-          try { pan.asset_impacts = JSON.parse(pan.asset_impacts); } catch { pan.asset_impacts = null; }
-        }
+        parsePanoramaFields(panJson.data);
+        const pan = panJson.data as WeeklyPanorama;
         setPanorama(pan);
 
         // Check if panorama was updated since last seen
@@ -103,16 +110,35 @@ export default function MacroIntelligencePage() {
       if (hdlJson.ok) setHeadlines(hdlJson.data || []);
       if (histJson.ok) setWeeks(histJson.data || []);
     } catch (error) {
-      console.error("[macro] Failed to fetch data:", error);
+      console.error("[macro] Failed to fetch global data:", error);
+    }
+  }, [defaultWeek, safeJson, parsePanoramaFields]);
+
+  // Combined fetchData for manual refresh and initial load
+  const fetchData = useCallback(async () => {
+    try {
+      await Promise.all([fetchCalendar(), fetchGlobalData()]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [calendarWeek, defaultWeek]);
+  }, [fetchCalendar, fetchGlobalData]);
 
+  // Initial load: fetch everything
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // PERF-004: Re-fetch only calendar when week changes (skip on initial mount)
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    fetchCalendar();
+  }, [fetchCalendar]);
 
   const REFRESH_COOLDOWN_KEY = "macro_last_full_refresh";
   const REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
@@ -133,7 +159,7 @@ export default function MacroIntelligencePage() {
     const now = Date.now();
     if (now - lastRefresh < REFRESH_COOLDOWN_MS) {
       const hoursAgo = Math.round((now - lastRefresh) / (60 * 60 * 1000));
-      alert(`Atualização já realizada há ${hoursAgo}h. Aguarde 24h entre atualizações.`);
+      setToastMsg(`Atualização já realizada há ${hoursAgo}h. Aguarde 24h entre atualizações.`);
       return;
     }
 
@@ -227,7 +253,7 @@ export default function MacroIntelligencePage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       console.warn("[macro] No session found, cannot regenerate");
-      alert("Sessão expirada. Faça login novamente.");
+      setToastMsg("Sessão expirada. Faça login novamente.");
       return;
     }
 
@@ -253,14 +279,14 @@ export default function MacroIntelligencePage() {
       if (!res.ok) {
         const json = await res.json().catch(() => ({ error: `Erro HTTP ${res.status}` }));
         console.error("[macro] Regenerate failed:", res.status, json);
-        alert(json.error || "Erro ao regenerar relatório");
+        setToastMsg(json.error || "Erro ao regenerar relatório");
         return;
       }
 
       const json = await res.json();
       if (!json.ok) {
         console.error("[macro] Regenerate returned not ok:", json);
-        alert(json.error || "Erro ao regenerar relatório");
+        setToastMsg(json.error || "Erro ao regenerar relatório");
         return;
       }
 
@@ -269,10 +295,10 @@ export default function MacroIntelligencePage() {
       const error = err as Error;
       if (error.name === "AbortError") {
         console.error("[macro] Regeneration timed out after 55s");
-        alert("Timeout — a geração demorou mais de 55 segundos. Tente novamente.");
+        setToastMsg("Timeout — a geração demorou mais de 55 segundos. Tente novamente.");
       } else {
         console.error("[macro] Regeneration error:", error);
-        alert("Erro de conexão ao regenerar. Tente novamente.");
+        setToastMsg("Erro de conexão ao regenerar. Tente novamente.");
       }
       return;
     } finally {
@@ -407,11 +433,12 @@ export default function MacroIntelligencePage() {
     }
   }, [panorama?.asset_impacts?.daily_update_at, silentRegenerate]);
 
-  // Auto-poll headlines every 30 minutes
+  // Auto-poll headlines every 30 minutes (PERF-005: skip when tab is hidden)
   useEffect(() => {
     const POLL_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
     const pollHeadlines = () => {
+      if (document.visibilityState !== "visible") return;
       fetch("/api/macro/headlines?limit=30&live=1")
         .then((res) => res.json())
         .then((data) => {
@@ -433,6 +460,8 @@ export default function MacroIntelligencePage() {
     if (calendarWeek !== defaultWeek) return;
 
     pollRef.current = setInterval(() => {
+      // PERF-005: Skip polling when tab is hidden
+      if (document.visibilityState !== "visible") return;
       const now = new Date();
       const day = now.getUTCDay();
       const hour = now.getUTCHours();
@@ -525,6 +554,16 @@ export default function MacroIntelligencePage() {
         </DialogContent>
       </Dialog>
 
+      {/* Inline toast */}
+      {toastMsg && (
+        <div className="w-full mb-4 flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
+          <p className="text-sm text-destructive font-medium">{toastMsg}</p>
+          <button type="button" onClick={() => setToastMsg(null)} className="text-destructive/60 hover:text-destructive ml-3" aria-label="Fechar">
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* Adaptive Alerts - Always visible */}
       {alerts.length > 0 && (
         <div className="w-full mb-6">
@@ -554,7 +593,7 @@ export default function MacroIntelligencePage() {
             {/* Calendar & Rates */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
               {/* Economic Calendar */}
-              <section className="xl:col-span-8 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6">
+              <section className="xl:col-span-8 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6" style={{ backgroundColor: "hsl(var(--card))" }}>
                 <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-blue-500"></span>
                   Calendário Econômico
@@ -570,7 +609,7 @@ export default function MacroIntelligencePage() {
               </section>
 
               {/* Interest Rates */}
-              <section className="xl:col-span-4 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6">
+              <section className="xl:col-span-4 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6" style={{ backgroundColor: "hsl(var(--card))" }}>
                 <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Taxas Baseadas (Bancos Centrais)</h2>
                 <PaywallGate requiredPlan="pro" blurContent>
                   <InterestRatesPanel rates={rates} />
@@ -586,7 +625,7 @@ export default function MacroIntelligencePage() {
             />
 
             {/* Weekly History */}
-            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6">
+            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
               <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Histórico Macro Semanal</h2>
               <PaywallGate requiredPlan="pro" blurContent>
                 <WeeklyHistory weeks={weeks} currentWeek={defaultWeek} />
@@ -599,7 +638,7 @@ export default function MacroIntelligencePage() {
         <TabsContent value="report" className="flex-1 min-h-0 mt-0">
           <div className="flex flex-col gap-6">
             {/* Weekly Briefing — expanded, no collapse */}
-            <section className="w-full rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate px-4 sm:px-6 py-5">
+            <section className="w-full rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate px-4 sm:px-6 py-5" style={{ backgroundColor: "hsl(var(--card))" }}>
               <WeeklyBriefing panorama={panorama} onRegenerate={handleRegenerate} isRegenerating={isRegenerating} defaultExpanded />
             </section>
 

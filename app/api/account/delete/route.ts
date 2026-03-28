@@ -31,6 +31,11 @@ export async function DELETE(req: NextRequest) {
 
     // 2. Delete user data (order matters for FK constraints)
     const tables = [
+      "day_notes",
+      "ai_coach_messages",
+      "ai_coach_conversations",
+      "analyst_reports",
+      "user_tags",
       "ai_usage",
       "journal_trades",
       "prop_alerts",

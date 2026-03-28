@@ -99,7 +99,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
           </div>
 
           {/* Direction pills */}
-          <div className="flex rounded-lg border border-border/40 bg-card shadow-sm overflow-hidden">
+          <div className="flex rounded-lg border border-border/40 bg-card shadow-sm overflow-hidden isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
             {(["all", "buy", "sell"] as const).map((d) => (
               <button
                 key={d}
@@ -118,7 +118,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
           </div>
 
           {/* Result pills */}
-          <div className="flex rounded-lg border border-border/40 bg-card shadow-sm overflow-hidden">
+          <div className="flex rounded-lg border border-border/40 bg-card shadow-sm overflow-hidden isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
             {(["all", "win", "loss"] as const).map((r) => (
               <button
                 key={r}

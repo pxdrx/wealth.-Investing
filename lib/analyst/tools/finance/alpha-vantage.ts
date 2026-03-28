@@ -1,6 +1,7 @@
 import { fetchWithTimeout } from "@/lib/macro/scrapers/utils";
 
-const API_KEY = process.env.ALPHA_VANTAGE_API_KEY || "demo";
+const API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+if (!API_KEY) console.warn("[alpha-vantage] ALPHA_VANTAGE_API_KEY not set — requests will fail");
 const BASE = "https://www.alphavantage.co/query";
 
 /**

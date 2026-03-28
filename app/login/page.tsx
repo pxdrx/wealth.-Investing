@@ -49,9 +49,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isExiting) return;
-    const t = setTimeout(() => router.replace(redirectToRef.current), 150);
+    const t = setTimeout(() => { window.location.href = redirectToRef.current; }, 150);
     return () => clearTimeout(t);
-  }, [isExiting, router]);
+  }, [isExiting]);
 
   async function finishLogin() {
     try {
@@ -120,14 +120,15 @@ export default function LoginPage() {
 
   return (
     <motion.div
-      className="min-h-screen flex flex-col md:flex-row bg-[#F7F6F3] text-[#1A1A1A] font-sans selection:bg-[#1A1A1A]/20"
+      className="min-h-screen flex flex-col md:flex-row bg-background text-foreground font-sans selection:bg-foreground/20"
+      style={{ backgroundColor: "hsl(var(--background))" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.45, ease: easeApple }}
     >
       {/* Fade out overlay on exit */}
       <motion.div
-        className="pointer-events-none absolute inset-0 z-50 bg-[#F7F6F3]"
+        className="pointer-events-none absolute inset-0 z-50 bg-background"
         initial={{ opacity: 0 }}
         animate={{ opacity: isExiting ? 1 : 0 }}
         transition={{ duration: 0.28, ease: easeApple }}
@@ -135,14 +136,14 @@ export default function LoginPage() {
       />
 
       {/* Top Navigation (Mobile Only) */}
-      <nav className="md:hidden fixed top-0 w-full z-40 bg-[#F7F6F3]/80 backdrop-blur-md px-6 h-16 flex items-center border-b border-[#D4D2CB]/30">
+      <nav className="md:hidden fixed top-0 w-full z-40 bg-background/80 backdrop-blur-md px-6 h-16 flex items-center border-b border-border/30">
         <BrandMark size="base" />
       </nav>
 
       {/* Left Side: Editorial Content */}
       <section 
-        className="hidden md:flex flex-1 flex-col justify-center p-12 lg:p-24 relative overflow-hidden" 
-        style={{ backgroundImage: "radial-gradient(#D4D2CB 1px, transparent 0)", backgroundSize: "24px 24px" }}
+        className="hidden md:flex flex-1 flex-col justify-center p-12 lg:p-24 relative overflow-hidden"
+        style={{ backgroundImage: "radial-gradient(hsl(var(--border)) 1px, transparent 0)", backgroundSize: "24px 24px" }}
       >
         <div className="absolute top-10 left-12 lg:left-24">
           <BrandMark size="lg" />
@@ -154,51 +155,52 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: easeApple }}
           >
-            <div className="inline-flex items-center gap-2 mb-8 px-3 py-1.5 bg-white/50 backdrop-blur border border-[#D4D2CB]/60 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-[#4CAF50] animate-pulse cursor-help" title="Sistema online e operacional"></span>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-[#1A1A1A]">Terminal Pro</span>
+            <div className="inline-flex items-center gap-2 mb-8 px-3 py-1.5 bg-card/50 backdrop-blur border border-border/60 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse cursor-help" title="Sistema online e operacional"></span>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-foreground">Terminal Pro</span>
             </div>
-            
-            <h1 className="text-5xl lg:text-6xl font-extrabold text-[#1A1A1A] leading-[1.05] mb-6 tracking-tight">
+
+            <h1 className="text-5xl lg:text-6xl font-extrabold text-foreground leading-[1.05] mb-6 tracking-tight">
               Tenha clareza total sobre cada operação
             </h1>
-            <p className="text-lg text-[#6B6B6B] leading-relaxed max-w-md">
+            <p className="text-lg text-muted-foreground leading-relaxed max-w-md">
               Gerencie sua carteira com precisão. Uma interface limpa, desenhada para decisões rápidas e insights automatizados pelo AI Coach.
             </p>
 
             <div className="mt-16 grid grid-cols-2 gap-8">
               <div className="flex flex-col gap-2">
-                <span className="font-bold text-2xl text-[#1A1A1A]">Smart</span>
-                <p className="text-xs font-semibold text-[#6B6B6B] uppercase tracking-wider">Métricas &amp; Journaling</p>
+                <span className="font-bold text-2xl text-foreground">Smart</span>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Métricas &amp; Journaling</p>
               </div>
               <div className="flex flex-col gap-2">
-                <span className="font-bold text-2xl text-[#1A1A1A]">Ao vivo</span>
-                <p className="text-xs font-semibold text-[#6B6B6B] uppercase tracking-wider">Inteligência Macro</p>
+                <span className="font-bold text-2xl text-foreground">Ao vivo</span>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inteligência Macro</p>
               </div>
             </div>
           </motion.div>
         </div>
         
         {/* Soft elegant background shape */}
-        <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-[#1A1A1A]/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-foreground/5 rounded-full blur-[120px] pointer-events-none"></div>
       </section>
 
       {/* Right Side: Login Form */}
       <section className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 z-10 pt-24 md:pt-12">
         <div className="w-full max-w-[420px]">
           <div className="md:hidden mb-8 text-center px-2">
-            <h2 className="text-3xl font-extrabold text-[#1A1A1A] mb-2 tracking-tight">Acessar Terminal</h2>
-            <p className="text-[#6B6B6B] text-sm">Insira suas credenciais de acesso</p>
+            <h2 className="text-3xl font-extrabold text-foreground mb-2 tracking-tight">Acessar Terminal</h2>
+            <p className="text-muted-foreground text-sm">Insira suas credenciais de acesso</p>
           </div>
 
           <motion.div 
-            className="bg-white p-8 md:p-10 rounded-[24px] shadow-[0px_12px_48px_rgba(26,26,26,0.04)] border border-[#D4D2CB]/40 relative overflow-hidden"
+            className="bg-card p-8 md:p-10 rounded-[24px] shadow-[0px_12px_48px_rgba(26,26,26,0.04)] border border-border/40 relative overflow-hidden"
+            style={{ backgroundColor: "hsl(var(--card))" }}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: easeApple }}
           >
             {/* Tab bar */}
-            <div className="flex items-center gap-1 rounded-full bg-[#F7F6F3] p-1.5 mb-8 border border-[#D4D2CB]/30">
+            <div className="flex items-center gap-1 rounded-full bg-muted p-1.5 mb-8 border border-border/30">
               {MODES.map(({ key, label }) => (
                 <button
                   key={key}
@@ -207,8 +209,8 @@ export default function LoginPage() {
                   className={[
                     "flex-1 rounded-full py-2 text-xs font-semibold transition-all duration-300 relative z-10",
                     mode === key
-                      ? "text-[#1A1A1A] shadow-[0px_2px_8px_rgba(0,0,0,0.06)] bg-white"
-                      : "text-[#6B6B6B] hover:text-[#1A1A1A]",
+                      ? "text-foreground shadow-[0px_2px_8px_rgba(0,0,0,0.06)] bg-card"
+                      : "text-muted-foreground hover:text-foreground",
                   ].join(" ")}
                 >
                   {label}
@@ -244,13 +246,13 @@ export default function LoginPage() {
                 {mode !== "magic" && (
                   <>
                     <button type="button" onClick={handleGoogle} disabled={loading}
-                      className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-[#D4D2CB] bg-white py-3.5 text-[14px] font-semibold text-[#1A1A1A] transition-all hover:bg-[#F7F6F3] disabled:opacity-50 active:scale-[0.98]">
+                      className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-border bg-card py-3.5 text-[14px] font-semibold text-foreground transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98]">
                       <GoogleIcon />
                       Continuar com Google
                     </button>
                     <div className="my-6 relative flex items-center">
-                      <div className="w-full border-t border-[#D4D2CB]"></div>
-                      <div className="absolute left-1/2 -translate-x-1/2 bg-white px-3 text-[11px] font-semibold text-[#6B6B6B] uppercase tracking-widest">ou</div>
+                      <div className="w-full border-t border-border"></div>
+                      <div className="absolute left-1/2 -translate-x-1/2 bg-card px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">ou</div>
                     </div>
                   </>
                 )}
@@ -259,23 +261,23 @@ export default function LoginPage() {
                 {mode === "signin" && (
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label htmlFor="signin-email" className="text-[12px] font-semibold text-[#6B6B6B] uppercase tracking-wider ml-1">E-mail</label>
+                      <label htmlFor="signin-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">E-mail</label>
                       <input id="signin-email"
                         type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seu@email.com" 
-                        className="w-full h-12 px-4 bg-[#F7F6F3]/50 border border-[#D4D2CB] rounded-[14px] focus:ring-2 focus:ring-[#1A1A1A]/20 focus:border-[#1A1A1A] transition-all outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]/60 text-sm" 
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
                       />
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center px-1">
-                        <label htmlFor="signin-password" className="text-[12px] font-semibold text-[#6B6B6B] uppercase tracking-wider">Senha</label>
-                        <a href="#" className="text-[11px] font-bold text-[#1A1A1A] hover:underline" onClick={(e) => { e.preventDefault(); setError("A recuperar senha ainda não foi implementada neste demo."); }}>Esqueceu a senha?</a>
+                        <label htmlFor="signin-password" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Senha</label>
+                        <a href="#" className="text-[11px] font-bold text-foreground hover:underline" onClick={(e) => { e.preventDefault(); setError("A recuperar senha ainda não foi implementada neste demo."); }}>Esqueceu a senha?</a>
                       </div>
                       <input id="signin-password"
                         type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" 
-                        className="w-full h-12 px-4 bg-[#F7F6F3]/50 border border-[#D4D2CB] rounded-[14px] focus:ring-2 focus:ring-[#1A1A1A]/20 focus:border-[#1A1A1A] transition-all outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]/60 text-sm" 
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
                       />
                     </div>
-                    <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-[#1A1A1A] text-white text-[14px] font-semibold rounded-full hover:bg-black hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
+                    <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
                       {loading ? "Acessando..." : "Entrar no Terminal"}
                     </button>
                   </form>
@@ -285,34 +287,34 @@ export default function LoginPage() {
                 {mode === "signup" && (
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label htmlFor="signup-name" className="text-[12px] font-semibold text-[#6B6B6B] uppercase tracking-wider ml-1">Nome</label>
+                      <label htmlFor="signup-name" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">Nome</label>
                       <input id="signup-name"
                         type="text" value={signupName} onChange={e => setSignupName(e.target.value)} required placeholder="Como quer ser chamado" 
-                        className="w-full h-12 px-4 bg-[#F7F6F3]/50 border border-[#D4D2CB] rounded-[14px] focus:ring-2 focus:ring-[#1A1A1A]/20 focus:border-[#1A1A1A] transition-all outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]/60 text-sm" 
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="signup-email" className="text-[12px] font-semibold text-[#6B6B6B] uppercase tracking-wider ml-1">E-mail</label>
+                      <label htmlFor="signup-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">E-mail</label>
                       <input id="signup-email"
                         type="email" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required placeholder="seu@email.com" 
-                        className="w-full h-12 px-4 bg-[#F7F6F3]/50 border border-[#D4D2CB] rounded-[14px] focus:ring-2 focus:ring-[#1A1A1A]/20 focus:border-[#1A1A1A] transition-all outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]/60 text-sm" 
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="signup-password" className="text-[12px] font-semibold text-[#6B6B6B] uppercase tracking-wider ml-1">Senha <span className="text-[#6B6B6B]/70 normal-case tracking-normal">(mín. 8)</span></label>
+                      <label htmlFor="signup-password" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">Senha <span className="text-muted-foreground/70 normal-case tracking-normal">(mín. 8)</span></label>
                       <input id="signup-password"
                         type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required placeholder="••••••••" 
-                        className="w-full h-12 px-4 bg-[#F7F6F3]/50 border border-[#D4D2CB] rounded-[14px] focus:ring-2 focus:ring-[#1A1A1A]/20 focus:border-[#1A1A1A] transition-all outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]/60 text-sm" 
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="signup-confirm" className="text-[12px] font-semibold text-[#6B6B6B] uppercase tracking-wider ml-1">Confirmar senha</label>
+                      <label htmlFor="signup-confirm" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">Confirmar senha</label>
                       <input id="signup-confirm"
                         type="password" value={signupConfirm} onChange={e => setSignupConfirm(e.target.value)} required placeholder="••••••••" 
-                        className="w-full h-12 px-4 bg-[#F7F6F3]/50 border border-[#D4D2CB] rounded-[14px] focus:ring-2 focus:ring-[#1A1A1A]/20 focus:border-[#1A1A1A] transition-all outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]/60 text-sm" 
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
                       />
                     </div>
-                    <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-[#1A1A1A] text-white text-[14px] font-semibold rounded-full hover:bg-black hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
+                    <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
                       {loading ? "Criando conta..." : "Criar conta"}
                     </button>
                   </form>
@@ -321,17 +323,17 @@ export default function LoginPage() {
                 {/* MAGIC LINK FORM */}
                 {mode === "magic" && (
                   <form onSubmit={handleMagicLink} className="space-y-5">
-                    <p className="text-[14px] text-[#6B6B6B] leading-relaxed">
+                    <p className="text-[14px] text-muted-foreground leading-relaxed">
                       Digite seu e-mail para receber um link de acesso instantâneo. Sem necessidade de senha.
                     </p>
                     <div className="space-y-1.5">
-                      <label htmlFor="magic-email" className="text-[12px] font-semibold text-[#6B6B6B] uppercase tracking-wider ml-1">E-mail</label>
+                      <label htmlFor="magic-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">E-mail</label>
                       <input id="magic-email"
                         type="email" value={magicEmail} onChange={e => setMagicEmail(e.target.value)} required placeholder="seu@email.com" 
-                        className="w-full h-12 px-4 bg-[#F7F6F3]/50 border border-[#D4D2CB] rounded-[14px] focus:ring-2 focus:ring-[#1A1A1A]/20 focus:border-[#1A1A1A] transition-all outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]/60 text-sm" 
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
                       />
                     </div>
-                    <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-[#1A1A1A] text-white text-[14px] font-semibold rounded-full hover:bg-black hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
+                    <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
                       {loading ? "Enviando e-mail..." : "Enviar link mágico"}
                     </button>
                   </form>
@@ -342,8 +344,8 @@ export default function LoginPage() {
             {/* Subtle trust signals */}
             <div className="mt-8 flex items-center justify-center gap-6 opacity-40 grayscale">
               <div className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-[#1A1A1A]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-                <span className="text-[10px] font-bold tracking-tight text-[#1A1A1A]">ENCRYPTED</span>
+                <svg className="w-4 h-4 text-foreground" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                <span className="text-[10px] font-bold tracking-tight text-foreground">ENCRYPTED</span>
               </div>
             </div>
             

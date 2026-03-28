@@ -16,12 +16,12 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export const PRICE_IDS = {
-  pro_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID!,
-  pro_annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID!,
-  ultra_monthly: process.env.STRIPE_ULTRA_MONTHLY_PRICE_ID!,
-  ultra_annual: process.env.STRIPE_ULTRA_ANNUAL_PRICE_ID!,
-} as const;
+export const PRICE_IDS: Record<string, string | undefined> = {
+  pro_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+  pro_annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
+  ultra_monthly: process.env.STRIPE_ULTRA_MONTHLY_PRICE_ID,
+  ultra_annual: process.env.STRIPE_ULTRA_ANNUAL_PRICE_ID,
+};
 
 // Warn about missing price IDs in development
 if (typeof window === "undefined") {
@@ -29,6 +29,15 @@ if (typeof window === "undefined") {
   if (missing.length > 0) {
     console.warn("[stripe] Missing price IDs:", missing.map(([k]) => k).join(", "));
   }
+}
+
+/**
+ * FIX TECH-012: Safely get a price ID with runtime validation.
+ * Returns the price ID string or null if undefined.
+ */
+export function getPriceId(plan: string): string | null {
+  const id = PRICE_IDS[plan];
+  return id && id.trim() ? id : null;
 }
 
 /** Map Stripe price ID → plan name */

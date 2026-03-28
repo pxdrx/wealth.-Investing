@@ -99,17 +99,18 @@ export function parseCtraderCsv(buffer: Buffer): ParsedTrades {
     const direction: "buy" | "sell" =
       dirRaw.includes("sell") || dirRaw.includes("short") ? "sell" : "buy";
 
-    const volumeRaw = parseFloat(cols[colMap.volume] || "0");
+    // FIX TECH-006: Guard all parseFloat calls against NaN
+    const volumeRaw = parseFloat(cols[colMap.volume] || "0") || 0;
     const lots =
       volumeRaw >= 100 ? volumeRaw / 100000 : volumeRaw; // cTrader uses units, convert to lots
 
-    const profit = parseFloat(cols[colMap.profit] || "0");
+    const profit = parseFloat(cols[colMap.profit] || "0") || 0;
     const commission =
       colMap.commission >= 0
-        ? parseFloat(cols[colMap.commission] || "0")
+        ? parseFloat(cols[colMap.commission] || "0") || 0
         : 0;
     const swap =
-      colMap.swap >= 0 ? parseFloat(cols[colMap.swap] || "0") : 0;
+      colMap.swap >= 0 ? parseFloat(cols[colMap.swap] || "0") || 0 : 0;
     const netPnl = profit + commission + swap;
 
     const openedAt = cols[colMap.openTime] || "";

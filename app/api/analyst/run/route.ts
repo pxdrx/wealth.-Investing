@@ -40,6 +40,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // SEC-015: Verify user has pro subscription
+  const supabaseAuth = createSupabaseClientForUser(token);
+  const { data: { user: authUser } } = await supabaseAuth.auth.getUser();
+  if (!authUser) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Invalid token" }),
+      { status: 401 }
+    );
+  }
+
+  const { data: subscription } = await supabaseAuth
+    .from("subscriptions")
+    .select("tier")
+    .eq("user_id", authUser.id)
+    .maybeSingle();
+
+  if (!subscription || subscription.tier !== "pro") {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Pro subscription required" }),
+      { status: 403 }
+    );
+  }
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -56,9 +79,10 @@ export async function POST(req: NextRequest) {
           const supabaseUser = createSupabaseClientForUser(token);
           const { data: { user } } = await supabaseUser.auth.getUser();
           if (user) {
+            const { requireEnv } = await import("@/lib/env");
             const supabaseService = createClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL!,
-              process.env.SUPABASE_SERVICE_ROLE_KEY!
+              requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+              requireEnv("SUPABASE_SERVICE_ROLE_KEY")
             );
             console.log("[analyst/run] Saving report for user:", user.id, "ticker:", report.ticker);
             const { data: inserted, error: insertError } = await supabaseService
@@ -90,9 +114,10 @@ export async function POST(req: NextRequest) {
         );
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } catch (err) {
+        console.error("[analyst/run] SSE error:", err);
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ type: "error", data: String(err) })}\n\n`
+            `data: ${JSON.stringify({ type: "error", data: "Analysis failed. Please try again." })}\n\n`
           )
         );
       } finally {

@@ -24,5 +24,7 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Failed to fetch history data" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, data: data || [] });
+  return NextResponse.json({ ok: true, data: data || [] }, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+  });
 }

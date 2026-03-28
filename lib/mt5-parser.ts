@@ -34,10 +34,30 @@ function normalizeHeader(h: string): string {
     .trim();
 }
 
+/**
+ * Parse a number from various formats including European locale (1.234,56).
+ * FIX TECH-002: The old code stripped all commas first, then tried to replace
+ * comma with dot — a no-op. Now correctly detects EU vs US format.
+ */
 function parseNumber(v: unknown): number {
   if (typeof v === "number" && !Number.isNaN(v)) return v;
   if (typeof v === "string") {
-    const n = parseFloat(v.replace(/[\s,]/g, "").replace(",", "."));
+    const trimmed = v.replace(/\s/g, "").trim();
+    if (!trimmed) return 0;
+    // Detect European format: comma is the last separator (e.g. "1.234,56")
+    if (trimmed.includes(",")) {
+      const lastComma = trimmed.lastIndexOf(",");
+      const lastDot = trimmed.lastIndexOf(".");
+      if (lastComma > lastDot) {
+        // European: 1.234,56 → remove dots (thousands), replace comma with dot (decimal)
+        const n = parseFloat(trimmed.replace(/\./g, "").replace(",", "."));
+        return Number.isNaN(n) ? 0 : n;
+      }
+      // US with comma as thousands separator: 1,234.56 → just remove commas
+      const n = parseFloat(trimmed.replace(/,/g, ""));
+      return Number.isNaN(n) ? 0 : n;
+    }
+    const n = parseFloat(trimmed);
     return Number.isNaN(n) ? 0 : n;
   }
   return 0;

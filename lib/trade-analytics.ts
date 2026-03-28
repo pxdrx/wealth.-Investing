@@ -243,11 +243,23 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
   });
 
   // ── Max Drawdown & Drawdown Curve ──
-  let peak = 0;
+  // FIX TECH-001: Equity curve starts from 0 cumulative P&L, so if early trades
+  // are losses, peak stays at 0 and drawdown shows 0%. Instead, we track the
+  // peak from the first equity value and handle all-negative curves properly.
+  let peak = equityCurve.length > 0 ? equityCurve[0].equity : 0;
   let maxDrawdown = 0;
   const drawdownCurve: DrawdownPoint[] = equityCurve.map((pt) => {
     if (pt.equity > peak) peak = pt.equity;
-    const dd = peak > 0 ? ((pt.equity - peak) / peak) * 100 : 0;
+    // Calculate drawdown as percentage decline from peak
+    // If peak is positive, use it as the base. If peak <= 0 (all losses from start),
+    // drawdown is 100% since we've never been above the starting point.
+    let dd = 0;
+    if (peak > 0) {
+      dd = ((pt.equity - peak) / peak) * 100;
+    } else if (pt.equity < 0) {
+      // All values negative from start — drawdown relative to zero (starting point)
+      dd = -100;
+    }
     if (Math.abs(dd) > Math.abs(maxDrawdown)) maxDrawdown = dd;
     return { date: pt.date, drawdown: dd };
   });
@@ -269,8 +281,22 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
     : null;
 
   // ── Calmar Ratio ──
-  const calmarRatio = tradingDays >= 20 && maxDrawdown > 0
-    ? (netPnl / maxDrawdown)
+  // FIX TECH-004: Both annualized return and max drawdown must be in the same unit (%).
+  // maxDrawdown is already in %, so convert netPnl to annualized return %.
+  // We approximate annualized return as: (netPnl / tradingDays) * 252 days, expressed
+  // as a % of the cumulative equity midpoint. Since we don't have starting balance here,
+  // we use the ratio of annualized daily mean return % to maxDrawdown %.
+  // Simplified: calmar = (meanDaily * 252) / maxDrawdown, where both are in % of equity.
+  // Since meanDaily is in USD and maxDrawdown is in %, we normalize by dividing meanDaily
+  // by the average equity to get a percentage, then annualize.
+  const avgEquity = equityCurve.length > 0
+    ? equityCurve.reduce((s, p) => s + Math.abs(p.equity), 0) / equityCurve.length
+    : 0;
+  const annualReturnPct = avgEquity > 0 && tradingDays > 0
+    ? (meanDaily / avgEquity) * 252 * 100
+    : 0;
+  const calmarRatio = tradingDays >= 20 && maxDrawdown > 0 && avgEquity > 0
+    ? annualReturnPct / maxDrawdown
     : null;
 
   // ── Kelly Criterion (half-Kelly, capped 0.5) ──
@@ -282,7 +308,10 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
   const kellyCriterion = Math.min(Math.max(rawKelly * 0.5, 0), 0.5);
 
   // ── Recovery Factor ──
-  const recoveryFactor = maxDrawdown > 0 ? netPnl / maxDrawdown : 0;
+  // FIX TECH-005: Recovery Factor = net profit / max drawdown, both in same unit (USD).
+  // maxDrawdown is in %, so convert to USD using average equity as base.
+  const maxDrawdownUsd = avgEquity > 0 ? (maxDrawdown / 100) * avgEquity : 0;
+  const recoveryFactor = maxDrawdownUsd > 0 ? netPnl / maxDrawdownUsd : 0;
 
   // ── Streaks ──
   const streaks = calcStreaks(sorted);

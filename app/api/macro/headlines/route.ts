@@ -1,6 +1,7 @@
 // app/api/macro/headlines/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { translateHeadlines } from "@/lib/macro/translate";
 
 export const dynamic = "force-dynamic";
@@ -89,40 +90,20 @@ export async function GET(req: NextRequest) {
   // Extend default window to 7 days to catch more cached headlines
   const since = searchParams.get("since") || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // If ?live=1, skip DB and fetch directly from RSS feeds
+  // If ?live=1, require auth and fetch directly from RSS feeds
   if (forceLive) {
-    console.log("[macro/headlines] Force live fetch requested");
-    const liveData = await fetchLiveHeadlines(limit);
-
-    // Persist live headlines to DB so they survive page reloads
-    if (liveData.length > 0) {
-      try {
-        const supabaseService = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const rows = liveData
-          .filter((h) => h.external_id)
-          .map((h) => ({
-            source: h.source,
-            headline: h.headline,
-            summary: h.summary,
-            author: h.author,
-            url: h.url,
-            impact: h.impact,
-            published_at: h.published_at,
-            fetched_at: h.fetched_at,
-            external_id: h.external_id?.replace(/^live-\d+-/, "") || h.external_id,
-          }));
-        if (rows.length > 0) {
-          await supabaseService
-            .from("macro_headlines")
-            .upsert(rows, { onConflict: "source,external_id" });
-        }
-      } catch (err) {
-        console.error("[macro/headlines] Failed to persist live headlines:", err);
-      }
+    const token = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
+    const supabaseUser = createSupabaseClientForUser(token);
+    const { data: { user } } = await supabaseUser.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
+    }
+
+    console.log("[macro/headlines] Force live fetch requested by user:", user.id);
+    const liveData = await fetchLiveHeadlines(limit);
 
     return NextResponse.json({ ok: true, data: liveData, source: "live" });
   }
@@ -145,50 +126,17 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     console.error("[macro/headlines] DB error:", error.message);
-    // Fall back to live fetch on DB error
-    const liveData = await fetchLiveHeadlines(limit);
-    return NextResponse.json({ ok: true, data: liveData, source: "live" });
+    return NextResponse.json({ ok: false, error: "Failed to fetch headlines" }, { status: 500 });
   }
+
+  const cacheHeaders = { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" };
 
   // If DB returned results, apply source priority sorting and return
   if (data && data.length > 0) {
     const sorted = sortByDateAndPriority(data);
-    return NextResponse.json({ ok: true, data: sorted });
+    return NextResponse.json({ ok: true, data: sorted }, { headers: cacheHeaders });
   }
 
-  // DB is empty — fetch live from RSS feeds as fallback
-  console.log("[macro/headlines] DB empty, fetching live from RSS feeds");
-  const liveData = await fetchLiveHeadlines(limit);
-
-  // Persist fallback headlines to DB for future page loads
-  if (liveData.length > 0) {
-    try {
-      const supabaseService = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-      const rows = liveData
-        .filter((h) => h.external_id)
-        .map((h) => ({
-          source: h.source,
-          headline: h.headline,
-          summary: h.summary,
-          author: h.author,
-          url: h.url,
-          impact: h.impact,
-          published_at: h.published_at,
-          fetched_at: h.fetched_at,
-          external_id: h.external_id?.replace(/^live-\d+-/, "") || h.external_id,
-        }));
-      if (rows.length > 0) {
-        await supabaseService
-          .from("macro_headlines")
-          .upsert(rows, { onConflict: "source,external_id" });
-      }
-    } catch (err) {
-      console.error("[macro/headlines] Failed to persist fallback headlines:", err);
-    }
-  }
-
-  return NextResponse.json({ ok: true, data: liveData, source: "live" });
+  // DB is empty — return empty array (cron job handles population)
+  return NextResponse.json({ ok: true, data: [] }, { headers: cacheHeaders });
 }

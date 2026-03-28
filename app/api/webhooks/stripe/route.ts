@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe, planFromPriceId, intervalFromPriceId } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
+import { requireEnv } from "@/lib/env";
 
 /** Extract current_period_end from a subscription object.
  *  Stripe v20 removed the typed field but the API still returns it. */
@@ -13,8 +14,8 @@ function getPeriodEnd(sub: Record<string, unknown>): string | null {
 
 // Use service role for webhook (no user context)
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+  requireEnv("SUPABASE_SERVICE_ROLE_KEY")
 );
 
 export async function POST(req: NextRequest) {

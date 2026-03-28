@@ -34,5 +34,7 @@ export async function GET(req: NextRequest) {
       weekA: { panorama: panoramaA.data, events: eventsA.data || [] },
       weekB: { panorama: panoramaB.data, events: eventsB.data || [] },
     },
+  }, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
   });
 }

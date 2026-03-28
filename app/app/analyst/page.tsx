@@ -626,7 +626,7 @@ export default function AnalystPage() {
       });
       setHistory((prev) => prev.filter((h) => h.id !== id));
     } catch {
-      alert("Erro ao excluir análise.");
+      setError("Erro ao excluir análise.");
     }
   }
 
@@ -837,10 +837,10 @@ export default function AnalystPage() {
         {/* History */}
         {history.length > 0 && !report && !loading && (
           <div className="mb-8">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
               Analises recentes
-            </h3>
+            </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {history.map((item) => (
                 <div
@@ -853,6 +853,7 @@ export default function AnalystPage() {
                     onClick={(e) => handleDeleteReport(item.id, e)}
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded-full p-1 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
                     title="Excluir análise"
+                    aria-label="Excluir análise"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -872,9 +873,9 @@ export default function AnalystPage() {
         {/* Empty state — clean, no background */}
         {!report && !loading && !error && history.length === 0 && (
           <div className="text-center py-16">
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">
+            <h2 className="text-lg font-medium text-muted-foreground mb-2">
               Nenhuma análise ainda
-            </h3>
+            </h2>
             <p className="text-sm text-muted-foreground/70 mb-6">
               Digite um ticker acima para gerar uma análise completa com IA
             </p>
