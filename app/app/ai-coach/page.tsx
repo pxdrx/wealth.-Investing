@@ -511,7 +511,7 @@ function AICoachPageInner() {
       <div className="hidden lg:flex flex-col w-[350px] xl:w-[400px] shrink-0 gap-6 overflow-y-auto custom-scrollbar pr-4">
         <div>
           <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
-            AI Co-Pilot
+            AI Coach
           </h1>
           <p className="mt-1 text-sm text-muted-foreground font-medium">
             Seu analista quantitativo pessoal.
@@ -711,7 +711,7 @@ function AICoachPageInner() {
                          <Brain className="h-8 w-8 text-blue-500" />
                        </div>
                        <p className="text-lg font-semibold text-foreground mb-1">{getGreeting()}</p>
-                       <p className="text-sm text-muted-foreground">Sou seu AI Co-Pilot. Analiso seus trades, identifico padrões e ajudo a melhorar sua performance.</p>
+                       <p className="text-sm text-muted-foreground">Sou seu AI Coach. Analiso seus trades, identifico padrões e ajudo a melhorar sua performance.</p>
                      </div>
                      <div className="flex flex-wrap justify-center gap-2">
                        {INSIGHT_BUTTONS.map((btn, i) => {
