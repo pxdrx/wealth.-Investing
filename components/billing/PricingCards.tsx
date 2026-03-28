@@ -6,6 +6,7 @@ import NumberFlow from "@number-flow/react";
 import { Check, ArrowDown, ArrowUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { supabase } from "@/lib/supabase/client";
@@ -40,8 +41,8 @@ const tiers: TierDef[] = [
   {
     id: "pro",
     name: "Pro",
-    monthlyPrice: 47.9,
-    annualPrice: 37.9,
+    monthlyPrice: 69.9,
+    annualPrice: 52.42,
     highlighted: true,
     badge: "Mais popular",
     features: [
@@ -60,8 +61,8 @@ const tiers: TierDef[] = [
   {
     id: "ultra",
     name: "Ultra",
-    monthlyPrice: 89.9,
-    annualPrice: 69.9,
+    monthlyPrice: 119.0,
+    annualPrice: 89.25,
     features: [
       "Tudo do Pro",
       "Contas ilimitadas",
@@ -228,6 +229,18 @@ export function PricingCards() {
 
   return (
     <div className="space-y-8">
+      {/* Launch promotion badge */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="flex justify-center"
+      >
+        <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md">
+          <span>Cupom de lancamento: <span className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs tracking-wider">LAUNCH30</span> — 30% OFF na primeira cobranca!</span>
+        </div>
+      </motion.div>
+
       {/* Toggle */}
       <div className="flex items-center justify-center gap-3">
         <span className={cn("text-sm font-medium", !annual ? "text-foreground" : "text-muted-foreground")}>
@@ -256,7 +269,7 @@ export function PricingCards() {
         </span>
         {annual && (
           <span className="rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-600 dark:text-green-400">
-            -20%
+            -25%
           </span>
         )}
       </div>
