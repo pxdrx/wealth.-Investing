@@ -43,24 +43,6 @@ interface DayNote {
   tags: string[];
 }
 
-const TAG_PRESETS = [
-  "Plano seguido",
-  "Setup A+",
-  "Risk management OK",
-  "Overtrading",
-  "Revenge trade",
-  "Gestão emocional",
-  "Antecipação de entrada",
-  "Saída prematura",
-  "Sem stop definido",
-  "Notícia macro",
-  "Volatilidade atípica",
-  "Mercado lateralizado",
-  "Trend day",
-  "Sessão London",
-  "Sessão NY",
-];
-
 export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, open, onOpenChange, onNoteSaved }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +50,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const [userSavedTags, setUserSavedTags] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -83,6 +66,34 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     }
     return false;
   };
+
+  // Load user's saved tags from DB
+  const loadUserTags = useCallback(async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("user_tags")
+      .select("tag")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+    if (data) setUserSavedTags(data.map((r: { tag: string }) => r.tag));
+  }, [userId]);
+
+  const saveUserTag = useCallback(async (tag: string) => {
+    if (!userId || userSavedTags.includes(tag)) return;
+    await supabase.from("user_tags").insert({ user_id: userId, tag });
+    setUserSavedTags((prev) => [...prev, tag]);
+  }, [userId, userSavedTags]);
+
+  const deleteUserTag = useCallback(async (tag: string) => {
+    if (!userId) return;
+    await supabase.from("user_tags").delete().eq("user_id", userId).eq("tag", tag);
+    setUserSavedTags((prev) => prev.filter((t) => t !== tag));
+  }, [userId]);
+
+  // Load user tags when modal opens
+  useEffect(() => {
+    if (open && userId) loadUserTags();
+  }, [open, userId, loadUserTags]);
 
   const loadDayData = useCallback(async () => {
     if (!date || !userId) return;
@@ -233,6 +244,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     const t = newTag.trim();
     if (t && !dayNote.tags.includes(t)) {
       setDayNote((prev) => ({ ...prev, tags: [...prev.tags, t] }));
+      saveUserTag(t); // Persist for future use
       setNewTag("");
     }
   };
@@ -382,33 +394,29 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                     <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Etiquetas</h4>
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {TAG_PRESETS.map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => toggleTag(tag)}
-                        className={cn(
-                          "rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                          dayNote.tags.includes(tag)
-                            ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500/30"
-                            : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
-                        )}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-                  {dayNote.tags.filter((t) => !TAG_PRESETS.includes(t)).length > 0 && (
+                  {/* User saved tags as toggle buttons with X to delete */}
+                  {userSavedTags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
-                      {dayNote.tags.filter((t) => !TAG_PRESETS.includes(t)).map((tag) => (
+                      {userSavedTags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500/30 px-2 py-1 text-[11px] font-medium"
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                            dayNote.tags.includes(tag)
+                              ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500/30"
+                              : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                          )}
                         >
-                          {tag}
-                          <button type="button" onClick={() => toggleTag(tag)} className="hover:text-red-500">
-                            <X className="h-3 w-3" />
+                          <button type="button" onClick={() => toggleTag(tag)} className="cursor-pointer">
+                            {tag}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); deleteUserTag(tag); toggleTag(tag); }}
+                            className="ml-0.5 opacity-50 hover:opacity-100 hover:text-red-500 transition-opacity"
+                            title="Excluir etiqueta"
+                          >
+                            <X className="h-2.5 w-2.5" />
                           </button>
                         </span>
                       ))}
