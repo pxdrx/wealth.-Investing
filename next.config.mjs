@@ -19,6 +19,18 @@ const nextConfig = {
           { key: "X-XSS-Protection", value: "1; mode=block" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "geolocation=(), microphone=(), camera=()" },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://s3.tradingview.com https://*.vercel-scripts.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://api.anthropic.com https://*.vercel-scripts.com",
+              "frame-src https://s3.tradingview.com https://js.stripe.com",
+            ].join("; "),
+          },
         ],
       },
     ];

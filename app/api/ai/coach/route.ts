@@ -17,19 +17,28 @@ function getAnthropic(): Anthropic {
   return _anthropic;
 }
 
-// Simple per-user rate limiter (2 req/min)
-const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 2;
+// Per-user burst rate limit: max 3 messages per 60 seconds
+// Uses Supabase query instead of in-memory Map (serverless-safe)
+const BURST_LIMIT = 3;
 
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const timestamps = rateLimitMap.get(userId) || [];
-  const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  if (recent.length >= RATE_LIMIT_MAX) return false;
-  recent.push(now);
-  rateLimitMap.set(userId, recent);
-  return true;
+async function checkBurstRateLimit(
+  supabase: ReturnType<typeof createSupabaseClientForUser>,
+  userId: string
+): Promise<boolean> {
+  const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+  const { count, error } = await supabase
+    .from("ai_coach_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", oneMinuteAgo);
+
+  if (error) {
+    // If the table doesn't exist or query fails, allow the request
+    // but log the error for debugging
+    console.warn("[ai-coach] burst rate limit check failed:", error.message);
+    return true;
+  }
+  return (count ?? 0) < BURST_LIMIT;
 }
 
 interface CoachRequestBody {
@@ -95,8 +104,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: false, error: "Conteúdo total muito longo" }, { status: 400 });
   }
 
-  // 3. Rate limit
-  if (!checkRateLimit(userId)) {
+  // 3. Burst rate limit (serverless-safe, queries Supabase)
+  const withinBurstLimit = await checkBurstRateLimit(supabase, userId);
+  if (!withinBurstLimit) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
 
