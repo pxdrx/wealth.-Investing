@@ -224,22 +224,22 @@ export function AccountsOverview({
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50">
-                <th className="text-left text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="text-left text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   Conta
                 </th>
-                <th className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   P&L Mês
                 </th>
-                <th className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   DD Diário
                 </th>
-                <th className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   DD Total
                 </th>
-                <th className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   Win Rate
                 </th>
-                <th className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   Status
                 </th>
               </tr>

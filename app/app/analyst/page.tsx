@@ -72,8 +72,8 @@ interface AnalysisReport {
 
 const SECTION_CONFIG = [
   { key: "macro", icon: Globe, label: "Contexto Macro" },
-  { key: "technical", icon: BarChart3, label: "Analise Tecnica" },
-  { key: "fundamental", icon: Target, label: "Analise Fundamental" },
+  { key: "technical", icon: BarChart3, label: "Análise Técnica" },
+  { key: "fundamental", icon: Target, label: "Análise Fundamental" },
   { key: "sentiment", icon: Newspaper, label: "Sentimento" },
   { key: "risk", icon: Shield, label: "Gestao de Risco" },
 ] as const;
@@ -839,7 +839,7 @@ export default function AnalystPage() {
           <div className="mb-8">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
-              Analises recentes
+              Análises recentes
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {history.map((item) => (
@@ -851,7 +851,7 @@ export default function AnalystPage() {
                 >
                   <button
                     onClick={(e) => handleDeleteReport(item.id, e)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded-full p-1 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
+                    className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 rounded-full p-1 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
                     title="Excluir análise"
                     aria-label="Excluir análise"
                   >

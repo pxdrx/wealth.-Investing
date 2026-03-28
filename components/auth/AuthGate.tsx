@@ -10,8 +10,8 @@ import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 /** Five minutes in milliseconds */
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
-/** Eight hours inactivity timeout */
-const INACTIVITY_TIMEOUT_MS = 8 * 60 * 60 * 1000;
+/** Two hours inactivity timeout (financial app security) */
+const INACTIVITY_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 
 /** Periodic session check interval (5 minutes) */
 const SESSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;

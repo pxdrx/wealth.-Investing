@@ -32,17 +32,17 @@ function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 60) return "agora";
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `ha ${minutes} min`;
+  if (minutes < 60) return `há ${minutes} min`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `ha ${hours}h`;
+  if (hours < 24) return `há ${hours}h`;
   const days = Math.floor(hours / 24);
-  return `ha ${days}d`;
+  return `há ${days}d`;
 }
 
 const IMPACT_FILTERS: { value: ImpactFilter; label: string }[] = [
   { value: "ALL", label: "Todas" },
   { value: "HIGH", label: "Alta" },
-  { value: "MEDIUM", label: "Media" },
+  { value: "MEDIUM", label: "Média" },
   { value: "LOW", label: "Baixa" },
 ];
 
@@ -77,17 +77,21 @@ export default function NewsPage() {
       setLastFetched(new Date());
     } catch (e) {
       console.warn("[news] fetch error", e);
-      setError("Nao foi possivel carregar as noticias");
+      setError("Não foi possível carregar as notícias");
       setNews([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Initial fetch + auto-refresh every 5 minutes
+  // Initial fetch + auto-refresh every 5 minutes (only when tab is visible)
   useEffect(() => {
     fetchNews();
-    const interval = setInterval(fetchNews, AUTO_REFRESH_MS);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchNews();
+      }
+    }, AUTO_REFRESH_MS);
     return () => clearInterval(interval);
   }, [fetchNews]);
 

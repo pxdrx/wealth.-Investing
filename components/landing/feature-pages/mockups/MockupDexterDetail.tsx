@@ -9,13 +9,13 @@ export function MockupDexterDetail() {
         {/* Left: Report history */}
         <div>
           <div className="font-mono text-[9px] text-l-text-muted uppercase tracking-wider mb-3">
-            Historico de Analises
+            Histórico de Análises
           </div>
           <div className="space-y-2.5">
             {[
               {
                 asset: "XAU/USD",
-                type: "Analise Completa",
+                type: "Análise Completa",
                 time: "Hoje, 14:32",
                 sentiment: "Bullish",
                 sentimentColor: "hsl(152 40% 38%)",
@@ -29,7 +29,7 @@ export function MockupDexterDetail() {
               },
               {
                 asset: "NAS100",
-                type: "Analise Tecnica",
+                type: "Análise Técnica",
                 time: "Ontem, 16:48",
                 sentiment: "Bearish",
                 sentimentColor: "hsl(4 50% 52%)",

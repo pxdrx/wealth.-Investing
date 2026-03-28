@@ -179,7 +179,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     headline: "Análise Profunda de Performance",
     heroDescription:
       "Mais de 20 métricas para entender exatamente onde você ganha, onde perde e por quê. Calendário heatmap, equity curve, profit factor, win rate e muito mais.",
-    ctaText: "Analise seu trading",
+    ctaText: "Análise seu trading",
     heroMockup: <MockupAnalytics />,
     statValue: "20+",
     statLabel: "Métricas para entender seu trading em profundidade",
@@ -434,9 +434,9 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     benefits: [
       {
         icon: iconBox(ScanLine),
-        title: "30+ Confluencias",
+        title: "30+ Confluências",
         description:
-          "Analise tecnica, fundamental, macro, sentimento, fluxo institucional, correlacoes e mais — tudo cruzado em um unico relatorio.",
+          "Análise técnica, fundamental, macro, sentimento, fluxo institucional, correlações e mais — tudo cruzado em um único relatório.",
       },
       {
         icon: iconBox(Cpu),
@@ -475,19 +475,19 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
           "Relatorio com analise detalhada, niveis chave, ideias de trade com RR e contexto macro. Pronto para decisao.",
       },
     ],
-    mockupSectionTitle: "Research de nivel institucional",
+    mockupSectionTitle: "Research de nível institucional",
     mockupSectionDescription:
-      "Analise completa com 30+ confluencias gerada por agentes especializados",
+      "Análise completa com 30+ confluências gerada por agentes especializados",
     detailMockup: <MockupDexterDetail />,
-    checklistTitle: "O que cada analise inclui",
+    checklistTitle: "O que cada análise inclui",
     checklist: [
-      "Analise tecnica multi-timeframe",
-      "Contexto macroeconomico e geopolitico",
+      "Análise técnica multi-timeframe",
+      "Contexto macroeconômico e geopolítico",
       "Sentimento de mercado e fluxo institucional",
-      "Suportes e resistencias com confluencia",
+      "Suportes e resistências com confluência",
       "Ideias de trade com entrada, alvo e stop",
       "Risk-reward calculado para cada setup",
-      "Correlacoes entre ativos relevantes",
+      "Correlações entre ativos relevantes",
       "Nivel de confianca da analise",
     ],
     checklistVisual: <ChecklistDexter />,
@@ -547,14 +547,14 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
           "De um nome a estrategia (SMC, ICT, Price Action) e comece a registrar trades ficticios.",
       },
       {
-        title: "Registre operacoes",
+        title: "Registre operações",
         description:
-          "Use o formulario rapido com botoes de ativo. Selecione Buy/Sell, data, horario e P&L.",
+          "Use o formulário rápido com botões de ativo. Selecione Buy/Sell, data, horário e P&L.",
       },
       {
-        title: "Analise os resultados",
+        title: "Análise os resultados",
         description:
-          "Calendario heatmap, KPIs e metricas mostram se a estrategia e viavel antes de arriscar capital real.",
+          "Calendário heatmap, KPIs e métricas mostram se a estratégia é viável antes de arriscar capital real.",
       },
     ],
     mockupSectionTitle: "Seu laboratorio de estrategias",

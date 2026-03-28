@@ -113,8 +113,8 @@ export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanc
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Melhor trade</p>
-            <p className="kpi-value text-lg whitespace-nowrap text-emerald-600 dark:text-emerald-500">
-              {mask(`+${kpis.bestTrade.toFixed(2)} USD`)}
+            <p className={cn("kpi-value text-lg whitespace-nowrap", kpis.bestTrade >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500")}>
+              {mask(`${kpis.bestTrade > 0 ? "+" : ""}${kpis.bestTrade.toFixed(2)} USD`)}
             </p>
           </div>
           <div className="space-y-1">

@@ -50,6 +50,7 @@ async function doEnsureDefaultAccounts(userId: string): Promise<{ ok: boolean }>
   // If all accounts exist, nothing to do (handles concurrent tabs that both checked)
   if (toInsert.length === 0) return { ok: true };
 
+  let hadError = false;
   for (const def of toInsert) {
     const { error: insertAcc } = await supabase
       .from("accounts")
@@ -66,9 +67,10 @@ async function doEnsureDefaultAccounts(userId: string): Promise<{ ok: boolean }>
         continue;
       }
       console.warn("[bootstrap] Could not insert account:", def.name, insertAcc.message);
+      hadError = true;
       continue;
     }
   }
 
-  return { ok: true };
+  return { ok: !hadError };
 }

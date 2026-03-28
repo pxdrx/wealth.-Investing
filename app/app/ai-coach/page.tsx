@@ -36,7 +36,7 @@ const QUICK_ACTIONS = [
     type: "session" as const,
     icon: BarChart3,
     title: "Análise da sessão",
-    description: "Analise seus trades mais recentes",
+    description: "Análise seus trades mais recentes",
     prompt: "Faça uma análise da minha sessão de trading mais recente. Quais padrões você identifica e o que posso melhorar?",
   },
   {

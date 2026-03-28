@@ -201,7 +201,8 @@ export function TiltmeterGauge({ result, size = "md" }: TiltmeterGaugeProps) {
         )}
       </svg>
       <span
-        className={`text-[${s.labelSize + 1}px] font-semibold ${zone.textClass}`}
+        className={`font-semibold ${zone.textClass}`}
+        style={{ fontSize: `${s.labelSize + 1}px` }}
       >
         {zone.label}
       </span>

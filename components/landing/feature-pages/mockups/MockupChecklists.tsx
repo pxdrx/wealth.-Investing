@@ -352,8 +352,8 @@ export function ChecklistDexter() {
           },
           {
             Icon: FileText,
-            title: "Relatorios Detalhados",
-            desc: "Analise tecnica, fundamental e macro integradas",
+            title: "Relatórios Detalhados",
+            desc: "Análise técnica, fundamental e macro integradas",
           },
           {
             Icon: Sparkles,

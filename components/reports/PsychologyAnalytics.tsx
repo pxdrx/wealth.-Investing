@@ -538,10 +538,10 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60">
-                  <th className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground">Emocao</th>
-                  <th className="py-2 px-4 text-left text-xs font-medium text-muted-foreground">Disciplina</th>
-                  <th className="py-2 px-4 text-right text-xs font-medium text-muted-foreground">Trades</th>
-                  <th className="py-2 pl-4 text-right text-xs font-medium text-muted-foreground">P&L Medio</th>
+                  <th scope="col" className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground">Emoção</th>
+                  <th scope="col" className="py-2 px-4 text-left text-xs font-medium text-muted-foreground">Disciplina</th>
+                  <th scope="col" className="py-2 px-4 text-right text-xs font-medium text-muted-foreground">Trades</th>
+                  <th scope="col" className="py-2 pl-4 text-right text-xs font-medium text-muted-foreground">P&L Médio</th>
                 </tr>
               </thead>
               <tbody>
@@ -597,10 +597,10 @@ export function PsychologyAnalytics({ trades }: PsychologyAnalyticsProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60">
-                  <th className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground">Erro</th>
-                  <th className="py-2 px-4 text-right text-xs font-medium text-muted-foreground">Ocorrencias</th>
-                  <th className="py-2 px-4 text-right text-xs font-medium text-muted-foreground">P&L Total</th>
-                  <th className="py-2 pl-4 text-right text-xs font-medium text-muted-foreground">P&L Medio</th>
+                  <th scope="col" className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground">Erro</th>
+                  <th scope="col" className="py-2 px-4 text-right text-xs font-medium text-muted-foreground">Ocorrências</th>
+                  <th scope="col" className="py-2 px-4 text-right text-xs font-medium text-muted-foreground">P&L Total</th>
+                  <th scope="col" className="py-2 pl-4 text-right text-xs font-medium text-muted-foreground">P&L Médio</th>
                 </tr>
               </thead>
               <tbody>

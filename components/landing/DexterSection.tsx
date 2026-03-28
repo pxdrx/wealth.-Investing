@@ -149,7 +149,7 @@ export function DexterSection() {
                 {/* Bottom cards */}
                 <div className="grid grid-cols-2 gap-2">
                   <MiniCard title="Contexto Macro" badge="Neutro" />
-                  <MiniCard title="Analise Tecnica" badge="Alta" />
+                  <MiniCard title="Análise Técnica" badge="Alta" />
                 </div>
               </div>
             </div>

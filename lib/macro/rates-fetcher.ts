@@ -19,11 +19,11 @@ const POLICY_RATES: Record<string, {
   last_change_date: string;
   next_meeting: string | null;
 }> = {
-  FED:     { current_rate: 3.625, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-12-10", next_meeting: "2026-04-29" },
-  ECB:     { current_rate: 2.150, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-06-05", next_meeting: "2026-04-17" },
-  BOE:     { current_rate: 3.750, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-12-18", next_meeting: "2026-04-30" },
-  BOJ:     { current_rate: 0.750, last_action: "hold",  last_change_bps: 25,   last_change_date: "2025-12-19", next_meeting: "2026-04-28" },
-  BCB:     { current_rate: 14.750, last_action: "cut",  last_change_bps: -25,  last_change_date: "2026-03-18", next_meeting: "2026-04-29" },
+  FED:     { current_rate: 4.250, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-01-29", next_meeting: "2026-04-29" },
+  ECB:     { current_rate: 2.500, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-03-06", next_meeting: "2026-04-17" },
+  BOE:     { current_rate: 4.500, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-02-06", next_meeting: "2026-04-30" },
+  BOJ:     { current_rate: 0.500, last_action: "hike",  last_change_bps: 25,   last_change_date: "2025-01-24", next_meeting: "2026-04-28" },
+  BCB:     { current_rate: 14.250, last_action: "hike", last_change_bps: 100,  last_change_date: "2025-03-19", next_meeting: "2026-04-29" },
   BOC:     { current_rate: 2.250, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-10-29", next_meeting: "2026-04-16" },
   RBA:     { current_rate: 4.100, last_action: "hike",  last_change_bps: 25,   last_change_date: "2026-03-18", next_meeting: "2026-05-05" },
   PBOC:    { current_rate: 3.000, last_action: "hold",  last_change_bps: -10,  last_change_date: "2025-05-20", next_meeting: "2026-04-20" },
