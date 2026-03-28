@@ -222,7 +222,8 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       setEditMode(false);
       originalNote.current = { observation: dayNote.observation, tags: [...dayNote.tags] };
       onNoteSaved?.();
-      setTimeout(() => setSaved(false), 3000);
+      // Close modal after save
+      onOpenChange(false);
     } catch (err) {
       console.warn("[DayDetailModal] save error", err);
       setSaveError("Erro ao salvar. Tente novamente.");
@@ -412,7 +413,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                           </button>
                           <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); deleteUserTag(tag); toggleTag(tag); }}
+                            onClick={(e) => { e.stopPropagation(); deleteUserTag(tag); }}
                             className="ml-0.5 opacity-50 hover:opacity-100 hover:text-red-500 transition-opacity"
                             title="Excluir etiqueta"
                           >
