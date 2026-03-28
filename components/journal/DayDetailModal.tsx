@@ -60,6 +60,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [individualTrades, setIndividualTrades] = useState<IndividualTrade[]>([]);
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
+  const [confirmingTradeId, setConfirmingTradeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dayNote, setDayNote] = useState<DayNote>({ observation: "", tags: [] });
   const [saving, setSaving] = useState(false);
@@ -114,6 +115,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     if (!date || !userId) return;
     setLoading(true);
     setSaved(false);
+    setConfirmingTradeId(null);
 
     try {
       // Use local time to match PnlCalendar's date key logic (which uses getMonth/getDate)
@@ -269,6 +271,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
 
   const handleDeleteTrade = async (tradeId: string) => {
     if (!userId) return;
+    setConfirmingTradeId(null);
     setDeletingTradeId(tradeId);
     try {
       const { error } = await supabase
@@ -425,7 +428,11 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                   {individualTrades.map((t) => {
                     const dirLower = t.direction.toLowerCase();
                     const isBuy = dirLower === "buy" || dirLower === "long";
-                    const time = new Date(t.opened_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                    const dt = new Date(t.opened_at);
+                    const time = dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                    const dayMonth = `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
+                    const isConfirming = confirmingTradeId === t.id;
+                    const isDeleting = deletingTradeId === t.id;
                     return (
                       <motion.div
                         key={t.id}
@@ -433,45 +440,81 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                         initial={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, overflow: "hidden" }}
                         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                        className="flex items-center justify-between rounded-lg border border-border/30 px-3 py-2"
-                        style={{ backgroundColor: "hsl(var(--muted) / 0.06)" }}
+                        className={cn(
+                          "rounded-lg border px-3 py-2 transition-colors",
+                          isConfirming
+                            ? "border-red-300 dark:border-red-800/60 bg-red-50 dark:bg-red-950/30"
+                            : "border-border/30"
+                        )}
+                        style={!isConfirming ? { backgroundColor: "hsl(var(--muted) / 0.06)" } : undefined}
                       >
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium text-foreground">{t.symbol}</span>
-                              <span className={cn(
-                                "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
-                                isBuy ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
-                              )}>
-                                {t.direction}
+                        {isConfirming ? (
+                          /* ── Inline confirmation ── */
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                              <span className="text-sm font-medium text-red-700 dark:text-red-400">
+                                Excluir {t.symbol}?
                               </span>
                             </div>
-                            <span className="text-[10px] text-muted-foreground">
-                              {time}{accountSummaries.length > 1 ? ` · ${t.accountName}` : ""}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingTradeId(null)}
+                                className="rounded-md px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+                              >
+                                Não
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTrade(t.id)}
+                                disabled={isDeleting}
+                                className="rounded-md px-2.5 py-1 text-[11px] font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                              >
+                                {isDeleting ? "Excluindo..." : "Sim, excluir"}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "text-sm font-bold tabular-nums",
-                            t.net_pnl_usd > 0 ? "text-emerald-700 dark:text-emerald-400"
-                            : t.net_pnl_usd < 0 ? "text-red-700 dark:text-red-400"
-                            : "text-muted-foreground"
-                          )}>
-                            {t.net_pnl_usd > 0 ? "+" : ""}{t.net_pnl_usd < 0 ? "-" : ""}${Math.abs(t.net_pnl_usd).toFixed(2)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteTrade(t.id)}
-                            disabled={deletingTradeId === t.id}
-                            className="rounded-md p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                            title="Excluir trade"
-                            aria-label={`Excluir trade ${t.symbol}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+                        ) : (
+                          /* ── Normal trade row ── */
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm font-medium text-foreground">{t.symbol}</span>
+                                  <span className={cn(
+                                    "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                                    isBuy ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
+                                  )}>
+                                    {t.direction}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {time} · {dayMonth}{accountSummaries.length > 1 ? ` · ${t.accountName}` : ""}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                "text-sm font-bold tabular-nums",
+                                t.net_pnl_usd > 0 ? "text-emerald-700 dark:text-emerald-400"
+                                : t.net_pnl_usd < 0 ? "text-red-700 dark:text-red-400"
+                                : "text-muted-foreground"
+                              )}>
+                                {t.net_pnl_usd > 0 ? "+" : ""}{t.net_pnl_usd < 0 ? "-" : ""}${Math.abs(t.net_pnl_usd).toFixed(2)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingTradeId(t.id)}
+                                className="rounded-md p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                title="Excluir trade"
+                                aria-label={`Excluir trade ${t.symbol}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
                     );
                   })}

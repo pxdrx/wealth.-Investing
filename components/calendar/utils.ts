@@ -1,7 +1,20 @@
 import type { DayData, TradeRow } from "./types";
 
 /**
- * Groups trades by date (YYYY-MM-DD from opened_at) and computes
+ * Converts an ISO timestamp to a local-timezone YYYY-MM-DD key.
+ * Using Date local methods ensures the date matches the user's timezone,
+ * unlike `.slice(0, 10)` which extracts the UTC date.
+ */
+export function toLocalDateKey(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Groups trades by date (local timezone YYYY-MM-DD) and computes
  * pnl / trades / wins / losses / best / worst per day.
  * When `accounts` is provided, also builds the byAccount breakdown.
  */
@@ -19,7 +32,7 @@ export function aggregateByDay(
   const map = new Map<string, DayData>();
 
   for (const t of trades) {
-    const dateKey = t.opened_at.slice(0, 10); // YYYY-MM-DD
+    const dateKey = toLocalDateKey(t.opened_at);
     const pnl = t.net_pnl_usd;
 
     let day = map.get(dateKey);

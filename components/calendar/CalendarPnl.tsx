@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CalendarPnlProps, DayData } from "./types";
-import { aggregateByDay, formatPnl } from "./utils";
+import { aggregateByDay, formatPnl, toLocalDateKey } from "./utils";
 import { CalendarGrid } from "./CalendarGrid";
 import { DayDetailModal } from "@/components/journal/DayDetailModal";
 import { usePrivacy } from "@/components/context/PrivacyContext";
@@ -42,8 +42,7 @@ export function CalendarPnl({
     const set = new Set<string>();
     for (const t of trades) {
       if ("notes" in t && t.notes) {
-        const dateKey = t.opened_at.slice(0, 10);
-        set.add(dateKey);
+        set.add(toLocalDateKey(t.opened_at));
       }
     }
     return set;
