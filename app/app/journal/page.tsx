@@ -203,10 +203,10 @@ export default function JournalPage() {
         .eq("account_id", activeAccountId)
         .maybeSingle();
       if (aborted) return;
-      const row = data as { starting_balance_usd?: number; max_overall_loss_percent?: number; profit_target_percent?: number } | null;
-      setStartingBalanceUsd(typeof row?.starting_balance_usd === "number" ? row.starting_balance_usd : null);
-      setMaxOverallLossPercent(typeof row?.max_overall_loss_percent === "number" ? row.max_overall_loss_percent : null);
-      setProfitTargetPercent(typeof row?.profit_target_percent === "number" ? row.profit_target_percent : null);
+      const row = data as { starting_balance_usd?: number | string; max_overall_loss_percent?: number | string; profit_target_percent?: number | string } | null;
+      setStartingBalanceUsd(row?.starting_balance_usd != null ? Number(row.starting_balance_usd) : null);
+      setMaxOverallLossPercent(row?.max_overall_loss_percent != null ? Number(row.max_overall_loss_percent) : null);
+      setProfitTargetPercent(row?.profit_target_percent != null ? Number(row.profit_target_percent) : null);
     })();
     return () => { aborted = true; };
   }, [activeAccountId]);

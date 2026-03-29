@@ -205,7 +205,14 @@ export function useDashboardData(): DashboardData {
               .eq("user_id", userId),
           ]);
           if (!cancelled) {
-            setPropAccounts((propAccountsRes.data ?? []) as PropAccountRow[]);
+            // Supabase may return numeric columns as strings — coerce to number
+            const coercedPropAccounts = (propAccountsRes.data ?? []).map((row) => ({
+              ...row,
+              starting_balance_usd: Number((row as Record<string, unknown>).starting_balance_usd) || 0,
+              max_daily_loss_percent: (row as Record<string, unknown>).max_daily_loss_percent != null ? Number((row as Record<string, unknown>).max_daily_loss_percent) : undefined,
+              max_overall_loss_percent: (row as Record<string, unknown>).max_overall_loss_percent != null ? Number((row as Record<string, unknown>).max_overall_loss_percent) : undefined,
+            }));
+            setPropAccounts(coercedPropAccounts as PropAccountRow[]);
             const total = (propPayoutsRes.data ?? []).reduce(
               (sum, row) => sum + (row.amount_usd ?? 0),
               0
