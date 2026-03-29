@@ -8,6 +8,7 @@ import {
 } from "@/lib/macro/scrapers/rss-headlines";
 import { fetchTruthSocialPosts } from "@/lib/macro/scrapers/truth-social";
 import { fetchTradingEconomicsHeadlines } from "@/lib/macro/scrapers/trading-economics";
+import { filterRelevantHeadlines } from "@/lib/macro/headline-filter";
 import { translateHeadlines } from "@/lib/macro/translate";
 import { getWeekStart } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
@@ -101,8 +102,8 @@ export async function POST(req: NextRequest) {
     };
 
     // 2. Upsert all sources
-    const flCount = await upsertBatch("ForexLive", flTranslated);
-    const reutersCount = await upsertBatch("Reuters", reutersTranslated);
+    const flCount = await upsertBatch("ForexLive", filterRelevantHeadlines(flTranslated));
+    const reutersCount = await upsertBatch("Reuters", filterRelevantHeadlines(reutersTranslated));
     const tsCount = await upsertBatch("TruthSocial", tsTranslated);
     const teCount = await upsertBatch("TradingEconomics", teTranslated);
 

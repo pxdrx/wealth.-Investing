@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { translateHeadlines } from "@/lib/macro/translate";
+import { filterRelevantHeadlines } from "@/lib/macro/headline-filter";
 import { requireEnv } from "@/lib/env";
 import { cached } from "@/lib/cache";
 import { apiRateLimit } from "@/lib/rate-limit";
@@ -67,9 +68,10 @@ async function fetchLiveHeadlines(limit: number) {
     const te = teResult.status === "fulfilled" ? (teResult.value ?? []) : [];
 
     // Merge and sort by date + source priority
-    const all = sortByDateAndPriority(
+    const merged = sortByDateAndPriority(
       [...ts, ...te, ...fl, ...rt].filter((h) => h.published_at)
-    ).slice(0, limit);
+    );
+    const all = filterRelevantHeadlines(merged).slice(0, limit);
 
     // Translate headlines to PT-BR before returning
     const translated = await translateHeadlines(all);

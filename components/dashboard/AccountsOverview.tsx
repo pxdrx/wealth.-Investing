@@ -108,29 +108,28 @@ export function AccountsOverview({
         if (pa && account.kind === "prop") {
           const startingBalance = pa.starting_balance_usd;
 
-          // Daily DD: losses today
+          // Daily DD: net P&L today (only count as DD if net negative)
           const todayStr = new Date().toISOString().slice(0, 10);
-          const todayLosses = trades
+          const todayNetPnl = trades
             .filter(
               (t) =>
                 t.account_id === account.id &&
-                t.opened_at.slice(0, 10) === todayStr &&
-                t.net_pnl_usd < 0
+                t.opened_at.slice(0, 10) === todayStr
             )
             .reduce((sum, t) => sum + t.net_pnl_usd, 0);
           ddDiario =
-            startingBalance > 0
-              ? (Math.abs(todayLosses) / startingBalance) * 100
+            startingBalance > 0 && todayNetPnl < 0
+              ? (Math.abs(todayNetPnl) / startingBalance) * 100
               : 0;
           ddDiarioLimit = pa.max_daily_loss_percent ?? null;
 
-          // Total DD: monthly losses
-          const monthLosses = monthTrades
-            .filter((t) => t.net_pnl_usd < 0)
+          // Total DD: all-time cumulative net loss from starting balance
+          const allTimePnl = trades
+            .filter((t) => t.account_id === account.id)
             .reduce((sum, t) => sum + t.net_pnl_usd, 0);
           ddTotal =
-            startingBalance > 0
-              ? (Math.abs(monthLosses) / startingBalance) * 100
+            startingBalance > 0 && allTimePnl < 0
+              ? (Math.abs(allTimePnl) / startingBalance) * 100
               : 0;
           ddTotalLimit = pa.max_overall_loss_percent ?? null;
 

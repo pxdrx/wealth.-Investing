@@ -190,7 +190,7 @@ function AICoachPageInner() {
   useEffect(() => {
     async function loadUsage() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+      if (!session?.user?.id) { setUsageLoaded(true); return; }
       const currentMonth = new Date().toISOString().slice(0, 7);
       const { data } = await supabase
         .from("ai_usage")
@@ -212,6 +212,7 @@ function AICoachPageInner() {
     // Skip loading for brand-new conversations (already cleared by handleNewChat)
     if (skipNextHistoryLoadRef.current) {
       skipNextHistoryLoadRef.current = false;
+      setHistoryLoaded(true);
       return;
     }
     async function loadHistory() {
@@ -250,6 +251,19 @@ function AICoachPageInner() {
     setHistoryLoaded(false);
     loadHistory();
   }, [activeConversationId]);
+
+  // Safety timeout: force loaded flags after 10s to prevent infinite spinner
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setConversationsLoaded(true);
+      setHistoryLoaded(true);
+      setUsageLoaded(true);
+      if (typeof window !== "undefined") {
+        console.warn("[AI Coach] Safety timeout: forced loaded flags after 10s");
+      }
+    }, 10_000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Scroll to bottom when history loads or new messages arrive
   useEffect(() => {

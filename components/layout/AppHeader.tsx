@@ -22,7 +22,7 @@ const navLinks = [
 
 /** Links shown only in the mobile hamburger menu (secondary items not in the bottom tab bar) */
 const mobileMenuLinks = [
-  { href: "/app/prop", label: "Prop Accounts" },
+  { href: "/app/prop", label: "Contas" },
   { href: "/app/pricing", label: "Planos" },
 ];
 

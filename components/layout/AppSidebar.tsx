@@ -16,6 +16,7 @@ import {
   CreditCard,
   Scan,
   Plus,
+  Wallet,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
@@ -34,6 +35,7 @@ interface SidebarConversation {
 const navLinks = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/journal", label: "Trade Journal", icon: BookOpen },
+  { href: "/app/prop", label: "Contas", icon: Wallet },
   { href: "/app/macro", label: "Inteligência Macro", icon: LineChart, highlight: true },
   { href: "/app/analyst", label: "Analista Dexter", icon: Scan, highlight: true },
   { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },

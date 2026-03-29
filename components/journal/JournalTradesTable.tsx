@@ -19,7 +19,7 @@ import { usePrivacy } from "@/components/context/PrivacyContext";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { ListFilter, TrendingUp } from "lucide-react";
-import { getEmotionTag, getDisciplineTag, SETUP_TAGS, MISTAKE_TAGS } from "@/lib/psychology-tags";
+import { SETUP_TAGS, MISTAKE_TAGS } from "@/lib/psychology-tags";
 import { StickyNote } from "lucide-react";
 
 const PAGE_SIZE = 15;
@@ -199,7 +199,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                     className={cn(
                       "cursor-pointer transition-colors",
                       idx % 2 === 1 && "bg-muted/5",
-                      !t.emotion && !t.notes && "border-l-2 border-l-amber-400/60"
+                      !t.context && (!t.custom_tags || t.custom_tags.length === 0) && "border-l-2 border-l-amber-400/60"
                     )}
                     onClick={() => onTradeClick(t)}
                   >
@@ -234,22 +234,6 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                     </TableCell>
                     <TableCell className="hidden xl:table-cell">
                       <div className="flex flex-wrap items-center gap-1">
-                        {t.emotion && (() => {
-                          const tag = getEmotionTag(t.emotion);
-                          return tag ? (
-                            <span className="inline-flex items-center gap-0.5 rounded-full border border-border/40 px-1.5 py-0.5 text-[10px]" title={tag.labelPtBr}>
-                              {tag.icon}
-                            </span>
-                          ) : null;
-                        })()}
-                        {t.discipline && (() => {
-                          const tag = getDisciplineTag(t.discipline);
-                          return tag ? (
-                            <span className="inline-flex items-center gap-0.5 rounded-full border border-border/40 px-1.5 py-0.5 text-[10px]" title={tag.labelPtBr}>
-                              {tag.icon}
-                            </span>
-                          ) : null;
-                        })()}
                         {t.custom_tags && t.custom_tags.length > 0 && (
                           <>
                             {t.custom_tags.slice(0, 2).map((ctag: string) => {
@@ -277,7 +261,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                             )}
                           </>
                         )}
-                        {(t.notes || t.context) && (
+                        {t.context && (
                           <span title="Tem notas"><StickyNote className="h-3 w-3 text-muted-foreground/50" /></span>
                         )}
                       </div>

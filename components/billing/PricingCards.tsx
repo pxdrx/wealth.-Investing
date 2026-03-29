@@ -184,8 +184,8 @@ export function PricingCards() {
     }
   }
 
-  async function handleManageSubscription() {
-    setLoadingTier("free");
+  async function handleManageSubscription(tier?: Plan) {
+    setLoadingTier(tier ?? currentPlan);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -216,31 +216,15 @@ export function PricingCards() {
 
   function handleButtonClick(tierId: Plan, action: string) {
     if (action === "manage") {
-      handleManageSubscription();
+      handleManageSubscription(tierId);
     } else if (action === "subscribe" || action === "upgrade" || action === "downgrade") {
-      // For upgrades/downgrades with existing subscription, use Stripe Portal
-      if (subscription?.stripe_customer_id && (action === "upgrade" || action === "downgrade")) {
-        handleManageSubscription();
-      } else {
-        handleSubscribe(tierId);
-      }
+      // Always use Checkout for new subscriptions, upgrades, and downgrades
+      handleSubscribe(tierId);
     }
   }
 
   return (
     <div className="space-y-8">
-      {/* Launch promotion badge */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="flex justify-center"
-      >
-        <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md">
-          <span>Cupom de lancamento: <span className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs tracking-wider">LAUNCH30</span> — 30% OFF na primeira cobranca!</span>
-        </div>
-      </motion.div>
-
       {/* Toggle */}
       <div className="flex items-center justify-center gap-3">
         <span className={cn("text-sm font-medium", !annual ? "text-foreground" : "text-muted-foreground")}>
@@ -281,7 +265,7 @@ export function PricingCards() {
           const isFree = tier.id === "free";
           const btnState = getButtonState(tier.id, currentPlan, currentInterval, annual);
           const isCurrentCard = btnState.action === "manage" || (btnState.label === "Plano atual" && btnState.disabled);
-          const isLoading = loadingTier === tier.id || (loadingTier === "free" && btnState.action === "manage");
+          const isLoading = loadingTier === tier.id;
 
           return (
             <Card
@@ -367,7 +351,7 @@ export function PricingCards() {
                 {btnState.action === "manage" && (
                   <button
                     type="button"
-                    onClick={handleManageSubscription}
+                    onClick={() => handleManageSubscription(tier.id)}
                     className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
                   >
                     Gerenciar assinatura

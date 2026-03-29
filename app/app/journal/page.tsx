@@ -117,7 +117,7 @@ export default function JournalPage() {
     try {
       const { data, error: err } = await supabase
         .from("journal_trades")
-        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, notes, mistakes, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags")
         .eq("account_id", activeAccountId)
         .order("opened_at", { ascending: false })
         .range(0, PAGE_SIZE - 1);
@@ -143,7 +143,7 @@ export default function JournalPage() {
       const to = from + PAGE_SIZE - 1;
       const { data, error: err } = await supabase
         .from("journal_trades")
-        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, notes, mistakes, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags")
         .eq("account_id", activeAccountId)
         .order("opened_at", { ascending: false })
         .range(from, to);
@@ -672,6 +672,10 @@ export default function JournalPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         onSaved={loadTrades}
+        onDeleted={(tradeId) => {
+          setTrades((prev) => prev.filter((t) => t.id !== tradeId));
+          setSelectedTrade(null);
+        }}
       />
 
       {userId && (

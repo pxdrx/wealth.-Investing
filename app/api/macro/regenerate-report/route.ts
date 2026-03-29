@@ -75,8 +75,23 @@ export async function POST(req: NextRequest) {
     let teBriefingRaw: string | null = null;
     let teHeadlines: string[] | null = null;
     let weekAheadEditorial: string | null = null;
-    if (existing) {
-      // Reuse previously scraped TE data from the existing panorama
+
+    // Always try fresh TE scrape first (Week Ahead updates weekly)
+    try {
+      const tePromise = scrapeTeBriefing();
+      const teTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 8_000));
+      const enriched = await Promise.race([tePromise, teTimeout]);
+      if (enriched) {
+        teBriefingRaw = enriched.raw_text;
+        teHeadlines = enriched.headlines.map(h => h.title);
+        weekAheadEditorial = enriched.week_ahead_editorial;
+      }
+    } catch (err) {
+      console.warn("[regenerate-report] Fresh TE scrape failed:", err);
+    }
+
+    // Fallback to cached TE data if fresh scrape failed/timed out
+    if (!teBriefingRaw && existing) {
       const { data: existingFull } = await supabase
         .from("weekly_panoramas")
         .select("te_briefing_raw")
@@ -84,21 +99,6 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
       if (existingFull?.te_briefing_raw) {
         teBriefingRaw = existingFull.te_briefing_raw;
-      }
-    }
-    // Only scrape live if we have no cached TE data, with tight 5s timeout
-    if (!teBriefingRaw) {
-      try {
-        const tePromise = scrapeTeBriefing();
-        const teTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5_000));
-        const enriched = await Promise.race([tePromise, teTimeout]);
-        if (enriched) {
-          teBriefingRaw = enriched.raw_text;
-          teHeadlines = enriched.headlines.map(h => h.title);
-          weekAheadEditorial = enriched.week_ahead_editorial;
-        }
-      } catch (err) {
-        console.warn("[regenerate-report] TE scrape failed:", err);
       }
     }
 

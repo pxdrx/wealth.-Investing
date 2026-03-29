@@ -545,8 +545,8 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     // ── Macro Events ──
     "macro-events": <MacroWidgetEvents />,
 
-    // ── Equity Curve Mini ──
-    "equity-mini": <EquityCurveMini trades={realTrades} startingBalanceUsd={activeStartingBalance} />,
+    // ── Equity Curve Mini ── (filter to active account only)
+    "equity-mini": <EquityCurveMini trades={activeAccountId ? realTrades.filter((t) => t.account_id === activeAccountId) : realTrades} startingBalanceUsd={activeStartingBalance} />,
 
     // ── Session Heatmap ──
     "session-heatmap": <SessionHeatmap trades={realTrades} />,

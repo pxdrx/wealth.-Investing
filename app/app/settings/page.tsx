@@ -95,20 +95,15 @@ export default function SettingsPage() {
               layoutLoaded = true;
             }
           } catch {}
-          if (!layoutLoaded && !mounted) return;
+          if (!mounted) return;
           if (!layoutLoaded) {
             try {
               const stored = localStorage.getItem(`wealth-dash-layout-${session.user.id}`);
               if (stored) {
                 setDashLayout(mergeLayout(JSON.parse(stored)));
-                layoutLoaded = true;
               }
             } catch {}
           }
-        }
-        if (mounted) {
-          setDashLayoutLoaded(true);
-          setProfileLoading(false);
         }
       } catch (err) {
         console.error("[settings] failed to load profile:", err);
@@ -116,8 +111,11 @@ export default function SettingsPage() {
           setProfileError(
             err instanceof Error ? err.message : "Erro ao carregar perfil"
           );
-          setProfileLoading(false);
+        }
+      } finally {
+        if (mounted) {
           setDashLayoutLoaded(true);
+          setProfileLoading(false);
         }
       }
     }

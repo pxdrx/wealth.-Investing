@@ -111,7 +111,7 @@ export function CalendarGrid({
           const isSelected = selectedDate === dateStr;
           const colIndex = i % 7;
           const isWeekend = colIndex >= 5; // Sat=5, Sun=6
-          const hasDayNote = !!(cell.isCurrentMonth && dayNotes && dayNotes[dateStr]?.observation);
+          const hasDayNote = !!(cell.isCurrentMonth && hasTrades && dayNotes && dayNotes[dateStr]?.observation);
           const hasTradeNote = !!(cell.isCurrentMonth && hasTradeNotes && hasTradeNotes.has(dateStr));
 
           return (

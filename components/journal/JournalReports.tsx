@@ -17,9 +17,8 @@ import {
   SessionBreakdown,
   HourHeatmap,
 } from "@/components/reports/BreakdownCharts";
-import { MfeMaeScatter, ExitEfficiencyChart, MfeMaeDistribution } from "@/components/reports/MfeMaeScatter";
-import { PsychologyAnalytics } from "@/components/reports/PsychologyAnalytics";
-import { TrendingUp, PieChart, Brain, Target, Globe } from "lucide-react";
+import { PsychologyAnalysis } from "@/components/journal/PsychologyAnalysis";
+import { TrendingUp, PieChart, Brain, Globe } from "lucide-react";
 
 const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
   { value: "UTC", label: "UTC" },
@@ -40,7 +39,7 @@ function getStoredTimezone(): string {
 }
 
 type PeriodKey = "7d" | "30d" | "90d" | "ytd" | "all";
-type ReportsTabKey = "overview" | "breakdowns" | "mfe-mae" | "psicologia";
+type ReportsTabKey = "overview" | "breakdowns" | "psicologia";
 
 const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: "7d", label: "7 dias" },
@@ -53,7 +52,6 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
 const TAB_OPTIONS: { key: ReportsTabKey; label: string; icon: React.ReactNode }[] = [
   { key: "overview", label: "Visão Geral", icon: <TrendingUp className="w-4 h-4" /> },
   { key: "breakdowns", label: "Detalhamento", icon: <PieChart className="w-4 h-4" /> },
-  { key: "mfe-mae", label: "MFE/MAE", icon: <Target className="w-4 h-4" /> },
   { key: "psicologia", label: "Psicologia", icon: <Brain className="w-4 h-4" /> },
 ];
 
@@ -109,7 +107,7 @@ export function JournalReports() {
 
       let query = supabase
         .from("journal_trades")
-        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, notes, mistakes, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags")
         .eq("user_id", userId)
         .order("closed_at", { ascending: true });
 
@@ -276,73 +274,9 @@ export function JournalReports() {
             </div>
           )}
 
-          {/* MFE/MAE Tab */}
-          {tab === "mfe-mae" && (
-            <div className="space-y-6">
-              {/* Explanation */}
-              <div
-                className="rounded-[22px] p-5 isolate"
-                style={{ backgroundColor: "hsl(var(--card))" }}
-              >
-                <h3 className="text-sm font-semibold mb-2">O que e MFE/MAE?</h3>
-                <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
-                  <p>
-                    <span className="font-semibold text-foreground">MFE (Maximum Favorable Excursion)</span> = Maximo lucro que o trade alcancou antes de fechar.
-                  </p>
-                  <p>
-                    <span className="font-semibold text-foreground">MAE (Maximum Adverse Excursion)</span> = Maximo prejuizo que o trade teve antes de fechar.
-                  </p>
-                  <div
-                    className="mt-3 rounded-xl p-3"
-                    style={{ backgroundColor: "hsl(var(--muted) / 0.5)" }}
-                  >
-                    <p className="text-xs font-medium text-foreground mb-1">Como interpretar:</p>
-                    <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
-                      <li>Se seu MFE e muito maior que seu P&L final, voce esta saindo cedo demais dos trades vencedores.</li>
-                      <li>Se seu MAE e grande em trades vencedores, voce esta arriscando demais antes do trade virar a favor.</li>
-                      <li>Exit Efficiency acima de 70% indica boa gestao de saida.</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Metric cards */}
-              {(() => {
-                const withMfe = filtered.filter((t) => t.mfe_usd != null && t.mfe_usd > 0 && getNetPnl(t) > 0);
-                const avgExitEff = withMfe.length > 0
-                  ? withMfe.reduce((s, t) => s + (getNetPnl(t) / (t.mfe_usd ?? 1)) * 100, 0) / withMfe.length
-                  : null;
-                const withMae = filtered.filter((t) => t.mae_usd != null);
-                const avgMae = withMae.length > 0
-                  ? withMae.reduce((s, t) => s + Math.abs(t.mae_usd ?? 0), 0) / withMae.length
-                  : null;
-                const leftOnTable = withMfe.length > 0
-                  ? withMfe.reduce((s, t) => s + ((t.mfe_usd ?? 0) - getNetPnl(t)), 0) / withMfe.length
-                  : null;
-
-                return (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <MetricCard label="Eficiência de Saída" value={avgExitEff} format="percent" description="PnL / MFE (wins)" />
-                    <MetricCard label="Stop Ótimo (MAE médio)" value={avgMae} format="currency" description="Baseado no MAE médio" />
-                    <MetricCard label="Lucro Não Capturado" value={leftOnTable} format="currency" description="MFE - PnL (wins)" />
-                  </div>
-                );
-              })()}
-
-              {/* Scatter plots */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <MfeMaeScatter trades={filtered} type="mae-vs-pnl" />
-                <MfeMaeScatter trades={filtered} type="mfe-vs-pnl" />
-              </div>
-
-              <ExitEfficiencyChart trades={filtered} />
-              <MfeMaeDistribution trades={filtered} />
-            </div>
-          )}
-
           {/* Psychology Tab */}
           {tab === "psicologia" && (
-            <PsychologyAnalytics trades={filtered} />
+            <PsychologyAnalysis accountId={activeAccountId} />
           )}
         </>
       )}

@@ -592,21 +592,30 @@ export default function AnalystPage() {
       report: AnalysisReport;
     }>
   >([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
-  const loadHistory = useCallback(async () => {
+  const loadHistory = useCallback(async (retry = true) => {
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
+      if (!session?.access_token) {
+        if (retry) {
+          await new Promise((r) => setTimeout(r, 500));
+          return loadHistory(false);
+        }
+        return;
+      }
 
       const res = await fetch("/api/analyst/history", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await res.json();
       if (data.ok && data.data) setHistory(data.data);
-    } catch {
-      // Silent — history is non-critical
+    } catch (err) {
+      console.error("[analyst] loadHistory error:", err);
+    } finally {
+      setHistoryLoaded(true);
     }
   }, []);
 
@@ -870,8 +879,15 @@ export default function AnalystPage() {
           </div>
         )}
 
+        {/* Loading history spinner */}
+        {!report && !loading && !error && !historyLoaded && (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
         {/* Empty state — clean, no background */}
-        {!report && !loading && !error && history.length === 0 && (
+        {!report && !loading && !error && historyLoaded && history.length === 0 && (
           <div className="text-center py-16">
             <h2 className="text-lg font-medium text-muted-foreground mb-2">
               Nenhuma análise ainda

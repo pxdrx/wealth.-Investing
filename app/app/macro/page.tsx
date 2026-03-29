@@ -339,7 +339,12 @@ export default function MacroIntelligencePage() {
   const handleHeadlinesRefresh = useCallback(async () => {
     setHeadlinesRefreshing(true);
     try {
-      const res = await fetch("/api/macro/headlines?limit=30&live=1");
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      const res = await fetch("/api/macro/headlines?limit=30&live=1", { headers });
       const json = await res.json();
       if (json.ok) setHeadlines(json.data || []);
     } catch (err) {

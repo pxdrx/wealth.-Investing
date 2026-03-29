@@ -17,8 +17,6 @@ import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { supabase } from "@/lib/supabase/client";
 import { X, Trash2 } from "lucide-react";
-import { PsychologySection } from "./PsychologySection";
-import { PaywallGate } from "@/components/billing/PaywallGate";
 import { validateCustomTags } from "@/lib/psychology-tags";
 
 interface TradeDetailModalProps {
@@ -26,61 +24,44 @@ interface TradeDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void;
+  onDeleted?: (tradeId: string) => void;
 }
 
-export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDetailModalProps) {
+export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted }: TradeDetailModalProps) {
   const [context, setContext] = useState("");
-  const [notes, setNotes] = useState("");
-  const [mistakes, setMistakes] = useState<string[]>([]);
-  const [newMistake, setNewMistake] = useState("");
+  const [customTags, setCustomTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  // Psychology fields
-  const [emotion, setEmotion] = useState<string | null>(null);
-  const [discipline, setDiscipline] = useState<string | null>(null);
-  const [setupQuality, setSetupQuality] = useState<string | null>(null);
-  const [entryRating, setEntryRating] = useState<number | null>(null);
-  const [exitRating, setExitRating] = useState<number | null>(null);
-  const [managementRating, setManagementRating] = useState<number | null>(null);
-  const [customTags, setCustomTags] = useState<string[]>([]);
-
-  // MFE/MAE fields
-  const [mfeUsd, setMfeUsd] = useState<string>("");
-  const [maeUsd, setMaeUsd] = useState<string>("");
+  const MAX_TAGS = 4;
 
   useEffect(() => {
     if (trade) {
       setContext(trade.context ?? "");
-      setNotes(trade.notes ?? "");
-      setMistakes(Array.isArray(trade.mistakes) ? [...trade.mistakes] : []);
-      setNewMistake("");
-      setToast(null);
-      // Psychology
-      setEmotion(trade.emotion ?? null);
-      setDiscipline(trade.discipline ?? null);
-      setSetupQuality(trade.setup_quality ?? null);
-      setEntryRating(trade.entry_rating ?? null);
-      setExitRating(trade.exit_rating ?? null);
-      setManagementRating(trade.management_rating ?? null);
       setCustomTags(Array.isArray(trade.custom_tags) ? [...trade.custom_tags] : []);
-      // MFE/MAE
-      setMfeUsd(trade.mfe_usd != null ? String(trade.mfe_usd) : "");
-      setMaeUsd(trade.mae_usd != null ? String(trade.mae_usd) : "");
+      setNewTag("");
+      setToast(null);
     }
   }, [trade]);
 
-  const handleAddMistake = () => {
-    const t = newMistake.trim();
-    if (t && !mistakes.includes(t)) {
-      setMistakes((prev) => [...prev, t]);
-      setNewMistake("");
+  const handleAddTag = () => {
+    const t = newTag.trim();
+    if (!t) return;
+    if (customTags.length >= MAX_TAGS) {
+      setToast({ type: "error", message: `Máximo de ${MAX_TAGS} tags por trade.` });
+      return;
+    }
+    if (!customTags.includes(t)) {
+      setCustomTags((prev) => [...prev, t]);
+      setNewTag("");
+      setToast(null);
     }
   };
 
-  const handleRemoveMistake = (index: number) => {
-    setMistakes((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveTag = (index: number) => {
+    setCustomTags((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -89,24 +70,12 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
     setToast(null);
     try {
       const validatedTags = validateCustomTags(customTags);
-      const parsedMfe = mfeUsd !== "" ? parseFloat(mfeUsd) : null;
-      const parsedMae = maeUsd !== "" ? parseFloat(maeUsd) : null;
 
       const { error } = await supabase
         .from("journal_trades")
         .update({
           context: context || null,
-          notes: notes || null,
-          mistakes: mistakes.length ? mistakes : null,
-          emotion: emotion || null,
-          discipline: discipline || null,
-          setup_quality: setupQuality || null,
-          entry_rating: entryRating,
-          exit_rating: exitRating,
-          management_rating: managementRating,
           custom_tags: validatedTags.length ? validatedTags : null,
-          mfe_usd: parsedMfe != null && !Number.isNaN(parsedMfe) ? parsedMfe : null,
-          mae_usd: parsedMae != null && !Number.isNaN(parsedMae) ? parsedMae : null,
         })
         .eq("id", trade.id);
 
@@ -129,7 +98,6 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
 
     setDeleting(true);
     try {
-      // SEC-024: Get user_id for defense-in-depth filtering
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         setToast({ type: "error", message: "Sessao expirada. Faca login novamente." });
@@ -148,7 +116,11 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
       }
 
       onOpenChange(false);
-      onSaved?.();
+      if (onDeleted) {
+        onDeleted(trade.id);
+      } else {
+        onSaved?.();
+      }
     } catch (err) {
       console.error("[trade-detail] Delete error:", err);
       setToast({ type: "error", message: "Erro ao excluir trade." });
@@ -233,74 +205,19 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
             />
           </div>
 
+          {/* Tags (max 4) */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Notas</Label>
-            <textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Notas"
-              rows={3}
-              className="input-ios w-full resize-y rounded-input border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* MFE / MAE */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">MFE (USD)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={mfeUsd}
-                onChange={(e) => setMfeUsd(e.target.value)}
-                placeholder="Max Favorable Excursion"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">MAE (USD)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={maeUsd}
-                onChange={(e) => setMaeUsd(e.target.value)}
-                placeholder="Max Adverse Excursion"
-              />
-            </div>
-          </div>
-
-          {/* Psychology Section */}
-          <PaywallGate requiredPlan="pro" blurContent>
-            <PsychologySection
-              emotion={emotion}
-              onEmotionChange={setEmotion}
-              discipline={discipline}
-              onDisciplineChange={setDiscipline}
-              setupQuality={setupQuality}
-              onSetupQualityChange={setSetupQuality}
-              entryRating={entryRating}
-              onEntryRatingChange={setEntryRating}
-              exitRating={exitRating}
-              onExitRatingChange={setExitRating}
-              managementRating={managementRating}
-              onManagementRatingChange={setManagementRating}
-              customTags={customTags}
-              onCustomTagsChange={setCustomTags}
-            />
-          </PaywallGate>
-
-          <div className="space-y-2">
-            <Label>Erros cometidos</Label>
+            <Label>Tags <span className="text-muted-foreground text-xs">({customTags.length}/{MAX_TAGS})</span></Label>
             <div className="flex flex-wrap gap-2">
-              {mistakes.map((m, i) => (
+              {customTags.map((tag, i) => (
                 <span
                   key={i}
                   className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-0.5 text-xs"
                 >
-                  {m}
+                  {tag}
                   <button
                     type="button"
-                    onClick={() => handleRemoveMistake(i)}
+                    onClick={() => handleRemoveTag(i)}
                     className="rounded-full p-0.5 hover:bg-muted"
                     aria-label="Remover"
                   >
@@ -311,13 +228,14 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved }: TradeDe
             </div>
             <div className="flex gap-2">
               <Input
-                value={newMistake}
-                onChange={(e) => setNewMistake(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddMistake())}
-                placeholder="Adicionar erro..."
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                placeholder={customTags.length >= MAX_TAGS ? "Limite atingido" : "Adicionar tag..."}
                 className="flex-1"
+                disabled={customTags.length >= MAX_TAGS}
               />
-              <Button type="button" variant="outline" size="sm" onClick={handleAddMistake}>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddTag} disabled={customTags.length >= MAX_TAGS}>
                 Adicionar
               </Button>
             </div>

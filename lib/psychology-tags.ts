@@ -196,10 +196,10 @@ export function getSetupQuality(key: string): SetupQualityOption | undefined {
   return SETUP_QUALITY.find((t) => t.key === key);
 }
 
-/** Validate custom tags: max 10 tags, max 50 chars each */
+/** Validate custom tags: max 4 tags, max 50 chars each */
 export function validateCustomTags(tags: string[]): string[] {
   return tags
     .map((t) => t.trim())
     .filter((t) => t.length > 0 && t.length <= 50)
-    .slice(0, 10);
+    .slice(0, 4);
 }

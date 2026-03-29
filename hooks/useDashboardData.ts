@@ -108,7 +108,10 @@ export function useDashboardData(): DashboardData {
       if (cancelled) return;
       if (error) {
         console.warn("[dashboard] getSession error", error.message);
-        setUserId(null);
+        // Only clear userId on initial load; keep existing session on background refresh
+        if (!initialLoadDone.current) {
+          setUserId(null);
+        }
         return;
       }
       const uid = session?.user?.id ?? null;
@@ -151,7 +154,10 @@ export function useDashboardData(): DashboardData {
       return;
     }
     let cancelled = false;
-    setJournalLoading(true);
+    // Only show loading spinner on initial load, not background refreshes (stale-while-revalidate)
+    if (!initialLoadDone.current) {
+      setJournalLoading(true);
+    }
     (async () => {
       try {
         const [{ data, error }, accountsRes] = await Promise.all([
@@ -218,8 +224,11 @@ export function useDashboardData(): DashboardData {
       } catch (e) {
         if (!cancelled) {
           console.warn("[dashboard] journal kpis exception", e);
-          setJournalTrades([]);
-          setAccountsById(new Map());
+          // Only clear data on initial load failure; keep stale data on background refresh
+          if (!initialLoadDone.current) {
+            setJournalTrades([]);
+            setAccountsById(new Map());
+          }
         }
       } finally {
         if (!cancelled) {
