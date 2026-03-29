@@ -113,7 +113,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
   }, [open, userId, loadUserTags]);
 
   const loadDayData = useCallback(async () => {
-    if (!date || !userId) return;
+    if (!date || !userId) { setLoading(false); return; }
     setLoading(true);
     setSaved(false);
     setConfirmingTradeId(null);

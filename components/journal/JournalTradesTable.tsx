@@ -42,16 +42,16 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
   const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
-    let list = [...trades].sort((a, b) => new Date(b.closed_at).getTime() - new Date(a.closed_at).getTime());
+    let list = [...trades].sort((a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime());
     if (dateFrom) {
       const from = new Date(dateFrom);
       from.setHours(0, 0, 0, 0);
-      list = list.filter((t) => new Date(t.closed_at) >= from);
+      list = list.filter((t) => new Date(t.opened_at) >= from);
     }
     if (dateTo) {
       const to = new Date(dateTo);
       to.setHours(23, 59, 59, 999);
-      list = list.filter((t) => new Date(t.closed_at) <= to);
+      list = list.filter((t) => new Date(t.opened_at) <= to);
     }
     if (direction !== "all") {
       const d = direction === "buy" ? "buy" : "sell";

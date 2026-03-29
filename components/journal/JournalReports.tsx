@@ -79,7 +79,7 @@ function filterByPeriod(trades: JournalTradeRow[], period: PeriodKey): JournalTr
       return trades;
   }
   const startIso = start.toISOString();
-  return trades.filter((t) => t.closed_at >= startIso);
+  return trades.filter((t) => t.opened_at >= startIso);
 }
 
 export function JournalReports() {
@@ -109,7 +109,7 @@ export function JournalReports() {
         .from("journal_trades")
         .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags")
         .eq("user_id", userId)
-        .order("closed_at", { ascending: true });
+        .order("opened_at", { ascending: true });
 
       if (activeAccountId) {
         query = query.eq("account_id", activeAccountId);
