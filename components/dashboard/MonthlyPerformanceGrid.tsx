@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { cn } from "@/lib/utils";
 
@@ -82,13 +82,6 @@ export function MonthlyPerformanceGrid({
   const [mode, setMode] = useState<MetricMode>("pnl");
   const { mask } = usePrivacy();
 
-  // Reset mode to pnl if balance is lost while on a balance-dependent metric
-  useEffect(() => {
-    const balanceMetricKeys: MetricMode[] = ["pct_accum", "pct_geral", "saldo_inicial", "saldo_atual"];
-    if (!hasBalance && balanceMetricKeys.includes(mode)) {
-      setMode("pnl");
-    }
-  }, [hasBalance, mode]);
 
   // Filter trades for active account
   const accountTrades = useMemo(() => {
@@ -290,7 +283,7 @@ export function MonthlyPerformanceGrid({
 
         {/* Metric toggles */}
         <div className="mt-3 flex flex-wrap gap-1">
-          {[...BASE_METRICS, ...(hasBalance ? BALANCE_METRICS : [])].map((m) => (
+          {[...BASE_METRICS, ...BALANCE_METRICS].map((m) => (
             <button
               key={m.key}
               type="button"
@@ -308,11 +301,6 @@ export function MonthlyPerformanceGrid({
               {m.label}
             </button>
           ))}
-          {!hasBalance && activeAccountId && (
-            <span className="text-[10px] text-muted-foreground self-center ml-1 italic">
-              Defina o capital inicial para ver % e saldos
-            </span>
-          )}
         </div>
       </div>
 
