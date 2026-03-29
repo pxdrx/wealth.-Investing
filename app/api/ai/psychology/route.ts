@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
-import { requireEnv } from "@/lib/env";
-import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -11,13 +9,6 @@ let _anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic {
   if (!_anthropic) _anthropic = new Anthropic();
   return _anthropic;
-}
-
-function getSupabaseAdmin() {
-  return createClient(
-    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-  );
 }
 
 interface TradeRow {
@@ -198,21 +189,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "account_id obrigatório" }, { status: 400 });
   }
 
-  const supabase = getSupabaseAdmin();
+  // Use the user's authenticated client for all queries
+  const supabase = supabaseUser;
 
-  // 3. Check cache
+  // 3. Check cache (non-blocking — skip if table doesn't exist)
   const cacheKey = `psych_${user.id}_${accountId}_${period}`;
-  const { data: cached } = await supabase
-    .from("ai_psychology_cache")
-    .select("analysis, created_at")
-    .eq("cache_key", cacheKey)
-    .maybeSingle();
+  try {
+    const { data: cached } = await supabase
+      .from("ai_psychology_cache")
+      .select("analysis, created_at")
+      .eq("cache_key", cacheKey)
+      .maybeSingle();
 
-  if (cached) {
-    const age = Date.now() - new Date(cached.created_at).getTime();
-    if (age < 60 * 60 * 1000) { // 1 hour cache
-      return NextResponse.json({ ok: true, data: cached.analysis, cached: true });
+    if (cached) {
+      const age = Date.now() - new Date(cached.created_at).getTime();
+      if (age < 60 * 60 * 1000) { // 1 hour cache
+        return NextResponse.json({ ok: true, data: cached.analysis, cached: true });
+      }
     }
+  } catch {
+    // Cache read failed — proceed without cache
   }
 
   // 4. Fetch trades
@@ -261,17 +257,27 @@ export async function POST(req: NextRequest) {
       .map((c) => c.text)
       .join("");
 
-    // Parse JSON from response
+    // Parse JSON from response — handle markdown fences and plain text fallback
     let analysis;
     try {
-      // Try to extract JSON from potential markdown code blocks
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      analysis = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+      // Strip markdown code fences if present
+      const cleaned = text.replace(/^```(?:json)?\s*/m, "").replace(/\s*```$/m, "").trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      analysis = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
     } catch {
-      return NextResponse.json({ ok: false, error: "Erro ao processar análise" }, { status: 500 });
+      // If JSON parse fails, return raw text as profile (graceful degradation)
+      console.warn("[psychology] JSON parse failed, using raw text. First 200 chars:", text.slice(0, 200));
+      analysis = {
+        profile: text,
+        critical_hours: "",
+        revenge_analysis: "",
+        consistency: "",
+        alerts: [],
+        strength: "",
+      };
     }
 
-    // 6. Cache result
+    // 6. Cache result (non-blocking)
     try {
       await supabase
         .from("ai_psychology_cache")
@@ -279,13 +285,22 @@ export async function POST(req: NextRequest) {
           { cache_key: cacheKey, user_id: user.id, account_id: accountId, period, analysis, created_at: new Date().toISOString() },
           { onConflict: "cache_key" }
         );
-    } catch (cacheErr) {
-      console.warn("[psychology] Cache write failed:", cacheErr);
+    } catch {
+      // Cache write failed — non-critical
     }
 
     return NextResponse.json({ ok: true, data: analysis, cached: false });
   } catch (err) {
-    console.error("[psychology] Claude API error:", err);
-    return NextResponse.json({ ok: false, error: "Erro na análise. Tente novamente." }, { status: 500 });
+    const error = err as Error;
+    const msg = error.message || String(err);
+    console.error("[psychology] Claude API error:", msg);
+    // Surface specific error types to frontend
+    if (msg.includes("credit") || msg.includes("balance") || msg.includes("billing")) {
+      return NextResponse.json({ ok: false, error: "Sem créditos na API do Claude. Contate o suporte." }, { status: 402 });
+    }
+    if (msg.includes("rate") || msg.includes("429")) {
+      return NextResponse.json({ ok: false, error: "Limite de requisições atingido. Aguarde 1 minuto." }, { status: 429 });
+    }
+    return NextResponse.json({ ok: false, error: "Erro na análise IA. Tente novamente." }, { status: 500 });
   }
 }
