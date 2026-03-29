@@ -256,7 +256,7 @@ export default function JournalPage() {
         return;
       }
       // Map API preview response to PreviewData shape
-      const rawTrades = (data.preview_trades ?? data.trades ?? []) as Array<Record<string, unknown>>;
+      const rawTrades = (data.sample ?? data.preview_trades ?? data.trades ?? []) as Array<Record<string, unknown>>;
       if (rawTrades.length === 0 && !data.trades_found) {
         setImportError("Nenhum trade encontrado no arquivo. Verifique se é um relatório MT5 válido.");
         setImportFlowState("idle");
