@@ -305,18 +305,23 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null); // null = all
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [balanceInput, setBalanceInput] = useState("");
+  const [localBalanceOverride, setLocalBalanceOverride] = useState<Record<string, number | null>>({});
   const { mask } = usePrivacy();
   const { refreshAccounts } = useActiveAccount();
 
   const activeAccounts = useMemo(() => accounts.filter((a) => a.is_active), [accounts]);
 
-  // Get starting balance for selected account
+  // Get starting balance: local override takes priority, then prop value
   const selectedStartingBalance = useMemo(() => {
     if (!selectedAccountId) return null;
+    // Check local override first (set immediately on save)
+    if (selectedAccountId in localBalanceOverride) {
+      return localBalanceOverride[selectedAccountId];
+    }
     const acc = activeAccounts.find((a) => a.id === selectedAccountId);
     const val = acc?.starting_balance_usd;
     return val != null ? Number(val) : null;
-  }, [selectedAccountId, activeAccounts]);
+  }, [selectedAccountId, activeAccounts, localBalanceOverride]);
 
   // Sync input with selected account's balance
   useEffect(() => {
@@ -327,14 +332,23 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
     if (!selectedAccountId) return;
     const num = parseFloat(balanceInput);
     const value = isNaN(num) || num <= 0 ? null : num;
+
+    // Optimistic: update local state immediately so grid refreshes
+    setLocalBalanceOverride((prev) => ({ ...prev, [selectedAccountId]: value }));
+
     try {
-      await supabase
+      const { error } = await supabase
         .from("accounts")
         .update({ starting_balance_usd: value })
         .eq("id", selectedAccountId);
-      await refreshAccounts();
-      onTradeAdded?.(); // refresh dashboard data
-    } catch {}
+      if (error) {
+        console.warn("[backtest] save balance error:", error.message);
+      }
+      refreshAccounts();
+      onTradeAdded?.();
+    } catch (err) {
+      console.warn("[backtest] save balance exception:", err);
+    }
   }, [selectedAccountId, balanceInput, refreshAccounts, onTradeAdded]);
 
   // Filter trades by selected account
