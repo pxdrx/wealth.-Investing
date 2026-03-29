@@ -24,7 +24,6 @@ const ALL_METRICS: { key: MetricMode; label: string; needsBalance: boolean }[] =
   { key: "pnl", label: "P&L ($)", needsBalance: false },
   { key: "pct_accum", label: "% acumulada", needsBalance: true },
   { key: "pct_geral", label: "% geral", needsBalance: true },
-  { key: "saldo_inicial", label: "Saldo inicial", needsBalance: true },
   { key: "saldo_atual", label: "Saldo atual", needsBalance: true },
 ];
 

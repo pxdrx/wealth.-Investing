@@ -22,7 +22,7 @@ export interface DashboardLayout {
 }
 
 export const DEFAULT_LAYOUT: DashboardLayout = {
-  version: 1,
+  version: 2,
   widgets: [
     { id: "kpi", visible: true, order: 0 },
     { id: "accounts", visible: true, order: 1 },
