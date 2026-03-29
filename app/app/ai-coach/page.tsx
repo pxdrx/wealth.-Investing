@@ -125,45 +125,50 @@ function AICoachPageInner() {
   // Load conversations list and initialize active conversation
   useEffect(() => {
     async function initConversations() {
-      const token = await getToken();
-      if (!token) { setConversationsLoaded(true); return; }
+      try {
+        const token = await getToken();
+        if (!token) { return; }
 
-      const res = await fetch("/api/ai/conversations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.ok && json.data) {
-        setConversations(json.data);
-      }
-
-      // Check URL param for active conversation
-      const chatId = searchParams.get("chat");
-      if (chatId) {
-        setActiveConversationId(chatId);
-        const found = (json.data as Conversation[])?.find((c: Conversation) => c.id === chatId);
-        if (found) setActiveConversationTitle(found.title);
-      } else if (json.data && json.data.length > 0) {
-        // Use most recent conversation
-        const latest = json.data[0];
-        setActiveConversationId(latest.id);
-        setActiveConversationTitle(latest.title);
-        window.history.replaceState(null, "", `/app/ai-coach?chat=${latest.id}`);
-      } else {
-        // No conversations exist — create one
-        const createRes = await fetch("/api/ai/conversations", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ title: "Nova conversa" }),
+        const res = await fetch("/api/ai/conversations", {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        const createJson = await createRes.json();
-        if (createJson.ok && createJson.data) {
-          setActiveConversationId(createJson.data.id);
-          setActiveConversationTitle(createJson.data.title);
-          setConversations([{ ...createJson.data, updated_at: createJson.data.created_at }]);
-          window.history.replaceState(null, "", `/app/ai-coach?chat=${createJson.data.id}`);
+        const json = await res.json();
+        if (json.ok && json.data) {
+          setConversations(json.data);
         }
+
+        // Check URL param for active conversation
+        const chatId = searchParams.get("chat");
+        if (chatId) {
+          setActiveConversationId(chatId);
+          const found = (json.data as Conversation[])?.find((c: Conversation) => c.id === chatId);
+          if (found) setActiveConversationTitle(found.title);
+        } else if (json.data && json.data.length > 0) {
+          // Use most recent conversation
+          const latest = json.data[0];
+          setActiveConversationId(latest.id);
+          setActiveConversationTitle(latest.title);
+          window.history.replaceState(null, "", `/app/ai-coach?chat=${latest.id}`);
+        } else {
+          // No conversations exist — create one
+          const createRes = await fetch("/api/ai/conversations", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ title: "Nova conversa" }),
+          });
+          const createJson = await createRes.json();
+          if (createJson.ok && createJson.data) {
+            setActiveConversationId(createJson.data.id);
+            setActiveConversationTitle(createJson.data.title);
+            setConversations([{ ...createJson.data, updated_at: createJson.data.created_at }]);
+            window.history.replaceState(null, "", `/app/ai-coach?chat=${createJson.data.id}`);
+          }
+        }
+      } catch (err) {
+        console.error("[ai-coach] initConversations failed:", err);
+      } finally {
+        setConversationsLoaded(true);
       }
-      setConversationsLoaded(true);
     }
     initConversations();
     // Run once on mount — loads or creates the initial conversation list.
@@ -189,17 +194,22 @@ function AICoachPageInner() {
   // Load current usage
   useEffect(() => {
     async function loadUsage() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) { setUsageLoaded(true); return; }
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const { data } = await supabase
-        .from("ai_usage")
-        .select("usage_count")
-        .eq("user_id", session.user.id)
-        .eq("month", currentMonth)
-        .maybeSingle();
-      setUsageCount((data as { usage_count?: number } | null)?.usage_count ?? 0);
-      setUsageLoaded(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) return;
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const { data } = await supabase
+          .from("ai_usage")
+          .select("usage_count")
+          .eq("user_id", session.user.id)
+          .eq("month", currentMonth)
+          .maybeSingle();
+        setUsageCount((data as { usage_count?: number } | null)?.usage_count ?? 0);
+      } catch (err) {
+        console.error("[ai-coach] loadUsage failed:", err);
+      } finally {
+        setUsageLoaded(true);
+      }
     }
     loadUsage();
     // Run once on mount — usage count is loaded once and updated after

@@ -109,9 +109,9 @@ export default function JournalPage() {
   }, []);
 
   /** TECH-022: Paginated initial load — fetches first PAGE_SIZE trades */
-  const loadTrades = useCallback(async () => {
+  const loadTrades = useCallback(async (silent = false) => {
     if (!activeAccountId) { setTrades([]); setHasMoreTrades(true); setTradesPage(0); return; }
-    setLoadingTrades(true);
+    if (!silent) setLoadingTrades(true);
     setTradesError(null);
     setTradesPage(0);
     try {
@@ -631,7 +631,7 @@ export default function JournalPage() {
                   onNoteSaved={(date, note) => {
                     setDayNotes((prev) => ({ ...prev, [date]: note }));
                   }}
-                  onTradeDeleted={loadTrades}
+                  onTradeDeleted={() => loadTrades(true)}
                 />
               </div>
             )}

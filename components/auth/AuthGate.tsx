@@ -170,11 +170,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Check inactivity on wake from sleep (browsers suspend intervals during sleep)
+  // On tab return: update activity timestamp (prevents stale inactivity detection)
+  // Actual inactivity check is in the periodic interval (every 5 min) below
   useEffect(() => {
     function handleVisibilityChange() {
-      if (document.visibilityState === "visible" && isInactive()) {
-        clearSessionAndRedirect();
+      if (document.visibilityState === "visible") {
+        touchActivity();
       }
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);

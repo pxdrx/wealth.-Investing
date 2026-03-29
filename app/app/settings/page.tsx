@@ -68,10 +68,14 @@ export default function SettingsPage() {
       setProfileLoading(true);
       setProfileError(null);
       try {
-        const [profile, { data: { session } }] = await Promise.all([
-          getMyProfile(),
-          supabase.auth.getSession(),
-        ]);
+        const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 10_000));
+        const [profile, { data: { session } }] = await Promise.race([
+          Promise.all([
+            getMyProfile(),
+            supabase.auth.getSession(),
+          ]),
+          timeout,
+        ]) as [Awaited<ReturnType<typeof getMyProfile>>, { data: { session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"] } }];
         if (!mounted) return;
         // Profile can be null (no profile row yet) — show empty form
         if (profile) {

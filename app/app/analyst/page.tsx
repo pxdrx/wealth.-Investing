@@ -619,9 +619,12 @@ export default function AnalystPage() {
     }
   }, []);
 
+  // Force re-run on every mount (client-side navigation re-mounts the component)
   useEffect(() => {
+    setHistoryLoaded(false);
     loadHistory();
-  }, [loadHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleDeleteReport(id: string, e: React.MouseEvent) {
     e.stopPropagation();
