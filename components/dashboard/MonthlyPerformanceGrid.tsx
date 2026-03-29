@@ -20,11 +20,11 @@ interface MonthlyPerformanceGridProps {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const ALL_METRICS: { key: MetricMode; label: string; needsBalance: boolean }[] = [
-  { key: "pnl", label: "P&L ($)", needsBalance: false },
-  { key: "pct_accum", label: "% acumulada", needsBalance: true },
-  { key: "pct_geral", label: "% geral", needsBalance: true },
-  { key: "saldo_atual", label: "Saldo atual", needsBalance: true },
+const ALL_METRICS: { key: MetricMode; label: string }[] = [
+  { key: "pnl", label: "P&L ($)" },
+  { key: "pct_accum", label: "% acumulada" },
+  { key: "pct_geral", label: "% geral" },
+  { key: "saldo_atual", label: "Saldo atual" },
 ];
 
 interface MonthData {
@@ -75,14 +75,8 @@ export function MonthlyPerformanceGrid({
   startingBalance,
 }: MonthlyPerformanceGridProps) {
   const hasBalance = startingBalance !== null && startingBalance > 0;
-  const [mode, setMode] = useState<MetricMode>(hasBalance ? "pct_accum" : "pnl");
+  const [mode, setMode] = useState<MetricMode>("pnl");
   const { mask } = usePrivacy();
-
-  // Available metrics based on whether we have a starting balance
-  const availableMetrics = useMemo(
-    () => ALL_METRICS.filter((m) => !m.needsBalance || hasBalance),
-    [hasBalance]
-  );
 
   // Filter trades for active account
   const accountTrades = useMemo(() => {
@@ -284,7 +278,7 @@ export function MonthlyPerformanceGrid({
 
         {/* Metric toggles */}
         <div className="mt-3 flex flex-wrap gap-1">
-          {availableMetrics.map((m) => (
+          {ALL_METRICS.map((m) => (
             <button
               key={m.key}
               type="button"
