@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { cn } from "@/lib/utils";
 
-type MetricMode = "pct_accum" | "pct_geral" | "saldo_inicial" | "saldo_atual";
+type MetricMode = "pnl" | "pct_accum" | "pct_geral" | "saldo_inicial" | "saldo_atual";
 
 interface Trade {
   net_pnl_usd: number | null;
@@ -20,12 +20,13 @@ interface MonthlyPerformanceGridProps {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const METRIC_LABELS: Record<MetricMode, string> = {
-  pct_accum: "% de ganhos de sessões acum.",
-  pct_geral: "% de ganho geral",
-  saldo_inicial: "Saldo inicial",
-  saldo_atual: "Saldo atual",
-};
+const ALL_METRICS: { key: MetricMode; label: string; needsBalance: boolean }[] = [
+  { key: "pnl", label: "P&L ($)", needsBalance: false },
+  { key: "pct_accum", label: "% acumulada", needsBalance: true },
+  { key: "pct_geral", label: "% geral", needsBalance: true },
+  { key: "saldo_inicial", label: "Saldo inicial", needsBalance: true },
+  { key: "saldo_atual", label: "Saldo atual", needsBalance: true },
+];
 
 interface MonthData {
   pnl: number;
@@ -52,6 +53,11 @@ function formatUsd(value: number): string {
   }).format(value);
 }
 
+function formatPnlValue(value: number): string {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatUsd(value)}`;
+}
+
 function getCellColor(value: number): string {
   if (value > 0) return "text-emerald-600 dark:text-emerald-400";
   if (value < 0) return "text-red-500 dark:text-red-400";
@@ -69,8 +75,15 @@ export function MonthlyPerformanceGrid({
   activeAccountId,
   startingBalance,
 }: MonthlyPerformanceGridProps) {
-  const [mode, setMode] = useState<MetricMode>("pct_accum");
+  const hasBalance = startingBalance !== null && startingBalance > 0;
+  const [mode, setMode] = useState<MetricMode>(hasBalance ? "pct_accum" : "pnl");
   const { mask } = usePrivacy();
+
+  // Available metrics based on whether we have a starting balance
+  const availableMetrics = useMemo(
+    () => ALL_METRICS.filter((m) => !m.needsBalance || hasBalance),
+    [hasBalance]
+  );
 
   // Filter trades for active account
   const accountTrades = useMemo(() => {
@@ -95,7 +108,6 @@ export function MonthlyPerformanceGrid({
       byYearMonth.set(key, existing);
     }
 
-    // Get all unique years
     const years = new Set<number>();
     Array.from(byYearMonth.keys()).forEach((key) => {
       years.add(parseInt(key.split("-")[0]));
@@ -119,14 +131,11 @@ export function MonthlyPerformanceGrid({
 
   // Compute starting balance per month for percentage calculations
   const balanceByYearMonth = useMemo(() => {
-    if (!startingBalance && startingBalance !== 0) return new Map<string, number>();
-
     const map = new Map<string, number>();
-    if (yearRows.length === 0) return map;
+    if (!hasBalance || yearRows.length === 0) return map;
 
-    // Sort years ascending for cumulative calculation
     const sortedRows = [...yearRows].sort((a, b) => a.year - b.year);
-    let runningBalance = startingBalance ?? 0;
+    let runningBalance = startingBalance!;
 
     for (const row of sortedRows) {
       for (let m = 0; m < 12; m++) {
@@ -140,18 +149,26 @@ export function MonthlyPerformanceGrid({
     }
 
     return map;
-  }, [yearRows, startingBalance]);
+  }, [yearRows, startingBalance, hasBalance]);
 
-  // Total cumulative return
+  // Total PnL
+  const totalPnl = useMemo(
+    () => yearRows.reduce((sum, row) => sum + row.ytdPnl, 0),
+    [yearRows]
+  );
+
+  // Total cumulative return (only when balance available)
   const totalReturn = useMemo(() => {
-    if (!startingBalance || startingBalance === 0) return null;
-    const totalPnl = yearRows.reduce((sum, row) => sum + row.ytdPnl, 0);
-    return (totalPnl / startingBalance) * 100;
-  }, [yearRows, startingBalance]);
+    if (!hasBalance) return null;
+    return (totalPnl / startingBalance!) * 100;
+  }, [totalPnl, startingBalance, hasBalance]);
 
-  // Compute cell value based on mode
   function getCellValue(year: number, monthIdx: number, data: MonthData | null): string | null {
     if (!data) return null;
+
+    if (mode === "pnl") {
+      return formatPnlValue(data.pnl);
+    }
 
     const key = `${year}-${monthIdx}`;
     const balance = balanceByYearMonth.get(key) ?? 0;
@@ -160,8 +177,7 @@ export function MonthlyPerformanceGrid({
       case "pct_accum":
       case "pct_geral": {
         if (balance <= 0) return "—";
-        const pct = (data.pnl / balance) * 100;
-        return formatPct(pct);
+        return formatPct((data.pnl / balance) * 100);
       }
       case "saldo_inicial":
         return balance > 0 ? formatUsd(balance) : "—";
@@ -174,6 +190,9 @@ export function MonthlyPerformanceGrid({
 
   function getCellNumericValue(year: number, monthIdx: number, data: MonthData | null): number {
     if (!data) return 0;
+
+    if (mode === "pnl") return data.pnl;
+
     const key = `${year}-${monthIdx}`;
     const balance = balanceByYearMonth.get(key) ?? 0;
 
@@ -191,8 +210,10 @@ export function MonthlyPerformanceGrid({
   }
 
   function getYtdValue(row: YearRow): string {
+    if (mode === "pnl") {
+      return formatPnlValue(row.ytdPnl);
+    }
     if (mode === "pct_accum") {
-      // Compounding: product of (1 + monthly %)
       let compound = 1;
       for (let m = 0; m < 12; m++) {
         const data = row.months[m];
@@ -206,24 +227,17 @@ export function MonthlyPerformanceGrid({
       return formatPct((compound - 1) * 100);
     }
     if (mode === "pct_geral") {
-      // Simple: total pnl / starting balance of year
-      const yearStartKey = `${row.year}-0`;
-      // Find first month with data for starting balance
-      let yearStartBalance = balanceByYearMonth.get(yearStartKey) ?? 0;
+      let yearStartBalance = balanceByYearMonth.get(`${row.year}-0`) ?? 0;
       if (yearStartBalance <= 0) {
         for (let m = 0; m < 12; m++) {
           const bal = balanceByYearMonth.get(`${row.year}-${m}`);
-          if (bal && bal > 0) {
-            yearStartBalance = bal;
-            break;
-          }
+          if (bal && bal > 0) { yearStartBalance = bal; break; }
         }
       }
       if (yearStartBalance <= 0) return "—";
       return formatPct((row.ytdPnl / yearStartBalance) * 100);
     }
     if (mode === "saldo_atual") {
-      // Last month's ending balance
       for (let m = 11; m >= 0; m--) {
         const data = row.months[m];
         if (data) {
@@ -234,13 +248,12 @@ export function MonthlyPerformanceGrid({
       }
       return "—";
     }
-    // saldo_inicial: year start
-    const yearStartKey = `${row.year}-0`;
-    const bal = balanceByYearMonth.get(yearStartKey);
+    const bal = balanceByYearMonth.get(`${row.year}-0`);
     return bal ? formatUsd(bal) : "—";
   }
 
   function getYtdNumericValue(row: YearRow): number {
+    if (mode === "pnl") return row.ytdPnl;
     if (mode === "pct_accum") {
       let compound = 1;
       for (let m = 0; m < 12; m++) {
@@ -248,14 +261,15 @@ export function MonthlyPerformanceGrid({
         if (!data) continue;
         const key = `${row.year}-${m}`;
         const balance = balanceByYearMonth.get(key) ?? 0;
-        if (balance > 0) {
-          compound *= 1 + data.pnl / balance;
-        }
+        if (balance > 0) compound *= 1 + data.pnl / balance;
       }
       return (compound - 1) * 100;
     }
     return row.ytdPnl;
   }
+
+  // Colorize based on mode
+  const shouldColorize = mode === "pnl" || mode === "pct_accum" || mode === "pct_geral";
 
   if (yearRows.length === 0) return null;
 
@@ -271,22 +285,22 @@ export function MonthlyPerformanceGrid({
 
         {/* Metric toggles */}
         <div className="mt-3 flex flex-wrap gap-1">
-          {(Object.keys(METRIC_LABELS) as MetricMode[]).map((m) => (
+          {availableMetrics.map((m) => (
             <button
-              key={m}
+              key={m.key}
               type="button"
-              onClick={() => setMode(m)}
+              onClick={() => setMode(m.key)}
               className={cn(
                 "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all border",
-                mode === m
+                mode === m.key
                   ? "bg-foreground text-background border-foreground"
                   : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              {mode === m && (
+              {mode === m.key && (
                 <span className="h-1.5 w-1.5 rounded-full bg-current" />
               )}
-              {METRIC_LABELS[m]}
+              {m.label}
             </button>
           ))}
         </div>
@@ -324,7 +338,6 @@ export function MonthlyPerformanceGrid({
                   {row.months.map((data, idx) => {
                     const cellValue = getCellValue(row.year, idx, data);
                     const numericValue = getCellNumericValue(row.year, idx, data);
-                    const isPctMode = mode === "pct_accum" || mode === "pct_geral";
 
                     if (!data) {
                       return (
@@ -339,8 +352,8 @@ export function MonthlyPerformanceGrid({
                         <span
                           className={cn(
                             "inline-block rounded-lg px-2 py-1.5 text-xs font-semibold tabular-nums",
-                            isPctMode ? getCellBg(numericValue) : "",
-                            isPctMode ? getCellColor(numericValue) : "text-foreground"
+                            shouldColorize ? getCellBg(numericValue) : "",
+                            shouldColorize ? getCellColor(numericValue) : "text-foreground"
                           )}
                         >
                           {mask(cellValue ?? "—")}
@@ -352,12 +365,8 @@ export function MonthlyPerformanceGrid({
                     <span
                       className={cn(
                         "inline-block rounded-lg px-2 py-1.5 text-xs font-bold tabular-nums",
-                        mode === "pct_accum" || mode === "pct_geral"
-                          ? getCellBg(ytdValue)
-                          : "",
-                        mode === "pct_accum" || mode === "pct_geral"
-                          ? getCellColor(ytdValue)
-                          : "text-foreground"
+                        shouldColorize ? getCellBg(ytdValue) : "",
+                        shouldColorize ? getCellColor(ytdValue) : "text-foreground"
                       )}
                     >
                       {mask(getYtdValue(row))}
@@ -368,34 +377,30 @@ export function MonthlyPerformanceGrid({
             })}
           </tbody>
           {/* Total footer */}
-          {yearRows.length > 1 && (
-            <tfoot>
-              <tr className="border-t-2 border-border/60">
-                <td colSpan={13} className="px-3 py-2" />
-                <td className="px-1 py-2 text-center">
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
-                      Total
-                    </span>
-                    <span
-                      className={cn(
-                        "inline-block rounded-lg px-3 py-1.5 text-xs font-bold tabular-nums",
-                        totalReturn !== null && (mode === "pct_accum" || mode === "pct_geral")
-                          ? getCellBg(totalReturn)
-                          : "",
-                        totalReturn !== null && (mode === "pct_accum" || mode === "pct_geral")
-                          ? getCellColor(totalReturn)
-                          : "text-foreground"
-                      )}
-                    >
-                      {mask(
-                        mode === "pct_accum" || mode === "pct_geral"
+          <tfoot>
+            <tr className="border-t-2 border-border/60">
+              <td colSpan={13} className="px-3 py-2" />
+              <td className="px-1 py-2 text-center">
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
+                    Total
+                  </span>
+                  <span
+                    className={cn(
+                      "inline-block rounded-lg px-3 py-1.5 text-xs font-bold tabular-nums",
+                      shouldColorize ? getCellBg(mode === "pnl" ? totalPnl : (totalReturn ?? 0)) : "",
+                      shouldColorize ? getCellColor(mode === "pnl" ? totalPnl : (totalReturn ?? 0)) : "text-foreground"
+                    )}
+                  >
+                    {mask(
+                      mode === "pnl"
+                        ? formatPnlValue(totalPnl)
+                        : mode === "pct_accum" || mode === "pct_geral"
                           ? totalReturn !== null
                             ? formatPct(totalReturn)
                             : "—"
                           : mode === "saldo_atual"
                             ? (() => {
-                                // Last month's ending balance of most recent year
                                 const lastRow = yearRows[0];
                                 for (let m = 11; m >= 0; m--) {
                                   const data = lastRow.months[m];
@@ -407,16 +412,15 @@ export function MonthlyPerformanceGrid({
                                 }
                                 return "—";
                               })()
-                            : startingBalance
-                              ? formatUsd(startingBalance)
+                            : hasBalance
+                              ? formatUsd(startingBalance!)
                               : "—"
-                      )}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            </tfoot>
-          )}
+                    )}
+                  </span>
+                </div>
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{
     type: "success" | "error";
@@ -95,7 +96,7 @@ export default function SettingsPage() {
     load();
     return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [retryKey]);
 
   // ── Load dashboard layout (independent from profile) ──
   useEffect(() => {
@@ -301,12 +302,7 @@ export default function SettingsPage() {
               <Button
                 variant="outline"
                 className="rounded-full"
-                onClick={() => {
-                  setProfileLoading(true);
-                  setProfileError(null);
-                  // Force re-run by toggling a dummy state — useEffect depends on pathname
-                  window.location.reload();
-                }}
+                onClick={() => setRetryKey((k) => k + 1)}
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Tentar novamente

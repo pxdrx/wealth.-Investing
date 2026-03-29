@@ -155,6 +155,7 @@ export function useDashboardData(): DashboardData {
     if (!userId) {
       setJournalTrades([]);
       setAccountsById(new Map());
+      setJournalLoading(false);
       return;
     }
     let cancelled = false;
