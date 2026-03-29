@@ -18,6 +18,9 @@ const SESSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 /** Throttle interval for activity tracking writes (60 seconds) */
 const ACTIVITY_THROTTLE_MS = 60 * 1000;
 
+/** Maximum time to wait before forcing render or redirect */
+const MAX_GATE_WAIT_MS = 4_000;
+
 const LAST_ACTIVITY_KEY = "trading-dashboard-last-activity";
 
 function clearSessionAndRedirect() {
@@ -43,10 +46,31 @@ function touchActivity() {
   localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
 }
 
+/**
+ * Check if Supabase session tokens exist in localStorage.
+ * If they do, we can optimistically render the page while verifying in background.
+ */
+function hasStoredSession(): boolean {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.includes("auth-token")) {
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
+  // OPTIMISTIC: if session tokens exist in localStorage, render immediately
+  const [ready, setReady] = useState(() => {
+    if (typeof window === "undefined") return false;
+    // If inactive for too long, don't render optimistically
+    if (isInactive()) return false;
+    return hasStoredSession();
+  });
   const sessionRef = useRef<{ expires_at?: number; user_id?: string } | null>(null);
-  const retriesRef = useRef(0);
   const bootstrapRanRef = useRef(false);
   const lastActivityWriteRef = useRef(0);
   const { event: authEvent } = useAuthEvent();
@@ -70,9 +94,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Register activity listeners
   useEffect(() => {
-    // Initialize activity timestamp on mount
     touchActivity();
-
     const events: Array<keyof WindowEventMap> = ["mousedown", "keydown", "touchstart", "scroll"];
     events.forEach((evt) => window.addEventListener(evt, handleActivity, { passive: true }));
     return () => {
@@ -80,13 +102,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     };
   }, [handleActivity]);
 
-  // Main auth gate effect — runs on pathname change
+  // Main auth verification — runs in background, never blocks rendering if we have tokens
   useEffect(() => {
     let mounted = true;
 
-    async function gate() {
+    async function verifyAuth() {
       try {
-        // Check inactivity timeout first
+        // Check inactivity timeout
         if (isInactive()) {
           clearSessionAndRedirect();
           return;
@@ -101,30 +123,27 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const getUserWithTimeout = Promise.race([
+        // Verify with server — use short timeout
+        const { data: { user }, error: userError } = await Promise.race([
           supabase.auth.getUser(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Auth timeout")), 10_000)
+            setTimeout(() => reject(new Error("Auth timeout")), MAX_GATE_WAIT_MS)
           ),
         ]);
-        const { data: { user }, error: userError } = await getUserWithTimeout;
 
         if (!mounted) return;
 
         if (!user || userError) {
-          // No valid session — redirect to login
           clearSessionAndRedirect();
           return;
         }
 
-        // Get session for expiry tracking after user is verified
+        // Auth confirmed — cache session and ensure ready
         const { data: { session } } = await supabase.auth.getSession();
-        // Cache current session and show content immediately
         sessionRef.current = {
           expires_at: session?.expires_at,
           user_id: user.id,
         };
-        retriesRef.current = 0;
         if (mounted) setReady(true);
 
         // Refresh token in background if expiring soon
@@ -133,7 +152,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           supabase.auth.refreshSession().then(({ data, error }) => {
             if (!mounted) return;
             if (error || !data.session) {
-              // Refresh failed — session is dead, redirect to login
               clearSessionAndRedirect();
               return;
             }
@@ -144,7 +162,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           });
         }
 
-        // Only run bootstrap once per session
+        // Bootstrap default accounts once
         if (!bootstrapRanRef.current) {
           bootstrapRanRef.current = true;
           ensureDefaultAccounts(user.id).then((r) => {
@@ -154,30 +172,54 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           });
         }
       } catch {
-        // On error, retry up to 2 times before redirecting
         if (!mounted) return;
-        retriesRef.current += 1;
-        if (retriesRef.current < 3) {
-          setTimeout(() => { if (mounted) gate(); }, 1000);
+        // On timeout/error: if we already rendered optimistically, verify with getSession
+        if (ready) {
+          // We're already showing the page — try a lighter check
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+              clearSessionAndRedirect();
+            } else {
+              sessionRef.current = {
+                expires_at: session.expires_at,
+                user_id: session.user.id,
+              };
+            }
+          } catch {
+            // Even getSession failed — network is down, keep showing cached page
+          }
         } else {
+          // Not rendered yet and auth failed — redirect to login
           clearSessionAndRedirect();
         }
       }
     }
 
-    gate();
+    verifyAuth();
 
     return () => {
       mounted = false;
     };
-  // Run once on mount — performs initial auth gate check and subscribes to
-  // auth state changes. All referenced functions (gate, clearSessionAndRedirect)
-  // use refs internally and are stable across renders.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // On tab return: update activity timestamp (prevents stale inactivity detection)
-  // Actual inactivity check is in the periodic interval (every 5 min) below
+  // SAFETY NET: if still not ready after MAX_GATE_WAIT_MS, force decision
+  useEffect(() => {
+    if (ready) return;
+    const timer = setTimeout(() => {
+      if (hasStoredSession()) {
+        // Tokens exist but verification is slow — render optimistically
+        setReady(true);
+      } else {
+        // No tokens — definitely not authenticated
+        clearSessionAndRedirect();
+      }
+    }, MAX_GATE_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [ready]);
+
+  // On tab return: update activity timestamp
   useEffect(() => {
     function handleVisibilityChange() {
       if (document.visibilityState === "visible") {
@@ -191,32 +233,33 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   // Periodic session health check (every 5 min)
   useEffect(() => {
     const interval = setInterval(async () => {
-      // Check inactivity
       if (isInactive()) {
         clearSessionAndRedirect();
         return;
       }
 
-      // Verify session is still valid (server-side check)
-      const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (!user || userErr) {
-        clearSessionAndRedirect();
-        return;
-      }
-      const { data: { session } } = await supabase.auth.getSession();
-
-      // Proactively refresh if expiring soon
-      const expiresAt = session?.expires_at;
-      if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
-        const { data, error } = await supabase.auth.refreshSession();
-        if (error || !data.session) {
+      try {
+        const { data: { user }, error: userErr } = await supabase.auth.getUser();
+        if (!user || userErr) {
           clearSessionAndRedirect();
           return;
         }
-        sessionRef.current = {
-          expires_at: data.session.expires_at,
-          user_id: data.session.user.id,
-        };
+        const { data: { session } } = await supabase.auth.getSession();
+
+        const expiresAt = session?.expires_at;
+        if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error || !data.session) {
+            clearSessionAndRedirect();
+            return;
+          }
+          sessionRef.current = {
+            expires_at: data.session.expires_at,
+            user_id: data.session.user.id,
+          };
+        }
+      } catch {
+        // Network error during periodic check — don't redirect, try again next interval
       }
     }, SESSION_CHECK_INTERVAL_MS);
 
