@@ -12,10 +12,11 @@ interface DrawdownBarProps {
 }
 
 function getBarColor(fillPct: number): string {
-  if (fillPct >= 90) return "#ef4444";
-  if (fillPct >= 70) return "#f97316";
-  if (fillPct >= 50) return "#f59e0b";
-  return "#10b981";
+  if (fillPct >= 90) return "#dc2626"; // red-600
+  if (fillPct >= 70) return "#ef4444"; // red-500
+  if (fillPct >= 50) return "#f87171"; // red-400
+  if (fillPct >= 20) return "#fca5a5"; // red-300
+  return "#fecaca"; // red-200
 }
 
 export function DrawdownBar({ label, currentPct, maxPct }: DrawdownBarProps) {

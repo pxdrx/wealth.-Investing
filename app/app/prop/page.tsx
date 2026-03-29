@@ -13,8 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { getPropCycleStats, getDrawdownStats, type PropCycleStats, type DrawdownStats } from "@/lib/prop-stats";
-import { listMyAccountsWithProp, type PropAccountRow, phaseLabel } from "@/lib/accounts";
-import { checkAndCreateAlerts, type PropAlert } from "@/lib/prop-alerts";
+import { type PropAccountRow, phaseLabel } from "@/lib/accounts";
 import { DrawdownBar } from "@/components/prop/DrawdownBar";
 import { StaleBadge } from "@/components/prop/StaleBadge";
 import { supabase } from "@/lib/supabase/client";
@@ -22,29 +21,27 @@ import { AlertCircle, TrendingUp } from "lucide-react";
 
 const RISCO_THRESHOLD_PCT = 70;
 
-interface PropPageData {
+interface PropCardData {
+  accountId: string;
+  accountName: string;
   propInfo: PropAccountRow;
   cycleStats: PropCycleStats;
   drawdownStats: DrawdownStats | null;
-  accountName: string;
   lastTradeAt: string | null;
 }
 
 export default function PropPage() {
-  const { accounts, activeAccountId } = useActiveAccount();
-  const activeAccount = activeAccountId ? accounts.find((a) => a.id === activeAccountId) : null;
-  const activeName = activeAccount?.name ?? "—";
-  const isProp = activeAccount?.kind === "prop";
+  const { accounts } = useActiveAccount();
+  const propAccounts = accounts.filter((a) => a.kind === "prop" && a.is_active);
 
-  const [data, setData] = useState<PropPageData | null>(null);
+  const [cardsData, setCardsData] = useState<PropCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [alerts, setAlerts] = useState<PropAlert[]>([]);
 
-  const fetchData = useCallback(async () => {
-    if (!activeAccountId || !isProp) {
+  const fetchAllPropData = useCallback(async () => {
+    if (propAccounts.length === 0) {
       setLoading(false);
-      setData(null);
+      setCardsData([]);
       return;
     }
 
@@ -60,96 +57,77 @@ export default function PropPage() {
       }
       const userId = session.user.id;
 
-      const [accountsWithProp, cycleStats] = await Promise.all([
-        listMyAccountsWithProp(),
-        getPropCycleStats(activeAccountId),
-      ]);
+      const results = await Promise.all(
+        propAccounts.map(async (account) => {
+          try {
+            const propInfo = account.prop;
+            if (!propInfo) return null;
 
-      const match = accountsWithProp.find((a) => a.id === activeAccountId);
-      if (!match?.prop) {
-        setError("Dados da conta prop não encontrados.");
-        setData(null);
-        setLoading(false);
-        return;
-      }
+            const [cycleStats, drawdownStats, lastTradeRes] = await Promise.all([
+              getPropCycleStats(account.id),
+              getDrawdownStats(
+                supabase,
+                account.id,
+                userId,
+                propInfo.max_daily_loss_percent,
+                propInfo.max_overall_loss_percent
+              ),
+              supabase
+                .from("journal_trades")
+                .select("closed_at")
+                .eq("account_id", account.id)
+                .eq("user_id", userId)
+                .order("closed_at", { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+            ]);
 
-      const propInfo = match.prop;
+            const lastTradeAt = (lastTradeRes.data as { closed_at?: string } | null)?.closed_at ?? null;
 
-      // Fetch drawdown stats via RPC
-      const drawdownStats = await getDrawdownStats(
-        supabase,
-        activeAccountId,
-        userId,
-        propInfo.max_daily_loss_percent,
-        propInfo.max_overall_loss_percent
+            return {
+              accountId: account.id,
+              accountName: account.name,
+              propInfo,
+              cycleStats,
+              drawdownStats,
+              lastTradeAt,
+            } as PropCardData;
+          } catch {
+            return null;
+          }
+        })
       );
 
-      // Get last trade date for stale badge
-      const { data: lastTrade } = await supabase
-        .from("journal_trades")
-        .select("closed_at")
-        .eq("account_id", activeAccountId)
-        .eq("user_id", userId)
-        .order("closed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const lastTradeAt = (lastTrade as { closed_at?: string } | null)?.closed_at ?? null;
-
-      setData({
-        propInfo,
-        cycleStats,
-        drawdownStats,
-        accountName: match.name,
-        lastTradeAt,
-      });
-
-      // Check and create alerts (fire-and-forget for toasts)
-      if (drawdownStats) {
-        checkAndCreateAlerts(
-          supabase,
-          activeAccountId,
-          userId,
-          drawdownStats.dailyDdPct,
-          drawdownStats.overallDdPct,
-          propInfo.max_daily_loss_percent,
-          propInfo.max_overall_loss_percent
-        ).then((newAlerts) => {
-          if (newAlerts.length > 0) {
-            setAlerts((prev) => [...prev, ...newAlerts]);
-          }
-        }).catch(() => {});
-      }
-
+      setCardsData(results.filter((r): r is PropCardData => r !== null));
       setLoading(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro inesperado ao carregar dados.");
       setLoading(false);
     }
-  }, [activeAccountId, isProp]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propAccounts.map((a) => a.id).join(",")]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchAllPropData();
+  }, [fetchAllPropData]);
 
-  // ---------- Not a prop account ----------
-  if (!isProp) {
+  // ---------- No prop accounts ----------
+  if (!loading && propAccounts.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-6 py-12">
-        <p className="text-sm text-muted-foreground mb-1">Conta ativa: {activeName}</p>
         <div className="mb-10">
-          <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-            Prop
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Contas
           </h1>
-          <p className="mt-1 text-muted-foreground leading-relaxed-apple">
-            Painel de acompanhamento de contas de avaliação.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Visão geral de todas as suas contas prop.
           </p>
         </div>
         <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <TrendingUp className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
-              Selecione uma conta prop para ver os dados de avaliação.
+              Nenhuma conta prop ativa encontrada. Crie uma conta prop para ver o painel.
             </p>
           </CardContent>
         </Card>
@@ -161,28 +139,35 @@ export default function PropPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl px-6 py-12">
-        <p className="text-sm text-muted-foreground mb-1">Conta ativa: {activeName}</p>
         <div className="mb-10">
-          <div className="h-7 w-32 animate-pulse rounded bg-muted" />
-          <div className="mt-2 h-4 w-56 animate-pulse rounded bg-muted" />
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Contas
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Visão geral de todas as suas contas prop.
+          </p>
         </div>
-        <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
-          <CardContent className="p-6">
-            <div className="animate-pulse space-y-4">
-              <div className="h-5 w-40 rounded bg-muted" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="h-3 w-24 rounded bg-muted" />
-                    <div className="h-6 w-32 rounded bg-muted" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          {Array.from({ length: propAccounts.length || 2 }).map((_, i) => (
+            <Card key={i} className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <CardContent className="p-6">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-5 w-40 rounded bg-muted" />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {Array.from({ length: 4 }).map((_, j) => (
+                      <div key={j} className="space-y-2">
+                        <div className="h-3 w-24 rounded bg-muted" />
+                        <div className="h-6 w-32 rounded bg-muted" />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="h-4 w-full rounded bg-muted" />
-              <div className="h-4 w-full rounded bg-muted" />
-            </div>
-          </CardContent>
-        </Card>
+                  <div className="h-4 w-full rounded bg-muted" />
+                  <div className="h-4 w-full rounded bg-muted" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -191,10 +176,9 @@ export default function PropPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-7xl px-6 py-12">
-        <p className="text-sm text-muted-foreground mb-1">Conta ativa: {activeName}</p>
         <div className="mb-10">
-          <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-            Prop
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Contas
           </h1>
         </div>
         <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
@@ -207,29 +191,27 @@ export default function PropPage() {
     );
   }
 
-  // ---------- No data ----------
-  if (!data) {
-    return (
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <p className="text-sm text-muted-foreground mb-1">Conta ativa: {activeName}</p>
-        <div className="mb-10">
-          <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-            Prop
-          </h1>
-        </div>
-        <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <TrendingUp className="mb-3 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              Nenhum dado de conta prop encontrado.
-            </p>
-          </CardContent>
-        </Card>
+  return (
+    <div className="mx-auto max-w-7xl px-6 py-12">
+      <div className="mb-10">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          Contas
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Visão geral de todas as suas contas prop · {cardsData.length} conta{cardsData.length !== 1 ? "s" : ""} ativa{cardsData.length !== 1 ? "s" : ""}
+        </p>
       </div>
-    );
-  }
 
-  // ---------- Real data from prop_accounts ----------
+      <div className="grid gap-6 lg:grid-cols-2">
+        {cardsData.map((card) => (
+          <PropAccountCard key={card.accountId} data={card} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PropAccountCard({ data }: { data: PropCardData }) {
   const { propInfo, cycleStats, drawdownStats, accountName, lastTradeAt } = data;
   const startingBalance = propInfo.starting_balance_usd;
   const profitTargetPct = propInfo.profit_target_percent;
@@ -243,11 +225,8 @@ export default function PropPage() {
   const profit = cycleStats.profitSinceLastPayout;
   const remainingToTarget = Math.max(0, profitTarget - profit);
 
-  // Drawdown values from RPC (or fallback to cycle-based)
   const dailyDdPct = drawdownStats?.dailyDdPct ?? 0;
   const overallDdPct = drawdownStats?.overallDdPct ?? 0;
-  // FIX TECH-009: For trailing drawdown firms, measure loss from high water mark,
-  // not just cycle profit. For static DD, -profit is correct.
   const hwm = drawdownStats?.highWaterMark ?? startingBalance;
   const currentEquity = startingBalance + profit;
   const overallLossUsed = propInfo.drawdown_type === "trailing"
@@ -261,120 +240,82 @@ export default function PropPage() {
   const status: "ok" | "risco" = overallDdPct >= RISCO_THRESHOLD_PCT ? "risco" : "ok";
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12" data-account-id={activeAccountId ?? undefined}>
-      <p className="text-sm text-muted-foreground mb-1">Conta ativa: {activeName}</p>
-      <div className="mb-10 flex items-start justify-between">
+    <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight-apple leading-tight-apple text-foreground">
-            Prop
-          </h1>
-          <p className="mt-1 text-muted-foreground leading-relaxed-apple">
-            {propInfo.firm_name} · {phaseLabel(propInfo.phase)} · Saldo inicial ${startingBalance.toLocaleString()} · DD {ddTypeLabel}
-          </p>
+          <CardTitle className="text-base font-medium">{accountName}</CardTitle>
+          <CardDescription>
+            {propInfo.firm_name} · {phaseLabel(propInfo.phase)} · ${startingBalance.toLocaleString()} · DD {ddTypeLabel}
+          </CardDescription>
         </div>
-        <StaleBadge lastTradeAt={lastTradeAt} />
-      </div>
-
-      {/* Alert toasts */}
-      {alerts.length > 0 && (
-        <div className="mb-6 space-y-2">
-          {alerts.map((alert) => (
-            <div
-              key={alert.id}
-              className="flex items-center gap-3 rounded-xl border border-amber-500/30 px-4 py-3"
-              style={{ backgroundColor: "hsl(var(--card))" }}
-            >
-              <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
-              <p className="text-sm text-foreground">{alert.message}</p>
-            </div>
-          ))}
+        <div className="flex items-center gap-2">
+          <StaleBadge lastTradeAt={lastTradeAt} />
+          {status === "ok" ? (
+            <Badge variant="success">OK</Badge>
+          ) : (
+            <Badge variant="warning">Risco</Badge>
+          )}
         </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-8 space-y-6">
-          <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div>
-                <CardTitle className="text-base font-medium">{accountName}</CardTitle>
-                <CardDescription>
-                  Meta {profitTargetPct}% (${profitTarget.toLocaleString()}) · Max diário {maxDailyLossPct}% (${maxDailyLoss.toLocaleString()}) · Max overall {maxOverallLossPct}% (${maxOverallLoss.toLocaleString()})
-                </CardDescription>
-              </div>
-              {status === "ok" ? (
-                <Badge variant="success">OK</Badge>
-              ) : (
-                <Badge variant="warning">Risco</Badge>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Lucro atual (ciclo)
-                  </p>
-                  <p className={`kpi-value text-xl ${profit >= 0 ? "text-emerald-800 dark:text-emerald-500" : "text-red-600 dark:text-red-400"}`}>
-                    {profit >= 0 ? "+" : ""}${profit.toLocaleString()}
-                  </p>
-                  {cycleStats.totalHistorical !== cycleStats.profitSinceLastPayout && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Total histórico: ${cycleStats.totalHistorical.toLocaleString()}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Falta para meta</p>
-                  <p className="kpi-value text-xl">${remainingToTarget.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Distância do overall</p>
-                  <p className="kpi-value text-xl">${overallDistance.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Último payout</p>
-                  <p className="kpi-value text-xl">
-                    {cycleStats.lastPayoutAt
-                      ? new Date(cycleStats.lastPayoutAt).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : "Nenhum"}
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Progresso da meta (0 → ${profitTarget.toLocaleString()})</span>
-                  <span className="font-medium">
-                    ${profit.toLocaleString()} / ${profitTarget.toLocaleString()}
-                  </span>
-                </div>
-                <Progress value={Math.max(0, metaProgressPct)} max={100} className="mt-2" />
-              </div>
-
-              <Separator />
-
-              {/* Drawdown bars */}
-              <div className="space-y-4">
-                <DrawdownBar
-                  label="Drawdown Diário"
-                  currentPct={dailyDdPct}
-                  maxPct={maxDailyLossPct}
-                />
-                <DrawdownBar
-                  label="Drawdown Geral"
-                  currentPct={overallDdPct}
-                  maxPct={maxOverallLossPct}
-                />
-              </div>
-            </CardContent>
-          </Card>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              Lucro atual (ciclo)
+            </p>
+            <p className={`text-lg font-bold tabular-nums ${profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+              {profit >= 0 ? "+" : ""}${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Falta para meta</p>
+            <p className="text-lg font-bold tabular-nums">${remainingToTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Distância do overall</p>
+            <p className="text-lg font-bold tabular-nums">${overallDistance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Último payout</p>
+            <p className="text-lg font-bold">
+              {cycleStats.lastPayoutAt
+                ? new Date(cycleStats.lastPayoutAt).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "Nenhum"}
+            </p>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <Separator />
+
+        <div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Meta (0 → ${profitTarget.toLocaleString()})</span>
+            <span className="font-medium tabular-nums">
+              ${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${profitTarget.toLocaleString()}
+            </span>
+          </div>
+          <Progress value={Math.max(0, metaProgressPct)} max={100} className="mt-2" />
+        </div>
+
+        <Separator />
+
+        <div className="space-y-3">
+          <DrawdownBar
+            label="Drawdown Diário"
+            currentPct={dailyDdPct}
+            maxPct={maxDailyLossPct}
+          />
+          <DrawdownBar
+            label="Drawdown Geral"
+            currentPct={overallDdPct}
+            maxPct={maxOverallLossPct}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
