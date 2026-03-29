@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +20,14 @@ interface MonthlyPerformanceGridProps {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const ALL_METRICS: { key: MetricMode; label: string }[] = [
+const BASE_METRICS: { key: MetricMode; label: string }[] = [
   { key: "pnl", label: "P&L ($)" },
+];
+
+const BALANCE_METRICS: { key: MetricMode; label: string }[] = [
   { key: "pct_accum", label: "% acumulada" },
   { key: "pct_geral", label: "% geral" },
+  { key: "saldo_inicial", label: "Saldo inicial" },
   { key: "saldo_atual", label: "Saldo atual" },
 ];
 
@@ -77,6 +81,14 @@ export function MonthlyPerformanceGrid({
   const hasBalance = startingBalance !== null && startingBalance > 0;
   const [mode, setMode] = useState<MetricMode>("pnl");
   const { mask } = usePrivacy();
+
+  // Reset mode to pnl if balance is lost while on a balance-dependent metric
+  useEffect(() => {
+    const balanceMetricKeys: MetricMode[] = ["pct_accum", "pct_geral", "saldo_inicial", "saldo_atual"];
+    if (!hasBalance && balanceMetricKeys.includes(mode)) {
+      setMode("pnl");
+    }
+  }, [hasBalance, mode]);
 
   // Filter trades for active account
   const accountTrades = useMemo(() => {
@@ -167,10 +179,15 @@ export function MonthlyPerformanceGrid({
     const balance = balanceByYearMonth.get(key) ?? 0;
 
     switch (mode) {
-      case "pct_accum":
-      case "pct_geral": {
+      case "pct_accum": {
+        // % acumulada = retorno do mês sobre o saldo no início daquele mês (composto)
         if (balance <= 0) return "—";
         return formatPct((data.pnl / balance) * 100);
+      }
+      case "pct_geral": {
+        // % geral = retorno do mês sobre o saldo inicial original
+        if (!hasBalance) return "—";
+        return formatPct((data.pnl / startingBalance!) * 100);
       }
       case "saldo_inicial":
         return balance > 0 ? formatUsd(balance) : "—";
@@ -191,8 +208,9 @@ export function MonthlyPerformanceGrid({
 
     switch (mode) {
       case "pct_accum":
-      case "pct_geral":
         return balance > 0 ? (data.pnl / balance) * 100 : 0;
+      case "pct_geral":
+        return hasBalance ? (data.pnl / startingBalance!) * 100 : 0;
       case "saldo_inicial":
         return balance;
       case "saldo_atual":
@@ -220,15 +238,9 @@ export function MonthlyPerformanceGrid({
       return formatPct((compound - 1) * 100);
     }
     if (mode === "pct_geral") {
-      let yearStartBalance = balanceByYearMonth.get(`${row.year}-0`) ?? 0;
-      if (yearStartBalance <= 0) {
-        for (let m = 0; m < 12; m++) {
-          const bal = balanceByYearMonth.get(`${row.year}-${m}`);
-          if (bal && bal > 0) { yearStartBalance = bal; break; }
-        }
-      }
-      if (yearStartBalance <= 0) return "—";
-      return formatPct((row.ytdPnl / yearStartBalance) * 100);
+      // % geral YTD = P&L do ano / saldo inicial original
+      if (!hasBalance) return "—";
+      return formatPct((row.ytdPnl / startingBalance!) * 100);
     }
     if (mode === "saldo_atual") {
       for (let m = 11; m >= 0; m--) {
@@ -278,7 +290,7 @@ export function MonthlyPerformanceGrid({
 
         {/* Metric toggles */}
         <div className="mt-3 flex flex-wrap gap-1">
-          {ALL_METRICS.map((m) => (
+          {[...BASE_METRICS, ...(hasBalance ? BALANCE_METRICS : [])].map((m) => (
             <button
               key={m.key}
               type="button"
@@ -296,6 +308,11 @@ export function MonthlyPerformanceGrid({
               {m.label}
             </button>
           ))}
+          {!hasBalance && activeAccountId && (
+            <span className="text-[10px] text-muted-foreground self-center ml-1 italic">
+              Defina o capital inicial para ver % e saldos
+            </span>
+          )}
         </div>
       </div>
 
