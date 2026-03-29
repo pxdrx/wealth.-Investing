@@ -13,6 +13,7 @@ import { JournalEquityChart } from "@/components/journal/JournalEquityChart";
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
+import { DdBreachModal } from "@/components/account/DdBreachModal";
 import { ImportDropZone } from "@/components/journal/ImportDropZone";
 import { ImportPreview } from "@/components/journal/ImportPreview";
 import { ImportResult } from "@/components/journal/ImportResult";
@@ -76,6 +77,7 @@ export default function JournalPage() {
   const [importFlowState, setImportFlowState] = useState<ImportFlowState>("idle");
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [importResultData, setImportResultData] = useState<ImportResultData | null>(null);
+  const [ddBreach, setDdBreach] = useState<{ accountName: string; accountId: string; ddPercent: number; ddLimit: number; date: string } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [trades, setTrades] = useState<JournalTradeRow[]>([]);
@@ -366,6 +368,16 @@ export default function JournalPage() {
         skippedDetails,
       });
       setImportFlowState("done");
+      // Check for DD breach
+      if (data.dd_breach?.breached && activeAccountId) {
+        setDdBreach({
+          accountId: activeAccountId,
+          accountName: data.dd_breach.accountName,
+          ddPercent: data.dd_breach.ddPercent,
+          ddLimit: data.dd_breach.ddLimit,
+          date: data.dd_breach.date,
+        });
+      }
       await loadTrades();
     } catch (e) {
       setImportError(e instanceof Error ? e.message : "Falha ao importar");
@@ -684,6 +696,18 @@ export default function JournalPage() {
           onClose={() => setShowAddTrade(false)}
           onSaved={loadTrades}
           userId={userId}
+        />
+      )}
+
+      {ddBreach && (
+        <DdBreachModal
+          open={!!ddBreach}
+          onOpenChange={(open) => { if (!open) setDdBreach(null); }}
+          accountId={ddBreach.accountId}
+          accountName={ddBreach.accountName}
+          date={ddBreach.date}
+          ddPercent={ddBreach.ddPercent}
+          ddLimit={ddBreach.ddLimit}
         />
       )}
 

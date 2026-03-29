@@ -83,7 +83,7 @@ export function AccountsOverview({
   // Per-account metrics
   const accountRows = useMemo(() => {
     return accounts
-      .filter((a) => a.is_active && a.kind !== "backtest")
+      .filter((a) => a.kind !== "backtest")
       .map((account) => {
         const pa = propAccountMap.get(account.id);
         const monthTrades = currentMonthTrades.filter(
@@ -144,8 +144,10 @@ export function AccountsOverview({
         }
 
         // Status
-        let status: "risk" | "ok" | "personal" | "crypto";
-        if (account.kind === "prop") {
+        let status: "risk" | "ok" | "personal" | "crypto" | "closed";
+        if (!account.is_active) {
+          status = "closed";
+        } else if (account.kind === "prop") {
           status = ddRiskLevel > 0.7 ? "risk" : "ok";
         } else if (account.kind === "crypto") {
           status = "crypto";
@@ -257,21 +259,28 @@ export function AccountsOverview({
                   status,
                 }) => {
                   const isRisk = status === "risk";
+                  const isClosed = status === "closed";
                   return (
                     <tr
                       key={account.id}
                       className="border-t border-border/50 transition-colors"
-                      style={
-                        isRisk
-                          ? { backgroundColor: "hsl(var(--pnl-negative) / 0.05)" }
-                          : undefined
-                      }
+                      style={{
+                        backgroundColor: isRisk ? "hsl(var(--pnl-negative) / 0.05)" : undefined,
+                        opacity: isClosed ? 0.5 : 1,
+                      }}
                     >
                       {/* Conta */}
                       <td className="px-4 py-3">
-                        <p className="font-medium text-foreground">
-                          {account.name}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">
+                            {account.name}
+                          </p>
+                          {isClosed && (
+                            <span className="rounded-full bg-red-500/15 text-red-600 dark:text-red-400 px-2 py-0.5 text-[10px] font-semibold uppercase">
+                              Encerrada
+                            </span>
+                          )}
+                        </div>
                         {pa && (
                           <p className="text-[11px] text-muted-foreground mt-0.5">
                             {pa.firm_name} · {pa.phase}
@@ -349,6 +358,11 @@ export function AccountsOverview({
                         {status === "crypto" && (
                           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-500">
                             Crypto
+                          </span>
+                        )}
+                        {status === "closed" && (
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-red-500/15 text-red-600 dark:text-red-400">
+                            Encerrada
                           </span>
                         )}
                       </td>

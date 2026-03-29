@@ -3,6 +3,7 @@ import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { parseMt5Xlsx } from "@/lib/mt5-parser";
 import { parseMt5Html } from "@/lib/mt5-html-parser";
 import { inferCategory } from "@/lib/trading/category";
+import { checkAndDeactivateIfDdBreached } from "@/lib/dd-check";
 import { validateAccountOwnership } from "@/lib/account-validation";
 
 export const runtime = "nodejs";
@@ -484,6 +485,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check daily drawdown breach after import (prop accounts only)
+    let ddBreach: { breached: boolean; accountName: string; ddPercent: number; ddLimit: number; date: string } | null = null;
+    if (isPropAccount && imported > 0) {
+      try {
+        ddBreach = await checkAndDeactivateIfDdBreached(supabase, accountId, userId);
+      } catch (err) {
+        console.warn("[import-mt5] DD check failed:", err);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       parser_used: parserChosen,
@@ -497,6 +508,7 @@ export async function POST(request: Request) {
       duplicates,
       failed,
       payouts_detected: payoutsDetected,
+      dd_breach: ddBreach,
       duration_ms: durationMs,
       skipped_details: skippedDetails,
       duplicate_details: duplicateDetails,
