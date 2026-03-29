@@ -28,12 +28,10 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
     { id: "accounts", visible: true, order: 1 },
     { id: "calendar", visible: true, order: 2 },
     { id: "news", visible: true, order: 3 },
-    { id: "equity-mini", visible: false, order: 4 },
-    { id: "tiltmeter", visible: false, order: 5 },
-    { id: "top-symbols", visible: false, order: 6 },
-    { id: "session-heatmap", visible: false, order: 7 },
-    { id: "streaks", visible: false, order: 8 },
-    { id: "ai-insight", visible: false, order: 9 },
+    { id: "top-symbols", visible: false, order: 4 },
+    { id: "session-heatmap", visible: false, order: 5 },
+    { id: "streaks", visible: false, order: 6 },
+    { id: "ai-insight", visible: false, order: 7 },
   ],
 };
 
@@ -44,8 +42,6 @@ export const WIDGET_LABELS: Record<string, { title: string; titlePtBr: string; t
   accounts: { title: "Accounts Overview", titlePtBr: "Visão de Contas", tier: "pro" },
   calendar: { title: "Calendar", titlePtBr: "Calendário", tier: "free" },
   news: { title: "Macro Panorama", titlePtBr: "Panorama Macro", tier: "free" },
-  "equity-mini": { title: "Equity Curve", titlePtBr: "Curva de Equity", tier: "pro" },
-  tiltmeter: { title: "Tiltmeter", titlePtBr: "Termômetro Emocional", tier: "pro" },
   "top-symbols": { title: "Top Symbols", titlePtBr: "Top Ativos", tier: "pro" },
   "session-heatmap": { title: "Session Heatmap", titlePtBr: "Mapa de Sessões", tier: "pro" },
   streaks: { title: "Streaks", titlePtBr: "Sequências", tier: "free" },
@@ -70,7 +66,7 @@ export function mergeLayout(userLayout: DashboardLayout | null | undefined): Das
 }
 
 // ─── Small widget IDs for dynamic grid sizing ──────────────────
-const SMALL_WIDGET_IDS = new Set(["news", "equity-mini", "tiltmeter", "top-symbols", "session-heatmap", "streaks"]);
+const SMALL_WIDGET_IDS = new Set(["news", "top-symbols", "session-heatmap", "streaks"]);
 
 // ─── Renderer ───────────────────────────────────────────────────
 

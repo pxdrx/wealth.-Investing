@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { ChevronDown, FlaskConical, Plus, TrendingUp, TrendingDown, PlusCircle } from "lucide-react";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
@@ -74,6 +74,45 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedSymbols, setSavedSymbols] = useState<string[]>([]);
+
+  // Load saved symbols on mount
+  useEffect(() => {
+    async function loadSymbols() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      const { data } = await supabase
+        .from("user_symbols")
+        .select("symbol")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: true });
+      if (data) setSavedSymbols(data.map((r: { symbol: string }) => r.symbol));
+    }
+    loadSymbols();
+  }, []);
+
+  const saveSymbol = useCallback(async (sym: string) => {
+    if (savedSymbols.includes(sym)) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return;
+    const { error: insertErr } = await supabase
+      .from("user_symbols")
+      .insert({ user_id: session.user.id, symbol: sym })
+      .select()
+      .maybeSingle();
+    if (!insertErr) setSavedSymbols((prev) => [...prev, sym]);
+  }, [savedSymbols]);
+
+  const deleteSymbol = useCallback(async (sym: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return;
+    await supabase
+      .from("user_symbols")
+      .delete()
+      .eq("user_id", session.user.id)
+      .eq("symbol", sym);
+    setSavedSymbols((prev) => prev.filter((s) => s !== sym));
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!symbol.trim() || !pnl.trim() || !accountId) {
@@ -111,6 +150,9 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
 
       if (dbErr) { setError(dbErr.message); return; }
 
+      // Save symbol for quick access
+      saveSymbol(sym);
+
       // Reset form immediately
       setSymbol("");
       setPnl("");
@@ -133,7 +175,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
     } finally {
       setSaving(false);
     }
-  }, [symbol, direction, pnl, date, time, accountId, observation, onTradeAdded]);
+  }, [symbol, direction, pnl, date, time, accountId, observation, onTradeAdded, saveSymbol]);
 
   return (
     <div className="rounded-[14px] border border-purple-500/20 p-3 space-y-2.5" style={{ backgroundColor: "hsl(var(--background))" }}>
@@ -160,6 +202,35 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
           </button>
         ))}
       </div>
+
+      {/* Saved symbols */}
+      {savedSymbols.length > 0 && (
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+          <span className="text-[8px] text-muted-foreground shrink-0 uppercase tracking-wider">Salvos:</span>
+          {savedSymbols.map((s) => (
+            <span
+              key={s}
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium transition-all border shrink-0",
+                symbol === s
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "border-blue-500/30 text-blue-600 dark:text-blue-400 hover:border-blue-500/60"
+              )}
+            >
+              <button type="button" onClick={() => setSymbol(s)} className="cursor-pointer">
+                {s}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); deleteSymbol(s); }}
+                className="ml-0.5 opacity-40 hover:opacity-100 hover:text-red-500 transition-opacity"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Symbol + Direction + PnL */}
       <div className="flex gap-1.5">

@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase/client";
 import { JournalTradeRow, getNetPnl } from "@/components/journal/types";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import { MetricCard } from "@/components/reports/MetricCard";
-import { EquityCurve } from "@/components/reports/EquityCurve";
 import { DrawdownChart } from "@/components/reports/DrawdownChart";
 import { PnlDistribution } from "@/components/reports/PnlDistribution";
 import { DailyPnlChart } from "@/components/reports/DailyPnlChart";
@@ -250,7 +249,6 @@ export function JournalReports() {
               </div>
 
               {/* Charts */}
-              <EquityCurve data={analytics.equityCurve} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DrawdownChart data={analytics.drawdownCurve} />
                 <DailyPnlChart data={analytics.dailyPnl} />

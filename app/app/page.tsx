@@ -31,10 +31,8 @@ import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import type { DashboardLayout } from "@/components/dashboard/WidgetRenderer";
-import { computeTiltmeter, type TiltmeterResult } from "@/lib/psychology-tags";
 import { formatPnl } from "@/components/calendar/utils";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
-import type { JournalTradeRow } from "@/components/journal/types";
 import type { Account } from "@/lib/accounts";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
@@ -58,17 +56,9 @@ const BacktestSection = dynamic(
   () => import("@/components/dashboard/BacktestSection").then((m) => ({ default: m.BacktestSection })),
   { ssr: false },
 );
-const EquityCurveMini = dynamic(
-  () => import("@/components/dashboard/EquityCurveMini").then((m) => ({ default: m.EquityCurveMini })),
-  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
-);
 const SessionHeatmap = dynamic(
   () => import("@/components/dashboard/SessionHeatmap").then((m) => ({ default: m.SessionHeatmap })),
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
-);
-const TiltmeterGauge = dynamic(
-  () => import("@/components/dashboard/TiltmeterGauge").then((m) => ({ default: m.TiltmeterGauge })),
-  { ssr: false, loading: () => <div className="h-[120px] w-full rounded-xl bg-muted animate-pulse" /> },
 );
 const WidgetRenderer = dynamic(
   () => import("@/components/dashboard/WidgetRenderer").then((m) => ({ default: m.WidgetRenderer })),
@@ -545,14 +535,8 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     // ── Macro Events ──
     "macro-events": <MacroWidgetEvents />,
 
-    // ── Equity Curve Mini ── (filter to active account only)
-    "equity-mini": <EquityCurveMini trades={activeAccountId ? realTrades.filter((t) => t.account_id === activeAccountId) : realTrades} startingBalanceUsd={activeStartingBalance} />,
-
     // ── Session Heatmap ──
     "session-heatmap": <SessionHeatmap trades={realTrades} />,
-
-    // ── Tiltmeter ──
-    tiltmeter: <TiltmeterWidget trades={realTrades as unknown as JournalTradeRow[]} />,
 
     // ── Top Symbols ──
     "top-symbols": <TopSymbolsWidget trades={realTrades} />,
@@ -647,56 +631,6 @@ function NewsWidget({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-// ─── Tiltmeter Widget ───────────────────────────────────────────
-
-function TiltmeterWidget({ trades }: { trades: JournalTradeRow[] }) {
-  const result = useMemo(() => computeTiltmeter(trades), [trades]);
-
-  const zoneDescription = result.zone === "green"
-    ? "Seu estado emocional está positivo com base nos últimos trades."
-    : result.zone === "red"
-      ? "Sinais de tilt detectados. Considere uma pausa."
-      : "Viés emocional neutro nos últimos trades.";
-
-  return (
-    <div
-      className="rounded-[22px] border overflow-hidden h-full flex flex-col"
-      style={{
-        borderColor: "hsl(var(--border))",
-        backgroundColor: "hsl(var(--card))",
-      }}
-    >
-      <div
-        className="flex items-center justify-between px-5 py-3.5 border-b shrink-0"
-        style={{ borderColor: "hsl(var(--border))" }}
-      >
-        <div>
-          <h3 className="text-sm font-semibold tracking-tight text-foreground">
-            Termômetro Emocional
-          </h3>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Viés emocional baseado nos seus últimos trades
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-4 px-5 py-4 flex-1">
-        <TiltmeterGauge result={result} size="sm" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">
-            Controle: {result.label}
-          </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-            {zoneDescription}
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Escala: -1 (tilt) a +1 (focado)
-          </p>
-        </div>
-      </div>
-    </div>
   );
 }
 

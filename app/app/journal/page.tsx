@@ -19,8 +19,6 @@ import { ImportPreview } from "@/components/journal/ImportPreview";
 import { ImportResult } from "@/components/journal/ImportResult";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
 import type { JournalTradeRow, PeriodFilter } from "@/components/journal/types";
-import { computeTiltmeter } from "@/lib/psychology-tags";
-import { TiltmeterGauge } from "@/components/dashboard/TiltmeterGauge";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { JournalReports } from "@/components/journal/JournalReports";
 import { AddTradeModal } from "@/components/journal/AddTradeModal";
@@ -429,9 +427,6 @@ export default function JournalPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">Journal</h1>
             <p className="mt-1 text-sm text-muted-foreground">Registro de operações e análise de performance.</p>
           </div>
-          {trades.length > 0 && (
-            <TiltmeterGauge result={computeTiltmeter(trades)} size="sm" />
-          )}
           <button
             onClick={() => setShowAddTrade(true)}
             className="flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-2 text-xs font-medium hover:opacity-90 transition-opacity"
