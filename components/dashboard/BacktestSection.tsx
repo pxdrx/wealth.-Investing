@@ -20,6 +20,7 @@ interface BacktestAccount {
   id: string;
   name: string;
   is_active: boolean;
+  starting_balance_usd?: number | null;
 }
 
 interface BacktestTrade {
@@ -303,10 +304,38 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
   const [expanded, setExpanded] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null); // null = all
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [balanceInput, setBalanceInput] = useState("");
   const { mask } = usePrivacy();
   const { refreshAccounts } = useActiveAccount();
 
   const activeAccounts = useMemo(() => accounts.filter((a) => a.is_active), [accounts]);
+
+  // Get starting balance for selected account
+  const selectedStartingBalance = useMemo(() => {
+    if (!selectedAccountId) return null;
+    const acc = activeAccounts.find((a) => a.id === selectedAccountId);
+    const val = acc?.starting_balance_usd;
+    return val != null ? Number(val) : null;
+  }, [selectedAccountId, activeAccounts]);
+
+  // Sync input with selected account's balance
+  useEffect(() => {
+    setBalanceInput(selectedStartingBalance ? String(selectedStartingBalance) : "");
+  }, [selectedStartingBalance]);
+
+  const saveStartingBalance = useCallback(async () => {
+    if (!selectedAccountId) return;
+    const num = parseFloat(balanceInput);
+    const value = isNaN(num) || num <= 0 ? null : num;
+    try {
+      await supabase
+        .from("accounts")
+        .update({ starting_balance_usd: value })
+        .eq("id", selectedAccountId);
+      await refreshAccounts();
+      onTradeAdded?.(); // refresh dashboard data
+    } catch {}
+  }, [selectedAccountId, balanceInput, refreshAccounts, onTradeAdded]);
 
   // Filter trades by selected account
   const filteredTrades = useMemo(() => {
@@ -417,6 +446,27 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
           )}
 
           {activeAccounts.length > 0 && (<>
+            {/* Capital inicial input — shown when specific account selected */}
+            {selectedAccountId && (
+              <div className="flex items-center gap-2 pb-2">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">
+                  Capital inicial
+                </label>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">$</span>
+                  <input
+                    type="number"
+                    value={balanceInput}
+                    onChange={(e) => setBalanceInput(e.target.value)}
+                    onBlur={saveStartingBalance}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveStartingBalance(); }}
+                    placeholder="0"
+                    className="w-28 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Quick Trade Form — hidden in "Todas" mode */}
             {selectedAccountId && (
               <div className="pb-2">
@@ -477,7 +527,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
                   account_id: t.account_id,
                 }))}
                 activeAccountId={selectedAccountId}
-                startingBalance={null}
+                startingBalance={selectedStartingBalance}
               />
             </div>
           </>)}

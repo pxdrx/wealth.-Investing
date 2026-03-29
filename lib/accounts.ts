@@ -8,6 +8,7 @@ export interface Account {
   kind: AccountKind;
   is_active: boolean;
   created_at?: string;
+  starting_balance_usd?: number | null;
 }
 
 export type PropPhase = "phase_1" | "phase_2" | "funded";
@@ -55,7 +56,7 @@ export async function listMyAccounts(): Promise<Account[]> {
 
   const { data, error } = await supabase
     .from("accounts")
-    .select("id, name, kind, is_active, created_at")
+    .select("id, name, kind, is_active, created_at, starting_balance_usd")
     .eq("user_id", session.user.id);
 
   if (error) {
@@ -77,7 +78,7 @@ export async function listMyAccountsWithProp(): Promise<AccountWithProp[]> {
 
   const { data: rows, error } = await supabase
     .from("accounts")
-    .select("id, name, kind, is_active, created_at")
+    .select("id, name, kind, is_active, created_at, starting_balance_usd")
     .eq("user_id", session.user.id);
 
   if (error) {

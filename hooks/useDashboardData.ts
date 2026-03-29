@@ -173,7 +173,7 @@ export function useDashboardData(): DashboardData {
             .order("opened_at", { ascending: false }),
           supabase
             .from("accounts")
-            .select("id, name, kind, is_active, created_at" as const)
+            .select("id, name, kind, is_active, created_at, starting_balance_usd" as const)
             .eq("user_id", userId),
         ]);
         if (cancelled) return;

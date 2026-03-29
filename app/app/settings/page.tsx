@@ -219,17 +219,19 @@ export default function SettingsPage() {
 
   const moveWidget = useCallback((id: string, direction: "up" | "down") => {
     setDashLayout((prev) => {
-      const widgets = [...prev.widgets].sort((a, b) => a.order - b.order);
-      const idx = widgets.findIndex((w) => w.id === id);
+      const sorted = [...prev.widgets].sort((a, b) => a.order - b.order);
+      const idx = sorted.findIndex((w) => w.id === id);
       if (idx === -1) return prev;
       const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-      if (swapIdx < 0 || swapIdx >= widgets.length) return prev;
+      if (swapIdx < 0 || swapIdx >= sorted.length) return prev;
 
-      const tempOrder = widgets[idx].order;
-      widgets[idx] = { ...widgets[idx], order: widgets[swapIdx].order };
-      widgets[swapIdx] = { ...widgets[swapIdx], order: tempOrder };
+      // Swap positions in array
+      [sorted[idx], sorted[swapIdx]] = [sorted[swapIdx], sorted[idx]];
 
-      return { ...prev, widgets };
+      // Normalize: assign consecutive order values (0, 1, 2, ...)
+      const normalized = sorted.map((w, i) => ({ ...w, order: i }));
+
+      return { ...prev, widgets: normalized };
     });
   }, []);
 

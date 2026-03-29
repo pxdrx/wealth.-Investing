@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { usePrivacy } from "@/components/context/PrivacyContext";
+import { supabase } from "@/lib/supabase/client";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import type { DashboardLayout } from "@/components/dashboard/WidgetRenderer";
 import { formatPnl } from "@/components/calendar/utils";
@@ -207,6 +208,28 @@ function DashboardContent({
   const { hidden, toggle } = usePrivacy();
   const [chartExpanded, setChartExpanded] = useState(false);
   const [chartSymbol, setChartSymbol] = useState("FX:EURUSD");
+  const [localLayout, setLocalLayout] = useState(dashboardLayout);
+
+  // Sync with prop changes
+  useEffect(() => {
+    setLocalLayout(dashboardLayout);
+  }, [dashboardLayout]);
+
+  // Persist reordered layout
+  const handleReorder = useCallback((newWidgets: DashboardLayout["widgets"]) => {
+    const newLayout = { ...localLayout, widgets: newWidgets };
+    setLocalLayout(newLayout);
+    // Persist to localStorage
+    if (userId) {
+      try { localStorage.setItem(`wealth-dash-layout-${userId}`, JSON.stringify(newLayout)); } catch {}
+      // Persist to DB in background
+      supabase
+        .from("profiles")
+        .update({ dashboard_layout: newLayout as unknown as Record<string, unknown> })
+        .eq("id", userId)
+        .then(() => {});
+    }
+  }, [localLayout, userId]);
   const { resolvedTheme } = useTheme();
   const tvTheme = resolvedTheme === "dark" ? "dark" : "light";
 
@@ -394,7 +417,8 @@ function DashboardContent({
 
         {/* ═══════════ Dynamic Widget System ═══════════ */}
         <WidgetRenderer
-          layout={dashboardLayout}
+          layout={localLayout}
+          onReorder={handleReorder}
           registry={buildWidgetRegistry({
             journalTrades,
             accountsById,
@@ -415,7 +439,7 @@ function DashboardContent({
         <BacktestSection
           accounts={Array.from(accountsById.values())
             .filter((a) => a.kind === "backtest")
-            .map((a) => ({ id: a.id, name: a.name, is_active: a.is_active }))}
+            .map((a) => ({ id: a.id, name: a.name, is_active: a.is_active, starting_balance_usd: a.starting_balance_usd != null ? Number(a.starting_balance_usd) : null }))}
           trades={journalTrades
             .filter((t) => {
               const acc = accountsById.get(t.account_id ?? "");
