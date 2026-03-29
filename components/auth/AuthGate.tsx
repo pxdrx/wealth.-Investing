@@ -9,8 +9,8 @@ import { useAuthEvent } from "@/components/context/AuthEventContext";
 /** Five minutes in milliseconds */
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
-/** Two hours inactivity timeout (financial app security) */
-const INACTIVITY_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+/** Four hours inactivity timeout (financial app security) */
+const INACTIVITY_TIMEOUT_MS = 4 * 60 * 60 * 1000;
 
 /** Periodic session check interval (5 minutes) */
 const SESSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -101,7 +101,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const getUserWithTimeout = Promise.race([
+          supabase.auth.getUser(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Auth timeout")), 10_000)
+          ),
+        ]);
+        const { data: { user }, error: userError } = await getUserWithTimeout;
 
         if (!mounted) return;
 

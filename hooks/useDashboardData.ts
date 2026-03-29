@@ -64,20 +64,21 @@ export function useDashboardData(): DashboardData {
   // Re-fetch trigger: increments when the page regains visibility (e.g. SPA nav back)
   const [refreshKey, setRefreshKey] = useState(0);
   const initialLoadDone = useRef(false);
-  const prevCtxAccountLen = useRef(ctxAccounts.length);
   const lastRefetch = useRef(0);
 
   const refreshData = useCallback(() => {
     setRefreshKey((k) => k + 1);
   }, []);
 
-  // Sync dashboard data when accounts change in context (e.g., deletion)
+  // Sync dashboard data when accounts change in context (e.g., deletion, rename)
+  const ctxAccountsKey = ctxAccounts.map((a) => `${a.id}:${a.name}:${a.is_active}`).join("|");
+  const prevCtxAccountsKey = useRef(ctxAccountsKey);
   useEffect(() => {
-    if (prevCtxAccountLen.current !== ctxAccounts.length && ctxAccounts.length > 0) {
-      prevCtxAccountLen.current = ctxAccounts.length;
+    if (prevCtxAccountsKey.current !== ctxAccountsKey && ctxAccounts.length > 0) {
+      prevCtxAccountsKey.current = ctxAccountsKey;
       setRefreshKey((k) => k + 1);
     }
-  }, [ctxAccounts]);
+  }, [ctxAccountsKey, ctxAccounts.length]);
 
   // PERF-002: Only use visibilitychange (not focus) with 30s cooldown to prevent double-fetch
   useEffect(() => {
@@ -112,6 +113,9 @@ export function useDashboardData(): DashboardData {
         if (!initialLoadDone.current) {
           setUserId(null);
         }
+        setSessionChecked(true);
+        initialLoadDone.current = true;
+        setJournalLoading(false);
         return;
       }
       const uid = session?.user?.id ?? null;

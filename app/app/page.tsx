@@ -72,6 +72,10 @@ const MacroWidgetEvents = dynamic(
   () => import("@/components/macro/MacroWidgetEvents").then((m) => ({ default: m.MacroWidgetEvents })),
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
 );
+const MonthlyPerformanceGrid = dynamic(
+  () => import("@/components/dashboard/MonthlyPerformanceGrid").then((m) => ({ default: m.MonthlyPerformanceGrid })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
 
 // Types moved to hooks/useDashboardData.ts and hooks/useNewsData.ts
 
@@ -490,6 +494,15 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
         dayNotes={dayNotes}
         userId={userId}
         onTradeDeleted={refreshData}
+      />
+    ),
+
+    // ── Monthly Performance Grid ──
+    "monthly-performance": (
+      <MonthlyPerformanceGrid
+        trades={realTrades}
+        activeAccountId={activeAccountId}
+        startingBalance={activeStartingBalance}
       />
     ),
 

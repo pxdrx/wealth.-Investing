@@ -97,11 +97,16 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
           setIsLoading(false);
           return;
         }
-        const list = await listMyAccountsWithProp();
+        const list = await Promise.race([
+          listMyAccountsWithProp(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Accounts load timeout")), 8_000)
+          ),
+        ]);
         if (!mounted) return;
         applyAccounts(list);
       } catch {
-        // ignora
+        // ignora — timeout or network error
       } finally {
         if (mounted) setIsLoading(false);
       }

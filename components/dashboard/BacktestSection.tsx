@@ -9,6 +9,7 @@ import { usePrivacy } from "@/components/context/PrivacyContext";
 import { supabase } from "@/lib/supabase/client";
 import { AddAccountModal } from "@/components/account/AddAccountModal";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
+import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
 
 const CalendarPnl = dynamic(
   () => import("@/components/calendar/CalendarPnl").then((m) => ({ default: m.CalendarPnl })),
@@ -466,6 +467,19 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
               compact
               onTradeDeleted={onTradeAdded}
             />
+
+            {/* Monthly Performance Grid */}
+            <div className="pt-3">
+              <MonthlyPerformanceGrid
+                trades={filteredTrades.map((t) => ({
+                  net_pnl_usd: t.net_pnl_usd,
+                  opened_at: t.opened_at,
+                  account_id: t.account_id,
+                }))}
+                activeAccountId={selectedAccountId}
+                startingBalance={null}
+              />
+            </div>
           </>)}
         </div>
       )}

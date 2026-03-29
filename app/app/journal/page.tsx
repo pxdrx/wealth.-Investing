@@ -13,6 +13,7 @@ import { JournalEquityChart } from "@/components/journal/JournalEquityChart";
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
+import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
 import { DdBreachModal } from "@/components/account/DdBreachModal";
 import { ImportDropZone } from "@/components/journal/ImportDropZone";
 import { ImportPreview } from "@/components/journal/ImportPreview";
@@ -639,6 +640,11 @@ export default function JournalPage() {
                     setDayNotes((prev) => ({ ...prev, [date]: note }));
                   }}
                   onTradeDeleted={() => loadTrades(true)}
+                />
+                <MonthlyPerformanceGrid
+                  trades={trades}
+                  activeAccountId={activeAccountId}
+                  startingBalance={startingBalanceUsd}
                 />
               </div>
             )}

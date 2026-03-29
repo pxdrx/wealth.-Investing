@@ -77,38 +77,10 @@ export default function SettingsPage() {
           timeout,
         ]) as [Awaited<ReturnType<typeof getMyProfile>>, { data: { session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"] } }];
         if (!mounted) return;
-        // Profile can be null (no profile row yet) — show empty form
         if (profile) {
           setDisplayName(profile.display_name ?? "");
         }
         if (session?.user?.email) setEmail(session.user.email);
-
-        // Load dashboard layout: DB first, then localStorage fallback
-        // This mirrors the exact same logic used in app/app/page.tsx (Dashboard)
-        let layoutLoaded = false;
-        if (session?.user?.id) {
-          try {
-            const { data: layoutProfile } = await supabase
-              .from("profiles")
-              .select("dashboard_layout")
-              .eq("id", session.user.id)
-              .maybeSingle();
-            if (!mounted) return;
-            if (layoutProfile?.dashboard_layout) {
-              setDashLayout(mergeLayout(layoutProfile.dashboard_layout as DashboardLayout));
-              layoutLoaded = true;
-            }
-          } catch {}
-          if (!mounted) return;
-          if (!layoutLoaded) {
-            try {
-              const stored = localStorage.getItem(`wealth-dash-layout-${session.user.id}`);
-              if (stored) {
-                setDashLayout(mergeLayout(JSON.parse(stored)));
-              }
-            } catch {}
-          }
-        }
       } catch (err) {
         console.error("[settings] failed to load profile:", err);
         if (mounted) {
@@ -117,18 +89,58 @@ export default function SettingsPage() {
           );
         }
       } finally {
-        if (mounted) {
-          setDashLayoutLoaded(true);
-          setProfileLoading(false);
-        }
+        if (mounted) setProfileLoading(false);
       }
     }
     load();
-    return () => {
-      mounted = false;
-    };
-  // Run once on mount — loads profile and session data for initial render.
-  // Dependencies (getMyProfile, supabase) are stable module-level singletons.
+    return () => { mounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Load dashboard layout (independent from profile) ──
+  useEffect(() => {
+    let mounted = true;
+    async function loadLayout() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted || !session?.user?.id) {
+          if (mounted) setDashLayoutLoaded(true);
+          return;
+        }
+        const uid = session.user.id;
+
+        // localStorage is source of truth (dashboard writes here on every change)
+        let loaded = false;
+        try {
+          const stored = localStorage.getItem(`wealth-dash-layout-${uid}`);
+          if (stored) {
+            setDashLayout(mergeLayout(JSON.parse(stored)));
+            loaded = true;
+          }
+        } catch {}
+
+        // Fallback to DB if localStorage is empty
+        if (!loaded) {
+          try {
+            const { data: layoutProfile } = await supabase
+              .from("profiles")
+              .select("dashboard_layout")
+              .eq("id", uid)
+              .maybeSingle();
+            if (!mounted) return;
+            if (layoutProfile?.dashboard_layout) {
+              setDashLayout(mergeLayout(layoutProfile.dashboard_layout as DashboardLayout));
+            }
+          } catch {}
+        }
+      } catch {
+        // ignore — layout falls back to DEFAULT_LAYOUT
+      } finally {
+        if (mounted) setDashLayoutLoaded(true);
+      }
+    }
+    loadLayout();
+    return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
