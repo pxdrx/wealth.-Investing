@@ -253,7 +253,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const response = await getAnthropic().messages.create({
-      model: "claude-sonnet-4-6-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 2048,
       messages: [{ role: "user", content: prompt }],
     });
@@ -310,6 +310,7 @@ export async function POST(req: NextRequest) {
     if (msg.includes("rate") || msg.includes("429") || msg.includes("overloaded")) {
       return NextResponse.json({ ok: false, error: "Serviço temporariamente sobrecarregado. Aguarde 1 minuto e tente novamente." }, { status: 429 });
     }
+    console.error("[psychology] Full error:", JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
     return NextResponse.json({ ok: false, error: "Erro ao gerar análise. Tente novamente em alguns instantes." }, { status: 500 });
   }
 }
