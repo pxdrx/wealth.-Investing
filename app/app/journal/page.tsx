@@ -96,6 +96,7 @@ export default function JournalPage() {
   const [tradesPage, setTradesPage] = useState(0);
   const [hasMoreTrades, setHasMoreTrades] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [allTradesSummary, setAllTradesSummary] = useState<{ net_pnl_usd: number; opened_at: string; account_id: string }[]>([]);
   // Get userId once on mount — AuthGate already validates the session
   useEffect(() => {
     let cancelled = false;
@@ -167,6 +168,24 @@ export default function JournalPage() {
     loadTrades();
     return () => controller.abort();
   }, [loadTrades]);
+
+  // Fetch ALL trades (lightweight — only 3 cols) for MonthlyPerformanceGrid
+  useEffect(() => {
+    if (!activeAccountId) { setAllTradesSummary([]); return; }
+    let aborted = false;
+    (async () => {
+      const { data } = await supabase
+        .from("journal_trades")
+        .select("net_pnl_usd, opened_at, account_id")
+        .eq("account_id", activeAccountId)
+        .not("opened_at", "is", null)
+        .not("net_pnl_usd", "is", null)
+        .order("opened_at", { ascending: true });
+      if (aborted) return;
+      setAllTradesSummary((data ?? []) as { net_pnl_usd: number; opened_at: string; account_id: string }[]);
+    })();
+    return () => { aborted = true; };
+  }, [activeAccountId]);
 
   // Fetch day_notes for CalendarPnl (PERF-008: AbortController to prevent stale setState)
   useEffect(() => {
@@ -442,37 +461,39 @@ export default function JournalPage() {
     <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Journal</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Registro de operações e análise de performance.</p>
-          </div>
-          <button
-            onClick={() => setShowAddTrade(true)}
-            className="flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-2 text-xs font-medium hover:opacity-90 transition-opacity"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Adicionar Trade
-          </button>
-          <button
-            onClick={toggleValues}
-            className="group relative flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
-            title={valuesHidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
-          >
-            {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            <span>{valuesHidden ? "Mostrar" : "Ocultar"}</span>
-          </button>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Journal</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Registro de operações e análise de performance.</p>
         </div>
         <AccountSelectorInline showAddButton />
       </div>
 
       {/* Tab bar */}
-      <div className="mb-6">
+      <div className="mb-4">
         <ExpandableTabs
           tabs={tabs}
           activeIndex={activeTab}
           onChange={handleTabChange}
         />
+      </div>
+
+      {/* Action bar */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setShowAddTrade(true)}
+          className="flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-2 text-xs font-medium hover:opacity-90 transition-opacity"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Adicionar Trade
+        </button>
+        <button
+          onClick={toggleValues}
+          className="flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
+          title={valuesHidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
+        >
+          {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          <span>{valuesHidden ? "Mostrar" : "Ocultar"}</span>
+        </button>
       </div>
 
       {/* Import panel */}
@@ -661,7 +682,7 @@ export default function JournalPage() {
                   onTradeDeleted={() => loadTrades(true)}
                 />
                 <MonthlyPerformanceGrid
-                  trades={trades}
+                  trades={allTradesSummary}
                   activeAccountId={activeAccountId}
                   startingBalance={startingBalanceUsd}
                 />
