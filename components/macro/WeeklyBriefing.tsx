@@ -16,11 +16,12 @@ interface WeeklyBriefingProps {
 }
 
 /**
- * Detect if narrative is old format (has ## headers like "Visão Geral", "EUA", "Europa", "Fechamento").
+ * Detect if narrative is old format (has ## headers like "## Visão Geral", "## EUA", "## Europa", "## Fechamento").
  * Old narratives were full markdown reports; new ones are concise 2-3 paragraph summaries.
+ * Only match when these appear as markdown headings, not as inline text.
  */
 function isOldNarrativeFormat(text: string): boolean {
-  return /^##\s+/m.test(text) || /Visão Geral|Fechamento/i.test(text);
+  return /^#{1,3}\s+(Visão Geral|EUA|Europa|Fechamento|Abertura)/m.test(text);
 }
 
 /** Parse simple markdown to React nodes */
