@@ -140,8 +140,17 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
 
       {/* Error */}
       {error && (
-        <div className="rounded-[16px] border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-300">
-          {error}
+        <div className="rounded-[16px] border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 space-y-3">
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchAnalysis(period)}
+            className="gap-1.5 text-xs"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Tentar novamente
+          </Button>
         </div>
       )}
 

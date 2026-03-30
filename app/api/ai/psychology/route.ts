@@ -245,6 +245,12 @@ export async function POST(req: NextRequest) {
   // 5. Build prompt and call Claude
   const prompt = buildPsychologyPrompt(trades as TradeRow[], period);
 
+  // Check if Anthropic API key is configured
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("[psychology] ANTHROPIC_API_KEY not configured");
+    return NextResponse.json({ ok: false, error: "Análise IA indisponível no momento. A chave da API não está configurada." }, { status: 503 });
+  }
+
   try {
     const response = await getAnthropic().messages.create({
       model: "claude-sonnet-4-6-20250514",
@@ -295,12 +301,15 @@ export async function POST(req: NextRequest) {
     const msg = error.message || String(err);
     console.error("[psychology] Claude API error:", msg);
     // Surface specific error types to frontend
-    if (msg.includes("credit") || msg.includes("balance") || msg.includes("billing")) {
-      return NextResponse.json({ ok: false, error: "Sem créditos na API do Claude. Contate o suporte." }, { status: 402 });
+    if (msg.includes("authentication") || msg.includes("invalid x-api-key") || msg.includes("invalid_api_key")) {
+      return NextResponse.json({ ok: false, error: "Chave da API inválida ou expirada. Verifique a configuração." }, { status: 401 });
     }
-    if (msg.includes("rate") || msg.includes("429")) {
-      return NextResponse.json({ ok: false, error: "Limite de requisições atingido. Aguarde 1 minuto." }, { status: 429 });
+    if (msg.includes("credit") || msg.includes("balance") || msg.includes("billing") || msg.includes("insufficient_quota")) {
+      return NextResponse.json({ ok: false, error: "Sem créditos na API de IA. A análise psicológica estará disponível em breve." }, { status: 402 });
     }
-    return NextResponse.json({ ok: false, error: "Erro na análise IA. Tente novamente." }, { status: 500 });
+    if (msg.includes("rate") || msg.includes("429") || msg.includes("overloaded")) {
+      return NextResponse.json({ ok: false, error: "Serviço temporariamente sobrecarregado. Aguarde 1 minuto e tente novamente." }, { status: 429 });
+    }
+    return NextResponse.json({ ok: false, error: "Erro ao gerar análise. Tente novamente em alguns instantes." }, { status: 500 });
   }
 }
