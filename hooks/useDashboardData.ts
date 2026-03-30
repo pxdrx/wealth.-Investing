@@ -101,6 +101,15 @@ export function useDashboardData(): DashboardData {
   // Session + layout fetch
   useEffect(() => {
     let cancelled = false;
+    // Safety timeout: force loading to resolve after 10s to prevent infinite spinner
+    const safetyTimeout = setTimeout(() => {
+      if (!cancelled && !sessionChecked) {
+        console.warn("[dashboard] Safety timeout: forcing session check after 10s");
+        setSessionChecked(true);
+        setJournalLoading(false);
+        initialLoadDone.current = true;
+      }
+    }, 10_000);
     (async () => {
       const {
         data: { session },
@@ -147,6 +156,7 @@ export function useDashboardData(): DashboardData {
     })();
     return () => {
       cancelled = true;
+      clearTimeout(safetyTimeout);
     };
   }, [refreshKey]);
 

@@ -100,11 +100,17 @@ export default function JournalPage() {
   // Get userId once on mount — AuthGate already validates the session
   useEffect(() => {
     let cancelled = false;
+    // Safety timeout: force userId resolution after 10s
+    const safetyTimeout = setTimeout(() => {
+      if (!cancelled && userId === null) {
+        console.warn("[journal] Safety timeout: getSession did not resolve in 10s");
+      }
+    }, 10_000);
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!cancelled) setUserId(session?.user?.id ?? null);
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(safetyTimeout); };
   // Run once on mount — AuthGate already validates the session, this just
   // extracts the user ID. supabase client is a stable singleton.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -166,7 +172,14 @@ export default function JournalPage() {
   useEffect(() => {
     const controller = new AbortController();
     loadTrades();
-    return () => controller.abort();
+    // Safety timeout: force loadingTrades=false after 10s to prevent infinite spinner
+    const safetyTimeout = setTimeout(() => {
+      setLoadingTrades((prev) => {
+        if (prev) console.warn("[journal] Safety timeout: forcing loadingTrades=false after 10s");
+        return false;
+      });
+    }, 10_000);
+    return () => { controller.abort(); clearTimeout(safetyTimeout); };
   }, [loadTrades]);
 
   // Fetch ALL trades (lightweight — only 3 cols) for MonthlyPerformanceGrid

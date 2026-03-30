@@ -137,6 +137,15 @@ export default function MacroIntelligencePage() {
   // Initial load: fetch everything
   useEffect(() => {
     fetchData();
+
+    // Safety timeout: force loading=false after 10s to prevent infinite spinner
+    const safetyTimeout = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) console.warn("[macro] Safety timeout: forcing loading=false after 10s");
+        return false;
+      });
+    }, 10_000);
+    return () => clearTimeout(safetyTimeout);
   // Run once on mount — fetchData is intentionally omitted to prevent
   // re-fetching when its useCallback dependencies change. Week changes
   // are handled by the separate effect below.

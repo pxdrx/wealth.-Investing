@@ -39,6 +39,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     let mounted = true;
 
+    // Safety timeout: force isLoading=false after 10s to prevent infinite spinner
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        setIsLoading((prev) => {
+          if (prev) console.warn("[subscription] Safety timeout: forcing isLoading=false after 10s");
+          return false;
+        });
+      }
+    }, 10_000);
+
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!mounted) return;
@@ -50,6 +60,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
     };
   }, [load]);
 

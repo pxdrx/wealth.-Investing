@@ -607,9 +607,13 @@ export default function AnalystPage() {
         return;
       }
 
+      const historyController = new AbortController();
+      const historyTimeout = setTimeout(() => historyController.abort(), 10_000);
       const res = await fetch("/api/analyst/history", {
         headers: { Authorization: `Bearer ${session.access_token}` },
+        signal: historyController.signal,
       });
+      clearTimeout(historyTimeout);
       const data = await res.json();
       if (data.ok && data.data) setHistory(data.data);
     } catch (err) {
@@ -674,6 +678,9 @@ export default function AnalystPage() {
         return;
       }
 
+      const controller = new AbortController();
+      const streamTimeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout for SSE stream
+
       const res = await fetch("/api/analyst/run", {
         method: "POST",
         headers: {
@@ -681,9 +688,11 @@ export default function AnalystPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ ticker: resolveTicker(ticker) }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
+        clearTimeout(streamTimeout);
         const data = await res.json();
         setError(data.error || "Erro ao iniciar analise");
         setLoading(false);
@@ -691,43 +700,51 @@ export default function AnalystPage() {
       }
 
       const reader = res.body?.getReader();
-      if (!reader) throw new Error("No stream");
+      if (!reader) { clearTimeout(streamTimeout); throw new Error("No stream"); }
 
       const decoder = new TextDecoder();
       let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const payload = line.slice(6).trim();
-          if (payload === "[DONE]") continue;
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6).trim();
+            if (payload === "[DONE]") continue;
 
-          try {
-            const event = JSON.parse(payload);
-            if (event.type === "status") {
-              setStatus(event.data);
-            } else if (event.type === "report") {
-              const reportData = JSON.parse(event.data);
-              setReport(reportData);
-              setStatus("");
-              loadHistory();
-            } else if (event.type === "error") {
-              setError(event.data);
+            try {
+              const event = JSON.parse(payload);
+              if (event.type === "status") {
+                setStatus(event.data);
+              } else if (event.type === "report") {
+                const reportData = JSON.parse(event.data);
+                setReport(reportData);
+                setStatus("");
+                loadHistory();
+              } else if (event.type === "error") {
+                setError(event.data);
+              }
+            } catch {
+              // ignore parse errors in SSE stream
             }
-          } catch {
-            // ignore parse errors in SSE stream
           }
         }
+      } finally {
+        clearTimeout(streamTimeout);
       }
     } catch (err) {
-      setError("Erro de conexao. Tente novamente.");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("Analise excedeu o tempo limite (2 min). Tente novamente.");
+      } else {
+        setError("Erro de conexao. Tente novamente.");
+      }
       console.error("[analyst]", err);
     } finally {
       setLoading(false);
