@@ -202,7 +202,7 @@ export function AccountsOverview({
   return (
     <div className="space-y-4">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((kpi) => (
           <div
             key={kpi.label}
@@ -231,13 +231,13 @@ export function AccountsOverview({
                 <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   P&L Mês
                 </th>
-                <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="hidden md:table-cell text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   DD Diário
                 </th>
-                <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="hidden md:table-cell text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   DD Total
                 </th>
-                <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
+                <th scope="col" className="hidden sm:table-cell text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
                   Win Rate
                 </th>
                 <th scope="col" className="text-right text-[11px] uppercase tracking-wider text-muted-foreground px-4 py-3 font-medium">
@@ -294,7 +294,7 @@ export function AccountsOverview({
                       </td>
 
                       {/* DD Diário */}
-                      <td className="px-4 py-3 text-right metric-value text-xs text-muted-foreground">
+                      <td className="hidden md:table-cell px-4 py-3 text-right metric-value text-xs text-muted-foreground">
                         {ddDiario !== null ? (
                           <span
                             style={
@@ -312,7 +312,7 @@ export function AccountsOverview({
                       </td>
 
                       {/* DD Total */}
-                      <td className="px-4 py-3 text-right metric-value text-xs text-muted-foreground">
+                      <td className="hidden md:table-cell px-4 py-3 text-right metric-value text-xs text-muted-foreground">
                         {ddTotal !== null ? (
                           <span
                             style={
@@ -330,7 +330,7 @@ export function AccountsOverview({
                       </td>
 
                       {/* Win Rate */}
-                      <td className="px-4 py-3 text-right metric-value text-xs text-muted-foreground">
+                      <td className="hidden sm:table-cell px-4 py-3 text-right metric-value text-xs text-muted-foreground">
                         {winRate !== null ? (
                           `${winRate.toFixed(0)}%`
                         ) : (

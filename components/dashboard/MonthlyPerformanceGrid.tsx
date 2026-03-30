@@ -280,7 +280,7 @@ export function MonthlyPerformanceGrid({
 
   return (
     <div
-      className="rounded-[22px] border border-border/40 overflow-hidden isolate shadow-sm"
+      className="rounded-[22px] border border-border/40 overflow-hidden isolate shadow-sm min-w-0"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
       <div className="px-5 pt-4 pb-3">

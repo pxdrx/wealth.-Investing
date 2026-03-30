@@ -119,7 +119,7 @@ export function CalendarGrid({
               key={`${cell.year}-${cell.month}-${cell.day}`}
               onClick={() => onSelectDate(dateStr)}
               disabled={!cell.isCurrentMonth}
-              className="relative flex min-h-[68px] flex-col items-start justify-start p-1.5 border-b border-r transition-colors hover:bg-[hsl(var(--landing-border)/0.3)]"
+              className="relative flex min-h-[52px] md:min-h-[68px] flex-col items-start justify-start p-1 md:p-1.5 border-b border-r transition-colors hover:bg-[hsl(var(--landing-border)/0.3)] overflow-hidden"
               style={{
                 backgroundColor: hasTrades ? cellColor(pnl) : "transparent",
                 borderColor: "hsl(var(--landing-border) / 0.5)",

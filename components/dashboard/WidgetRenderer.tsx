@@ -119,7 +119,7 @@ function SortableWidget({
     <div
       ref={setNodeRef}
       style={style}
-      className={cn("col-span-1 flex flex-col relative group/widget", gridClass)}
+      className={cn("col-span-1 flex flex-col relative group/widget min-w-0", gridClass)}
     >
       {draggable && (
         <button
