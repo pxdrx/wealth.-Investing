@@ -48,6 +48,7 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
     { id: "session-heatmap", visible: false, order: 4 },
     { id: "streaks", visible: false, order: 5 },
     { id: "ai-insight", visible: false, order: 6 },
+    { id: "live-monitoring", visible: true, order: 7 },
   ],
 };
 
@@ -61,6 +62,7 @@ export const WIDGET_LABELS: Record<string, { title: string; titlePtBr: string; t
   "session-heatmap": { title: "Session Heatmap", titlePtBr: "Mapa de Sessões", tier: "pro" },
   streaks: { title: "Streaks", titlePtBr: "Sequências", tier: "free" },
   "ai-insight": { title: "AI Insight", titlePtBr: "Insight IA", tier: "pro" },
+  "live-monitoring": { title: "Live Monitoring", titlePtBr: "Monitoramento ao Vivo", tier: "plus" },
 };
 
 // ─── Merge user layout with defaults ────────────────────────────

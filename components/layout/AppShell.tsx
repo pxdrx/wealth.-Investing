@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AuthEventProvider } from "@/components/context/AuthEventContext";
 import { ActiveAccountProvider } from "@/components/context/ActiveAccountContext";
 import { SubscriptionProvider } from "@/components/context/SubscriptionContext";
+import { LiveMonitoringProvider } from "@/components/context/LiveMonitoringContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppMobileNav } from "@/components/layout/AppMobileNav";
@@ -84,6 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <AuthEventProvider>
     <ActiveAccountProvider>
       <SubscriptionProvider>
+      <LiveMonitoringProvider>
         {!hideHeader ? (
           <div className="flex h-screen w-full overflow-hidden bg-background">
             {/* Sidebar for Desktop */}
@@ -110,6 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ) : (
           <main className="flex-1"><ErrorBoundary>{children}</ErrorBoundary></main>
         )}
+      </LiveMonitoringProvider>
       </SubscriptionProvider>
     </ActiveAccountProvider>
     </AuthEventProvider>

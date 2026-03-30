@@ -1,0 +1,342 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { calculateFullDd, evaluateAlerts } from "@/lib/metaapi/monitor";
+import type { LiveDdResult, AlertConfig, AlertAction } from "@/lib/metaapi/monitor";
+
+export interface LivePosition {
+  id: string;
+  symbol: string;
+  type: string;
+  volume: number;
+  openPrice: number;
+  currentPrice: number;
+  profit: number;
+  swap: number;
+  commission: number;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  openTime: string;
+  comment: string;
+  magic: number;
+}
+
+export interface LiveMonitoringState {
+  isConnected: boolean;
+  isLoading: boolean;
+  equity: number | null;
+  balance: number | null;
+  dailyPnl: number | null;
+  dailyDdPct: number | null;
+  overallDdPct: number | null;
+  openPositionsCount: number;
+  unrealizedPnl: number | null;
+  lastUpdate: Date | null;
+  connectionStatus: string | null;
+  error: string | null;
+  metaApiAccountId: string | null;
+  alertConfigs: AlertConfig[];
+  activeAlerts: ActiveAlert[];
+}
+
+export interface ActiveAlert {
+  id: string;
+  alertType: string;
+  severity: string;
+  actualPct: number;
+  message: string;
+  createdAt: string;
+}
+
+interface ConnectionData {
+  connected: boolean;
+  connectionStatus?: string;
+  metaApiAccountId?: string;
+  lastSync?: string;
+  lastError?: string;
+  snapshot?: {
+    equity: number;
+    balance: number;
+    margin: number;
+    free_margin: number;
+    open_positions_count: number;
+    unrealized_pnl: number;
+    daily_pnl: number;
+    daily_dd_pct: number;
+    overall_dd_pct: number;
+    recorded_at: string;
+  } | null;
+  alertConfigs?: Array<{
+    id: string;
+    alert_type: string;
+    warning_threshold_pct: number;
+    critical_threshold_pct: number;
+    is_active: boolean;
+  }>;
+  activeAlerts?: Array<{
+    id: string;
+    alert_type: string;
+    severity: string;
+    actual_pct: number;
+    message: string;
+    created_at: string;
+  }>;
+}
+
+const POLL_INTERVAL_MS = 30_000; // Poll every 30 seconds
+
+/**
+ * Hook for live monitoring of a prop firm account via MetaAPI.
+ * Uses polling + Supabase Realtime for alerts.
+ */
+export function useLiveMonitoring(accountId: string | null): LiveMonitoringState & {
+  refresh: () => Promise<void>;
+  connect: (brokerLogin: string, brokerServer: string, investorPassword: string, platform?: "mt4" | "mt5") => Promise<{ ok: boolean; error?: string }>;
+  disconnect: () => Promise<void>;
+} {
+  const [state, setState] = useState<LiveMonitoringState>({
+    isConnected: false,
+    isLoading: true,
+    equity: null,
+    balance: null,
+    dailyPnl: null,
+    dailyDdPct: null,
+    overallDdPct: null,
+    openPositionsCount: 0,
+    unrealizedPnl: null,
+    lastUpdate: null,
+    connectionStatus: null,
+    error: null,
+    metaApiAccountId: null,
+    alertConfigs: [],
+    activeAlerts: [],
+  });
+
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchStatus = useCallback(async () => {
+    if (!accountId) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const res = await fetch(`/api/metaapi/status?accountId=${accountId}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      const json = await res.json();
+      if (!json.ok) {
+        setState((prev) => ({ ...prev, isLoading: false, error: json.error }));
+        return;
+      }
+
+      const data: ConnectionData = json.data;
+
+      if (!data.connected) {
+        setState((prev) => ({
+          ...prev,
+          isConnected: false,
+          isLoading: false,
+          connectionStatus: null,
+          error: null,
+        }));
+        return;
+      }
+
+      const snapshot = data.snapshot;
+      const alertConfigs: AlertConfig[] = (data.alertConfigs ?? []).map((c) => ({
+        id: c.id,
+        alertType: c.alert_type as "daily_dd" | "overall_dd",
+        warningThresholdPct: c.warning_threshold_pct,
+        criticalThresholdPct: c.critical_threshold_pct,
+        isActive: c.is_active,
+      }));
+
+      const activeAlerts: ActiveAlert[] = (data.activeAlerts ?? []).map((a) => ({
+        id: a.id,
+        alertType: a.alert_type,
+        severity: a.severity,
+        actualPct: a.actual_pct,
+        message: a.message,
+        createdAt: a.created_at,
+      }));
+
+      setState({
+        isConnected: true,
+        isLoading: false,
+        equity: snapshot?.equity ?? null,
+        balance: snapshot?.balance ?? null,
+        dailyPnl: snapshot?.daily_pnl ?? null,
+        dailyDdPct: snapshot?.daily_dd_pct ?? null,
+        overallDdPct: snapshot?.overall_dd_pct ?? null,
+        openPositionsCount: snapshot?.open_positions_count ?? 0,
+        unrealizedPnl: snapshot?.unrealized_pnl ?? null,
+        lastUpdate: snapshot?.recorded_at ? new Date(snapshot.recorded_at) : null,
+        connectionStatus: data.connectionStatus ?? null,
+        error: data.lastError ?? null,
+        metaApiAccountId: data.metaApiAccountId ?? null,
+        alertConfigs,
+        activeAlerts,
+      });
+    } catch {
+      setState((prev) => ({ ...prev, isLoading: false, error: "Erro ao verificar status" }));
+    }
+  }, [accountId]);
+
+  // Initial fetch + polling
+  useEffect(() => {
+    if (!accountId) {
+      setState((prev) => ({ ...prev, isConnected: false, isLoading: false }));
+      return;
+    }
+
+    setState((prev) => ({ ...prev, isLoading: true }));
+    fetchStatus();
+
+    pollRef.current = setInterval(fetchStatus, POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [accountId, fetchStatus]);
+
+  // Pause polling when tab is hidden
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.hidden) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
+      } else {
+        fetchStatus();
+        pollRef.current = setInterval(fetchStatus, POLL_INTERVAL_MS);
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchStatus]);
+
+  // Supabase Realtime: listen for new live alerts
+  useEffect(() => {
+    if (!accountId) return;
+
+    const channel = supabase
+      .channel(`live-alerts-${accountId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "live_alerts_log",
+          filter: `account_id=eq.${accountId}`,
+        },
+        (payload) => {
+          const newAlert = payload.new as {
+            id: string;
+            alert_type: string;
+            severity: string;
+            actual_pct: number;
+            message: string;
+            created_at: string;
+          };
+
+          setState((prev) => ({
+            ...prev,
+            activeAlerts: [
+              {
+                id: newAlert.id,
+                alertType: newAlert.alert_type,
+                severity: newAlert.severity,
+                actualPct: newAlert.actual_pct,
+                message: newAlert.message,
+                createdAt: newAlert.created_at,
+              },
+              ...prev.activeAlerts,
+            ],
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [accountId]);
+
+  const connect = useCallback(
+    async (
+      brokerLogin: string,
+      brokerServer: string,
+      investorPassword: string,
+      platform: "mt4" | "mt5" = "mt5"
+    ) => {
+      if (!accountId) return { ok: false, error: "Conta não selecionada" };
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return { ok: false, error: "Sessão expirada" };
+
+        const res = await fetch("/api/metaapi/connect", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ accountId, brokerLogin, brokerServer, investorPassword, platform }),
+        });
+
+        const json = await res.json();
+        if (json.ok) {
+          await fetchStatus();
+        }
+        return { ok: json.ok, error: json.error };
+      } catch {
+        return { ok: false, error: "Erro de conexão" };
+      }
+    },
+    [accountId, fetchStatus]
+  );
+
+  const disconnect = useCallback(async () => {
+    if (!accountId) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      await fetch("/api/metaapi/disconnect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ accountId }),
+      });
+
+      setState((prev) => ({
+        ...prev,
+        isConnected: false,
+        equity: null,
+        balance: null,
+        dailyPnl: null,
+        dailyDdPct: null,
+        overallDdPct: null,
+        connectionStatus: null,
+        metaApiAccountId: null,
+        alertConfigs: [],
+        activeAlerts: [],
+      }));
+    } catch {
+      // ignore
+    }
+  }, [accountId]);
+
+  return {
+    ...state,
+    refresh: fetchStatus,
+    connect,
+    disconnect,
+  };
+}

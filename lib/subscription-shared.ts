@@ -20,6 +20,7 @@ export interface TierLimits {
   hasPdfExport: boolean;
   hasHistoryMacro: boolean;
   hasRegenerateReport: boolean;
+  hasLiveMonitoring: boolean;
 }
 
 const TIER_LIMITS: Record<Plan, TierLimits> = {
@@ -42,6 +43,7 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasPdfExport: false,
     hasHistoryMacro: false,
     hasRegenerateReport: false,
+    hasLiveMonitoring: false,
   },
   pro: {
     maxTrades: null,
@@ -62,6 +64,7 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasPdfExport: false,
     hasHistoryMacro: false,
     hasRegenerateReport: false,
+    hasLiveMonitoring: false,
   },
   ultra: {
     maxTrades: null,
@@ -82,6 +85,7 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasPdfExport: true,
     hasHistoryMacro: true,
     hasRegenerateReport: true,
+    hasLiveMonitoring: true,
   },
 };
 

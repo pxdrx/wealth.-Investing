@@ -78,6 +78,14 @@ const SmartAlertsBanner = dynamic(
   () => import("@/components/dashboard/SmartAlertsBanner").then((m) => ({ default: m.SmartAlertsBanner })),
   { ssr: false },
 );
+const LiveMonitoringWidget = dynamic(
+  () => import("@/components/live/LiveMonitoringWidget").then((m) => ({ default: m.LiveMonitoringWidget })),
+  { ssr: false },
+);
+const LiveAlertsBanner = dynamic(
+  () => import("@/components/live/LiveAlertsBanner").then((m) => ({ default: m.LiveAlertsBanner })),
+  { ssr: false },
+);
 const MonthlyPerformanceGrid = dynamic(
   () => import("@/components/dashboard/MonthlyPerformanceGrid").then((m) => ({ default: m.MonthlyPerformanceGrid })),
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
@@ -446,6 +454,9 @@ function DashboardContent({
           </div>
         </div>
 
+        {/* ═══════════ Live Alerts (Ultra) ═══════════ */}
+        <LiveAlertsBanner />
+
         {/* ═══════════ Smart Alerts (Ultra) ═══════════ */}
         <SmartAlertsBanner
           trades={realTrades as unknown as TradeInput[]}
@@ -626,6 +637,9 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
 
     // ── AI Insight ──
     "ai-insight": <AiInsightWidget />,
+
+    // ── Live Monitoring ──
+    "live-monitoring": <LiveMonitoringWidget propAccount={activeProp} />,
   };
 }
 
