@@ -166,11 +166,11 @@ export function WeeklyBriefing({ panorama, onRegenerate, isRegenerating: externa
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="flex w-full items-center justify-between">
-        {/* Left side — clickable to toggle */}
+      <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Top row — title, clickable to toggle */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex flex-1 items-center gap-3 group outline-none min-w-0"
+          className="flex flex-wrap items-center gap-2 sm:gap-3 group outline-none min-w-0"
         >
           <h3 className="text-xl font-display font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
             Briefing Macroeconômico
@@ -181,8 +181,8 @@ export function WeeklyBriefing({ panorama, onRegenerate, isRegenerating: externa
           {!panorama.is_frozen && <LiveIndicator />}
         </button>
 
-        {/* Right side — separate buttons */}
-        <div className="flex items-center gap-4 shrink-0">
+        {/* Bottom row on mobile, right side on desktop */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 shrink-0">
           <span className="text-[11px] font-medium text-muted-foreground hidden sm:block">
             Gerado em {updatedAt}
           </span>
@@ -252,7 +252,7 @@ export function WeeklyBriefing({ panorama, onRegenerate, isRegenerating: externa
                     <Calendar className="h-4 w-4" />
                     Viés Semanal
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-4 break-words">
                     {renderMarkdown(panorama.narrative)}
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export function WeeklyBriefing({ panorama, onRegenerate, isRegenerating: externa
                       </span>
                     )}
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-4 break-words">
                     {panorama.asset_impacts?.daily_update ? (
                       renderMarkdown(panorama.asset_impacts.daily_update)
                     ) : (

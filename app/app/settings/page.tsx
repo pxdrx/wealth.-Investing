@@ -332,6 +332,9 @@ export default function SettingsPage() {
                   disabled
                   className="max-w-sm"
                 />
+                <p className="text-xs text-muted-foreground/70">
+                  Para alterar o email, entre em contato com o suporte.
+                </p>
               </div>
 
               <div className="flex items-center gap-3">
