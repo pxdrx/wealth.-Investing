@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { BarChart3, ChevronDown } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
 
@@ -67,35 +67,43 @@ export function PerformanceCard({
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-4 pb-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10">
-          <BarChart3 className="h-3.5 w-3.5 text-blue-500" />
-        </div>
-        <div className="flex-1 min-w-0">
+      <div className="px-5 pt-4 pb-2">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10">
+            <BarChart3 className="h-3.5 w-3.5 text-blue-500" />
+          </div>
           <h3 className="text-sm font-semibold tracking-tight">Performance</h3>
         </div>
 
-        {/* Account selector */}
-        <div className="relative">
-          <select
-            value={selectedAccountId}
-            onChange={(e) => setSelectedAccountId(e.target.value)}
+        {/* Account selector pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setSelectedAccountId("all")}
             className={cn(
-              "appearance-none rounded-full border border-border/60 bg-transparent",
-              "pl-3 pr-7 py-1.5 text-[11px] font-medium text-muted-foreground",
-              "hover:text-foreground hover:border-foreground/20 transition-colors",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "cursor-pointer"
+              "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
+              selectedAccountId === "all"
+                ? "bg-foreground text-background border-foreground"
+                : "border-border/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground"
             )}
           >
-            <option value="all">Todas as contas</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            Todas
+          </button>
+          {accounts.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => setSelectedAccountId(a.id)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
+                selectedAccountId === a.id
+                  ? "bg-foreground text-background border-foreground"
+                  : "border-border/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+              )}
+            >
+              {a.name}
+            </button>
+          ))}
         </div>
       </div>
 
