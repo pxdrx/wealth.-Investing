@@ -197,6 +197,7 @@ export default function JournalPage() {
     }
     let aborted = false;
     (async () => {
+      // Try prop_accounts first (for prop accounts)
       const { data } = await supabase
         .from("prop_accounts")
         .select("starting_balance_usd, max_overall_loss_percent, profit_target_percent")
@@ -204,9 +205,27 @@ export default function JournalPage() {
         .maybeSingle();
       if (aborted) return;
       const row = data as { starting_balance_usd?: number | string; max_overall_loss_percent?: number | string; profit_target_percent?: number | string } | null;
-      setStartingBalanceUsd(row?.starting_balance_usd != null ? Number(row.starting_balance_usd) : null);
-      setMaxOverallLossPercent(row?.max_overall_loss_percent != null ? Number(row.max_overall_loss_percent) : null);
-      setProfitTargetPercent(row?.profit_target_percent != null ? Number(row.profit_target_percent) : null);
+
+      if (row) {
+        setStartingBalanceUsd(row.starting_balance_usd != null ? Number(row.starting_balance_usd) : null);
+        setMaxOverallLossPercent(row.max_overall_loss_percent != null ? Number(row.max_overall_loss_percent) : null);
+        setProfitTargetPercent(row.profit_target_percent != null ? Number(row.profit_target_percent) : null);
+      } else {
+        // Fallback: check accounts table (for backtest/personal/crypto)
+        const { data: accData } = await supabase
+          .from("accounts")
+          .select("starting_balance_usd, kind")
+          .eq("id", activeAccountId)
+          .maybeSingle();
+        if (aborted) return;
+        const acc = accData as { starting_balance_usd?: number | string; kind?: string } | null;
+        const accBalance = acc?.starting_balance_usd != null && Number(acc.starting_balance_usd) > 0
+          ? Number(acc.starting_balance_usd)
+          : acc?.kind === "backtest" ? 100_000 : null;
+        setStartingBalanceUsd(accBalance);
+        setMaxOverallLossPercent(null);
+        setProfitTargetPercent(null);
+      }
     })();
     return () => { aborted = true; };
   }, [activeAccountId]);

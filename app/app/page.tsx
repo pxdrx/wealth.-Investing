@@ -503,11 +503,20 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
   const realAccountIds = new Set(realAccounts.map((a) => a.id));
   const realTrades = journalTrades.filter((t) => realAccountIds.has(t.account_id ?? ""));
 
-  // Find starting balance for active account (prop accounts only)
+  // Find starting balance for active account
+  const activeAccount = activeAccountId ? accountsById.get(activeAccountId) : null;
   const activeProp = activeAccountId
     ? propAccounts.find((p) => p.account_id === activeAccountId)
     : null;
-  const activeStartingBalance = activeProp?.starting_balance_usd ?? null;
+  const activeStartingBalance: number | null =
+    // Prop accounts: use prop_accounts.starting_balance_usd
+    activeProp?.starting_balance_usd
+    // Other accounts: use accounts.starting_balance_usd
+    ?? (activeAccount?.starting_balance_usd != null && Number(activeAccount.starting_balance_usd) > 0
+        ? Number(activeAccount.starting_balance_usd)
+        : null)
+    // Backtest accounts: default to 100k
+    ?? (activeAccount?.kind === "backtest" ? 100_000 : null);
 
   return {
     // ── Calendar ──

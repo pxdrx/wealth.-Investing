@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, Wallet, Bitcoin, Trash2 } from "lucide-react";
+import { Briefcase, Wallet, Bitcoin, FlaskConical, Trash2, Pencil, Check, X } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import {
   Dialog,
@@ -20,6 +20,7 @@ interface ManageAccountsModalProps {
 function getKindIcon(kind: AccountKind) {
   if (kind === "crypto") return Bitcoin;
   if (kind === "personal") return Wallet;
+  if (kind === "backtest") return FlaskConical;
   return Briefcase;
 }
 
@@ -27,27 +28,11 @@ function getKindLabel(kind: AccountKind) {
   if (kind === "prop") return "Mesa Proprietaria";
   if (kind === "personal") return "Capital Pessoal";
   if (kind === "crypto") return "Crypto";
+  if (kind === "backtest") return "Backtest";
   return kind;
 }
 
 function formatAccountName(account: AccountWithProp) {
-  if (account.kind === "prop" && account.prop) {
-    const firm = account.prop.firm_name ?? account.name;
-    const balance = Number(account.prop.starting_balance_usd ?? 0);
-    const phase =
-      account.prop.phase === "phase_1"
-        ? "Phase 1"
-        : account.prop.phase === "phase_2"
-          ? "Phase 2"
-          : account.prop.phase === "funded"
-            ? "Funded"
-            : "";
-    const balanceLabel =
-      balance > 0
-        ? `$${balance.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
-        : "";
-    return [firm, balanceLabel, phase].filter(Boolean).join(" \u2014 ");
-  }
   return account.name;
 }
 
@@ -58,9 +43,11 @@ export function ManageAccountsModal({
   const { accounts, refreshAccounts } = useActiveAccount();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const groupedKinds: AccountKind[] = ["prop", "personal", "crypto"];
+  const groupedKinds: AccountKind[] = ["prop", "personal", "crypto", "backtest"];
 
   async function handleDelete(account: AccountWithProp) {
     setDeletingId(account.id);
@@ -91,6 +78,19 @@ export function ManageAccountsModal({
         }
       }
 
+      // Delete all trades for this account (required before deleting the account)
+      const { error: tradesErr } = await supabase
+        .from("journal_trades")
+        .delete()
+        .eq("account_id", account.id)
+        .eq("user_id", userId);
+
+      if (tradesErr) {
+        setError("Erro ao excluir trades da conta.");
+        setDeletingId(null);
+        return;
+      }
+
       // Delete the account itself
       const { error: accErr } = await supabase
         .from("accounts")
@@ -110,6 +110,26 @@ export function ManageAccountsModal({
       setError("Erro inesperado ao excluir conta.");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function handleRename(accountId: string) {
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      setEditingId(null);
+      return;
+    }
+    setError(null);
+    try {
+      const { error: updateError } = await supabase
+        .from("accounts")
+        .update({ name: trimmed })
+        .eq("id", accountId);
+      if (updateError) throw updateError;
+      setEditingId(null);
+      await refreshAccounts();
+    } catch {
+      setError("Erro ao renomear conta.");
     }
   }
 
@@ -155,14 +175,28 @@ export function ManageAccountsModal({
                             backgroundColor: "hsl(var(--card))",
                           }}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
                             <Icon className="h-4 w-4 shrink-0 opacity-60" />
-                            <span className="truncate text-sm font-medium">
-                              {formatAccountName(account)}
-                            </span>
+                            {editingId === account.id ? (
+                              <input
+                                autoFocus
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleRename(account.id);
+                                  if (e.key === "Escape") setEditingId(null);
+                                }}
+                                onBlur={() => handleRename(account.id)}
+                                className="flex-1 rounded-md border border-border bg-transparent px-2 py-0.5 text-sm font-medium outline-none focus:border-blue-500"
+                              />
+                            ) : (
+                              <span className="truncate text-sm font-medium">
+                                {formatAccountName(account)}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0 ml-3">
+                          <div className="flex items-center gap-1 shrink-0 ml-3">
                             {isConfirming ? (
                               <>
                                 <button
@@ -182,18 +216,53 @@ export function ManageAccountsModal({
                                   Cancelar
                                 </button>
                               </>
+                            ) : editingId === account.id ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRename(account.id)}
+                                  className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-500"
+                                  title="Salvar"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingId(null)}
+                                  className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted"
+                                  title="Cancelar"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setConfirmingId(account.id);
-                                  setError(null);
-                                }}
-                                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                title="Excluir conta"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingId(account.id);
+                                    setEditName(account.name);
+                                    setConfirmingId(null);
+                                    setError(null);
+                                  }}
+                                  className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                  title="Renomear conta"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmingId(account.id);
+                                    setEditingId(null);
+                                    setError(null);
+                                  }}
+                                  className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                  title="Excluir conta"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>

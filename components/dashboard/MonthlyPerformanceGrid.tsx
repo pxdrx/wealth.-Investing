@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +81,14 @@ export function MonthlyPerformanceGrid({
   const hasBalance = startingBalance !== null && startingBalance > 0;
   const [mode, setMode] = useState<MetricMode>("pnl");
   const { mask } = usePrivacy();
+
+  // Reset to PnL mode if balance-dependent mode is active but no balance
+  useEffect(() => {
+    const isBalanceMode = mode === "pct_accum" || mode === "pct_geral" || mode === "saldo_inicial" || mode === "saldo_atual";
+    if (isBalanceMode && !hasBalance) {
+      setMode("pnl");
+    }
+  }, [hasBalance, mode]);
 
 
   // Filter trades for active account
@@ -283,24 +291,31 @@ export function MonthlyPerformanceGrid({
 
         {/* Metric toggles */}
         <div className="mt-3 flex flex-wrap gap-1">
-          {[...BASE_METRICS, ...BALANCE_METRICS].map((m) => (
-            <button
-              key={m.key}
-              type="button"
-              onClick={() => setMode(m.key)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all border",
-                mode === m.key
-                  ? "bg-foreground text-background border-foreground"
-                  : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              {mode === m.key && (
-                <span className="h-1.5 w-1.5 rounded-full bg-current" />
-              )}
-              {m.label}
-            </button>
-          ))}
+          {[...BASE_METRICS, ...BALANCE_METRICS].map((m) => {
+            const needsBalance = BALANCE_METRICS.some((bm) => bm.key === m.key);
+            const disabled = needsBalance && !hasBalance;
+            return (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => !disabled && setMode(m.key)}
+                title={disabled ? "Defina um Capital Inicial para usar esta métrica" : undefined}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all border",
+                  mode === m.key
+                    ? "bg-foreground text-background border-foreground"
+                    : disabled
+                      ? "border-border/30 text-muted-foreground/40 cursor-not-allowed"
+                      : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                )}
+              >
+                {mode === m.key && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                )}
+                {m.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

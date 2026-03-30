@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { ChevronDown, FlaskConical, Plus, TrendingUp, TrendingDown, PlusCircle } from "lucide-react";
+import { ChevronDown, FlaskConical, Plus, TrendingUp, TrendingDown, PlusCircle, Trash2 } from "lucide-react";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { cn } from "@/lib/utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
@@ -306,21 +306,25 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [balanceInput, setBalanceInput] = useState("");
   const [localBalanceOverride, setLocalBalanceOverride] = useState<Record<string, number | null>>({});
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { mask } = usePrivacy();
   const { refreshAccounts } = useActiveAccount();
 
   const activeAccounts = useMemo(() => accounts.filter((a) => a.is_active), [accounts]);
 
-  // Get starting balance: local override takes priority, then prop value
+  const BACKTEST_DEFAULT_BALANCE = 100_000;
+
+  // Get starting balance: local override → account value → default 100k
   const selectedStartingBalance = useMemo(() => {
-    if (!selectedAccountId) return null;
+    if (!selectedAccountId) return BACKTEST_DEFAULT_BALANCE;
     // Check local override first (set immediately on save)
     if (selectedAccountId in localBalanceOverride) {
-      return localBalanceOverride[selectedAccountId];
+      return localBalanceOverride[selectedAccountId] ?? BACKTEST_DEFAULT_BALANCE;
     }
     const acc = activeAccounts.find((a) => a.id === selectedAccountId);
     const val = acc?.starting_balance_usd;
-    return val != null ? Number(val) : null;
+    return val != null && Number(val) > 0 ? Number(val) : BACKTEST_DEFAULT_BALANCE;
   }, [selectedAccountId, activeAccounts, localBalanceOverride]);
 
   // Sync input with selected account's balance
@@ -350,6 +354,45 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
       console.warn("[backtest] save balance exception:", err);
     }
   }, [selectedAccountId, balanceInput, refreshAccounts, onTradeAdded]);
+
+  const handleDeleteAccount = useCallback(async (accountId: string) => {
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+
+      // Delete all trades for this account first
+      await supabase
+        .from("journal_trades")
+        .delete()
+        .eq("account_id", accountId)
+        .eq("user_id", session.user.id);
+
+      // Delete the account
+      const { error } = await supabase
+        .from("accounts")
+        .delete()
+        .eq("id", accountId)
+        .eq("user_id", session.user.id);
+
+      if (error) {
+        console.error("[backtest] Delete account error:", error.message);
+        return;
+      }
+
+      // Reset selection if the deleted account was selected
+      if (selectedAccountId === accountId) {
+        setSelectedAccountId(null);
+      }
+      setConfirmDeleteId(null);
+      await refreshAccounts();
+      onTradeAdded?.();
+    } catch (err) {
+      console.error("[backtest] Delete account exception:", err);
+    } finally {
+      setDeleting(false);
+    }
+  }, [selectedAccountId, refreshAccounts, onTradeAdded]);
 
   // Filter trades by selected account
   const filteredTrades = useMemo(() => {
@@ -425,19 +468,54 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
               Todas
             </button>
             {activeAccounts.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => setSelectedAccountId(a.id)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
-                  selectedAccountId === a.id
-                    ? "bg-purple-500 text-white border-purple-500"
-                    : "border-border/60 text-muted-foreground hover:border-purple-500/40 hover:text-foreground"
+              <div key={a.id} className="flex items-center gap-0.5">
+                {confirmDeleteId === a.id ? (
+                  <div className="flex items-center gap-1 rounded-full border border-red-500/40 px-2 py-1">
+                    <span className="text-[10px] text-red-500 font-medium">Excluir?</span>
+                    <button
+                      type="button"
+                      disabled={deleting}
+                      onClick={() => handleDeleteAccount(a.id)}
+                      className="rounded-full bg-red-500 px-2 py-0.5 text-[9px] font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+                    >
+                      {deleting ? "..." : "Sim"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deleting}
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="rounded-full border border-border/60 px-2 py-0.5 text-[9px] font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      Não
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAccountId(a.id)}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
+                        selectedAccountId === a.id
+                          ? "bg-purple-500 text-white border-purple-500"
+                          : "border-border/60 text-muted-foreground hover:border-purple-500/40 hover:text-foreground"
+                      )}
+                    >
+                      {a.name}
+                    </button>
+                    {selectedAccountId === a.id && (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(a.id)}
+                        className="rounded-full p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                        title="Excluir conta permanentemente"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
+                  </>
                 )}
-              >
-                {a.name}
-              </button>
+              </div>
             ))}
             <button
               type="button"
@@ -460,26 +538,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
           )}
 
           {activeAccounts.length > 0 && (<>
-            {/* Capital inicial input — shown when specific account selected */}
-            {selectedAccountId && (
-              <div className="flex items-center gap-2 pb-2">
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0">
-                  Capital inicial
-                </label>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">$</span>
-                  <input
-                    type="number"
-                    value={balanceInput}
-                    onChange={(e) => setBalanceInput(e.target.value)}
-                    onBlur={saveStartingBalance}
-                    onKeyDown={(e) => { if (e.key === "Enter") saveStartingBalance(); }}
-                    placeholder="0"
-                    className="w-28 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500"
-                  />
-                </div>
-              </div>
-            )}
+            {/* Capital simulado label */}
 
             {/* Quick Trade Form — hidden in "Todas" mode */}
             {selectedAccountId && (
