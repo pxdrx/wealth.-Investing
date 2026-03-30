@@ -107,6 +107,8 @@ export function PerformanceCard({
           accounts={calendarAccounts}
           dayNotes={dayNotes}
           userId={userId}
+          accountId={selectedAccountId === "all" ? null : selectedAccountId}
+          accountIds={accounts.map((a) => a.id)}
           onTradeDeleted={onTradeDeleted}
         />
 
