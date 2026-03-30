@@ -39,16 +39,15 @@ export interface DashboardLayout {
 }
 
 export const DEFAULT_LAYOUT: DashboardLayout = {
-  version: 3,
+  version: 4,
   widgets: [
     { id: "kpi", visible: true, order: 0 },
     { id: "accounts", visible: true, order: 1 },
     { id: "performance", visible: true, order: 2 },
-    { id: "news", visible: true, order: 3 },
-    { id: "top-symbols", visible: false, order: 4 },
-    { id: "session-heatmap", visible: false, order: 5 },
-    { id: "streaks", visible: false, order: 6 },
-    { id: "ai-insight", visible: false, order: 7 },
+    { id: "top-symbols", visible: false, order: 3 },
+    { id: "session-heatmap", visible: false, order: 4 },
+    { id: "streaks", visible: false, order: 5 },
+    { id: "ai-insight", visible: false, order: 6 },
   ],
 };
 
@@ -58,7 +57,6 @@ export const WIDGET_LABELS: Record<string, { title: string; titlePtBr: string; t
   kpi: { title: "Performance Summary", titlePtBr: "Resumo de Performance", tier: "free" },
   accounts: { title: "Accounts Overview", titlePtBr: "Visão de Contas", tier: "pro" },
   performance: { title: "Performance", titlePtBr: "Performance", tier: "free" },
-  news: { title: "Macro Panorama", titlePtBr: "Panorama Macro", tier: "free" },
   "top-symbols": { title: "Top Symbols", titlePtBr: "Top Ativos", tier: "pro" },
   "session-heatmap": { title: "Session Heatmap", titlePtBr: "Mapa de Sessões", tier: "pro" },
   streaks: { title: "Streaks", titlePtBr: "Sequências", tier: "free" },

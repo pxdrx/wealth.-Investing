@@ -17,6 +17,7 @@ import {
   formatPnl,
 } from "@/components/calendar/utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
+import { cn } from "@/lib/utils";
 
 interface JournalBriefingProps {
   trades: TradeRow[];
@@ -153,25 +154,39 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
       {/* Header */}
-      <div
-        className="flex items-center justify-between px-5 py-4 border-b border-border/40"
-      >
-        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+      <div className="px-5 pt-4 pb-3 border-b border-border/40">
+        <h3 className="text-sm font-semibold tracking-tight text-foreground mb-3">
           Resumo de Performance
         </h3>
-        <select
-          value={selectedAccountId ?? ""}
-          onChange={(e) => setSelectedAccountId(e.target.value || null)}
-          className="text-xs font-medium rounded-lg border px-2.5 py-1.5 bg-transparent text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
-          style={{ borderColor: "hsl(var(--border))" }}
-        >
-          <option value="">Todas as contas</option>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setSelectedAccountId(null)}
+            className={cn(
+              "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
+              !selectedAccountId
+                ? "bg-foreground text-background border-foreground"
+                : "border-border/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+            )}
+          >
+            Todas
+          </button>
           {accounts?.map((acc) => (
-            <option key={acc.id} value={acc.id}>
+            <button
+              key={acc.id}
+              type="button"
+              onClick={() => setSelectedAccountId(acc.id)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
+                selectedAccountId === acc.id
+                  ? "bg-foreground text-background border-foreground"
+                  : "border-border/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+              )}
+            >
               {acc.name}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       {/* Top: KPIs + Equity side by side */}
