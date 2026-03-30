@@ -27,7 +27,6 @@ const BASE_METRICS: { key: MetricMode; label: string }[] = [
 const BALANCE_METRICS: { key: MetricMode; label: string }[] = [
   { key: "pct_accum", label: "% acumulada" },
   { key: "pct_geral", label: "% geral" },
-  { key: "saldo_inicial", label: "Saldo inicial" },
   { key: "saldo_atual", label: "Saldo atual" },
 ];
 
