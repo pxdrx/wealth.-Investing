@@ -77,6 +77,10 @@ const MonthlyPerformanceGrid = dynamic(
   () => import("@/components/dashboard/MonthlyPerformanceGrid").then((m) => ({ default: m.MonthlyPerformanceGrid })),
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
 );
+const PerformanceCard = dynamic(
+  () => import("@/components/dashboard/PerformanceCard").then((m) => ({ default: m.PerformanceCard })),
+  { ssr: false, loading: () => <div className="h-[500px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
 
 // Types moved to hooks/useDashboardData.ts and hooks/useNewsData.ts
 
@@ -522,23 +526,16 @@ function buildWidgetRegistry(input: WidgetRegistryInput): Record<string, React.R
     ?? (activeAccount?.kind === "backtest" ? 100_000 : null);
 
   return {
-    // ── Calendar ──
-    calendar: (
-      <CalendarPnl
+    // ── Performance (Calendar + Monthly Grid) ──
+    performance: (
+      <PerformanceCard
         trades={realTrades as unknown as TradeRow[]}
         accounts={accountsSimple}
         dayNotes={dayNotes}
         userId={userId}
-        onTradeDeleted={refreshData}
-      />
-    ),
-
-    // ── Monthly Performance Grid ──
-    "monthly-performance": (
-      <MonthlyPerformanceGrid
-        trades={realTrades}
-        activeAccountId={activeAccountId}
+        propAccounts={propAccounts}
         startingBalance={activeStartingBalance}
+        onTradeDeleted={refreshData}
       />
     ),
 
