@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
+import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
+import { FAIRECONOMY_URL } from "@/lib/macro/constants";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
 import { getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
@@ -25,7 +27,22 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
 
   try {
-    const events = await scrapeForexFactoryCalendar();
+    // Primary: Faireconomy JSON API. Fallback: ForexFactory HTML scraper.
+    let events: Awaited<ReturnType<typeof fetchFaireconomyCalendar>> = [];
+    try {
+      events = await fetchFaireconomyCalendar(FAIRECONOMY_URL);
+      console.log(`[calendar-sync] Faireconomy: ${events.length} events`);
+    } catch (feErr) {
+      console.warn("[calendar-sync] Faireconomy failed, trying ForexFactory:", feErr);
+    }
+    if (events.length === 0) {
+      try {
+        events = await scrapeForexFactoryCalendar();
+        console.log(`[calendar-sync] ForexFactory fallback: ${events.length} events`);
+      } catch (ffErr) {
+        console.warn("[calendar-sync] ForexFactory also failed:", ffErr);
+      }
+    }
     if (events.length === 0) {
       return NextResponse.json({ ok: true, fetched: 0, upserted: 0, updated: 0 });
     }

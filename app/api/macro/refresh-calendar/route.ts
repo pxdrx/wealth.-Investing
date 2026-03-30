@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
-import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
+import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
+import { getWeekStart, getWeekEnd, getWeekStartOffset, FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
 import { invalidateCachePattern } from "@/lib/cache";
 
@@ -45,11 +46,32 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
 
   try {
-    // ForexFactory calendar page always shows current week
-    // For next-week, we pass the weekStartOverride so events get tagged correctly
-    const events = await scrapeForexFactoryCalendar(undefined, weekStartOverride);
+    // Primary: Faireconomy JSON API (reliable, no scraping)
+    // Fallback: ForexFactory HTML scraper (may be blocked)
+    let events: Awaited<ReturnType<typeof fetchFaireconomyCalendar>> = [];
+    let source = "faireconomy";
+
+    try {
+      const feUrl = weekParam === "next" ? FAIRECONOMY_NEXT_WEEK_URL : FAIRECONOMY_URL;
+      events = await fetchFaireconomyCalendar(feUrl, weekStartOverride);
+      console.log(`[refresh-calendar] Faireconomy: ${events.length} events`);
+    } catch (feErr) {
+      console.warn("[refresh-calendar] Faireconomy failed, trying ForexFactory:", feErr);
+    }
+
     if (events.length === 0) {
-      return NextResponse.json({ ok: true, fetched: 0, updated: 0 });
+      try {
+        const ffEvents = await scrapeForexFactoryCalendar(undefined, weekStartOverride);
+        events = ffEvents;
+        source = "forexfactory";
+        console.log(`[refresh-calendar] ForexFactory fallback: ${events.length} events`);
+      } catch (ffErr) {
+        console.warn("[refresh-calendar] ForexFactory also failed:", ffErr);
+      }
+    }
+
+    if (events.length === 0) {
+      return NextResponse.json({ ok: true, fetched: 0, updated: 0, source: "none" });
     }
 
     const weekStart = events[0].week_start;
@@ -160,6 +182,7 @@ export async function POST(req: NextRequest) {
       inserted,
       teUpdated,
       icUpdated,
+      source,
     });
   } catch (error) {
     console.error("[refresh-calendar] Error:", error);
