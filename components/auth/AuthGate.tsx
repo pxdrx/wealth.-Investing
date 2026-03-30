@@ -21,6 +21,9 @@ const ACTIVITY_THROTTLE_MS = 60 * 1000;
 /** Maximum time to wait before forcing render or redirect */
 const MAX_GATE_WAIT_MS = 4_000;
 
+/** Maximum time for any auth operation before we consider it hung */
+const AUTH_OPERATION_TIMEOUT_MS = 10_000;
+
 const LAST_ACTIVITY_KEY = "trading-dashboard-last-activity";
 
 function clearSessionAndRedirect() {
@@ -123,11 +126,89 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Verify with server — use short timeout
+        // Step 1: Check local session first (fast, no network)
+        const { data: { session: localSession } } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        // Step 2: If session is expired or expiring soon, try refresh FIRST
+        const now = Date.now();
+        const expiresAt = localSession?.expires_at;
+        const isExpiredOrExpiring = !expiresAt || expiresAt * 1000 - now < REFRESH_THRESHOLD_MS;
+
+        if (localSession && isExpiredOrExpiring) {
+          const { data: refreshData, error: refreshError } = await Promise.race([
+            supabase.auth.refreshSession(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Refresh timeout")), AUTH_OPERATION_TIMEOUT_MS)
+            ),
+          ]);
+
+          if (!mounted) return;
+
+          if (refreshError || !refreshData.session) {
+            // Refresh token also expired (e.g. after ~7 days offline) — force re-login
+            clearSessionAndRedirect();
+            return;
+          }
+
+          // Refresh succeeded — update cache and proceed
+          sessionRef.current = {
+            expires_at: refreshData.session.expires_at,
+            user_id: refreshData.session.user.id,
+          };
+          if (mounted) setReady(true);
+
+          // Bootstrap default accounts once
+          if (!bootstrapRanRef.current) {
+            bootstrapRanRef.current = true;
+            ensureDefaultAccounts(refreshData.session.user.id).then((r) => {
+              if (!r.ok && typeof sessionStorage !== "undefined") {
+                sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
+              }
+            });
+          }
+          return;
+        }
+
+        // Step 3: No local session at all — verify with server
+        if (!localSession) {
+          const { data: { user }, error: userError } = await Promise.race([
+            supabase.auth.getUser(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Auth timeout")), MAX_GATE_WAIT_MS)
+            ),
+          ]);
+
+          if (!mounted) return;
+
+          if (!user || userError) {
+            clearSessionAndRedirect();
+            return;
+          }
+
+          // getUser succeeded (unusual without session) — refresh to get tokens
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (!mounted) return;
+
+          if (refreshError || !refreshData.session) {
+            clearSessionAndRedirect();
+            return;
+          }
+
+          sessionRef.current = {
+            expires_at: refreshData.session.expires_at,
+            user_id: refreshData.session.user.id,
+          };
+          if (mounted) setReady(true);
+          return;
+        }
+
+        // Step 4: Session exists and is not expiring — verify user is valid
         const { data: { user }, error: userError } = await Promise.race([
           supabase.auth.getUser(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Auth timeout")), MAX_GATE_WAIT_MS)
+            setTimeout(() => reject(new Error("Auth timeout")), AUTH_OPERATION_TIMEOUT_MS)
           ),
         ]);
 
@@ -139,28 +220,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
 
         // Auth confirmed — cache session and ensure ready
-        const { data: { session } } = await supabase.auth.getSession();
         sessionRef.current = {
-          expires_at: session?.expires_at,
+          expires_at: localSession.expires_at,
           user_id: user.id,
         };
         if (mounted) setReady(true);
-
-        // Refresh token in background if expiring soon
-        const expiresAt = session?.expires_at;
-        if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
-          supabase.auth.refreshSession().then(({ data, error }) => {
-            if (!mounted) return;
-            if (error || !data.session) {
-              clearSessionAndRedirect();
-              return;
-            }
-            sessionRef.current = {
-              expires_at: data.session.expires_at,
-              user_id: data.session.user.id,
-            };
-          });
-        }
 
         // Bootstrap default accounts once
         if (!bootstrapRanRef.current) {
@@ -219,11 +283,45 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [ready]);
 
-  // On tab return: update activity timestamp
+  // On tab return: update activity timestamp AND re-verify session
   useEffect(() => {
-    function handleVisibilityChange() {
-      if (document.visibilityState === "visible") {
-        touchActivity();
+    async function handleVisibilityChange() {
+      if (document.visibilityState !== "visible") return;
+
+      touchActivity();
+
+      // Check if session expired while tab was hidden (overnight scenario)
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const now = Date.now();
+        const expiresAt = session?.expires_at;
+
+        if (!session) {
+          clearSessionAndRedirect();
+          return;
+        }
+
+        // If token is expired or expiring, try to refresh
+        if (!expiresAt || expiresAt * 1000 - now < REFRESH_THRESHOLD_MS) {
+          const { data, error } = await Promise.race([
+            supabase.auth.refreshSession(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Refresh timeout")), AUTH_OPERATION_TIMEOUT_MS)
+            ),
+          ]);
+
+          if (error || !data.session) {
+            clearSessionAndRedirect();
+            return;
+          }
+
+          sessionRef.current = {
+            expires_at: data.session.expires_at,
+            user_id: data.session.user.id,
+          };
+        }
+      } catch {
+        // Network error on tab return — don't redirect, periodic check will retry
       }
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -239,16 +337,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const { data: { user }, error: userErr } = await supabase.auth.getUser();
-        if (!user || userErr) {
-          clearSessionAndRedirect();
-          return;
-        }
+        // Check local session first — if expired, refresh before hitting server
         const { data: { session } } = await supabase.auth.getSession();
-
+        const now = Date.now();
         const expiresAt = session?.expires_at;
-        if (expiresAt && expiresAt * 1000 - Date.now() < REFRESH_THRESHOLD_MS) {
-          const { data, error } = await supabase.auth.refreshSession();
+        const isExpiredOrExpiring = !expiresAt || expiresAt * 1000 - now < REFRESH_THRESHOLD_MS;
+
+        if (session && isExpiredOrExpiring) {
+          // Token expired or expiring — try refresh with timeout
+          const { data, error } = await Promise.race([
+            supabase.auth.refreshSession(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Refresh timeout")), AUTH_OPERATION_TIMEOUT_MS)
+            ),
+          ]);
           if (error || !data.session) {
             clearSessionAndRedirect();
             return;
@@ -257,9 +359,33 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             expires_at: data.session.expires_at,
             user_id: data.session.user.id,
           };
+          return;
         }
+
+        if (!session) {
+          // No session at all — redirect
+          clearSessionAndRedirect();
+          return;
+        }
+
+        // Session valid — verify user with server (with timeout)
+        const { data: { user }, error: userErr } = await Promise.race([
+          supabase.auth.getUser(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Auth timeout")), AUTH_OPERATION_TIMEOUT_MS)
+          ),
+        ]);
+        if (!user || userErr) {
+          clearSessionAndRedirect();
+          return;
+        }
+
+        sessionRef.current = {
+          expires_at: session.expires_at,
+          user_id: user.id,
+        };
       } catch {
-        // Network error during periodic check — don't redirect, try again next interval
+        // Network error or timeout during periodic check — don't redirect, try again next interval
       }
     }, SESSION_CHECK_INTERVAL_MS);
 
