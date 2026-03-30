@@ -41,7 +41,11 @@ function clearSessionAndRedirect() {
 
 function isInactive(): boolean {
   const stored = localStorage.getItem(LAST_ACTIVITY_KEY);
-  if (!stored) return false;
+  if (!stored) {
+    // First visit or key was cleared — initialize and consider active
+    touchActivity();
+    return false;
+  }
   return Date.now() - Number(stored) > INACTIVITY_TIMEOUT_MS;
 }
 
