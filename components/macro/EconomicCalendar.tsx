@@ -501,7 +501,33 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
         );
       })}
 
-      {filtered.length === 0 && (
+      {events.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60">
+            <RefreshCw className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Sem dados para esta semana
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Clique em Atualizar para sincronizar o calendário.
+            </p>
+          </div>
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="mt-1 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {isRefreshing ? "Sincronizando..." : "Sincronizar agora"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {events.length > 0 && filtered.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
           Nenhum evento encontrado para este filtro.
         </p>

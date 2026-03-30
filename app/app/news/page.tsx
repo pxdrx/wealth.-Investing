@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useSafetyTimeout } from "@/hooks/useSafetyTimeout";
 import {
   Card,
   CardContent,
@@ -57,6 +58,7 @@ export default function NewsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<ImpactFilter>("ALL");
+  useSafetyTimeout(loading, setLoading, "news");
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
   const fetchNews = useCallback(async () => {

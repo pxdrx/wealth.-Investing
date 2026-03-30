@@ -192,8 +192,9 @@ export async function POST(req: NextRequest) {
   // Use the user's authenticated client for all queries
   const supabase = supabaseUser;
 
-  // 3. Check cache (non-blocking — skip if table doesn't exist)
+  // 3. Check saved analysis — always return if exists (persistent)
   const cacheKey = `psych_${user.id}_${accountId}_${period}`;
+  const forceRefresh = body.force === true;
   try {
     const { data: cached } = await supabase
       .from("ai_psychology_cache")
@@ -201,14 +202,42 @@ export async function POST(req: NextRequest) {
       .eq("cache_key", cacheKey)
       .maybeSingle();
 
-    if (cached) {
-      const age = Date.now() - new Date(cached.created_at).getTime();
-      if (age < 60 * 60 * 1000) { // 1 hour cache
-        return NextResponse.json({ ok: true, data: cached.analysis, cached: true });
-      }
+    if (cached && !forceRefresh) {
+      const ageMs = Date.now() - new Date(cached.created_at).getTime();
+      const stale = ageMs > 24 * 60 * 60 * 1000; // > 24h = stale
+      return NextResponse.json({
+        ok: true,
+        data: cached.analysis,
+        cached: true,
+        stale,
+        generated_at: cached.created_at,
+      });
     }
   } catch {
     // Cache read failed — proceed without cache
+  }
+
+  // 3b. Rate limit: max 3 AI generations per user per day
+  const MAX_DAILY_GENERATIONS = 3;
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const { count } = await supabase
+      .from("ai_psychology_cache")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", todayStart.toISOString());
+
+    if (count !== null && count >= MAX_DAILY_GENERATIONS) {
+      return NextResponse.json({
+        ok: false,
+        error: `Limite de ${MAX_DAILY_GENERATIONS} análises por dia atingido. Tente novamente amanhã.`,
+        daily_limit_reached: true,
+      }, { status: 429 });
+    }
+  } catch {
+    // Rate limit check failed — proceed (fail open)
   }
 
   // 4. Fetch trades
@@ -295,7 +324,7 @@ export async function POST(req: NextRequest) {
       // Cache write failed — non-critical
     }
 
-    return NextResponse.json({ ok: true, data: analysis, cached: false });
+    return NextResponse.json({ ok: true, data: analysis, cached: false, generated_at: new Date().toISOString() });
   } catch (err) {
     const error = err as Error;
     const msg = error.message || String(err);

@@ -17,6 +17,7 @@ import {
   HourHeatmap,
 } from "@/components/reports/BreakdownCharts";
 import { PsychologyAnalysis } from "@/components/journal/PsychologyAnalysis";
+import { PaywallGate } from "@/components/billing/PaywallGate";
 import { TrendingUp, PieChart, Brain, Globe } from "lucide-react";
 
 const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
@@ -272,9 +273,11 @@ export function JournalReports() {
             </div>
           )}
 
-          {/* Psychology Tab */}
+          {/* Psychology Tab — Ultra only */}
           {tab === "psicologia" && (
-            <PsychologyAnalysis accountId={activeAccountId} />
+            <PaywallGate requiredPlan="ultra" blurContent>
+              <PsychologyAnalysis accountId={activeAccountId} />
+            </PaywallGate>
           )}
         </>
       )}

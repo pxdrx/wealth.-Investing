@@ -162,6 +162,7 @@ export default function MacroIntelligencePage() {
     fetchCalendar();
   }, [fetchCalendar]);
 
+
   const REFRESH_COOLDOWN_KEY = "macro_last_full_refresh";
   const REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
 
@@ -254,6 +255,21 @@ export default function MacroIntelligencePage() {
       if (calJson.ok) setEvents(calJson.data || []);
     } catch { /* ignore */ }
   }, [calendarWeek]);
+
+  // Auto-sync calendar when current week has no data (cron hasn't run yet)
+  const autoSyncTriggered = useRef(false);
+  useEffect(() => {
+    if (autoSyncTriggered.current) return;
+    if (calendarWeek !== defaultWeek) return;
+    if (loading) return;
+    if (events.length > 0) return;
+
+    autoSyncTriggered.current = true;
+    console.log("[macro] No events for current week, auto-syncing calendar...");
+    handleCalendarRefresh().catch((err) =>
+      console.warn("[macro] Auto calendar sync failed:", err)
+    );
+  }, [loading, events.length, calendarWeek, defaultWeek, handleCalendarRefresh]);
 
   // Track if regeneration is in progress (shared between manual + auto)
   const regeneratingRef = useRef(false);

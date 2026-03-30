@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Brain, AlertTriangle, Clock, TrendingUp, Shield, Zap, Loader2, RefreshCw } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Brain, AlertTriangle, Clock, TrendingUp, Shield, Zap, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,16 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
   { key: "all", label: "Tudo" },
 ];
 
+// Progress bar steps with simulated timing
+const PROGRESS_STEPS = [
+  { pct: 10, label: "Coletando trades..." },
+  { pct: 25, label: "Calculando métricas..." },
+  { pct: 45, label: "Analisando padrões de comportamento..." },
+  { pct: 65, label: "Detectando revenge trading..." },
+  { pct: 80, label: "Gerando perfil psicológico com IA..." },
+  { pct: 95, label: "Finalizando análise..." },
+];
+
 interface PsychologyAnalysisProps {
   accountId: string | null;
 }
@@ -33,12 +43,55 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<PeriodKey>("30d");
-  const [cached, setCached] = useState(false);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
+  const [dailyLimitReached, setDailyLimitReached] = useState(false);
 
-  const fetchAnalysis = useCallback(async (selectedPeriod: PeriodKey) => {
+  // Progress bar state
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
+  const progressTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearProgressTimers = useCallback(() => {
+    for (const t of progressTimers.current) clearTimeout(t);
+    progressTimers.current = [];
+  }, []);
+
+  const startProgress = useCallback(() => {
+    setProgress(0);
+    setProgressLabel(PROGRESS_STEPS[0].label);
+    clearProgressTimers();
+
+    // Schedule each step with increasing delays
+    const delays = [300, 1500, 3500, 6000, 9000, 14000];
+    for (let i = 0; i < PROGRESS_STEPS.length; i++) {
+      const timer = setTimeout(() => {
+        setProgress(PROGRESS_STEPS[i].pct);
+        setProgressLabel(PROGRESS_STEPS[i].label);
+      }, delays[i]);
+      progressTimers.current.push(timer);
+    }
+  }, [clearProgressTimers]);
+
+  const finishProgress = useCallback(() => {
+    clearProgressTimers();
+    setProgress(100);
+    setProgressLabel("Análise concluída!");
+    const timer = setTimeout(() => {
+      setProgress(0);
+      setProgressLabel("");
+    }, 800);
+    progressTimers.current.push(timer);
+  }, [clearProgressTimers]);
+
+  // Fetch analysis (force = true bypasses cache)
+  const fetchAnalysis = useCallback(async (selectedPeriod: PeriodKey, force = false) => {
     if (!accountId) return;
     setLoading(true);
     setError(null);
+    if (force) startProgress();
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -52,27 +105,62 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ account_id: accountId, period: selectedPeriod }),
+        body: JSON.stringify({ account_id: accountId, period: selectedPeriod, force }),
       });
 
       const json = await res.json();
       if (!json.ok) {
+        if (json.daily_limit_reached) setDailyLimitReached(true);
         setError(json.error || "Erro ao gerar análise.");
         return;
       }
 
       setAnalysis(json.data);
-      setCached(!!json.cached);
+      setGeneratedAt(json.generated_at || null);
+      setStale(!!json.stale);
+      if (force) finishProgress();
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
+      if (!force) {
+        clearProgressTimers();
+        setProgress(0);
+        setProgressLabel("");
+      }
     }
-  }, [accountId]);
+  }, [accountId, startProgress, finishProgress, clearProgressTimers]);
+
+  // Auto-load saved analysis on mount and when account/period changes
+  const lastLoadKey = useRef("");
+  useEffect(() => {
+    if (!accountId) return;
+    const key = `${accountId}_${period}`;
+    if (lastLoadKey.current === key) return;
+    lastLoadKey.current = key;
+
+    setAnalysis(null);
+    setGeneratedAt(null);
+    setStale(false);
+    setInitialLoading(true);
+
+    fetchAnalysis(period, false).finally(() => setInitialLoading(false));
+  }, [accountId, period, fetchAnalysis]);
 
   const handlePeriodChange = (p: PeriodKey) => {
     setPeriod(p);
-    setAnalysis(null);
+  };
+
+  // Format relative time
+  const formatGeneratedAt = (iso: string): string => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Agora";
+    if (mins < 60) return `Há ${mins}min`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `Há ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `Há ${days}d`;
   };
 
   if (!accountId) {
@@ -98,11 +186,13 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
             <button
               key={p.key}
               onClick={() => handlePeriodChange(p.key)}
+              disabled={loading}
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                 period === p.key
                   ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80",
+                loading && "opacity-50 cursor-not-allowed"
               )}
             >
               {p.label}
@@ -112,29 +202,58 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
       </div>
 
       {/* Generate / Refresh button */}
-      {!loading && (
-        <div className="flex items-center gap-3">
+      {!loading && !initialLoading && (
+        <div className="flex items-center gap-3 flex-wrap">
           <Button
-            onClick={() => fetchAnalysis(period)}
-            disabled={loading}
+            onClick={() => fetchAnalysis(period, true)}
+            disabled={loading || dailyLimitReached}
+            variant={analysis ? "outline" : "default"}
             className="gap-2"
           >
             {analysis ? <RefreshCw className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
-            {analysis ? "Atualizar Análise" : "Gerar Análise"}
+            {dailyLimitReached ? "Limite diário atingido" : analysis ? "Refazer Análise" : "Gerar Análise"}
           </Button>
-          {cached && (
-            <span className="text-[10px] text-muted-foreground">
-              Resultado em cache — clique para atualizar
+          {generatedAt && (
+            <span className={cn(
+              "text-[11px]",
+              stale ? "text-amber-500" : "text-muted-foreground"
+            )}>
+              {stale && "Análise desatualizada — "}
+              {formatGeneratedAt(generatedAt)}
             </span>
           )}
         </div>
       )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-16 gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
-          <span className="text-sm text-muted-foreground">Analisando seus trades com IA...</span>
+      {/* Progress Bar */}
+      {loading && progress > 0 && (
+        <div className="space-y-2">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-indigo-500 transition-all duration-700 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">{progressLabel}</span>
+            <span className="text-xs font-medium text-indigo-500">{progress}%</span>
+          </div>
+        </div>
+      )}
+
+      {/* Initial loading (fetching saved analysis) */}
+      {initialLoading && !loading && (
+        <div className="flex items-center justify-center py-8 gap-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <span className="text-xs text-muted-foreground">Carregando análise salva...</span>
+        </div>
+      )}
+
+      {/* Loading without progress (cache fetch) */}
+      {loading && progress === 0 && (
+        <div className="flex items-center justify-center py-8 gap-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <span className="text-xs text-muted-foreground">Buscando análise...</span>
         </div>
       )}
 
@@ -145,7 +264,7 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchAnalysis(period)}
+            onClick={() => fetchAnalysis(period, true)}
             className="gap-1.5 text-xs"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -155,7 +274,7 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
       )}
 
       {/* Analysis Results */}
-      {analysis && !loading && (
+      {analysis && !loading && !initialLoading && (
         <div className="space-y-4">
           {/* Profile */}
           <AnalysisCard
@@ -215,6 +334,13 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
             content={analysis.strength}
             accent="emerald"
           />
+        </div>
+      )}
+
+      {/* No analysis yet (not loading, no error, no data) */}
+      {!analysis && !loading && !initialLoading && !error && (
+        <div className="text-center py-10 text-muted-foreground text-sm">
+          Nenhuma análise salva para este período. Clique em <strong>Gerar Análise</strong> para começar.
         </div>
       )}
     </div>

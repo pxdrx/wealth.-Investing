@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSafetyTimeout } from "@/hooks/useSafetyTimeout";
 import {
   Card,
   CardContent,
@@ -37,6 +38,7 @@ export default function PropPage() {
   const [cardsData, setCardsData] = useState<PropCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  useSafetyTimeout(loading, setLoading, "prop");
 
   const fetchAllPropData = useCallback(async () => {
     if (propAccounts.length === 0) {

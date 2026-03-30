@@ -17,33 +17,12 @@ function getSupabase() {
 
 async function fetchCalendarData(weekParam: string) {
   const supabase = getSupabase();
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("economic_events")
     .select("*")
     .filter("week_start", "eq", weekParam)
     .order("date", { ascending: true })
     .order("time", { ascending: true });
-
-  // Fallback: if no events for computed week, try latest available week
-  if (!error && (!data || data.length === 0)) {
-    const { data: latestWeek } = await supabase
-      .from("economic_events")
-      .select("week_start")
-      .order("week_start", { ascending: false })
-      .limit(1);
-
-    if (latestWeek && latestWeek.length > 0 && latestWeek[0].week_start !== weekParam) {
-      const fallback = await supabase
-        .from("economic_events")
-        .select("*")
-        .filter("week_start", "eq", latestWeek[0].week_start)
-        .order("date", { ascending: true })
-        .order("time", { ascending: true });
-      if (!fallback.error && fallback.data) {
-        data = fallback.data;
-      }
-    }
-  }
 
   if (error) {
     throw new Error(error.message);
