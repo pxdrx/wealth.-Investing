@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 import { useDashboardData, type JournalTradeKpiRow, type PropAccountRow } from "@/hooks/useDashboardData";
 import { useNewsData, type NewsItem } from "@/hooks/useNewsData";
+import type { TradeInput } from "@/lib/smart-alerts";
 
 // ── Dynamic imports for heavy components (perf: code-split) ──
 const CalendarPnl = dynamic(
@@ -72,6 +73,10 @@ const MacroWidgetBriefing = dynamic(
 const MacroWidgetEvents = dynamic(
   () => import("@/components/macro/MacroWidgetEvents").then((m) => ({ default: m.MacroWidgetEvents })),
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const SmartAlertsBanner = dynamic(
+  () => import("@/components/dashboard/SmartAlertsBanner").then((m) => ({ default: m.SmartAlertsBanner })),
+  { ssr: false },
 );
 const MonthlyPerformanceGrid = dynamic(
   () => import("@/components/dashboard/MonthlyPerformanceGrid").then((m) => ({ default: m.MonthlyPerformanceGrid })),
@@ -244,6 +249,25 @@ function DashboardContent({
       return !v;
     });
   };
+
+  // Compute real (non-backtest) trades for Smart Alerts
+  const realAccountIds = useMemo(() => {
+    const ids = new Set<string>();
+    Array.from(accountsById.entries()).forEach(([id, acc]) => {
+      if (acc.kind !== "backtest") ids.add(id);
+    });
+    return ids;
+  }, [accountsById]);
+
+  const realTrades = useMemo(
+    () => journalTrades.filter((t) => realAccountIds.has(t.account_id ?? "")),
+    [journalTrades, realAccountIds],
+  );
+
+  const activePropAccount = useMemo(
+    () => activeAccountId ? propAccounts.find((p) => p.account_id === activeAccountId) : null,
+    [activeAccountId, propAccounts],
+  );
 
   if (journalLoading) {
     return <DashboardSkeleton />;
@@ -421,6 +445,16 @@ function DashboardContent({
             )}
           </div>
         </div>
+
+        {/* ═══════════ Smart Alerts (Ultra) ═══════════ */}
+        <SmartAlertsBanner
+          trades={realTrades as unknown as TradeInput[]}
+          dailyDdLimit={
+            activePropAccount?.max_daily_loss_percent && activePropAccount?.starting_balance_usd
+              ? (activePropAccount.max_daily_loss_percent / 100) * activePropAccount.starting_balance_usd
+              : null
+          }
+        />
 
         {/* ═══════════ Dynamic Widget System ═══════════ */}
         <WidgetRenderer
