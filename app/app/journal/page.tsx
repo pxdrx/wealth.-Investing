@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus, FileSpreadsheet } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
@@ -612,14 +612,14 @@ export default function JournalPage() {
             style={{ backgroundColor: "hsl(var(--card))" }}
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
-              <Upload className="h-6 w-6 text-muted-foreground" />
+              <FileSpreadsheet className="h-6 w-6 text-muted-foreground" />
             </div>
             <div>
               <h3 className="text-base font-semibold tracking-tight text-foreground">
-                Nenhuma operação encontrada
+                Seu journal está vazio
               </h3>
               <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                Importe seu primeiro relatório MT5 para começar a registrar suas operações.
+                Importe um relatório do MT5 (.xlsx ou .html) ou adicione trades manualmente.
               </p>
             </div>
             <button

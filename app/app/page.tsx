@@ -25,7 +25,7 @@ import {
   CircleDollarSign,
   Gem,
   Bitcoin,
-  BookOpen,
+
 } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { usePrivacy } from "@/components/context/PrivacyContext";
@@ -269,22 +269,25 @@ function DashboardContent({
         </button>
       </div>
 
-      {/* Empty state for new users with 0 trades */}
-      {journalTrades.length === 0 && (
+      {/* Empty state for new users with 0 trades (skip for backtest accounts) */}
+      {journalTrades.length === 0 && (() => {
+        const activeAcc = activeAccountId ? accountsById.get(activeAccountId) : null;
+        return !activeAcc || activeAcc.kind !== "backtest";
+      })() && (
         <div className="mb-8 flex justify-center">
           <div
             className="flex flex-col items-center gap-4 rounded-[22px] border-2 border-dashed border-border/60 px-10 py-12 text-center max-w-md"
             style={{ backgroundColor: "hsl(var(--card))" }}
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
-              <BookOpen className="h-6 w-6 text-muted-foreground" />
+              <BarChart3 className="h-6 w-6 text-muted-foreground" />
             </div>
             <div>
               <h3 className="text-base font-semibold tracking-tight text-foreground">
-                Comece importando suas operações
+                Nenhuma operação registrada
               </h3>
               <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                Importe seu relatório MT5 para ver seus dados aqui.
+                Importe seu relatório do MT5 ou adicione trades manualmente no Trade Journal.
               </p>
             </div>
             <Link

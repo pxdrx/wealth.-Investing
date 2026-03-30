@@ -17,6 +17,7 @@ import {
   Scan,
   Plus,
   Wallet,
+  Crown,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
@@ -58,7 +59,7 @@ function AppSidebarInner() {
   const [hasSession, setHasSession] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const { plan } = useSubscription();
+  const { plan, isProOrAbove } = useSubscription();
   const [coachConversations, setCoachConversations] = useState<SidebarConversation[]>([]);
   const isOnCoachPage = pathname?.startsWith("/app/ai-coach") ?? false;
 
@@ -198,6 +199,30 @@ function AppSidebarInner() {
           );
         })}
       </div>
+
+      {/* Upgrade CTA — free users only */}
+      {!isProOrAbove && !collapsed && (
+        <div className="px-3 pb-2">
+          <Link
+            href="/app/pricing"
+            className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+          >
+            <Crown className="h-4 w-4" />
+            Seja Pro
+          </Link>
+        </div>
+      )}
+      {!isProOrAbove && collapsed && (
+        <div className="flex justify-center pb-2">
+          <Link
+            href="/app/pricing"
+            title="Seja Pro"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+          >
+            <Crown className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
 
       {/* Bottom Actions / User Section */}
       <div className="p-4 border-t border-border/40 bg-background/20 space-y-2">

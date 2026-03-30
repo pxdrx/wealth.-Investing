@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppMobileNav } from "@/components/layout/AppMobileNav";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
@@ -96,7 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               
               {/* Scrollable Content Area */}
               <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar scroll-smooth pb-20 md:pb-0">
-                {children}
+                <ErrorBoundary>{children}</ErrorBoundary>
               </main>
             </div>
 
@@ -107,7 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {showTour && <OnboardingTour onComplete={handleTourComplete} />}
           </div>
         ) : (
-          <main className="flex-1">{children}</main>
+          <main className="flex-1"><ErrorBoundary>{children}</ErrorBoundary></main>
         )}
       </SubscriptionProvider>
     </ActiveAccountProvider>
