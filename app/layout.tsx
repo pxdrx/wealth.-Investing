@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans, Manrope } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -86,6 +87,7 @@ export default function RootLayout({
             <AppShell>{children}</AppShell>
           </div>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
