@@ -15,6 +15,7 @@ import type { Plan } from "@/lib/subscription";
 interface TierDef {
   id: Plan;
   name: string;
+  description?: string;
   monthlyPrice: number;
   annualPrice: number;
   features: string[];
@@ -46,34 +47,29 @@ const tiers: TierDef[] = [
     highlighted: true,
     badge: "Mais popular",
     features: [
-      "Trades ilimitados",
-      "5 contas",
-      "10 consultas AI Coach/mês",
-      "Journal completo + Relatórios",
-      "Psicologia e tags",
+      "Journal ilimitado + Import MT5",
+      "5 contas simultâneas",
       "Inteligência Macro completa",
-      "Headlines ao vivo",
-      "Briefing Macroeconômico",
-      "Dashboard completo",
-      "Export CSV",
+      "AI Coach (10 msg/mês)",
+      "Relatórios + CSV export",
+      "Análise psicológica",
+      "Backtest",
     ],
   },
   {
     id: "ultra",
     name: "Ultra",
+    description: "Para quem leva trading a sério",
     monthlyPrice: 119.0,
     annualPrice: 89.25,
     features: [
-      "Tudo do Pro",
+      "Tudo do Pro, mais:",
+      "Analista Dexter — 5 agentes IA",
+      "Alertas Inteligentes",
+      "AI Coach Premium (300 msg/mês)",
       "Contas ilimitadas",
-      "10 consultas AI Coach/dia",
-      "Comparação de contas",
-      "Alertas customizados",
-      "Relatórios avançados (MFE/MAE, Sharpe)",
-      "Export PDF",
-      "Regenerar Briefing on-demand",
-      "Histórico macro semanal",
-      "Suporte prioritário",
+      "PDF export",
+      "Regenerar briefing macro",
     ],
   },
 ];
@@ -284,6 +280,9 @@ export function PricingCards() {
               )}
 
               <h3 className="text-lg font-semibold tracking-tight">{tier.name}</h3>
+              {tier.description && (
+                <p className="mt-1 text-sm text-muted-foreground">{tier.description}</p>
+              )}
 
               <div className="mt-4 flex items-baseline gap-1">
                 {isFree ? (
@@ -310,7 +309,13 @@ export function PricingCards() {
 
               <ul className="mt-6 flex-1 space-y-2.5">
                 {tier.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <li
+                    key={f}
+                    className={cn(
+                      "flex items-start gap-2 text-sm",
+                      f.includes("Dexter") ? "font-semibold text-foreground" : "text-muted-foreground"
+                    )}
+                  >
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
                     {f}
                   </li>
