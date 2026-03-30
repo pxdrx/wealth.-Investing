@@ -50,9 +50,10 @@ export async function GET(req: NextRequest) {
     return latest?.[0] || null;
   };
 
+  const cacheKey = weekParam ? `macro:panorama:${weekParam}` : "macro:panorama:latest";
   let data: Awaited<ReturnType<typeof fetchPanorama>>;
   try {
-    data = await cached("macro:panorama", fetchPanorama, { ttl: 600 });
+    data = await cached(cacheKey, fetchPanorama, { ttl: 600 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[macro/panorama]", message);
