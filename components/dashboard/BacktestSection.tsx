@@ -359,21 +359,40 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
     setDeleting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+      if (!session?.user?.id) {
+        console.error("[backtest] No session for delete");
+        return;
+      }
+      const uid = session.user.id;
 
-      // Delete all trades for this account first
-      await supabase
-        .from("journal_trades")
-        .delete()
-        .eq("account_id", accountId)
-        .eq("user_id", session.user.id);
+      // Delete all dependent rows before deleting the account
+      const dependentTables = [
+        { table: "journal_trades", filters: { account_id: accountId, user_id: uid } },
+        { table: "prop_alerts", filters: { account_id: accountId, user_id: uid } },
+        { table: "prop_payouts", filters: { account_id: accountId } },
+        { table: "prop_accounts", filters: { account_id: accountId } },
+        { table: "wallet_transactions", filters: { account_id: accountId } },
+        { table: "ingestion_logs", filters: { account_id: accountId } },
+      ];
 
-      // Delete the account
+      for (const dep of dependentTables) {
+        let query = supabase.from(dep.table).delete();
+        for (const [col, val] of Object.entries(dep.filters)) {
+          query = query.eq(col, val);
+        }
+        const { error: depErr } = await query;
+        if (depErr) {
+          // Table may not exist or column missing — that's ok, skip
+          console.warn(`[backtest] cleanup ${dep.table}:`, depErr.message);
+        }
+      }
+
+      // Delete the account itself
       const { error } = await supabase
         .from("accounts")
         .delete()
         .eq("id", accountId)
-        .eq("user_id", session.user.id);
+        .eq("user_id", uid);
 
       if (error) {
         console.error("[backtest] Delete account error:", error.message);
