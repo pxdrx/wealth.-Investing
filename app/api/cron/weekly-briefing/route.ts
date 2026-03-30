@@ -8,6 +8,7 @@ import { fetchWeekAheadViaApify } from "@/lib/macro/apify/week-ahead-fetcher";
 import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
 import { FAIRECONOMY_NEXT_WEEK_URL } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
+import { invalidateCache } from "@/lib/cache";
 import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
 
 function getSupabaseAdmin() {
@@ -179,6 +180,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: `Insert failed: ${insertErr.message}` }, { status: 500 });
       }
     }
+
+    // 7. Invalidate panorama cache so frontend picks up new data immediately
+    await invalidateCache("macro:panorama");
 
     return NextResponse.json({
       ok: true,
