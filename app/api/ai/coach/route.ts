@@ -105,6 +105,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   const plan: Plan = (sub?.plan as Plan) ?? "free";
+  const isUltraTier = plan === "ultra";
   const limits = getTierLimits(plan);
   const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -225,6 +226,46 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 6c. Ultra tier: fetch recent trade summary for enriched system prompt
+  let ultraTradeContext = "";
+  if (isUltraTier) {
+    try {
+      const { data: recentTrades } = await supabase
+        .from("journal_trades")
+        .select("symbol, direction, pnl_usd, net_pnl_usd, closed_at")
+        .eq("user_id", userId)
+        .eq("account_id", body.account_id)
+        .order("closed_at", { ascending: false })
+        .limit(30);
+
+      if (recentTrades && recentTrades.length > 0) {
+        const wins = recentTrades.filter((t: { net_pnl_usd: number | null; pnl_usd: number }) => (t.net_pnl_usd ?? t.pnl_usd) > 0).length;
+        const winRate = ((wins / recentTrades.length) * 100).toFixed(1);
+        const totalPnl = recentTrades.reduce((sum: number, t: { net_pnl_usd: number | null; pnl_usd: number }) => sum + (t.net_pnl_usd ?? t.pnl_usd), 0).toFixed(2);
+
+        // Top symbols by frequency
+        const symbolCounts: Record<string, number> = {};
+        for (const t of recentTrades) {
+          symbolCounts[t.symbol] = (symbolCounts[t.symbol] ?? 0) + 1;
+        }
+        const topSymbols = Object.entries(symbolCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([s]) => s)
+          .join(", ");
+
+        ultraTradeContext = `\n\n## Contexto personalizado do trader (Ultra)
+- Win rate ultimos 30 trades: ${winRate}%
+- P&L total ultimos 30 trades: $${totalPnl}
+- Principais ativos: ${topSymbols}
+- Total de trades analisados: ${recentTrades.length}
+Use esses dados para personalizar profundamente suas respostas.`;
+      }
+    } catch (err) {
+      console.warn("[ai-coach] ultra trade context fetch error:", err);
+    }
+  }
+
   // 7. Build system prompt
   const systemPrompt = buildSystemPrompt({
     personalStats,
@@ -234,17 +275,19 @@ export async function POST(req: NextRequest) {
     accountName,
     tradeAnalytics,
     psychologyProfile,
-  }) + dexterReports;
+  }) + dexterReports + ultraTradeContext;
 
-  // 8. Stream from Anthropic
+  // 8. Stream from Anthropic — model varies by tier
+  const aiModel = isUltraTier ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
+  const maxTokens = isUltraTier ? 4096 : 2048;
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
         const messageStream = getAnthropic().messages.stream({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 2048,
+          model: aiModel,
+          max_tokens: maxTokens,
           system: systemPrompt,
           messages: body.messages.map((m) => ({
             role: m.role as "user" | "assistant",

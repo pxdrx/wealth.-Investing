@@ -82,7 +82,7 @@ const MAX_HISTORY = 50;
 
 function AICoachPageInner() {
   const { activeAccountId } = useActiveAccount();
-  const { plan } = useSubscription();
+  const { plan, isUltra: isUltraTier } = useSubscription();
   const limits = getTierLimits(plan);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -541,11 +541,21 @@ function AICoachPageInner() {
       {/* LEFT PANE: Context & Data Insights (Hidden on small screens) */}
       <div className="hidden lg:flex flex-col w-[350px] xl:w-[400px] shrink-0 gap-6 overflow-y-auto custom-scrollbar pr-4">
         <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
-            AI Coach
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
+              AI Coach
+            </h1>
+            {isUltraTier && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700/50">
+                <Sparkles className="h-3 w-3" />
+                Ultra
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-muted-foreground font-medium">
-            Seu analista quantitativo pessoal.
+            {isUltraTier
+              ? "Analista avancado com contexto personalizado."
+              : "Seu analista quantitativo pessoal."}
           </p>
         </div>
 
@@ -742,7 +752,11 @@ function AICoachPageInner() {
                          <Brain className="h-8 w-8 text-blue-500" />
                        </div>
                        <p className="text-lg font-semibold text-foreground mb-1">{getGreeting()}</p>
-                       <p className="text-sm text-muted-foreground">Sou seu AI Coach. Analiso seus trades, identifico padrões e ajudo a melhorar sua performance.</p>
+                       <p className="text-sm text-muted-foreground">
+                         {isUltraTier
+                           ? "Sou seu AI Coach Ultra. Analiso seus trades com contexto personalizado e respostas mais profundas."
+                           : "Sou seu AI Coach. Analiso seus trades, identifico padroes e ajudo a melhorar sua performance."}
+                       </p>
                      </div>
                      <div className="flex flex-wrap justify-center gap-2">
                        {INSIGHT_BUTTONS.map((btn, i) => {
