@@ -403,7 +403,7 @@ export const FOOTER_RESOURCE_LINKS = [
 
 export const FOOTER_CONTACT_LINKS = [
   { label: "Comunidade", href: "https://discord.gg/smlab", external: true },
-  { label: "Fale conosco", href: "mailto:contato@wealth.investing", external: true },
+  { label: "Fale conosco", href: "mailto:wealth.investing@outlook.com", external: true },
 ] as const;
 
 export const FOOTER_SOCIAL_LINKS = [

@@ -160,8 +160,8 @@ function PrivacyContent() {
         </div>
         <p>
           Para questões sobre privacidade e proteção de dados:{" "}
-          <a href="mailto:contato@wealth.investing" className="text-foreground underline underline-offset-2 hover:text-foreground/80">
-            contato@wealth.investing
+          <a href="mailto:wealth.investing@outlook.com" className="text-foreground underline underline-offset-2 hover:text-foreground/80">
+            wealth.investing@outlook.com
           </a>
         </p>
       </section>
@@ -204,7 +204,7 @@ function TermsContent() {
           Para utilizar os serviços, é necessário criar uma conta fornecendo informações verdadeiras e
           atualizadas. Você é o único responsável por manter a segurança das suas credenciais de acesso
           e por todas as atividades realizadas na sua conta. Caso identifique qualquer uso não autorizado,
-          notifique-nos imediatamente pelo e-mail contato@wealth.investing.
+          notifique-nos imediatamente pelo e-mail wealth.investing@outlook.com.
         </p>
       </section>
 
@@ -344,8 +344,8 @@ function TermsContent() {
         <h3 className="text-sm font-semibold text-foreground mb-1.5">14. Contato</h3>
         <p>
           Para dúvidas, sugestões ou solicitações relacionadas a estes Termos de Uso:{" "}
-          <a href="mailto:contato@wealth.investing" className="text-foreground underline underline-offset-2 hover:text-foreground/80">
-            contato@wealth.investing
+          <a href="mailto:wealth.investing@outlook.com" className="text-foreground underline underline-offset-2 hover:text-foreground/80">
+            wealth.investing@outlook.com
           </a>
         </p>
       </section>

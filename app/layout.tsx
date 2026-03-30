@@ -34,20 +34,30 @@ export const metadata: Metadata = {
   title: "wealth.Investing — Consistência baseada em dados para traders",
   description:
     "Plataforma de analytics, journaling e gestão de risco para traders que querem consistência, controle e evolução baseada em dados reais.",
+  manifest: "/manifest.json",
   openGraph: {
     title: "wealth.Investing — Consistência baseada em dados para traders",
     description:
       "Centralize operações, analise padrões e transforme dados em insights acionáveis para operar com disciplina.",
     type: "website",
     locale: "pt_BR",
+    siteName: "wealth.Investing",
+    url: "https://owealthinvesting.com",
     images: [
       {
-        url: "/og-image.png",
+        url: "https://owealthinvesting.com/og-image.png",
         width: 1200,
         height: 630,
         alt: "wealth.Investing — Plataforma de trading analytics",
       },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "wealth.Investing — Consistência baseada em dados para traders",
+    description: "Analytics, journaling e gestão de risco para traders que querem consistência.",
+    images: ["https://owealthinvesting.com/og-image.png"],
+    creator: "@owealth_inv",
   },
 };
 
