@@ -42,26 +42,42 @@ export function LiveMonitoringWidget({ propAccount }: { propAccount?: PropAccoun
   const [showConnect, setShowConnect] = useState(false);
   const [showAlertConfig, setShowAlertConfig] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [lastSyncResult, setLastSyncResult] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   const handleSyncTrades = useCallback(async () => {
     if (!monitoring?.syncTrades || syncing) return;
     setSyncing(true);
-    setLastSyncResult(null);
+    setFeedbackMsg(null);
     try {
       const result = await monitoring.syncTrades();
       if (result.ok) {
-        setLastSyncResult(result.imported ? `${result.imported} trades sincronizados` : "Nenhum trade novo");
+        setFeedbackMsg(result.imported ? `✓ ${result.imported} trades sincronizados` : "✓ Nenhum trade novo");
       } else {
-        setLastSyncResult(result.error ?? "Erro ao sincronizar");
+        setFeedbackMsg(`✗ ${result.error ?? "Erro ao sincronizar"}`);
       }
     } catch {
-      setLastSyncResult("Erro ao sincronizar");
+      setFeedbackMsg("✗ Erro ao sincronizar");
     } finally {
       setSyncing(false);
-      setTimeout(() => setLastSyncResult(null), 5000);
+      setTimeout(() => setFeedbackMsg(null), 5000);
     }
   }, [monitoring, syncing]);
+
+  const handleRefresh = useCallback(async () => {
+    if (!monitoring?.refresh || refreshing) return;
+    setRefreshing(true);
+    setFeedbackMsg(null);
+    try {
+      await monitoring.refresh();
+      setFeedbackMsg("✓ Dados atualizados");
+    } catch {
+      setFeedbackMsg("✗ Erro ao atualizar");
+    } finally {
+      setRefreshing(false);
+      setTimeout(() => setFeedbackMsg(null), 3000);
+    }
+  }, [monitoring, refreshing]);
 
   const activeAccount = accounts.find((a) => a.id === activeAccountId);
   const accountName = activeAccount?.name ?? "Conta";
@@ -148,14 +164,15 @@ export function LiveMonitoringWidget({ propAccount }: { propAccount?: PropAccoun
               className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
               title="Sincronizar trades"
             >
-              <ArrowDownToLine className={cn("h-3.5 w-3.5", syncing && "animate-pulse")} />
+              <ArrowDownToLine className={cn("h-3.5 w-3.5 transition-transform", syncing && "animate-bounce")} />
             </button>
             <button
-              onClick={() => monitoring.refresh()}
-              className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              title="Atualizar"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              title="Atualizar dados"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className={cn("h-3.5 w-3.5 transition-transform", refreshing && "animate-spin")} />
             </button>
             <button
               onClick={() => setShowAlertConfig(true)}
@@ -227,11 +244,19 @@ export function LiveMonitoringWidget({ propAccount }: { propAccount?: PropAccoun
           />
         </div>
 
-        {/* Sync status */}
-        {lastSyncResult && (
-          <div className="text-[10px] text-center text-muted-foreground bg-muted/50 rounded-[8px] px-2 py-1">
-            {lastSyncResult}
-          </div>
+        {/* Feedback */}
+        {feedbackMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={cn(
+              "text-[10px] text-center rounded-[8px] px-2 py-1",
+              feedbackMsg.startsWith("✓") ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
+            )}
+          >
+            {feedbackMsg}
+          </motion.div>
         )}
 
         {/* Footer */}

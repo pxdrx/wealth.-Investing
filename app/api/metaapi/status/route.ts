@@ -84,11 +84,9 @@ export async function GET(req: NextRequest) {
       const margin = accountInfo.margin ?? 0;
       const freeMargin = accountInfo.freeMargin ?? 0;
       const unrealizedPnl = equity - balance;
-      const dailyPnl = equity - balance; // Simplified: equity - balance as daily approximation
       const openCount = Array.isArray(positions) ? positions.length : 0;
 
-      // Compute drawdown percentages
-      // Get prop account starting balance for DD calculation
+      // Get prop account for DD calculation
       const { data: propAccount } = await supabase
         .from("prop_accounts")
         .select("starting_balance_usd, max_daily_loss_percent, max_overall_loss_percent")
@@ -96,8 +94,31 @@ export async function GET(req: NextRequest) {
         .maybeSingle();
 
       const startingBalance = propAccount?.starting_balance_usd || balance;
-      const dailyDdPct = startingBalance > 0 ? Math.max(0, ((startingBalance - equity) / startingBalance) * 100) : 0;
-      const overallDdPct = dailyDdPct; // Simplified for now
+
+      // Daily P&L = today's realized trades + unrealized PnL
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { data: todayTrades } = await supabase
+        .from("journal_trades")
+        .select("net_pnl_usd")
+        .eq("account_id", accountId)
+        .eq("user_id", user.id)
+        .gte("closed_at", todayStart.toISOString());
+
+      const todayRealizedPnl = (todayTrades ?? []).reduce(
+        (sum, t) => sum + ((t as { net_pnl_usd: number | null }).net_pnl_usd ?? 0), 0
+      );
+      const dailyPnl = todayRealizedPnl + unrealizedPnl;
+
+      // Daily DD: based on today's losses relative to starting balance
+      const dailyDdPct = dailyPnl < 0 && startingBalance > 0
+        ? Math.round(Math.abs(dailyPnl) / startingBalance * 10000) / 100
+        : 0;
+
+      // Overall DD: (starting balance - current equity) / starting balance
+      const overallDdPct = equity < startingBalance && startingBalance > 0
+        ? Math.round((startingBalance - equity) / startingBalance * 10000) / 100
+        : 0;
 
       const now = new Date().toISOString();
 
