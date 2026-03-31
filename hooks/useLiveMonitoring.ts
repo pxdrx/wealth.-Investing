@@ -117,9 +117,10 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
   });
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const disconnectedRef = useRef(false);
 
   const fetchStatus = useCallback(async () => {
-    if (!accountId) return;
+    if (!accountId || disconnectedRef.current) return;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -198,6 +199,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
       return;
     }
 
+    disconnectedRef.current = false;
     setState((prev) => ({ ...prev, isLoading: true }));
     fetchStatus();
 
@@ -214,7 +216,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
       if (document.hidden) {
         if (pollRef.current) clearInterval(pollRef.current);
         pollRef.current = null;
-      } else {
+      } else if (!disconnectedRef.current) {
         fetchStatus();
         pollRef.current = setInterval(fetchStatus, POLL_INTERVAL_MS);
       }
@@ -279,6 +281,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
       platform: "mt4" | "mt5" = "mt5"
     ): Promise<{ ok: boolean; error?: string }> => {
       if (!accountId) return { ok: false, error: "Conta não selecionada" };
+      disconnectedRef.current = false;
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -394,6 +397,13 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) return;
+
+      // Stop all polling immediately
+      disconnectedRef.current = true;
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
 
       await fetch("/api/metaapi/disconnect", {
         method: "POST",
