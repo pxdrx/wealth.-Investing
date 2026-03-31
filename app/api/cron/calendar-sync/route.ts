@@ -6,7 +6,7 @@ import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
 import { FAIRECONOMY_URL } from "@/lib/macro/constants";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
-import { getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
+import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
 import { invalidateCachePattern, invalidateCache } from "@/lib/cache";
 
@@ -47,7 +47,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, fetched: 0, upserted: 0, updated: 0 });
     }
 
-    const weekStart = events[0].week_start;
+    // Force week_start to current Monday — the fetcher may derive a wrong
+    // week_start when Faireconomy data starts with a Sunday event.
+    const weekStart = getWeekStart();
+    for (const event of events) {
+      event.week_start = weekStart;
+    }
+
     let upserted = 0;
     let updated = 0;
     const errors: string[] = [];
