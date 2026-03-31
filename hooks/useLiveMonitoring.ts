@@ -97,7 +97,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
 } {
   const [state, setState] = useState<LiveMonitoringState>({
     isConnected: false,
-    isLoading: true,
+    isLoading: false,
     equity: null,
     balance: null,
     dailyPnl: null,
@@ -120,7 +120,10 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
+      if (!session?.access_token) {
+        setState((prev) => ({ ...prev, isLoading: false }));
+        return;
+      }
 
       const res = await fetch(`/api/metaapi/status?accountId=${accountId}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
