@@ -6,8 +6,8 @@ export const maxDuration = 15;
 
 /**
  * POST /api/metaapi/deploy
- * Lightweight status check via MetaAPI REST API (no SDK).
- * Returns immediately with current connection status.
+ * Lightweight status check via MetaAPI REST API.
+ * Returns immediately with ACTUAL MetaAPI state.
  */
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const { data: conn } = await supabase
     .from("metaapi_connections")
-    .select("id, metaapi_account_id, connection_status")
+    .select("id, metaapi_account_id, connection_status, created_at")
     .eq("account_id", accountId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -43,63 +43,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, data: { connectionStatus: "connected" } });
   }
 
-  // Check MetaAPI status via REST API directly (fast, no SDK overhead)
   const metaApiToken = process.env.METAAPI_TOKEN;
   if (!metaApiToken) {
-    return NextResponse.json({ ok: true, data: { connectionStatus: "connecting", error: "METAAPI_TOKEN not set" } });
+    return NextResponse.json({
+      ok: true,
+      data: { connectionStatus: "error", error: "METAAPI_TOKEN não configurado no servidor" },
+    });
   }
 
   try {
+    // Fetch account status via REST API
     const apiRes = await fetch(
       `https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/${conn.metaapi_account_id}`,
-      {
-        headers: {
-          "auth-token": metaApiToken,
-          "Content-Type": "application/json",
-        },
-      }
+      { headers: { "auth-token": metaApiToken } }
     );
 
     if (!apiRes.ok) {
-      const errText = await apiRes.text();
-      console.error("[deploy] MetaAPI REST error:", apiRes.status, errText);
+      const errBody = await apiRes.text().catch(() => "");
       return NextResponse.json({
         ok: true,
-        data: { connectionStatus: "connecting", error: `MetaAPI: ${apiRes.status}` },
+        data: {
+          connectionStatus: "error",
+          error: `MetaAPI retornou ${apiRes.status}: ${errBody.slice(0, 200)}`,
+        },
       });
     }
 
-    const accountData = await apiRes.json();
-    const state = accountData.state; // CREATED, DEPLOYING, DEPLOYED, UNDEPLOYING, UNDEPLOYED, DELETING
-    const connStatus = accountData.connectionStatus; // CONNECTED, DISCONNECTED, DISCONNECTED_FROM_BROKER
+    const acc = await apiRes.json();
+    const state: string = acc.state || "UNKNOWN";
+    const brokerConn: string = acc.connectionStatus || "UNKNOWN";
 
-    console.log("[deploy] MetaAPI state:", state, "connectionStatus:", connStatus);
+    // Calculate how long we've been trying
+    const ageMinutes = (Date.now() - new Date(conn.created_at).getTime()) / 60_000;
 
-    // If not deployed, trigger deploy
-    if (state === "CREATED" || state === "UNDEPLOYED") {
-      await fetch(
-        `https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/${conn.metaapi_account_id}/deploy`,
-        {
-          method: "POST",
-          headers: { "auth-token": metaApiToken },
-        }
-      );
-      return NextResponse.json({
-        ok: true,
-        data: { connectionStatus: "connecting", metaApiState: state },
-      });
-    }
-
-    // Still deploying
-    if (state === "DEPLOYING") {
-      return NextResponse.json({
-        ok: true,
-        data: { connectionStatus: "connecting", metaApiState: "DEPLOYING" },
-      });
-    }
-
-    // Deployed + connected to broker = success
-    if (state === "DEPLOYED" && connStatus === "CONNECTED") {
+    // ── DEPLOYED + CONNECTED → Success ──
+    if (state === "DEPLOYED" && brokerConn === "CONNECTED") {
       await supabase
         .from("metaapi_connections")
         .update({
@@ -116,21 +94,72 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Deployed but not yet connected to broker
+    // ── DEPLOYED + DISCONNECTED → Broker can't connect ──
+    if (state === "DEPLOYED" && (brokerConn === "DISCONNECTED" || brokerConn === "DISCONNECTED_FROM_BROKER")) {
+      // Give it 2 minutes to connect, then error
+      if (ageMinutes > 2) {
+        await supabase
+          .from("metaapi_connections")
+          .update({
+            connection_status: "error",
+            last_error: `Broker desconectado (${brokerConn}). Verifique login, servidor e senha investor.`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", conn.id);
+
+        return NextResponse.json({
+          ok: true,
+          data: {
+            connectionStatus: "error",
+            error: "Não foi possível conectar ao broker. Verifique se o login, servidor e senha investor estão corretos. O servidor deve ser exatamente como aparece no MT5 (ex: FTMO-Server3, não FTMO-Server).",
+          },
+        });
+      }
+    }
+
+    // ── Not deployed yet → trigger deploy ──
+    if (state === "CREATED" || state === "UNDEPLOYED") {
+      await fetch(
+        `https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/${conn.metaapi_account_id}/deploy`,
+        { method: "POST", headers: { "auth-token": metaApiToken } }
+      ).catch(() => {});
+
+      return NextResponse.json({
+        ok: true,
+        data: { connectionStatus: "connecting", metaApiState: state, brokerConnection: brokerConn },
+      });
+    }
+
+    // ── General timeout → error after 5 minutes ──
+    if (ageMinutes > 5) {
+      await supabase
+        .from("metaapi_connections")
+        .update({
+          connection_status: "error",
+          last_error: `Timeout: state=${state}, broker=${brokerConn}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", conn.id);
+
+      return NextResponse.json({
+        ok: true,
+        data: {
+          connectionStatus: "error",
+          error: `Timeout ao conectar. Estado: ${state}, Broker: ${brokerConn}. Tente desconectar e reconectar.`,
+        },
+      });
+    }
+
+    // ── Still in progress ──
     return NextResponse.json({
       ok: true,
-      data: {
-        connectionStatus: "connecting",
-        metaApiState: state,
-        brokerConnection: connStatus,
-      },
+      data: { connectionStatus: "connecting", metaApiState: state, brokerConnection: brokerConn },
     });
   } catch (err) {
     const msg = (err as Error).message || String(err);
-    console.error("[deploy] Error:", msg);
     return NextResponse.json({
       ok: true,
-      data: { connectionStatus: "connecting", error: msg },
+      data: { connectionStatus: "error", error: `Erro interno: ${msg}` },
     });
   }
 }

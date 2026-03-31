@@ -184,6 +184,14 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName, accountId
           if (status === "error") {
             throw new Error(deployJson.data?.error || "Erro na conexão com o broker");
           }
+
+          // Show real MetaAPI state in progress
+          const metaState = deployJson.data?.metaApiState;
+          const brokerState = deployJson.data?.brokerConnection;
+          if (metaState === "DEPLOYING") setProgressMsg("Ativando terminal cloud...");
+          else if (metaState === "DEPLOYED" && brokerState === "DISCONNECTED") setProgressMsg("Terminal ativo, conectando ao broker...");
+          else if (metaState === "DEPLOYED") setProgressMsg("Conectando ao broker...");
+          else if (metaState) setProgressMsg(`Estado: ${metaState}...`);
         }
         // Still "connecting" — continue polling
       }
