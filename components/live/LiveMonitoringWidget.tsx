@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wifi, WifiOff, Activity, Settings, Unplug, RefreshCw } from "lucide-react";
+import { Wifi, WifiOff, Activity, Settings, Unplug, RefreshCw, ArrowDownToLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DrawdownBar } from "@/components/prop/DrawdownBar";
 import { useLiveMonitoringSafe } from "@/components/context/LiveMonitoringContext";
@@ -41,6 +41,27 @@ export function LiveMonitoringWidget({ propAccount }: { propAccount?: PropAccoun
   const { activeAccountId, accounts } = useActiveAccount();
   const [showConnect, setShowConnect] = useState(false);
   const [showAlertConfig, setShowAlertConfig] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncResult, setLastSyncResult] = useState<string | null>(null);
+
+  const handleSyncTrades = useCallback(async () => {
+    if (!monitoring?.syncTrades || syncing) return;
+    setSyncing(true);
+    setLastSyncResult(null);
+    try {
+      const result = await monitoring.syncTrades();
+      if (result.ok) {
+        setLastSyncResult(result.imported ? `${result.imported} trades sincronizados` : "Nenhum trade novo");
+      } else {
+        setLastSyncResult(result.error ?? "Erro ao sincronizar");
+      }
+    } catch {
+      setLastSyncResult("Erro ao sincronizar");
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setLastSyncResult(null), 5000);
+    }
+  }, [monitoring, syncing]);
 
   const activeAccount = accounts.find((a) => a.id === activeAccountId);
   const accountName = activeAccount?.name ?? "Conta";
@@ -117,6 +138,14 @@ export function LiveMonitoringWidget({ propAccount }: { propAccount?: PropAccoun
           </div>
           <div className="flex items-center gap-1">
             <button
+              onClick={handleSyncTrades}
+              disabled={syncing}
+              className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              title="Sincronizar trades"
+            >
+              <ArrowDownToLine className={cn("h-3.5 w-3.5", syncing && "animate-pulse")} />
+            </button>
+            <button
               onClick={() => monitoring.refresh()}
               className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Atualizar"
@@ -192,6 +221,13 @@ export function LiveMonitoringWidget({ propAccount }: { propAccount?: PropAccoun
             maxPct={maxOverallDdPct}
           />
         </div>
+
+        {/* Sync status */}
+        {lastSyncResult && (
+          <div className="text-[10px] text-center text-muted-foreground bg-muted/50 rounded-[8px] px-2 py-1">
+            {lastSyncResult}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between text-[10px] text-muted-foreground">

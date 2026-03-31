@@ -2,7 +2,9 @@
 
 import { useMemo, useState, useCallback } from "react";
 import { ChevronDown, Plus, Briefcase, Wallet, Bitcoin, Settings, FlaskConical, Pencil, Check, X } from "lucide-react";
+import { motion } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
+import { useLiveMonitoringSafe } from "@/components/context/LiveMonitoringContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +39,8 @@ interface AccountSelectorInlineProps {
 
 export function AccountSelectorInline({ showAddButton = false }: AccountSelectorInlineProps) {
   const { accounts, activeAccountId, setActiveAccountId, refreshAccounts } = useActiveAccount();
+  const liveMonitoring = useLiveMonitoringSafe();
+  const isLiveConnected = liveMonitoring?.isConnected && liveMonitoring?.connectionStatus === "connected";
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -93,6 +97,16 @@ export function AccountSelectorInline({ showAddButton = false }: AccountSelector
               <>
                 {(() => { const Icon = getAccountIcon(active); return <Icon className="h-4 w-4 shrink-0 opacity-60" />; })()}
                 <span className="truncate max-w-[260px]">{active.name}</span>
+                {isLiveConnected && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <motion.span
+                      className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    Ao vivo
+                  </span>
+                )}
                 <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
               </>
             ) : (

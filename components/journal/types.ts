@@ -18,6 +18,7 @@ export interface JournalTradeRow {
   discipline?: string | null;
   setup_quality?: string | null;
   custom_tags?: string[] | null;
+  external_source?: string | null;
   entry_rating?: number | null;
   exit_rating?: number | null;
   management_rating?: number | null;

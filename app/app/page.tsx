@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 import { useDashboardData, type JournalTradeKpiRow, type PropAccountRow } from "@/hooks/useDashboardData";
 import { useNewsData, type NewsItem } from "@/hooks/useNewsData";
+import { useLiveMonitoringSafe } from "@/components/context/LiveMonitoringContext";
 import type { TradeInput } from "@/lib/smart-alerts";
 
 // ── Dynamic imports for heavy components (perf: code-split) ──
@@ -107,10 +108,22 @@ const QUICK_ASSETS = [
   { label: "DXY", symbol: "CAPITALCOM:DXY", icon: CircleDollarSign },
 ] as const;
 
+const LIVE_REFRESH_MS = 60_000; // Auto-refresh dashboard every 60s when live
+
 export default function DashboardPage() {
   const { activeAccountId } = useActiveAccount();
   const dashData = useDashboardData();
   const newsData = useNewsData();
+  const liveMonitoring = useLiveMonitoringSafe();
+
+  // Auto-refresh dashboard data when live-connected (every 60s)
+  useEffect(() => {
+    if (!liveMonitoring?.isConnected || liveMonitoring?.connectionStatus !== "connected") return;
+    const interval = setInterval(() => {
+      dashData.refreshData();
+    }, LIVE_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [liveMonitoring?.isConnected, liveMonitoring?.connectionStatus, dashData.refreshData]);
 
   // Lazy-load TradingView iframe via IntersectionObserver
   const watchlistRef = useRef<HTMLDivElement>(null);

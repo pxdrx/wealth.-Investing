@@ -125,7 +125,7 @@ export default function JournalPage() {
     try {
       const { data, error: err } = await supabase
         .from("journal_trades")
-        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags, external_source")
         .eq("account_id", activeAccountId)
         .order("opened_at", { ascending: false })
         .range(0, PAGE_SIZE - 1);
@@ -151,7 +151,7 @@ export default function JournalPage() {
       const to = from + PAGE_SIZE - 1;
       const { data, error: err } = await supabase
         .from("journal_trades")
-        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags")
+        .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags, external_source")
         .eq("account_id", activeAccountId)
         .order("opened_at", { ascending: false })
         .range(from, to);

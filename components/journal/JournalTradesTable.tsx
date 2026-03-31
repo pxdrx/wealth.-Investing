@@ -203,7 +203,16 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                     )}
                     onClick={() => onTradeClick(t)}
                   >
-                    <TableCell className="font-semibold text-foreground">{t.symbol}</TableCell>
+                    <TableCell className="font-semibold text-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        {t.symbol}
+                        {t.external_source === "metaapi" && (
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 leading-none">
+                            Live
+                          </span>
+                        )}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={isBuy ? "default" : "warning"} className="capitalize">
                         {t.direction ?? "—"}
