@@ -168,15 +168,15 @@ export function PricingCards() {
         body: JSON.stringify({ plan: tier, interval: annual ? "year" : "month" }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        console.error("[billing] Checkout error:", data.error || "Unknown error");
+      if (!res.ok || !data.url) {
+        console.error("[billing] Checkout error:", data.error || "No URL returned");
+        alert(data.error || "Erro ao iniciar checkout. Tente novamente.");
         return;
       }
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      // ignore
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("[billing] Checkout exception:", err);
+      alert("Erro de conexão ao iniciar checkout. Tente novamente.");
     } finally {
       setLoadingTier(null);
     }

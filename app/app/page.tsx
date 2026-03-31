@@ -117,13 +117,16 @@ export default function DashboardPage() {
   const liveMonitoring = useLiveMonitoringSafe();
 
   // Auto-refresh dashboard data when live-connected (every 60s)
+  const refreshRef = useRef(dashData.refreshData);
+  refreshRef.current = dashData.refreshData;
   useEffect(() => {
     if (!liveMonitoring?.isConnected || liveMonitoring?.connectionStatus !== "connected") return;
     const interval = setInterval(() => {
-      dashData.refreshData();
+      refreshRef.current();
     }, LIVE_REFRESH_MS);
     return () => clearInterval(interval);
-  }, [liveMonitoring?.isConnected, liveMonitoring?.connectionStatus, dashData.refreshData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveMonitoring?.isConnected, liveMonitoring?.connectionStatus]);
 
   // Lazy-load TradingView iframe via IntersectionObserver
   const watchlistRef = useRef<HTMLDivElement>(null);

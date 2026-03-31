@@ -368,6 +368,8 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
 
   // Periodic trade sync (every 5 minutes when connected)
   const tradeSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const syncTradesRef = useRef(syncTrades);
+  syncTradesRef.current = syncTrades;
 
   useEffect(() => {
     if (!state.isConnected || !accountId) {
@@ -377,13 +379,14 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
     }
 
     tradeSyncRef.current = setInterval(() => {
-      syncTrades().catch(() => {});
+      syncTradesRef.current().catch(() => {});
     }, TRADE_SYNC_INTERVAL_MS);
 
     return () => {
       if (tradeSyncRef.current) clearInterval(tradeSyncRef.current);
     };
-  }, [state.isConnected, accountId, syncTrades]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isConnected, accountId]);
 
   const disconnect = useCallback(async () => {
     if (!accountId) return;
