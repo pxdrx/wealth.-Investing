@@ -7,7 +7,8 @@ async function getMetaApi() {
   if (!_metaApi) {
     const token = process.env.METAAPI_TOKEN;
     if (!token) throw new Error("METAAPI_TOKEN not configured");
-    const { default: MetaApi } = await import("metaapi.cloud-sdk");
+    // Use the CJS/Node build to avoid "window is not defined" in serverless
+    const { default: MetaApi } = await import("metaapi.cloud-sdk/node");
     _metaApi = new MetaApi(token);
   }
   return _metaApi;
