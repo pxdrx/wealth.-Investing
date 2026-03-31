@@ -40,11 +40,11 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Auto-cleanup: if stuck in "connecting" for > 10 minutes, reset to allow retry
+  // Auto-cleanup: if stuck in "connecting" for > 3 minutes, reset to allow retry
   if (conn.connection_status === "connecting") {
     const createdAt = new Date(conn.created_at).getTime();
     const stuckMinutes = (Date.now() - createdAt) / 60_000;
-    if (stuckMinutes > 10) {
+    if (stuckMinutes > 3) {
       await supabase.from("metaapi_connections").delete().eq("id", conn.id);
       await supabase.from("live_alert_configs").delete().eq("account_id", accountId).eq("user_id", user.id);
       return NextResponse.json({ ok: true, data: { connected: false } });

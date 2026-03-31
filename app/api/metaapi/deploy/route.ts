@@ -40,13 +40,46 @@ export async function POST(req: NextRequest) {
 
   const metaApiToken = process.env.METAAPI_TOKEN;
   if (!metaApiToken) {
-    return NextResponse.json({ ok: true, data: { connectionStatus: "error", error: "METAAPI_TOKEN não configurado" } });
+    await markError(supabase, conn.id, "METAAPI_TOKEN não configurado");
+    return NextResponse.json({ ok: false, error: "METAAPI_TOKEN não configurado no servidor" }, { status: 500 });
   }
 
   const ageMinutes = (Date.now() - new Date(conn.created_at).getTime()) / 60_000;
 
+  // Global timeout: 3 minutes max
+  if (ageMinutes > 3) {
+    try {
+      const apiUrl = `https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/${conn.metaapi_account_id}`;
+      const apiRes = await fetch(apiUrl, { headers: { "auth-token": metaApiToken } });
+      const rawBody = await apiRes.text();
+      let state = "UNKNOWN";
+      let brokerConn = "UNKNOWN";
+      try {
+        const acc = JSON.parse(rawBody);
+        state = acc.state || "UNKNOWN";
+        brokerConn = acc.connectionStatus || "UNKNOWN";
+      } catch { /* ignore parse error */ }
+
+      // One last check: maybe it just connected
+      if (state === "DEPLOYED" && brokerConn === "CONNECTED") {
+        await supabase
+          .from("metaapi_connections")
+          .update({ connection_status: "connected", last_sync_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() })
+          .eq("id", conn.id);
+        return NextResponse.json({ ok: true, data: { connectionStatus: "connected" } });
+      }
+
+      const errorMsg = `Timeout após ${Math.floor(ageMinutes)}min. Estado: ${state}, Broker: ${brokerConn}. Verifique login, servidor e senha investor.`;
+      await markError(supabase, conn.id, errorMsg);
+      return NextResponse.json({ ok: false, error: errorMsg });
+    } catch (err) {
+      const errorMsg = `Timeout após ${Math.floor(ageMinutes)}min: ${(err as Error).message}`;
+      await markError(supabase, conn.id, errorMsg);
+      return NextResponse.json({ ok: false, error: errorMsg });
+    }
+  }
+
   try {
-    // Use MetaAPI Provisioning API to check account state
     const apiUrl = `https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/${conn.metaapi_account_id}`;
     const apiRes = await fetch(apiUrl, {
       headers: { "auth-token": metaApiToken },
@@ -55,32 +88,30 @@ export async function POST(req: NextRequest) {
     const rawBody = await apiRes.text();
 
     if (!apiRes.ok) {
-      // Return the raw error so we can debug
-      if (ageMinutes > 3) {
-        await markError(supabase, conn.id, `MetaAPI ${apiRes.status}: ${rawBody.slice(0, 200)}`);
-        return NextResponse.json({
-          ok: true,
-          data: { connectionStatus: "error", error: `MetaAPI erro ${apiRes.status}: ${rawBody.slice(0, 200)}` },
-        });
+      // MetaAPI returned an error — propagate immediately
+      const errorMsg = `MetaAPI erro ${apiRes.status}: ${rawBody.slice(0, 200)}`;
+      // For 4xx errors (bad credentials, not found), fail immediately
+      if (apiRes.status >= 400 && apiRes.status < 500) {
+        await markError(supabase, conn.id, errorMsg);
+        return NextResponse.json({ ok: false, error: errorMsg });
       }
+      // For 5xx, allow retry if young enough
       return NextResponse.json({
         ok: true,
-        data: { connectionStatus: "connecting", debug: `API ${apiRes.status}: ${rawBody.slice(0, 100)}` },
+        data: { connectionStatus: "connecting", debug: `API ${apiRes.status} (retrying...)` },
       });
     }
 
-    let acc: any;
+    let acc: Record<string, unknown>;
     try {
       acc = JSON.parse(rawBody);
     } catch {
-      return NextResponse.json({
-        ok: true,
-        data: { connectionStatus: "error", error: `Resposta inválida do MetaAPI: ${rawBody.slice(0, 200)}` },
-      });
+      await markError(supabase, conn.id, `Resposta inválida do MetaAPI: ${rawBody.slice(0, 200)}`);
+      return NextResponse.json({ ok: false, error: `Resposta inválida do MetaAPI` });
     }
 
-    const state: string = acc.state || "UNKNOWN";
-    const brokerConn: string = acc.connectionStatus || "UNKNOWN";
+    const state = (acc.state as string) || "UNKNOWN";
+    const brokerConn = (acc.connectionStatus as string) || "UNKNOWN";
 
     // ── SUCCESS: DEPLOYED + CONNECTED ──
     if (state === "DEPLOYED" && brokerConn === "CONNECTED") {
@@ -103,19 +134,25 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── DEPLOYED but DISCONNECTED ──
-    if (state === "DEPLOYED" && brokerConn !== "CONNECTED") {
+    // ── DEPLOYING: timeout at 2 min ──
+    if (state === "DEPLOYING") {
       if (ageMinutes > 2) {
-        await markError(supabase, conn.id, `Broker ${brokerConn} após ${Math.floor(ageMinutes)}min`);
-        return NextResponse.json({
-          ok: true,
-          data: {
-            connectionStatus: "error",
-            error: `O terminal cloud está ativo mas não conseguiu conectar ao broker (status: ${brokerConn}). Verifique: login, servidor e senha investor.`,
-            metaApiState: state,
-            brokerConnection: brokerConn,
-          },
-        });
+        const errorMsg = `Terminal cloud preso em DEPLOYING por ${Math.floor(ageMinutes)}min. Tente novamente.`;
+        await markError(supabase, conn.id, errorMsg);
+        return NextResponse.json({ ok: false, error: errorMsg });
+      }
+      return NextResponse.json({
+        ok: true,
+        data: { connectionStatus: "connecting", metaApiState: "DEPLOYING", brokerConnection: brokerConn },
+      });
+    }
+
+    // ── DEPLOYED but DISCONNECTED: timeout at 90s ──
+    if (state === "DEPLOYED" && brokerConn !== "CONNECTED") {
+      if (ageMinutes > 1.5) {
+        const errorMsg = `O terminal cloud está ativo mas não conseguiu conectar ao broker (status: ${brokerConn}). Verifique: login, servidor e senha investor.`;
+        await markError(supabase, conn.id, errorMsg);
+        return NextResponse.json({ ok: false, error: errorMsg });
       }
       return NextResponse.json({
         ok: true,
@@ -123,39 +160,26 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── DEPLOYING ──
-    if (state === "DEPLOYING") {
-      return NextResponse.json({
-        ok: true,
-        data: { connectionStatus: "connecting", metaApiState: "DEPLOYING", brokerConnection: brokerConn },
-      });
-    }
-
-    // ── TIMEOUT ──
-    if (ageMinutes > 5) {
-      await markError(supabase, conn.id, `Timeout: state=${state}, broker=${brokerConn}`);
-      return NextResponse.json({
-        ok: true,
-        data: { connectionStatus: "error", error: `Timeout. Estado: ${state}, Broker: ${brokerConn}`, metaApiState: state, brokerConnection: brokerConn },
-      });
-    }
-
-    // ── Other states ──
+    // ── Other unknown states ──
     return NextResponse.json({
       ok: true,
       data: { connectionStatus: "connecting", metaApiState: state, brokerConnection: brokerConn },
     });
   } catch (err) {
     const msg = (err as Error).message || String(err);
-    if (ageMinutes > 3) {
+    // Network errors — allow retry if young
+    if (ageMinutes > 2) {
       await markError(supabase, conn.id, msg);
-      return NextResponse.json({ ok: true, data: { connectionStatus: "error", error: msg } });
+      return NextResponse.json({ ok: false, error: msg });
     }
-    return NextResponse.json({ ok: true, data: { connectionStatus: "connecting", debug: msg } });
+    return NextResponse.json({
+      ok: true,
+      data: { connectionStatus: "connecting", debug: msg },
+    });
   }
 }
 
-async function markError(supabase: any, connId: string, error: string) {
+async function markError(supabase: ReturnType<typeof createSupabaseClientForUser>, connId: string, error: string) {
   await supabase
     .from("metaapi_connections")
     .update({ connection_status: "error", last_error: error.slice(0, 500), updated_at: new Date().toISOString() })
