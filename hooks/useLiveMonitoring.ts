@@ -271,13 +271,14 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
       brokerServer: string,
       investorPassword: string,
       platform: "mt4" | "mt5" = "mt5"
-    ) => {
+    ): Promise<{ ok: boolean; error?: string }> => {
       if (!accountId) return { ok: false, error: "Conta não selecionada" };
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return { ok: false, error: "Sessão expirada" };
 
+        // Step 1: Provision account (fast, returns "connecting")
         const res = await fetch("/api/metaapi/connect", {
           method: "POST",
           headers: {
@@ -288,10 +289,42 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
         });
 
         const json = await res.json();
-        if (json.ok) {
-          await fetchStatus();
+        if (!json.ok) return { ok: false, error: json.error };
+
+        // Step 2: Poll /api/metaapi/deploy until connected or error (max 3 min)
+        const MAX_ATTEMPTS = 18; // 18 * 10s = 3 minutes
+        const POLL_DELAY = 10_000;
+
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, POLL_DELAY));
+
+          const deployRes = await fetch("/api/metaapi/deploy", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ accountId }),
+          });
+
+          const deployJson = await deployRes.json();
+          if (!deployJson.ok) continue;
+
+          const status = deployJson.data?.connectionStatus;
+
+          if (status === "connected") {
+            await fetchStatus();
+            return { ok: true };
+          }
+
+          if (status === "error") {
+            return { ok: false, error: deployJson.data?.error ?? "Erro na conexão com o broker" };
+          }
+
+          // Still "connecting" — continue polling
         }
-        return { ok: json.ok, error: json.error };
+
+        return { ok: false, error: "Timeout: a conexão demorou mais de 3 minutos. Verifique se as credenciais estão corretas e tente novamente." };
       } catch {
         return { ok: false, error: "Erro de conexão" };
       }

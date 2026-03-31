@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
-import { provisionAccount, deployAndWait, getAccountInfo } from "@/lib/metaapi/client";
+import { provisionAccount } from "@/lib/metaapi/client";
 import { encryptPassword } from "@/lib/metaapi/crypto";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120; // Deploy can take time
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   // 1. Auth
@@ -71,21 +71,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 5. Check if already connected
-  const { data: existing } = await supabase
+  // 5. Check if user already has ANY connection (1 account at a time)
+  const { data: existingAny } = await supabase
     .from("metaapi_connections")
-    .select("id")
-    .eq("account_id", accountId)
+    .select("id, account_id")
+    .eq("user_id", user.id)
+    .limit(1)
     .maybeSingle();
 
-  if (existing) {
+  if (existingAny) {
     return NextResponse.json(
-      { ok: false, error: "Esta conta já está conectada ao live monitoring" },
+      { ok: false, error: "Você já tem uma conta conectada. Desconecte-a antes de conectar outra." },
       { status: 409 }
     );
   }
 
-  // 6. Provision MetaAPI cloud account
+  // 6. Provision MetaAPI cloud account (fast — just creates the account)
   try {
     const provision = await provisionAccount(
       brokerLogin,
@@ -95,13 +96,7 @@ export async function POST(req: NextRequest) {
       platform ?? "mt5"
     );
 
-    // 7. Deploy and wait for connection
-    await deployAndWait(provision.metaApiAccountId);
-
-    // 8. Get first equity reading
-    const info = await getAccountInfo(provision.metaApiAccountId);
-
-    // 9. Encrypt password and save connection
+    // 7. Save connection as "connecting" — deploy happens async via /api/metaapi/deploy
     const encryptedPassword = encryptPassword(investorPassword);
 
     const { error: insertErr } = await supabase
@@ -113,7 +108,7 @@ export async function POST(req: NextRequest) {
         broker_login: brokerLogin,
         broker_server: brokerServer,
         encrypted_investor_password: encryptedPassword,
-        connection_status: "connected",
+        connection_status: "connecting",
         last_sync_at: new Date().toISOString(),
       });
 
@@ -122,46 +117,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Erro ao salvar conexão" }, { status: 500 });
     }
 
-    // 10. Create default alert configs
-    const defaultAlerts = [
-      { alert_type: "daily_dd", warning_threshold_pct: 4.0, critical_threshold_pct: 4.5 },
-      { alert_type: "overall_dd", warning_threshold_pct: 8.0, critical_threshold_pct: 9.0 },
-    ];
-
-    for (const alert of defaultAlerts) {
-      await supabase.from("live_alert_configs").insert({
-        user_id: user.id,
-        account_id: accountId,
-        ...alert,
-        is_active: true,
-      });
-    }
+    // 8. Create default alert configs
+    await supabase.from("live_alert_configs").insert([
+      { user_id: user.id, account_id: accountId, alert_type: "daily_dd", warning_threshold_pct: 4.0, critical_threshold_pct: 4.5, is_active: true },
+      { user_id: user.id, account_id: accountId, alert_type: "overall_dd", warning_threshold_pct: 8.0, critical_threshold_pct: 9.0, is_active: true },
+    ]);
 
     return NextResponse.json({
       ok: true,
       data: {
-        connectionStatus: "connected",
+        connectionStatus: "connecting",
         metaApiAccountId: provision.metaApiAccountId,
-        equity: info.equity,
-        balance: info.balance,
-        broker: info.broker,
-        currency: info.currency,
-        investorMode: info.investorMode,
       },
     });
   } catch (err) {
     const msg = (err as Error).message || String(err);
     console.error("[metaapi/connect] Error:", msg);
 
-    if (msg.includes("invalid credentials") || msg.includes("Invalid account")) {
+    if (msg.includes("invalid credentials") || msg.includes("Invalid account") || msg.includes("E_AUTH")) {
       return NextResponse.json(
         { ok: false, error: "Credenciais inválidas. Verifique login, senha investor e servidor." },
         { status: 400 }
       );
     }
+    if (msg.includes("E_SRV_NOT_FOUND") || msg.includes("server not found")) {
+      return NextResponse.json(
+        { ok: false, error: "Servidor não encontrado. Verifique o nome do servidor exatamente como aparece no MT5." },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json(
-      { ok: false, error: "Erro ao conectar conta. Tente novamente." },
+      { ok: false, error: `Erro ao conectar: ${msg}` },
       { status: 500 }
     );
   }
