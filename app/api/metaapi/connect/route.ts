@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
-import { provisionAccount } from "@/lib/metaapi/client";
+import { provisionAccount, deployAccount } from "@/lib/metaapi/client";
 import { encryptPassword } from "@/lib/metaapi/crypto";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   // 1. Auth
@@ -29,10 +29,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (!sub || sub.plan !== "ultra") {
-    return NextResponse.json(
-      { ok: false, error: "Live monitoring é exclusivo do plano Ultra." },
-      { status: 403 }
-    );
+    return NextResponse.json({ ok: false, error: "Live monitoring é exclusivo do plano Ultra." }, { status: 403 });
   }
 
   // 3. Parse body
@@ -46,41 +43,34 @@ export async function POST(req: NextRequest) {
   };
 
   if (!accountId || !brokerLogin || !brokerServer || !investorPassword) {
-    return NextResponse.json(
-      { ok: false, error: "Campos obrigatórios: accountId, brokerLogin, brokerServer, investorPassword" },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: "Campos obrigatórios: accountId, brokerLogin, brokerServer, investorPassword" }, { status: 400 });
   }
 
-  // 4. Validate account belongs to user and is a prop account
-  const { data: account, error: accErr } = await supabase
+  // 4. Validate prop account
+  const { data: account } = await supabase
     .from("accounts")
     .select("id, name, kind")
     .eq("id", accountId)
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (accErr || !account) {
+  if (!account) {
     return NextResponse.json({ ok: false, error: "Conta não encontrada" }, { status: 404 });
   }
-
   if (account.kind !== "prop") {
-    return NextResponse.json(
-      { ok: false, error: "Live monitoring disponível apenas para contas de mesa proprietária" },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: "Disponível apenas para contas prop" }, { status: 400 });
   }
 
-  // 5. Check existing connections
+  // 5. Handle existing connections
   const { data: existingConns } = await supabase
     .from("metaapi_connections")
     .select("id, account_id, connection_status, created_at")
     .eq("user_id", user.id);
 
   if (existingConns && existingConns.length > 0) {
-    // Auto-cleanup: remove connections stuck in "connecting" for > 5 minutes
     for (const ec of existingConns) {
-      if (ec.connection_status === "connecting") {
+      // Auto-cleanup stuck connections >5 min
+      if (ec.connection_status === "connecting" || ec.connection_status === "error") {
         const ageMin = (Date.now() - new Date(ec.created_at).getTime()) / 60_000;
         if (ageMin > 5) {
           await supabase.from("live_alert_configs").delete().eq("account_id", ec.account_id).eq("user_id", user.id);
@@ -88,22 +78,16 @@ export async function POST(req: NextRequest) {
           continue;
         }
       }
-      // If same account already connected/connecting, skip to deploy polling
+      // Same account — return existing
       if (ec.account_id === accountId) {
-        return NextResponse.json({
-          ok: true,
-          data: { connectionStatus: ec.connection_status, existing: true },
-        });
+        return NextResponse.json({ ok: true, data: { connectionStatus: ec.connection_status, existing: true } });
       }
       // Different account — block
-      return NextResponse.json(
-        { ok: false, error: "Você já tem uma conta conectada. Desconecte-a antes de conectar outra." },
-        { status: 409 }
-      );
+      return NextResponse.json({ ok: false, error: "Desconecte a outra conta antes." }, { status: 409 });
     }
   }
 
-  // 6. Provision MetaAPI cloud account (fast — just creates the account)
+  // 6. Create account via MetaAPI REST API
   try {
     const provision = await provisionAccount(
       brokerLogin,
@@ -113,60 +97,37 @@ export async function POST(req: NextRequest) {
       platform ?? "mt5"
     );
 
-    // 7. Save connection as "connecting" — deploy happens async via /api/metaapi/deploy
-    const encryptedPassword = encryptPassword(investorPassword);
+    // 7. Trigger deploy (non-blocking)
+    await deployAccount(provision.metaApiAccountId).catch((e) => {
+      console.log("[connect] Deploy trigger error (non-critical):", (e as Error).message);
+    });
 
-    const { error: insertErr } = await supabase
-      .from("metaapi_connections")
-      .insert({
-        user_id: user.id,
-        account_id: accountId,
-        metaapi_account_id: provision.metaApiAccountId,
-        broker_login: brokerLogin,
-        broker_server: brokerServer,
-        encrypted_investor_password: encryptedPassword,
-        connection_status: "connecting",
-        last_sync_at: new Date().toISOString(),
-      });
+    // 8. Save to DB
+    const encryptedPw = encryptPassword(investorPassword);
+    const { error: insertErr } = await supabase.from("metaapi_connections").insert({
+      user_id: user.id,
+      account_id: accountId,
+      metaapi_account_id: provision.metaApiAccountId,
+      broker_login: brokerLogin,
+      broker_server: brokerServer,
+      encrypted_investor_password: encryptedPw,
+      connection_status: "connecting",
+    });
 
     if (insertErr) {
-      console.error("[metaapi/connect] DB insert error:", insertErr);
-      return NextResponse.json({ ok: false, error: "Erro ao salvar conexão" }, { status: 500 });
+      return NextResponse.json({ ok: false, error: `DB error: ${insertErr.message}` }, { status: 500 });
     }
 
-    // 8. Create default alert configs
+    // 9. Default alert configs
     await supabase.from("live_alert_configs").insert([
       { user_id: user.id, account_id: accountId, alert_type: "daily_dd", warning_threshold_pct: 4.0, critical_threshold_pct: 4.5, is_active: true },
       { user_id: user.id, account_id: accountId, alert_type: "overall_dd", warning_threshold_pct: 8.0, critical_threshold_pct: 9.0, is_active: true },
     ]);
 
-    return NextResponse.json({
-      ok: true,
-      data: {
-        connectionStatus: "connecting",
-        metaApiAccountId: provision.metaApiAccountId,
-      },
-    });
+    return NextResponse.json({ ok: true, data: { connectionStatus: "connecting", metaApiAccountId: provision.metaApiAccountId } });
   } catch (err) {
     const msg = (err as Error).message || String(err);
-    console.error("[metaapi/connect] Error:", msg);
-
-    if (msg.includes("invalid credentials") || msg.includes("Invalid account") || msg.includes("E_AUTH")) {
-      return NextResponse.json(
-        { ok: false, error: "Credenciais inválidas. Verifique login, senha investor e servidor." },
-        { status: 400 }
-      );
-    }
-    if (msg.includes("E_SRV_NOT_FOUND") || msg.includes("server not found")) {
-      return NextResponse.json(
-        { ok: false, error: "Servidor não encontrado. Verifique o nome do servidor exatamente como aparece no MT5." },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { ok: false, error: `Erro ao conectar: ${msg}` },
-      { status: 500 }
-    );
+    console.error("[connect] Error:", msg);
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }

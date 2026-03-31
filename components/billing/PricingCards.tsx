@@ -55,7 +55,6 @@ const tiers: TierDef[] = [
       "Relatórios avançados + CSV export",
       "Backtest de estratégias",
       "AI Coach (10 msg/mês)",
-      "Drawdown tracker em tempo real",
     ],
   },
   {

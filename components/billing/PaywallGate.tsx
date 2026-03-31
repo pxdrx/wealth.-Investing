@@ -12,30 +12,40 @@ interface PaywallGateProps {
 }
 
 function DefaultFallback({ requiredPlan }: { requiredPlan: "pro" | "ultra" }) {
-  const label = requiredPlan === "pro" ? "Pro" : "Ultra";
-  const priceHint = requiredPlan === "pro" ? "R$52" : "R$89";
+  const isPro = requiredPlan === "pro";
+  const label = isPro ? "Pro" : "Ultra";
+  const priceHint = isPro ? "R$69,90" : "R$119";
+  const iconBg = isPro
+    ? "bg-blue-100 dark:bg-blue-900/30"
+    : "bg-purple-100 dark:bg-purple-900/30";
+  const iconColor = isPro
+    ? "text-blue-600 dark:text-blue-400"
+    : "text-purple-600 dark:text-purple-400";
+  const btnBg = isPro
+    ? "bg-blue-600 hover:bg-blue-700"
+    : "bg-purple-600 hover:bg-purple-700";
   return (
     <div
       className="flex flex-col items-center justify-center gap-4 rounded-[22px] border border-border/60 px-8 py-10 text-center shadow-soft dark:shadow-soft-dark"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-        <Crown className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+      <div className={`flex h-12 w-12 items-center justify-center rounded-full ${iconBg}`}>
+        <Crown className={`h-6 w-6 ${iconColor}`} />
       </div>
       <div className="flex flex-col gap-1">
         <p className="text-base font-semibold tracking-tight">
           Recurso exclusivo {label}
         </p>
         <p className="text-sm text-muted-foreground">
-          Faca upgrade para desbloquear esta funcionalidade.
+          Faça upgrade para desbloquear esta funcionalidade.
         </p>
       </div>
       <p className="text-xs text-muted-foreground">
-        A partir de <span className="font-semibold text-foreground">{priceHint}/mes</span>
+        A partir de <span className="font-semibold text-foreground">{priceHint}/mês</span>
       </p>
       <Link
         href="/app/pricing"
-        className="rounded-full bg-blue-600 px-8 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+        className={`rounded-full px-8 py-2.5 text-sm font-medium text-white transition-colors ${btnBg}`}
       >
         Ver planos
       </Link>

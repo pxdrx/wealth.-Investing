@@ -111,7 +111,7 @@ export function LandingPricing() {
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md"
             >
-              <span>Cupom de lancamento: <span className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs tracking-wider">LAUNCH30</span> — 30% OFF na primeira cobranca!</span>
+              <span>Cupom de lançamento: <span className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs tracking-wider">LANCAMENTO30</span> — 30% OFF na primeira cobrança!</span>
             </motion.div>
           </div>
         </AnimatedSection>

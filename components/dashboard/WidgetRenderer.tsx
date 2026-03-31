@@ -28,7 +28,7 @@ export interface DashboardWidgetDef {
   title: string;
   titlePtBr: string;
   component: ComponentType<Record<string, unknown>>;
-  tier: "free" | "pro" | "plus";
+  tier: "free" | "pro" | "ultra";
   defaultVisible: boolean;
   defaultOrder: number;
 }
@@ -39,7 +39,7 @@ export interface DashboardLayout {
 }
 
 export const DEFAULT_LAYOUT: DashboardLayout = {
-  version: 4,
+  version: 5,
   widgets: [
     { id: "kpi", visible: true, order: 0 },
     { id: "accounts", visible: true, order: 1 },
@@ -48,13 +48,13 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
     { id: "session-heatmap", visible: false, order: 4 },
     { id: "streaks", visible: false, order: 5 },
     { id: "ai-insight", visible: false, order: 6 },
-    { id: "live-monitoring", visible: true, order: 7 },
+    { id: "live-monitoring", visible: false, order: 7 },
   ],
 };
 
 // ─── Widget name lookup (PT-BR) ─────────────────────────────────
 
-export const WIDGET_LABELS: Record<string, { title: string; titlePtBr: string; tier: "free" | "pro" | "plus" }> = {
+export const WIDGET_LABELS: Record<string, { title: string; titlePtBr: string; tier: "free" | "pro" | "ultra" }> = {
   kpi: { title: "Performance Summary", titlePtBr: "Resumo de Performance", tier: "free" },
   accounts: { title: "Accounts Overview", titlePtBr: "Visão de Contas", tier: "pro" },
   performance: { title: "Performance", titlePtBr: "Performance", tier: "free" },
@@ -62,7 +62,7 @@ export const WIDGET_LABELS: Record<string, { title: string; titlePtBr: string; t
   "session-heatmap": { title: "Session Heatmap", titlePtBr: "Mapa de Sessões", tier: "pro" },
   streaks: { title: "Streaks", titlePtBr: "Sequências", tier: "free" },
   "ai-insight": { title: "AI Insight", titlePtBr: "Insight IA", tier: "pro" },
-  "live-monitoring": { title: "Live Monitoring", titlePtBr: "Monitoramento ao Vivo", tier: "plus" },
+  "live-monitoring": { title: "Live Monitoring", titlePtBr: "Monitoramento ao Vivo", tier: "ultra" },
 };
 
 // ─── Merge user layout with defaults ────────────────────────────
@@ -216,7 +216,11 @@ export function WidgetRenderer({ layout, registry, onReorder }: WidgetRendererPr
     const gridClass = getGridClass(w.id);
 
     const inner =
-      tier === "pro" ? (
+      tier === "ultra" ? (
+        <PaywallGate requiredPlan="ultra" blurContent>
+          <div className="flex-1 flex flex-col">{node}</div>
+        </PaywallGate>
+      ) : tier === "pro" ? (
         <PaywallGate requiredPlan="pro" blurContent>
           <div className="flex-1 flex flex-col">{node}</div>
         </PaywallGate>

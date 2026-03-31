@@ -407,7 +407,7 @@ export const FOOTER_CONTACT_LINKS = [
 ] as const;
 
 export const FOOTER_SOCIAL_LINKS = [
-  { label: "Instagram", href: "https://instagram.com/dowealth.investing" },
+  { label: "Instagram", href: "https://instagram.com/owealth.investing" },
   { label: "Discord", href: "https://discord.gg/smlab" },
 ] as const;
 

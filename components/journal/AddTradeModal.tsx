@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { X, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
+import { inferCategory } from "@/lib/trading/category";
 import { cn } from "@/lib/utils";
 
 const QUICK_SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NAS100", "US30", "BTCUSD", "USOIL"];
@@ -27,6 +28,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
   const [context, setContext] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [savedSymbols, setSavedSymbols] = useState<string[]>([]);
 
   // Load user's saved symbols from user_symbols table
@@ -64,30 +66,45 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
 
   async function handleSave() {
     if (!symbol.trim() || !openedAt || !pnlUsd || !activeAccountId) return;
+    setError(null);
+
+    // Validate closed_at > opened_at
+    if (closedAt) {
+      const openDate = new Date(openedAt);
+      const closeDate = new Date(closedAt);
+      if (closeDate <= openDate) {
+        setError("O horário de fechamento deve ser posterior ao de abertura.");
+        return;
+      }
+    }
 
     setSaving(true);
     try {
       const pnl = parseFloat(pnlUsd);
       const sym = symbol.trim().toUpperCase();
+      const category = inferCategory(sym);
 
-      const { error } = await supabase.from("journal_trades").insert({
+      const { error: dbError } = await supabase.from("journal_trades").insert({
         user_id: userId,
         account_id: activeAccountId,
         symbol: sym,
+        category,
         direction,
         opened_at: new Date(openedAt).toISOString(),
         closed_at: closedAt ? new Date(closedAt).toISOString() : new Date().toISOString(),
         pnl_usd: pnl,
         fees_usd: 0,
         net_pnl_usd: pnl,
+        outcome: pnl >= 0 ? "win" : "loss",
         context: context.trim() || null,
         notes: notes.trim() || null,
         external_source: "manual",
         external_id: `manual_${Date.now()}`,
       });
 
-      if (error) {
-        console.error("[add-trade] DB error:", error.message);
+      if (dbError) {
+        console.error("[add-trade] DB error:", dbError.message);
+        setError("Erro ao salvar trade. Tente novamente.");
         return;
       }
 
@@ -102,6 +119,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       setPnlUsd("");
       setContext("");
       setNotes("");
+      setError(null);
 
       onSaved();
       onClose();
@@ -279,6 +297,11 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
               className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
             />
           </div>
+
+          {/* Error message */}
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
 
           {/* Save Button */}
           <button

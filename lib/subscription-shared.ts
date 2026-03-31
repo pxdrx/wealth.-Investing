@@ -58,7 +58,7 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasPrioritySupport: false,
     hasMacroIntelligence: true,
     hasReports: true,
-    hasPsychology: true,
+    hasPsychology: false,
     hasHeadlines: true,
     hasAdvancedReports: false,
     hasPdfExport: false,

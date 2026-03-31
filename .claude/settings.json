@@ -9,6 +9,7 @@
     "context-mode@context-mode": true,
     "obsidian@obsidian-skills": true,
     "security-guidance@claude-plugins-official": true,
-    "supabase@claude-plugins-official": true
+    "supabase@claude-plugins-official": true,
+    "telegram@claude-plugins-official": true
   }
 }

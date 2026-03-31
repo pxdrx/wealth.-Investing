@@ -13,8 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
-import { Briefcase, Wallet, Bitcoin, Building2, ChevronLeft, Check, Upload, FlaskConical } from "lucide-react";
+import { Briefcase, Wallet, Bitcoin, Building2, ChevronLeft, Check, Upload, FlaskConical, Crown } from "lucide-react";
 import type { AccountKind } from "@/lib/accounts";
+import { useSubscription } from "@/components/context/SubscriptionContext";
+import Link from "next/link";
 
 interface AddAccountModalProps {
   open: boolean;
@@ -110,14 +112,16 @@ const PROP_FIRMS: PropFirmPreset[] = [
 const ACCOUNT_SIZES = [5000, 10000, 25000, 50000, 100000, 200000];
 
 export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefreshAccounts, defaultKind }: AddAccountModalProps) {
+  const { limits, plan } = useSubscription();
   const [step, setStep] = useState<Step>(defaultKind ? "details" : "type");
   const [accountKind, setAccountKind] = useState<AccountKind | null>(defaultKind ?? null);
+  const [accountLimitReached, setAccountLimitReached] = useState(false);
   const [selectedFirm, setSelectedFirm] = useState<PropFirmPreset | null>(null);
   const [customFirmName, setCustomFirmName] = useState("");
   const [accountName, setAccountName] = useState("");
   const [balance, setBalance] = useState<number>(50000);
   const [customBalance, setCustomBalance] = useState("");
-  const [phases, setPhases] = useState(2);
+  const [phases, setPhases] = useState<number | "funded">(2);
   const [drawdownType, setDrawdownType] = useState<"static" | "trailing">("static");
   const [cryptoSubKind, setCryptoSubKind] = useState<"prop" | "personal" | null>(null);
   const [saving, setSaving] = useState(false);
@@ -135,7 +139,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
     setAccountName("");
     setBalance(50000);
     setCustomBalance("");
-    setPhases(2);
+    setPhases(2 as number | "funded");
     setDrawdownType("static");
     setCryptoSubKind(null);
     setSaving(false);
@@ -144,6 +148,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
     setSuggestedName("");
     setEditableName("");
     setRenameSaving(false);
+    setAccountLimitReached(false);
   };
 
   const handleClose = (v: boolean) => {
@@ -193,6 +198,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+    setAccountLimitReached(false);
 
     // Hard safety timeout — guarantees loading state is cleared
     const safetyTimer = setTimeout(() => {
@@ -210,6 +216,21 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       ]);
       const session = sessionResult.data?.session;
       if (!session?.user?.id) throw new Error("Sessão inválida");
+
+      // Check account limit per plan
+      if (limits.maxAccounts !== null) {
+        const { count, error: countError } = await supabase
+          .from("accounts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", session.user.id);
+        if (countError) throw countError;
+        if ((count ?? 0) >= limits.maxAccounts) {
+          setAccountLimitReached(true);
+          clearTimeout(safetyTimer);
+          setSaving(false);
+          return;
+        }
+      }
 
       const finalBalance = customBalance ? Number(customBalance) : balance;
       const firmName = selectedFirm?.id === "other" ? customFirmName : selectedFirm?.name ?? "";
@@ -263,7 +284,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
             user_id: session.user.id,
             account_id: accountId,
             firm_name: firmName,
-            phase: "phase_1",
+            phase: phases === "funded" ? "funded" : `phase_${phases}`,
             starting_balance_usd: finalBalance,
             profit_target_percent: preset.targetPhase1,
             max_daily_loss_percent: preset.ddDaily,
@@ -490,21 +511,26 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Número de fases</Label>
+                  <Label>Fase atual</Label>
                   <div className="flex gap-2">
-                    {[1, 2, 3].map((n) => (
+                    {([
+                      { value: 1 as number | "funded", label: "Phase 1" },
+                      { value: 2 as number | "funded", label: "Phase 2" },
+                      { value: 3 as number | "funded", label: "Phase 3" },
+                      { value: "funded" as number | "funded", label: "Funded" },
+                    ]).map((opt) => (
                       <button
-                        key={n}
+                        key={String(opt.value)}
                         type="button"
-                        onClick={() => setPhases(n)}
+                        onClick={() => setPhases(opt.value)}
                         className={cn(
                           "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all",
-                          phases === n
+                          phases === opt.value
                             ? "border-blue-500 bg-blue-500/10 text-blue-500"
                             : "border-border/60 text-muted-foreground hover:border-border"
                         )}
                       >
-                        {n} fase{n > 1 ? "s" : ""}
+                        {opt.label}
                       </button>
                     ))}
                   </div>
@@ -545,7 +571,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                     <span className="font-medium text-foreground">{selectedFirm.ddDaily}%</span>
                     <span className="text-muted-foreground">Meta Fase 1:</span>
                     <span className="font-medium text-foreground">{selectedFirm.targetPhase1}%</span>
-                    {phases >= 2 && (
+                    {typeof phases === "number" && phases >= 2 && (
                       <>
                         <span className="text-muted-foreground">Meta Fase 2:</span>
                         <span className="font-medium text-foreground">{selectedFirm.targetPhase2}%</span>
@@ -567,13 +593,37 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
               </div>
             )}
 
-            {error && (
+            {accountLimitReached && (
+              <div
+                className="flex flex-col items-center gap-3 rounded-xl border border-border/60 p-6 text-center"
+                style={{ backgroundColor: "hsl(var(--muted) / 0.15)" }}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                  <Crown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <p className="text-sm font-semibold">Limite de contas atingido</p>
+                <p className="text-xs text-muted-foreground">
+                  Seu plano {plan === "free" ? "Free" : "Pro"} permite {limits.maxAccounts} {limits.maxAccounts === 1 ? "conta" : "contas"}.
+                  Faça upgrade para adicionar mais.
+                </p>
+                <Link
+                  href="/app/pricing"
+                  className="rounded-full bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                >
+                  Ver planos
+                </Link>
+              </div>
+            )}
+
+            {error && !accountLimitReached && (
               <p className="text-sm text-destructive">{error}</p>
             )}
 
-            <Button onClick={handleSave} className="w-full" disabled={saving}>
-              {saving ? "Criando..." : "Criar conta"}
-            </Button>
+            {!accountLimitReached && (
+              <Button onClick={handleSave} className="w-full" disabled={saving}>
+                {saving ? "Criando..." : "Criar conta"}
+              </Button>
+            )}
           </div>
         )}
 
