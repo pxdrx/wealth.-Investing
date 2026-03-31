@@ -65,11 +65,8 @@ export async function provisionAccount(
     password: investorPassword,
     server,
     platform,
-    type: "cloud-g2",
-    magic: 0,
-    manualTrades: true,
-    quoteStreamingIntervalInSeconds: 2.5,
-    reliability: "regular" as const,
+    type: "cloud",
+    magic: 1000,
   });
 
   return {
