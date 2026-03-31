@@ -59,6 +59,37 @@ export async function POST(req: NextRequest) {
       console.warn("[refresh-calendar] Faireconomy failed, trying ForexFactory:", feErr);
     }
 
+    // Fallback 1: Trading Economics scraper (reliable HTML scrape)
+    if (events.length === 0) {
+      try {
+        const { scrapeTeCalendarActuals } = await import("@/lib/macro/te-scraper");
+        const teRows = await scrapeTeCalendarActuals(weekStartOverride);
+        if (teRows.length > 0) {
+          const ws = weekStartOverride || getWeekStart();
+          events = teRows
+            .filter((r) => r.title && r.date)
+            .map((r) => ({
+              event_uid: `${r.country}-${r.date.replace(/[^0-9]/g, "").slice(0, 8)}-${r.title}`.toLowerCase().replace(/\s+/g, "-").slice(0, 128),
+              date: r.date,
+              time: r.time || null,
+              country: (r.country || "XX").toUpperCase().slice(0, 2),
+              title: r.title,
+              impact: r.importance || "medium",
+              forecast: r.forecast || null,
+              previous: r.previous || null,
+              actual: r.actual || null,
+              currency: (r.country || "XX").toUpperCase().slice(0, 3),
+              week_start: ws,
+            }));
+          source = "trading_economics";
+          console.log(`[refresh-calendar] Trading Economics: ${events.length} events`);
+        }
+      } catch (teErr) {
+        console.warn("[refresh-calendar] Trading Economics failed:", teErr);
+      }
+    }
+
+    // Fallback 2: ForexFactory HTML scraper
     if (events.length === 0) {
       try {
         const ffEvents = await scrapeForexFactoryCalendar(undefined, weekStartOverride);
