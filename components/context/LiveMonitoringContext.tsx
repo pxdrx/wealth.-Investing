@@ -8,6 +8,7 @@ import { useSubscription } from "@/components/context/SubscriptionContext";
 
 interface LiveMonitoringContextValue extends LiveMonitoringState {
   refresh: () => Promise<void>;
+  syncTrades: () => Promise<{ ok: boolean; imported?: number; error?: string }>;
   connect: (brokerLogin: string, brokerServer: string, investorPassword: string, platform?: "mt4" | "mt5") => Promise<{ ok: boolean; error?: string }>;
   disconnect: () => Promise<void>;
 }

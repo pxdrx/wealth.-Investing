@@ -84,14 +84,17 @@ interface ConnectionData {
   }>;
 }
 
-const POLL_INTERVAL_MS = 30_000; // Poll every 30 seconds
+const POLL_INTERVAL_MS = 30_000; // Poll status every 30 seconds
+const TRADE_SYNC_INTERVAL_MS = 5 * 60_000; // Sync trades every 5 minutes
 
 /**
  * Hook for live monitoring of a prop firm account via MetaAPI.
  * Uses polling + Supabase Realtime for alerts.
+ * Also periodically syncs trade history to journal_trades.
  */
 export function useLiveMonitoring(accountId: string | null): LiveMonitoringState & {
   refresh: () => Promise<void>;
+  syncTrades: () => Promise<{ ok: boolean; imported?: number; error?: string }>;
   connect: (brokerLogin: string, brokerServer: string, investorPassword: string, platform?: "mt4" | "mt5") => Promise<{ ok: boolean; error?: string }>;
   disconnect: () => Promise<void>;
 } {
@@ -311,7 +314,11 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
           });
 
           const deployJson = await deployRes.json();
-          if (!deployJson.ok) continue;
+
+          // Server returned an error — fail immediately
+          if (!deployJson.ok) {
+            return { ok: false, error: deployJson.error || "Erro ao verificar status da conexão" };
+          }
 
           const status = deployJson.data?.connectionStatus;
 
@@ -334,6 +341,49 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
     },
     [accountId, fetchStatus]
   );
+
+  const syncTrades = useCallback(async (): Promise<{ ok: boolean; imported?: number; error?: string }> => {
+    if (!accountId) return { ok: false, error: "Conta não selecionada" };
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return { ok: false, error: "Sessão expirada" };
+
+      const res = await fetch("/api/metaapi/sync-trades", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ accountId }),
+      });
+
+      const json = await res.json();
+      if (!json.ok) return { ok: false, error: json.error };
+      return { ok: true, imported: json.data?.imported ?? 0 };
+    } catch {
+      return { ok: false, error: "Erro ao sincronizar trades" };
+    }
+  }, [accountId]);
+
+  // Periodic trade sync (every 5 minutes when connected)
+  const tradeSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!state.isConnected || !accountId) {
+      if (tradeSyncRef.current) clearInterval(tradeSyncRef.current);
+      tradeSyncRef.current = null;
+      return;
+    }
+
+    tradeSyncRef.current = setInterval(() => {
+      syncTrades().catch(() => {});
+    }, TRADE_SYNC_INTERVAL_MS);
+
+    return () => {
+      if (tradeSyncRef.current) clearInterval(tradeSyncRef.current);
+    };
+  }, [state.isConnected, accountId, syncTrades]);
 
   const disconnect = useCallback(async () => {
     if (!accountId) return;
@@ -372,6 +422,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
   return {
     ...state,
     refresh: fetchStatus,
+    syncTrades,
     connect,
     disconnect,
   };

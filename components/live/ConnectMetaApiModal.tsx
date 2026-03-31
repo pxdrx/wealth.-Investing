@@ -169,30 +169,49 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName, accountId
 
         const deployJson = await deployRes.json();
 
-        if (deployJson.ok) {
-          const status = deployJson.data?.connectionStatus;
-
-          if (status === "connected") {
-            setProgressPct(100);
-            setProgressMsg("Conectado!");
-            if (timerRef.current) clearInterval(timerRef.current);
-            onConnected();
-            setStep("success");
-            return;
-          }
-
-          if (status === "error") {
-            throw new Error(deployJson.data?.error || "Erro na conexão com o broker");
-          }
-
-          // Show real MetaAPI state in progress
-          const metaState = deployJson.data?.metaApiState;
-          const brokerState = deployJson.data?.brokerConnection;
-          if (metaState === "DEPLOYING") setProgressMsg("Ativando terminal cloud...");
-          else if (metaState === "DEPLOYED" && brokerState === "DISCONNECTED") setProgressMsg("Terminal ativo, conectando ao broker...");
-          else if (metaState === "DEPLOYED") setProgressMsg("Conectando ao broker...");
-          else if (metaState) setProgressMsg(`Estado: ${metaState}...`);
+        // Server returned an error (ok: false) — fail immediately
+        if (!deployJson.ok) {
+          throw new Error(deployJson.error || "Erro ao verificar status da conexão");
         }
+
+        const status = deployJson.data?.connectionStatus;
+
+        if (status === "connected") {
+          setProgressPct(95);
+          setProgressMsg("Sincronizando histórico de trades...");
+
+          // Trigger initial trade sync (non-blocking — don't fail connection on sync error)
+          fetch("/api/metaapi/sync-trades", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ accountId }),
+          }).catch(() => {}); // fire-and-forget
+
+          setProgressPct(100);
+          setProgressMsg("Conectado!");
+          if (timerRef.current) clearInterval(timerRef.current);
+          onConnected();
+          setStep("success");
+          return;
+        }
+
+        if (status === "error") {
+          throw new Error(deployJson.data?.error || "Erro na conexão com o broker");
+        }
+
+        // Show real MetaAPI state in progress
+        const metaState = deployJson.data?.metaApiState;
+        const brokerState = deployJson.data?.brokerConnection;
+        if (metaState === "DEPLOYING") setProgressMsg("Ativando terminal cloud...");
+        else if (metaState === "DEPLOYED" && brokerState === "DISCONNECTED") setProgressMsg("Terminal ativo, conectando ao broker...");
+        else if (metaState === "DEPLOYED") setProgressMsg("Conectando ao broker...");
+        else if (metaState) setProgressMsg(`Estado: ${metaState}...`);
+
+        // After ~90s, warn user it's taking longer
+        if (attempt >= 9) setProgressMsg("Demorando mais que o normal... Verificando credenciais...");
         // Still "connecting" — continue polling
       }
 

@@ -1,22 +1,40 @@
-// MetaAPI SDK uses `window` at import time, so we must lazy-import it
-// to avoid breaking Next.js server-side builds.
+/**
+ * MetaAPI REST client — pure fetch, no SDK dependency.
+ * Uses the official Provisioning API documented at:
+ * https://metaapi.cloud/docs/provisioning/api/account/
+ */
 
-let _metaApi: any = null;
+const PROVISIONING_API = "https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai";
+const TRADING_API = "https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai";
 
-async function getMetaApi() {
-  if (!_metaApi) {
-    const token = process.env.METAAPI_TOKEN;
-    if (!token) throw new Error("METAAPI_TOKEN not configured");
-    // Use the CJS/Node build to avoid "window is not defined" in serverless
-    const { default: MetaApi } = await import("metaapi.cloud-sdk/node");
-    _metaApi = new MetaApi(token);
+function getToken(): string {
+  const token = process.env.METAAPI_TOKEN;
+  if (!token) throw new Error("METAAPI_TOKEN not configured");
+  return token;
+}
+
+function randomTransactionId(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < 32; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
   }
-  return _metaApi;
+  return result;
 }
 
 export interface ProvisionResult {
   metaApiAccountId: string;
   state: string;
+}
+
+export interface MetaApiAccountStatus {
+  state: string;
+  connectionStatus: string;
+  name: string;
+  login: string;
+  server: string;
+  platform: string;
+  type: string;
 }
 
 export interface AccountSnapshot {
@@ -48,7 +66,8 @@ export interface LivePosition {
 }
 
 /**
- * Provisions a new MetaAPI cloud account for MT5 monitoring (investor/read-only).
+ * Creates a MetaAPI cloud account via REST API.
+ * Docs: https://metaapi.cloud/docs/provisioning/api/account/createAccount/
  */
 export async function provisionAccount(
   login: string,
@@ -57,134 +76,230 @@ export async function provisionAccount(
   accountName: string,
   platform: "mt4" | "mt5" = "mt5"
 ): Promise<ProvisionResult> {
-  const api = await getMetaApi();
+  const token = getToken();
+  const txId = randomTransactionId();
 
-  const account = await api.metatraderAccountApi.createAccount({
-    name: accountName,
+  const body = {
     login,
     password: investorPassword,
+    name: accountName,
     server,
     platform,
-    type: "cloud",
     magic: 1000,
+  };
+
+  const res = await fetch(`${PROVISIONING_API}/users/current/accounts`, {
+    method: "POST",
+    headers: {
+      "auth-token": token,
+      "transaction-id": txId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
   });
 
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(`MetaAPI createAccount ${res.status}: ${text.slice(0, 300)}`);
+  }
+
+  const data = JSON.parse(text);
   return {
-    metaApiAccountId: account.id,
-    state: account.state,
+    metaApiAccountId: data.id,
+    state: data.state || "CREATED",
   };
 }
 
 /**
- * Deploys a MetaAPI cloud account (starts the cloud terminal).
- * Waits up to 5 minutes for the account to connect.
+ * Gets MetaAPI account status via REST API.
  */
-export async function deployAndWait(metaApiAccountId: string): Promise<void> {
-  const api = await getMetaApi();
-  const account = await api.metatraderAccountApi.getAccount(metaApiAccountId);
+export async function getAccountStatus(metaApiAccountId: string): Promise<MetaApiAccountStatus> {
+  const token = getToken();
 
-  if (account.state !== "DEPLOYED") {
-    await account.deploy();
+  const res = await fetch(`${PROVISIONING_API}/users/current/accounts/${metaApiAccountId}`, {
+    headers: { "auth-token": token },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`MetaAPI getAccount ${res.status}: ${text.slice(0, 300)}`);
   }
 
-  await account.waitConnected(undefined, 300);
+  return res.json();
 }
 
 /**
- * Undeploys a MetaAPI cloud account (stops the cloud terminal to save costs).
+ * Deploys a MetaAPI account (starts cloud terminal).
+ */
+export async function deployAccount(metaApiAccountId: string): Promise<void> {
+  const token = getToken();
+
+  const res = await fetch(`${PROVISIONING_API}/users/current/accounts/${metaApiAccountId}/deploy`, {
+    method: "POST",
+    headers: { "auth-token": token },
+  });
+
+  if (!res.ok && res.status !== 409) {
+    // 409 = already deployed, that's fine
+    const text = await res.text();
+    throw new Error(`MetaAPI deploy ${res.status}: ${text.slice(0, 300)}`);
+  }
+}
+
+/**
+ * Undeploys a MetaAPI account (stops cloud terminal).
  */
 export async function undeployAccount(metaApiAccountId: string): Promise<void> {
-  const api = await getMetaApi();
-  const account = await api.metatraderAccountApi.getAccount(metaApiAccountId);
+  const token = getToken();
 
-  if (account.state === "DEPLOYED") {
-    await account.undeploy();
+  const res = await fetch(`${PROVISIONING_API}/users/current/accounts/${metaApiAccountId}/undeploy`, {
+    method: "POST",
+    headers: { "auth-token": token },
+  });
+
+  if (!res.ok && res.status !== 409) {
+    const text = await res.text();
+    throw new Error(`MetaAPI undeploy ${res.status}: ${text.slice(0, 300)}`);
   }
 }
 
+/** A single deal from MetaAPI history. */
+export interface MetaApiDeal {
+  id: string;
+  type: string;         // "DEAL_TYPE_BUY" | "DEAL_TYPE_SELL" | "DEAL_TYPE_BALANCE" etc.
+  entryType: string;    // "DEAL_ENTRY_IN" | "DEAL_ENTRY_OUT" | "DEAL_ENTRY_INOUT"
+  symbol: string;
+  profit: number;
+  commission: number;
+  swap: number;
+  volume: number;
+  time: string;         // ISO UTC
+  positionId: string;   // links IN and OUT deals for the same position
+  comment?: string;
+}
+
+/** A closed trade reconstructed from paired IN+OUT deals. */
+export interface ReconstructedTrade {
+  positionId: string;
+  symbol: string;
+  direction: "buy" | "sell";
+  openedAt: string;     // ISO UTC
+  closedAt: string;     // ISO UTC
+  pnlUsd: number;
+  feesUsd: number;
+  volume: number;
+}
+
 /**
- * Removes a MetaAPI cloud account entirely.
+ * Fetches deal history from MetaAPI Trading API.
+ * Returns raw deals. Timestamps are already in UTC (ISO 8601).
+ * Docs: https://metaapi.cloud/docs/client/api/getDealsByTimeRange/
+ */
+export async function getDealsHistory(
+  metaApiAccountId: string,
+  startTime: string,
+  endTime: string
+): Promise<MetaApiDeal[]> {
+  const token = getToken();
+  const url = `${TRADING_API}/users/current/accounts/${metaApiAccountId}/history-deals/time/${encodeURIComponent(startTime)}/${encodeURIComponent(endTime)}`;
+
+  const res = await fetch(url, {
+    headers: { "auth-token": token },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`MetaAPI getDeals ${res.status}: ${text.slice(0, 300)}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetches closed trades by pairing ENTRY_IN and ENTRY_OUT deals.
+ * - ENTRY_OUT deals have the profit, commission, swap.
+ * - ENTRY_IN deals have the open time.
+ * - They share the same positionId.
+ * Timestamps are already UTC (no MT5 offset needed).
+ */
+export async function getTradeHistory(
+  metaApiAccountId: string,
+  startTime: string,
+  endTime: string
+): Promise<ReconstructedTrade[]> {
+  const deals = await getDealsHistory(metaApiAccountId, startTime, endTime);
+
+  // Index IN deals by positionId for quick lookup
+  const inDeals = new Map<string, MetaApiDeal>();
+  const outDeals: MetaApiDeal[] = [];
+
+  for (const deal of deals) {
+    // Skip balance operations, credit adjustments, etc.
+    if (!deal.symbol || deal.type === "DEAL_TYPE_BALANCE" || deal.type === "DEAL_TYPE_CREDIT") {
+      continue;
+    }
+
+    if (deal.entryType === "DEAL_ENTRY_IN") {
+      inDeals.set(deal.positionId, deal);
+    } else if (deal.entryType === "DEAL_ENTRY_OUT" || deal.entryType === "DEAL_ENTRY_INOUT") {
+      outDeals.push(deal);
+    }
+  }
+
+  const trades: ReconstructedTrade[] = [];
+
+  for (const out of outDeals) {
+    const inDeal = inDeals.get(out.positionId);
+    const openedAt = inDeal?.time || out.time; // fallback to close time if no IN found
+    const closedAt = out.time;
+
+    // Determine direction from the OUT deal type
+    // When closing a BUY position, the OUT deal is SELL and vice versa
+    // So the original position direction is opposite of the OUT deal
+    let direction: "buy" | "sell";
+    if (out.entryType === "DEAL_ENTRY_INOUT") {
+      // Instant trade (open+close in one deal)
+      direction = out.type === "DEAL_TYPE_BUY" ? "buy" : "sell";
+    } else {
+      // Normal close: OUT SELL means original was BUY
+      direction = out.type === "DEAL_TYPE_SELL" ? "buy" : "sell";
+    }
+
+    trades.push({
+      positionId: out.positionId,
+      symbol: out.symbol,
+      direction,
+      openedAt,
+      closedAt,
+      pnlUsd: out.profit,
+      feesUsd: Math.abs(out.commission) + Math.abs(out.swap),
+      volume: out.volume,
+    });
+  }
+
+  return trades;
+}
+
+/**
+ * Removes a MetaAPI account entirely.
  */
 export async function removeAccount(metaApiAccountId: string): Promise<void> {
-  const api = await getMetaApi();
-  const account = await api.metatraderAccountApi.getAccount(metaApiAccountId);
+  const token = getToken();
 
-  if (account.state === "DEPLOYED") {
-    await account.undeploy();
-    await account.waitUndeployed(undefined, 60);
+  // Try to undeploy first
+  await undeployAccount(metaApiAccountId).catch(() => {});
+
+  // Wait a bit for undeploy
+  await new Promise((r) => setTimeout(r, 2000));
+
+  const res = await fetch(`${PROVISIONING_API}/users/current/accounts/${metaApiAccountId}`, {
+    method: "DELETE",
+    headers: { "auth-token": token },
+  });
+
+  if (!res.ok && res.status !== 404) {
+    const text = await res.text();
+    throw new Error(`MetaAPI delete ${res.status}: ${text.slice(0, 300)}`);
   }
-
-  await account.remove();
-}
-
-/**
- * Gets current account information (balance, equity, margin) via RPC.
- */
-export async function getAccountInfo(metaApiAccountId: string): Promise<AccountSnapshot> {
-  const api = await getMetaApi();
-  const account = await api.metatraderAccountApi.getAccount(metaApiAccountId);
-  const connection = account.getRPCConnection();
-
-  await connection.connect();
-  await connection.waitSynchronized();
-
-  const info = await connection.getAccountInformation();
-
-  return {
-    equity: info.equity,
-    balance: info.balance,
-    margin: info.margin,
-    freeMargin: info.freeMargin,
-    currency: info.currency,
-    broker: info.broker,
-    leverage: info.leverage,
-    investorMode: info.investorMode ?? false,
-  };
-}
-
-/**
- * Gets current open positions via RPC.
- */
-export async function getPositions(metaApiAccountId: string): Promise<LivePosition[]> {
-  const api = await getMetaApi();
-  const account = await api.metatraderAccountApi.getAccount(metaApiAccountId);
-  const connection = account.getRPCConnection();
-
-  await connection.connect();
-  await connection.waitSynchronized();
-
-  const positions = await connection.getPositions();
-
-    return positions.map((p: any) => ({
-    id: String(p.id),
-    symbol: p.symbol,
-    type: p.type,
-    volume: p.volume,
-    openPrice: p.openPrice,
-    currentPrice: p.currentPrice,
-    profit: p.profit,
-    swap: p.swap ?? 0,
-    commission: p.commission ?? 0,
-    stopLoss: p.stopLoss ?? null,
-    takeProfit: p.takeProfit ?? null,
-    openTime: String(p.time),
-    comment: p.comment ?? "",
-    magic: p.magic ?? 0,
-  }));
-}
-
-/**
- * Gets the connection status of a MetaAPI account.
- */
-export async function getConnectionStatus(metaApiAccountId: string): Promise<{
-  state: string;
-  connectionStatus: string;
-}> {
-  const api = await getMetaApi();
-  const account = await api.metatraderAccountApi.getAccount(metaApiAccountId);
-
-  return {
-    state: account.state,
-    connectionStatus: account.connectionStatus,
-  };
 }
