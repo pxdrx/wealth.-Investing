@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
         getOpenPositions(conn.metaapi_account_id, region).catch(() => []),
       ]);
 
-      // Use MetaAPI's REAL values directly — no manual calculations
+      // Use MetaAPI's REAL values directly
       const equity = accountInfo.equity ?? 0;
       const balance = accountInfo.balance ?? 0;
       const margin = accountInfo.margin ?? 0;
@@ -87,43 +87,51 @@ export async function GET(req: NextRequest) {
       const unrealizedPnl = equity - balance;
       const openCount = Array.isArray(positions) ? positions.length : 0;
 
-      // Get prop account starting balance for DD %
+      // Get prop account config
       const { data: propAccount } = await supabase
         .from("prop_accounts")
-        .select("starting_balance_usd")
+        .select("starting_balance_usd, reset_timezone")
         .eq("account_id", accountId)
         .maybeSingle();
 
       const startingBalance = propAccount?.starting_balance_usd || 0;
 
-      // Daily P&L: difference between current equity and start-of-day balance
-      // Use the first snapshot of today as reference, or balance if no snapshot
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const { data: todayFirstSnapshot } = await supabase
-        .from("live_equity_snapshots")
-        .select("balance")
-        .eq("connection_id", conn.id)
-        .gte("recorded_at", todayStart.toISOString())
-        .order("recorded_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      // Broker day boundary: forex close = 5pm ET (22:00 UTC winter, 21:00 UTC summer)
+      // MT5 servers reset at midnight server time (UTC+2) ≈ 22:00 UTC
+      const now = new Date();
+      const utcHour = now.getUTCHours();
+      const brokerDayStart = new Date(now);
+      // If before 22:00 UTC today, the broker day started at 22:00 UTC yesterday
+      // If after 22:00 UTC today, the broker day started at 22:00 UTC today
+      if (utcHour < 22) {
+        brokerDayStart.setUTCDate(brokerDayStart.getUTCDate() - 1);
+      }
+      brokerDayStart.setUTCHours(22, 0, 0, 0);
 
-      const startOfDayBalance = todayFirstSnapshot?.balance ?? balance;
-      const dailyPnl = equity - Number(startOfDayBalance);
+      // Daily P&L: sum of trades closed since broker day start + unrealized PnL
+      const { data: brokerDayTrades } = await supabase
+        .from("journal_trades")
+        .select("net_pnl_usd")
+        .eq("account_id", accountId)
+        .eq("user_id", user.id)
+        .gte("closed_at", brokerDayStart.toISOString());
 
-      // DD calculations based on starting balance (prop firm rules)
-      // Daily DD = how much equity dropped today from start-of-day
+      const todayRealizedPnl = (brokerDayTrades ?? []).reduce(
+        (sum, t) => sum + ((t as { net_pnl_usd: number | null }).net_pnl_usd ?? 0), 0
+      );
+      const dailyPnl = todayRealizedPnl + unrealizedPnl;
+
+      // Daily DD = today's loss relative to starting balance (prop firm rule)
       const dailyDdPct = startingBalance > 0 && dailyPnl < 0
         ? Math.round(Math.abs(dailyPnl) / startingBalance * 10000) / 100
         : 0;
 
-      // Overall DD = how much equity is below starting balance
+      // Overall DD = (starting balance - current equity) / starting balance
       const overallDdPct = startingBalance > 0 && equity < startingBalance
         ? Math.round((startingBalance - equity) / startingBalance * 10000) / 100
         : 0;
 
-      const now = new Date().toISOString();
+      const recordedAt = new Date().toISOString();
 
       snapshot = {
         equity,
@@ -135,7 +143,7 @@ export async function GET(req: NextRequest) {
         daily_pnl: dailyPnl,
         daily_dd_pct: Math.round(dailyDdPct * 100) / 100,
         overall_dd_pct: Math.round(overallDdPct * 100) / 100,
-        recorded_at: now,
+        recorded_at: recordedAt,
       };
 
       // Write snapshot to DB (non-blocking, don't fail on write error)

@@ -168,14 +168,19 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
 
       const byAccount = new Map<string, AccountTradesSummary>();
       const tradesList: IndividualTrade[] = [];
-      // Client-side filter: match trades whose closed_at (or opened_at) falls on the selected local date
+      // Client-side filter: match trades using broker day (UTC+2 / MT5 server time)
+      // Same logic as toLocalDateKey in calendar/utils.ts
       const allRows = (tradesRes.data ?? []).filter((row) => {
         const r = row as { opened_at: string; closed_at?: string | null };
         const ts = r.closed_at || r.opened_at;
         if (!ts) return false;
         const d = new Date(ts);
-        const localKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        return localKey === date;
+        // Shift +2h: UTC 22:00 = next broker day 00:00 (MT5 server = UTC+2)
+        const brokerTime = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+        const y = brokerTime.getUTCFullYear();
+        const m = String(brokerTime.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(brokerTime.getUTCDate()).padStart(2, "0");
+        return `${y}-${m}-${day}` === date;
       });
       for (const row of allRows) {
         const r = row as {

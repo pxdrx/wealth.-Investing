@@ -1,15 +1,18 @@
 import type { DayData, TradeRow } from "./types";
 
 /**
- * Converts an ISO timestamp to a local-timezone YYYY-MM-DD key.
- * Using Date local methods ensures the date matches the user's timezone,
- * unlike `.slice(0, 10)` which extracts the UTC date.
+ * Converts an ISO timestamp to a broker-day YYYY-MM-DD key.
+ * Broker day starts at 22:00 UTC (5pm ET forex close / midnight MT5 server).
+ * A trade at 23:00 UTC Monday = Tuesday's broker day.
+ * A trade at 21:59 UTC Monday = Monday's broker day.
  */
 export function toLocalDateKey(iso: string): string {
   const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  // Shift by +2 hours: UTC 22:00 becomes next day 00:00 in broker time (UTC+2 / MT5 server)
+  const brokerTime = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+  const y = brokerTime.getUTCFullYear();
+  const m = String(brokerTime.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(brokerTime.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
