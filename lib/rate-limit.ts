@@ -15,6 +15,13 @@ export const analystRateLimit = new Ratelimit({
   prefix: "ratelimit:analyst",
 });
 
+// Feedback: 5 requests per 10 minutes per user
+export const feedbackRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "600 s"),
+  prefix: "ratelimit:feedback",
+});
+
 // General API: 30 requests per 60 seconds per IP
 export const apiRateLimit = new Ratelimit({
   redis,
