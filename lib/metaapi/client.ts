@@ -53,6 +53,55 @@ export interface AccountSnapshot {
   investorMode: boolean;
 }
 
+/**
+ * Fetches live account information (equity, balance, margin, positions) from MetaAPI Trading API.
+ * Requires account to be DEPLOYED + CONNECTED. Uses regional URL.
+ */
+export async function getAccountInfo(
+  metaApiAccountId: string,
+  region?: string
+): Promise<AccountSnapshot> {
+  const token = getToken();
+  const accountRegion = region || (await getAccountStatus(metaApiAccountId)).region || "vint-hill";
+  const baseUrl = tradingApiUrl(accountRegion);
+  const url = `${baseUrl}/users/current/accounts/${metaApiAccountId}/account-information`;
+
+  const res = await fetch(url, {
+    headers: { "auth-token": token },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`MetaAPI getAccountInfo ${res.status}: ${text.slice(0, 300)}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetches open positions from MetaAPI Trading API.
+ */
+export async function getOpenPositions(
+  metaApiAccountId: string,
+  region?: string
+): Promise<LivePosition[]> {
+  const token = getToken();
+  const accountRegion = region || (await getAccountStatus(metaApiAccountId)).region || "vint-hill";
+  const baseUrl = tradingApiUrl(accountRegion);
+  const url = `${baseUrl}/users/current/accounts/${metaApiAccountId}/positions`;
+
+  const res = await fetch(url, {
+    headers: { "auth-token": token },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`MetaAPI getPositions ${res.status}: ${text.slice(0, 300)}`);
+  }
+
+  return res.json();
+}
+
 export interface LivePosition {
   id: string;
   symbol: string;

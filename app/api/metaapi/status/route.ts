@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { getAccountInfo, getOpenPositions, getAccountStatus } from "@/lib/metaapi/client";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 15;
 
 export async function GET(req: NextRequest) {
   // 1. Auth
@@ -51,14 +53,107 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 4. Get latest snapshot
-  const { data: snapshot } = await supabase
-    .from("live_equity_snapshots")
-    .select("equity, balance, margin, free_margin, open_positions_count, unrealized_pnl, daily_pnl, daily_dd_pct, overall_dd_pct, recorded_at")
-    .eq("connection_id", conn.id)
-    .order("recorded_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // 4. Fetch LIVE data from MetaAPI and write snapshot (if connected)
+  let snapshot: {
+    equity: number;
+    balance: number;
+    margin: number;
+    free_margin: number;
+    open_positions_count: number;
+    unrealized_pnl: number;
+    daily_pnl: number;
+    daily_dd_pct: number;
+    overall_dd_pct: number;
+    recorded_at: string;
+  } | null = null;
+
+  if (conn.connection_status === "connected" && process.env.METAAPI_TOKEN) {
+    try {
+      // Get region from account status
+      const accountStatus = await getAccountStatus(conn.metaapi_account_id);
+      const region = accountStatus.region || "vint-hill";
+
+      // Fetch live account info + positions in parallel
+      const [accountInfo, positions] = await Promise.all([
+        getAccountInfo(conn.metaapi_account_id, region),
+        getOpenPositions(conn.metaapi_account_id, region).catch(() => []),
+      ]);
+
+      const equity = accountInfo.equity ?? 0;
+      const balance = accountInfo.balance ?? 0;
+      const margin = accountInfo.margin ?? 0;
+      const freeMargin = accountInfo.freeMargin ?? 0;
+      const unrealizedPnl = equity - balance;
+      const dailyPnl = equity - balance; // Simplified: equity - balance as daily approximation
+      const openCount = Array.isArray(positions) ? positions.length : 0;
+
+      // Compute drawdown percentages
+      // Get prop account starting balance for DD calculation
+      const { data: propAccount } = await supabase
+        .from("prop_accounts")
+        .select("starting_balance_usd, max_daily_loss_percent, max_overall_loss_percent")
+        .eq("account_id", accountId)
+        .maybeSingle();
+
+      const startingBalance = propAccount?.starting_balance_usd || balance;
+      const dailyDdPct = startingBalance > 0 ? Math.max(0, ((startingBalance - equity) / startingBalance) * 100) : 0;
+      const overallDdPct = dailyDdPct; // Simplified for now
+
+      const now = new Date().toISOString();
+
+      snapshot = {
+        equity,
+        balance,
+        margin,
+        free_margin: freeMargin,
+        open_positions_count: openCount,
+        unrealized_pnl: unrealizedPnl,
+        daily_pnl: dailyPnl,
+        daily_dd_pct: Math.round(dailyDdPct * 100) / 100,
+        overall_dd_pct: Math.round(overallDdPct * 100) / 100,
+        recorded_at: now,
+      };
+
+      // Write snapshot to DB (non-blocking, don't fail on write error)
+      supabase.from("live_equity_snapshots").insert({
+        connection_id: conn.id,
+        user_id: user.id,
+        account_id: accountId,
+        equity,
+        balance,
+        margin,
+        free_margin: freeMargin,
+        open_positions_count: openCount,
+        unrealized_pnl: unrealizedPnl,
+        daily_pnl: dailyPnl,
+        daily_dd_pct: Math.round(dailyDdPct * 100) / 100,
+        overall_dd_pct: Math.round(overallDdPct * 100) / 100,
+      }).then(({ error: snapErr }) => {
+        if (snapErr) console.warn("[status] snapshot write error:", snapErr.message);
+      });
+    } catch (err) {
+      console.warn("[status] MetaAPI fetch error:", (err as Error).message);
+      // Fall back to last saved snapshot
+      const { data: lastSnapshot } = await supabase
+        .from("live_equity_snapshots")
+        .select("equity, balance, margin, free_margin, open_positions_count, unrealized_pnl, daily_pnl, daily_dd_pct, overall_dd_pct, recorded_at")
+        .eq("connection_id", conn.id)
+        .order("recorded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      snapshot = lastSnapshot ?? null;
+    }
+  } else {
+    // Not connected or no token — read last saved snapshot
+    const { data: lastSnapshot } = await supabase
+      .from("live_equity_snapshots")
+      .select("equity, balance, margin, free_margin, open_positions_count, unrealized_pnl, daily_pnl, daily_dd_pct, overall_dd_pct, recorded_at")
+      .eq("connection_id", conn.id)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    snapshot = lastSnapshot ?? null;
+  }
 
   // 5. Get alert configs
   const { data: alertConfigs } = await supabase
