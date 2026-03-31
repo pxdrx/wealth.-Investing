@@ -250,7 +250,8 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user.id)
     .eq("account_id", accountId)
     .gte("opened_at", since)
-    .order("opened_at", { ascending: true });
+    .order("opened_at", { ascending: true })
+    .limit(1000);
 
   if (tradesErr) {
     return NextResponse.json({ ok: false, error: "Erro ao buscar trades" }, { status: 500 });

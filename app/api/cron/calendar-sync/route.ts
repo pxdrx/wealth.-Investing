@@ -31,14 +31,12 @@ export async function POST(req: NextRequest) {
     let events: Awaited<ReturnType<typeof fetchFaireconomyCalendar>> = [];
     try {
       events = await fetchFaireconomyCalendar(FAIRECONOMY_URL);
-      console.log(`[calendar-sync] Faireconomy: ${events.length} events`);
     } catch (feErr) {
       console.warn("[calendar-sync] Faireconomy failed, trying ForexFactory:", feErr);
     }
     if (events.length === 0) {
       try {
         events = await scrapeForexFactoryCalendar();
-        console.log(`[calendar-sync] ForexFactory fallback: ${events.length} events`);
       } catch (ffErr) {
         console.warn("[calendar-sync] ForexFactory also failed:", ffErr);
       }
@@ -127,8 +125,6 @@ export async function POST(req: NextRequest) {
       if (teRows.length > 0) {
         const mergeResult = await mergeTeActuals(teRows, supabase);
         teActualsUpdated = mergeResult.updated;
-        console.log(`[calendar-sync] TE actuals: ${mergeResult.updated} updated, ${mergeResult.surprises.length} surprises`);
-
         // Trigger narrative updates for significant surprises
         for (const surprise of mergeResult.surprises) {
           await triggerNarrativeUpdate(surprise.eventId, {
@@ -167,7 +163,6 @@ export async function POST(req: NextRequest) {
         icUpdated += prevResult.updated;
       }
 
-      console.log(`[calendar-sync] Investing.com enrichment: ${icUpdated} updated`);
     } catch (icErr) {
       console.warn("[calendar-sync] Investing.com enrichment failed:", icErr);
     }
@@ -216,7 +211,6 @@ export async function POST(req: NextRequest) {
 
       if (!rateErr) {
         ratesUpdated++;
-        console.log(`[calendar-sync] Updated ${bankCode} rate to ${rateValue}%`);
       }
     }
 

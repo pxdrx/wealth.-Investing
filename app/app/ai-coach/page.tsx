@@ -293,7 +293,8 @@ function AICoachPageInner() {
         .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
         .eq("user_id", session.session.user.id)
         .eq("account_id", activeAccountId)
-        .order("closed_at", { ascending: true });
+        .order("closed_at", { ascending: true })
+        .limit(500);
       if (data) setTrades(data as JournalTradeRow[]);
       setTradesLoaded(true);
     }

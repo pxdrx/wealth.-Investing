@@ -74,8 +74,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    console.log(`[check-rate-update] Triggered by: ${triggeredEvents.join(", ")}`);
-
     // 3. Scrape latest rates from TradingEconomics
     const freshRates = await scrapeTradingEconomicsRates();
     if (!freshRates || freshRates.length === 0) {

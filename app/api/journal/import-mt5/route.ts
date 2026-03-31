@@ -199,8 +199,6 @@ export async function POST(request: Request) {
         const startingBalance = initialDeposit?.amount_usd ?? 0;
         const inferredFirm = accountName.split(" ")[0] || "Unknown";
 
-        console.log("[import-mt5] auto-healing missing prop_accounts for:", accountName, "firm:", inferredFirm, "balance:", startingBalance);
-
         const propPayload = {
           user_id: userId,
           account_id: accountId,
@@ -231,17 +229,6 @@ export async function POST(request: Request) {
           firmName = newPropRow.firm_name ?? inferredFirm;
           propAccountRowId = newPropRow.id;
         }
-      }
-    }
-
-    if (isHtml && process.env.NODE_ENV === "development") {
-      console.log("[import-mt5] diagnostic (HTML, dev): file=" + file.name);
-      console.log("[import-mt5] diagnostic: trades=" + trades.length + " balanceOps=" + balanceOps.length);
-      if (trades.length > 0) {
-        console.log("[import-mt5] diagnostic first 3 trades:", JSON.stringify(trades.slice(0, 3).map((t) => ({ external_id: t.external_id, symbol: t.symbol, direction: t.direction, pnl_usd: t.pnl_usd }))));
-      }
-      if (balanceOps.length > 0) {
-        console.log("[import-mt5] diagnostic first 3 balanceOps:", JSON.stringify(balanceOps.slice(0, 3).map((o) => ({ type: o.type, amount_usd: o.amount_usd, at: o.at }))));
       }
     }
 
@@ -472,18 +459,6 @@ export async function POST(request: Request) {
       message: `Imported ${imported} trades, ${duplicates} duplicates, ${failed} failed, ${payoutsDetected} payouts`,
       meta,
     });
-
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "[import-mt5]",
-        file.name,
-        "parser=" + parserChosen,
-        "imported=" + imported,
-        "duplicates=" + duplicates,
-        "failed=" + failed,
-        "payouts=" + payoutsDetected
-      );
-    }
 
     // Check daily drawdown breach after import (prop accounts only)
     let ddBreach: { breached: boolean; accountName: string; ddPercent: number; ddLimit: number; date: string } | null = null;

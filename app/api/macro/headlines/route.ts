@@ -113,7 +113,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
     }
 
-    console.log("[macro/headlines] Force live fetch requested by user:", user.id);
     const liveData = await fetchLiveHeadlines(limit);
 
     return NextResponse.json({ ok: true, data: liveData, source: "live" });

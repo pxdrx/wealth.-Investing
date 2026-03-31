@@ -13,6 +13,8 @@ dist
 .DS_Store
 *.pem
 .env*.local
+.env.production
+.env.staging
 
 # debug
 npm-debug.log*

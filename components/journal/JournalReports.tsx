@@ -1,24 +1,24 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
 import { JournalTradeRow, getNetPnl } from "@/components/journal/types";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import { MetricCard } from "@/components/reports/MetricCard";
-import { DrawdownChart } from "@/components/reports/DrawdownChart";
-import { PnlDistribution } from "@/components/reports/PnlDistribution";
-import { DailyPnlChart } from "@/components/reports/DailyPnlChart";
-import {
-  SymbolBreakdown,
-  DirectionBreakdown,
-  DayOfWeekBreakdown,
-  SessionBreakdown,
-  HourHeatmap,
-} from "@/components/reports/BreakdownCharts";
-import { PsychologyAnalysis } from "@/components/journal/PsychologyAnalysis";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import { TrendingUp, PieChart, Brain, Globe } from "lucide-react";
+
+const DrawdownChart = dynamic(() => import("@/components/reports/DrawdownChart").then(mod => mod.DrawdownChart), { ssr: false });
+const PnlDistribution = dynamic(() => import("@/components/reports/PnlDistribution").then(mod => mod.PnlDistribution), { ssr: false });
+const DailyPnlChart = dynamic(() => import("@/components/reports/DailyPnlChart").then(mod => mod.DailyPnlChart), { ssr: false });
+const SymbolBreakdown = dynamic(() => import("@/components/reports/BreakdownCharts").then(mod => mod.SymbolBreakdown), { ssr: false });
+const DirectionBreakdown = dynamic(() => import("@/components/reports/BreakdownCharts").then(mod => mod.DirectionBreakdown), { ssr: false });
+const DayOfWeekBreakdown = dynamic(() => import("@/components/reports/BreakdownCharts").then(mod => mod.DayOfWeekBreakdown), { ssr: false });
+const SessionBreakdown = dynamic(() => import("@/components/reports/BreakdownCharts").then(mod => mod.SessionBreakdown), { ssr: false });
+const HourHeatmap = dynamic(() => import("@/components/reports/BreakdownCharts").then(mod => mod.HourHeatmap), { ssr: false });
+const PsychologyAnalysis = dynamic(() => import("@/components/journal/PsychologyAnalysis").then(mod => mod.PsychologyAnalysis), { ssr: false });
 
 const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
   { value: "UTC", label: "UTC" },

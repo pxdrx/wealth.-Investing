@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
     // 7. Trigger deploy (non-blocking)
     await deployAccount(provision.metaApiAccountId).catch((e) => {
-      console.log("[connect] Deploy trigger error (non-critical):", (e as Error).message);
+      console.warn("[connect] Deploy trigger error (non-critical):", (e as Error).message);
     });
 
     // 8. Save to DB

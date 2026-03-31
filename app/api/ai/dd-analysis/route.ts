@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
     .eq("account_id", accountId)
     .gte("opened_at", startOfDay)
     .lte("opened_at", endOfDay)
-    .order("opened_at", { ascending: true });
+    .order("opened_at", { ascending: true })
+    .limit(200);
 
   if (!trades || trades.length === 0) {
     return NextResponse.json({ ok: true, data: { analysis: "Nenhum trade encontrado para análise." } });

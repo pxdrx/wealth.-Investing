@@ -94,7 +94,6 @@ export async function POST(req: NextRequest) {
               requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
               requireEnv("SUPABASE_SERVICE_ROLE_KEY")
             );
-            console.log("[analyst/run] Saving report for user:", user.id, "ticker:", report.ticker);
             const { data: inserted, error: insertError } = await supabaseService
               .from("analyst_reports")
               .insert({
@@ -107,8 +106,6 @@ export async function POST(req: NextRequest) {
               .maybeSingle();
             if (insertError) {
               console.error("[analyst/run] Insert error:", insertError.message);
-            } else {
-              console.log("[analyst/run] Report saved with id:", inserted?.id);
             }
             savedId = inserted?.id ?? null;
           }

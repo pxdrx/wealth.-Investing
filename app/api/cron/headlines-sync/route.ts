@@ -170,10 +170,6 @@ export async function POST(req: NextRequest) {
           (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
 
         if (hoursSinceUpdate >= 2) {
-          console.log(
-            `[headlines-sync] Cascade trigger: ${highImpactCount} high-impact headlines, ${hoursSinceUpdate.toFixed(1)}h since last panorama`
-          );
-
           const { generateWeeklyNarrative } = await import(
             "@/lib/macro/narrative-generator"
           );
@@ -245,9 +241,7 @@ export async function POST(req: NextRequest) {
             cascadeTriggered = true;
           }
 
-          if (cascadeTriggered) {
-            console.log("[headlines-sync] Cascade panorama regeneration complete");
-          }
+          // cascade panorama regeneration complete
         }
       } catch (err) {
         console.error("[headlines-sync] Cascade regen failed:", err);
@@ -259,10 +253,6 @@ export async function POST(req: NextRequest) {
     if (cascadeTriggered) {
       await invalidateCache("macro:panorama");
     }
-
-    console.log(
-      `[headlines-sync] FL: ${flCount}, Reuters: ${reutersCount}, TS: ${tsCount}, TE: ${teCount}, pruned: ${pruned ?? 0}, breaking: ${breakingHeadlines.length}, cascade: ${cascadeTriggered}`
-    );
 
     return NextResponse.json({
       ok: true,

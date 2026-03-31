@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
         };
       });
       source = "apify_te";
-      console.log(`[refresh-rates] Using Apify data: ${rates.length} rates`);
     } else {
       // 2. Fallback to hardcoded rates
       console.warn("[refresh-rates] Apify failed, using hardcoded fallback");

@@ -2,14 +2,16 @@
 
 import { useEffect, useState, useCallback } from "react";
 
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus, FileSpreadsheet } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus, FileSpreadsheet, FileText } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
 import { AccountSelectorInline } from "@/components/account/AccountSelectorInline";
 import { JournalKpiCards } from "@/components/journal/JournalKpiCards";
-import { JournalEquityChart } from "@/components/journal/JournalEquityChart";
+
+const JournalEquityChart = dynamic(() => import("@/components/journal/JournalEquityChart").then(mod => mod.JournalEquityChart), { ssr: false });
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
@@ -193,7 +195,8 @@ export default function JournalPage() {
         .eq("account_id", activeAccountId)
         .not("opened_at", "is", null)
         .not("net_pnl_usd", "is", null)
-        .order("opened_at", { ascending: true });
+        .order("opened_at", { ascending: true })
+        .limit(5000);
       if (aborted) return;
       setAllTradesSummary((data ?? []) as { net_pnl_usd: number; opened_at: string; account_id: string }[]);
     })();
@@ -640,33 +643,20 @@ export default function JournalPage() {
 
       {/* Empty state — no trades yet */}
       {hasData && trades.length === 0 && (
-        <div className="flex flex-col items-center gap-5 py-16 text-center">
-          <div
-            className="flex flex-col items-center gap-4 rounded-[22px] border-2 border-dashed border-border/60 px-10 py-12 max-w-md"
-            style={{ backgroundColor: "hsl(var(--card))" }}
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-1">Nenhum trade encontrado</h3>
+          <p className="text-sm text-muted-foreground mb-6">Importe seus trades do MT5 ou adicione manualmente.</p>
+          <button
+            onClick={() => {
+              setShowImportPanel(true);
+              setActiveTab(SECTION_OVERVIEW);
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
-              <FileSpreadsheet className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold tracking-tight text-foreground">
-                Seu journal está vazio
-              </h3>
-              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                Importe um relatório do MT5 (.xlsx ou .html) ou adicione trades manualmente.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setShowImportPanel(true);
-                setActiveTab(SECTION_OVERVIEW);
-              }}
-              className="mt-2 inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
-            >
-              <Upload className="h-4 w-4" />
-              Importar MT5
-            </button>
-          </div>
+            <Upload className="h-4 w-4" />
+            Importar MT5
+          </button>
         </div>
       )}
 

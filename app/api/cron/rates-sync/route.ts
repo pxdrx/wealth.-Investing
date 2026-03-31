@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
     const teRates = await scrapeTradingEconomicsRates();
     if (teRates && teRates.length > 0) {
       source = "te_cheerio";
-      console.log(`[rates-sync] Using TE Cheerio scraper: ${teRates.length} rates`);
       rates = teRates;
     } else {
       // 2. Fallback to Apify RAG browser
@@ -41,7 +40,6 @@ export async function POST(req: NextRequest) {
       const apifyRates = await fetchRatesViaApify();
       if (apifyRates && apifyRates.length > 0) {
         source = "apify_te";
-        console.log(`[rates-sync] Using Apify data: ${apifyRates.length} rates`);
         rates = apifyRates;
       } else {
         // 3. Last resort: hardcoded fallback

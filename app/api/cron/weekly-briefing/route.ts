@@ -61,8 +61,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const { weekStart, weekEnd } = getTargetWeek();
-    console.log(`[weekly-briefing] Generating for week ${weekStart} → ${weekEnd}`);
-
     // Check if panorama already exists and is frozen
     const { data: existing } = await supabase
       .from("weekly_panoramas")
@@ -92,7 +90,7 @@ export async function POST(req: NextRequest) {
               }
             }
           }
-          console.log(`[weekly-briefing] Synced ${nextWeekEvents.length} events for next week`);
+          // next week events synced
         }
       } catch (err) {
         console.warn("[weekly-briefing] Next week calendar sync failed:", err);
@@ -127,9 +125,6 @@ export async function POST(req: NextRequest) {
       const weekAheadResult = await withTimeout(fetchWeekAheadViaApify(), 15_000);
       if (weekAheadResult?.editorial) {
         weekAheadEditorial = weekAheadResult.editorial;
-        console.log(`[weekly-briefing] Week Ahead fetched: ${weekAheadEditorial.length} chars`);
-      } else {
-        console.log("[weekly-briefing] Week Ahead not available, proceeding without it");
       }
     } catch (err) {
       console.warn("[weekly-briefing] Week Ahead fetch failed:", err);

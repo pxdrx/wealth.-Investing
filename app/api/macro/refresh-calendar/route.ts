@@ -54,7 +54,6 @@ export async function POST(req: NextRequest) {
     try {
       const feUrl = weekParam === "next" ? FAIRECONOMY_NEXT_WEEK_URL : FAIRECONOMY_URL;
       events = await fetchFaireconomyCalendar(feUrl, weekStartOverride);
-      console.log(`[refresh-calendar] Faireconomy: ${events.length} events`);
     } catch (feErr) {
       console.warn("[refresh-calendar] Faireconomy failed, trying ForexFactory:", feErr);
     }
@@ -82,7 +81,6 @@ export async function POST(req: NextRequest) {
               week_start: ws,
             }));
           source = "trading_economics";
-          console.log(`[refresh-calendar] Trading Economics: ${events.length} events`);
         }
       } catch (teErr) {
         console.warn("[refresh-calendar] Trading Economics failed:", teErr);
@@ -95,7 +93,6 @@ export async function POST(req: NextRequest) {
         const ffEvents = await scrapeForexFactoryCalendar(undefined, weekStartOverride);
         events = ffEvents;
         source = "forexfactory";
-        console.log(`[refresh-calendar] ForexFactory fallback: ${events.length} events`);
       } catch (ffErr) {
         console.warn("[refresh-calendar] ForexFactory also failed:", ffErr);
       }
@@ -109,7 +106,6 @@ export async function POST(req: NextRequest) {
     // Force week_start to current Monday (or override) — Faireconomy "thisweek" may
     // start on Sunday, giving wrong week_start if derived from first event date
     const weekStart = weekStartOverride || getWeekStart();
-    console.log(`[refresh-calendar] Using week_start=${weekStart}, source=${source}, events=${events.length}`);
     // Patch all events to use the correct week_start
     for (const event of events) {
       event.week_start = weekStart;
@@ -176,7 +172,6 @@ export async function POST(req: NextRequest) {
       if (teRows.length > 0) {
         const mergeResult = await mergeTeActuals(teRows, supabase);
         teUpdated = mergeResult.updated;
-        console.log(`[refresh-calendar] TE actuals: ${mergeResult.updated} updated`);
       }
     } catch (teErr) {
       console.warn("[refresh-calendar] TE actuals failed:", teErr);
@@ -206,7 +201,6 @@ export async function POST(req: NextRequest) {
         icUpdated += prevResult.updated;
       }
 
-      console.log(`[refresh-calendar] Investing.com enrichment: ${icUpdated} updated`);
     } catch (icErr) {
       console.warn("[refresh-calendar] Investing.com enrichment failed:", icErr);
     }

@@ -214,7 +214,8 @@ export async function POST(req: NextRequest) {
         .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
         .eq("user_id", userId)
         .eq("account_id", body.account_id)
-        .order("closed_at", { ascending: true });
+        .order("closed_at", { ascending: true })
+        .limit(500);
 
       if (allTrades && allTrades.length > 0) {
         const trades = allTrades as JournalTradeRow[];

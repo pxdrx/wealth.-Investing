@@ -58,7 +58,7 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
     }
   }, []);
 
-  if (alerts.length === 0 || dismissed) return null;
+  const visible = alerts.length > 0 && !dismissed;
 
   const highestSeverity = alerts.some((a) => a.severity === "danger") ? "danger" : "warning";
 
@@ -85,47 +85,50 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
   return (
     <PaywallGate requiredPlan="ultra" blurContent>
       <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-          animate={{ opacity: 1, height: "auto", marginBottom: 24 }}
-          exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-          transition={{ duration: 0.4, ease: easeApple }}
-          className="xl:col-span-12"
-        >
-          <div
-            className={`relative overflow-hidden rounded-[22px] border ${borderColor} bg-gradient-to-br ${gradientBg} shadow-soft dark:shadow-soft-dark`}
-            style={{ backgroundColor: "hsl(var(--card))" }}
+        {visible && (
+          <motion.div
+            key="smart-alerts-banner"
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: "auto", marginBottom: 24 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ duration: 0.4, ease: easeApple }}
+            className="xl:col-span-12"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-2">
-              <div className="flex items-center gap-2.5">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${bellBg}`}>
-                  <Bell className={`h-4 w-4 ${headerColor}`} />
+            <div
+              className={`relative overflow-hidden rounded-[22px] border ${borderColor} bg-gradient-to-br ${gradientBg} shadow-soft dark:shadow-soft-dark`}
+              style={{ backgroundColor: "hsl(var(--card))" }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-full ${bellBg}`}>
+                    <Bell className={`h-4 w-4 ${headerColor}`} />
+                  </div>
+                  <h3 className={`text-sm font-semibold tracking-tight ${headerColor}`}>
+                    Alertas Inteligentes
+                  </h3>
+                  <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {alerts.length}
+                  </span>
                 </div>
-                <h3 className={`text-sm font-semibold tracking-tight ${headerColor}`}>
-                  Alertas Inteligentes
-                </h3>
-                <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  {alerts.length}
-                </span>
+                <button
+                  onClick={handleDismiss}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                  title="Dispensar por hoje"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                onClick={handleDismiss}
-                className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                title="Dispensar por hoje"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
 
-            {/* Alert rows */}
-            <div className="flex flex-col gap-1 px-5 pb-4 pt-1">
-              {alerts.map((alert) => (
-                <AlertRow key={alert.id} alert={alert} />
-              ))}
+              {/* Alert rows */}
+              <div className="flex flex-col gap-1 px-5 pb-4 pt-1">
+                {alerts.map((alert) => (
+                  <AlertRow key={alert.id} alert={alert} />
+                ))}
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </PaywallGate>
   );

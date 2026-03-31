@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await mergeTeActuals(teRows, supabase);
-    console.log(`[calendar-sync-pm] TE actuals: ${result.updated} updated, ${result.surprises.length} surprises`);
 
     // Trigger narrative updates for surprises
     if (result.surprises.length > 0) {
