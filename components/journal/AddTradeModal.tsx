@@ -84,6 +84,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       const sym = symbol.trim().toUpperCase();
       const category = inferCategory(sym);
 
+      // net_pnl_usd is a GENERATED column (pnl_usd - fees_usd) — do NOT send
       const { error: dbError } = await supabase.from("journal_trades").insert({
         user_id: userId,
         account_id: activeAccountId,
@@ -94,7 +95,6 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         closed_at: closedAt ? new Date(closedAt).toISOString() : new Date().toISOString(),
         pnl_usd: pnl,
         fees_usd: 0,
-        net_pnl_usd: pnl,
         context: context.trim() || null,
         notes: notes.trim() || null,
         external_source: "manual",
