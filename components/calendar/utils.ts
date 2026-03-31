@@ -32,7 +32,8 @@ export function aggregateByDay(
   const map = new Map<string, DayData>();
 
   for (const t of trades) {
-    const dateKey = toLocalDateKey(t.opened_at);
+    // Use closed_at for P&L calendar (profit is realized on close, not open)
+    const dateKey = toLocalDateKey(t.closed_at || t.opened_at);
     const pnl = t.net_pnl_usd;
 
     let day = map.get(dateKey);

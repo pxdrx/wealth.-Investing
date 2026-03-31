@@ -23,6 +23,7 @@ export interface TradeRow {
   id: string;
   net_pnl_usd: number;
   opened_at: string;
+  closed_at?: string | null;
   account_id: string;
   symbol: string;
   direction: string;

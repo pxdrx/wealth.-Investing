@@ -125,12 +125,13 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       const startOfDay = new Date(baseDate.getTime() - 12 * 60 * 60 * 1000).toISOString();
       const endOfDay = new Date(baseDate.getTime() + 36 * 60 * 60 * 1000).toISOString();
 
+      // Query by closed_at (P&L realized on close day), with opened_at fallback range
       let tradesQuery = supabase
         .from("journal_trades")
-        .select("id, account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction, opened_at")
+        .select("id, account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction, opened_at, closed_at")
         .eq("user_id", userId)
-        .gte("opened_at", startOfDay)
-        .lte("opened_at", endOfDay);
+        .or(`closed_at.gte.${startOfDay},opened_at.gte.${startOfDay}`)
+        .or(`closed_at.lte.${endOfDay},opened_at.lte.${endOfDay}`);
       if (accountId) {
         tradesQuery = tradesQuery.eq("account_id", accountId);
       } else if (accountIds && accountIds.length > 0) {
@@ -167,11 +168,12 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
 
       const byAccount = new Map<string, AccountTradesSummary>();
       const tradesList: IndividualTrade[] = [];
-      // Client-side filter: match trades whose opened_at falls on the selected local date
+      // Client-side filter: match trades whose closed_at (or opened_at) falls on the selected local date
       const allRows = (tradesRes.data ?? []).filter((row) => {
-        const r = row as { opened_at: string };
-        if (!r.opened_at) return false;
-        const d = new Date(r.opened_at);
+        const r = row as { opened_at: string; closed_at?: string | null };
+        const ts = r.closed_at || r.opened_at;
+        if (!ts) return false;
+        const d = new Date(ts);
         const localKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         return localKey === date;
       });
