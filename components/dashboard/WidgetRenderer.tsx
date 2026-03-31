@@ -39,16 +39,16 @@ export interface DashboardLayout {
 }
 
 export const DEFAULT_LAYOUT: DashboardLayout = {
-  version: 5,
+  version: 6,
   widgets: [
-    { id: "kpi", visible: true, order: 0 },
-    { id: "accounts", visible: true, order: 1 },
-    { id: "performance", visible: true, order: 2 },
-    { id: "top-symbols", visible: false, order: 3 },
-    { id: "session-heatmap", visible: false, order: 4 },
-    { id: "streaks", visible: false, order: 5 },
-    { id: "ai-insight", visible: false, order: 6 },
-    { id: "live-monitoring", visible: false, order: 7 },
+    { id: "live-monitoring", visible: true, order: 0 },
+    { id: "kpi", visible: true, order: 1 },
+    { id: "accounts", visible: true, order: 2 },
+    { id: "performance", visible: true, order: 3 },
+    { id: "top-symbols", visible: false, order: 4 },
+    { id: "session-heatmap", visible: false, order: 5 },
+    { id: "streaks", visible: false, order: 6 },
+    { id: "ai-insight", visible: false, order: 7 },
   ],
 };
 
