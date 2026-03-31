@@ -173,6 +173,15 @@ export function useDashboardData(): DashboardData {
     if (!initialLoadDone.current) {
       setJournalLoading(true);
     }
+
+    // Safety timeout: force loading to resolve after 12s to prevent infinite spinner
+    const dataTimeout = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("[dashboard] Data fetch safety timeout: forcing journalLoading=false after 12s");
+        setJournalLoading(false);
+      }
+    }, 12_000);
+
     (async () => {
       try {
         const [{ data, error }, accountsRes] = await Promise.all([
@@ -253,6 +262,7 @@ export function useDashboardData(): DashboardData {
           }
         }
       } finally {
+        clearTimeout(dataTimeout);
         if (!cancelled) {
           setJournalLoading(false);
         }
@@ -260,6 +270,7 @@ export function useDashboardData(): DashboardData {
     })();
     return () => {
       cancelled = true;
+      clearTimeout(dataTimeout);
     };
   }, [userId, refreshKey]);
 
