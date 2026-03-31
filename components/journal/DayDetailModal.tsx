@@ -119,9 +119,11 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     setConfirmingTradeId(null);
 
     try {
-      // Use local time to match PnlCalendar's date key logic (which uses getMonth/getDate)
-      const startOfDay = new Date(date + "T00:00:00").toISOString();
-      const endOfDay = new Date(date + "T23:59:59.999").toISOString();
+      // Expand range by ±12h to catch any timezone edge cases (UTC vs local vs MT5)
+      // Then filter client-side by local date for precision
+      const baseDate = new Date(date + "T00:00:00");
+      const startOfDay = new Date(baseDate.getTime() - 12 * 60 * 60 * 1000).toISOString();
+      const endOfDay = new Date(baseDate.getTime() + 36 * 60 * 60 * 1000).toISOString();
 
       let tradesQuery = supabase
         .from("journal_trades")
@@ -165,7 +167,15 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
 
       const byAccount = new Map<string, AccountTradesSummary>();
       const tradesList: IndividualTrade[] = [];
-      for (const row of tradesRes.data ?? []) {
+      // Client-side filter: match trades whose opened_at falls on the selected local date
+      const allRows = (tradesRes.data ?? []).filter((row) => {
+        const r = row as { opened_at: string };
+        if (!r.opened_at) return false;
+        const d = new Date(r.opened_at);
+        const localKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return localKey === date;
+      });
+      for (const row of allRows) {
         const r = row as {
           id: string;
           account_id: string | null;

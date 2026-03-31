@@ -151,10 +151,15 @@ export function LiveMonitoringWidget({ propAccount }: { propAccount?: PropAccoun
       >
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={cn("h-2 w-2 rounded-full animate-pulse", statusColor)} />
-            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Monitoramento ao Vivo
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <div className={cn("h-2 w-2 rounded-full animate-pulse", statusColor)} />
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Monitoramento ao Vivo
+              </span>
+            </div>
+            <span className="text-[10px] text-muted-foreground/70 pl-4 truncate max-w-[200px]">
+              {accountName}
             </span>
           </div>
           <div className="flex items-center gap-1">

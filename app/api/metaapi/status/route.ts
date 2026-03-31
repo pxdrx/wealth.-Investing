@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
         getOpenPositions(conn.metaapi_account_id, region).catch(() => []),
       ]);
 
+      // Use MetaAPI's REAL values directly — no manual calculations
       const equity = accountInfo.equity ?? 0;
       const balance = accountInfo.balance ?? 0;
       const margin = accountInfo.margin ?? 0;
@@ -86,37 +87,39 @@ export async function GET(req: NextRequest) {
       const unrealizedPnl = equity - balance;
       const openCount = Array.isArray(positions) ? positions.length : 0;
 
-      // Get prop account for DD calculation
+      // Get prop account starting balance for DD %
       const { data: propAccount } = await supabase
         .from("prop_accounts")
-        .select("starting_balance_usd, max_daily_loss_percent, max_overall_loss_percent")
+        .select("starting_balance_usd")
         .eq("account_id", accountId)
         .maybeSingle();
 
-      const startingBalance = propAccount?.starting_balance_usd || balance;
+      const startingBalance = propAccount?.starting_balance_usd || 0;
 
-      // Daily P&L = today's realized trades + unrealized PnL
+      // Daily P&L: difference between current equity and start-of-day balance
+      // Use the first snapshot of today as reference, or balance if no snapshot
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const { data: todayTrades } = await supabase
-        .from("journal_trades")
-        .select("net_pnl_usd")
-        .eq("account_id", accountId)
-        .eq("user_id", user.id)
-        .gte("closed_at", todayStart.toISOString());
+      const { data: todayFirstSnapshot } = await supabase
+        .from("live_equity_snapshots")
+        .select("balance")
+        .eq("connection_id", conn.id)
+        .gte("recorded_at", todayStart.toISOString())
+        .order("recorded_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-      const todayRealizedPnl = (todayTrades ?? []).reduce(
-        (sum, t) => sum + ((t as { net_pnl_usd: number | null }).net_pnl_usd ?? 0), 0
-      );
-      const dailyPnl = todayRealizedPnl + unrealizedPnl;
+      const startOfDayBalance = todayFirstSnapshot?.balance ?? balance;
+      const dailyPnl = equity - Number(startOfDayBalance);
 
-      // Daily DD: based on today's losses relative to starting balance
-      const dailyDdPct = dailyPnl < 0 && startingBalance > 0
+      // DD calculations based on starting balance (prop firm rules)
+      // Daily DD = how much equity dropped today from start-of-day
+      const dailyDdPct = startingBalance > 0 && dailyPnl < 0
         ? Math.round(Math.abs(dailyPnl) / startingBalance * 10000) / 100
         : 0;
 
-      // Overall DD: (starting balance - current equity) / starting balance
-      const overallDdPct = equity < startingBalance && startingBalance > 0
+      // Overall DD = how much equity is below starting balance
+      const overallDdPct = startingBalance > 0 && equity < startingBalance
         ? Math.round((startingBalance - equity) / startingBalance * 10000) / 100
         : 0;
 
