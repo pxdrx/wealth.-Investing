@@ -63,13 +63,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Erro ao salvar feedback" }, { status: 500 });
     }
 
-    // 5. Send email via Resend (non-blocking — DB is source of truth)
-    try {
-      const resendApiKey = process.env.RESEND_API_KEY;
-      if (resendApiKey) {
-        const { Resend } = await import("resend");
+    // 5. Send email via Resend (fire-and-forget — DB is source of truth)
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      import("resend").then(({ Resend }) => {
         const resend = new Resend(resendApiKey);
-        await resend.emails.send({
+        resend.emails.send({
           from: "wealth.Investing Feedback <onboarding@resend.dev>",
           to: FEEDBACK_EMAIL,
           subject: `[Feedback] ${(category as string).toUpperCase()} — ${user.email}`,
@@ -80,10 +79,8 @@ export async function POST(req: NextRequest) {
             <p><strong>Mensagem:</strong></p>
             <p>${trimmedMessage.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")}</p>
           `,
-        });
-      }
-    } catch (emailErr) {
-      console.error("[feedback] Email send error:", emailErr);
+        }).catch((err: unknown) => console.error("[feedback] Email send error:", err));
+      }).catch((err: unknown) => console.error("[feedback] Resend import error:", err));
     }
 
     return NextResponse.json({ ok: true });

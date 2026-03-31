@@ -38,7 +38,12 @@ const CATEGORIES: CategoryOption[] = [
   { value: "analise", label: "Análise", icon: BarChart3 },
 ];
 
-export function FeedbackDialog() {
+interface FeedbackDialogProps {
+  trigger?: React.ReactNode;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function FeedbackDialog({ trigger, onOpenChange: externalOnOpenChange }: FeedbackDialogProps) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<Category | "">("");
   const [message, setMessage] = useState("");
@@ -54,6 +59,7 @@ export function FeedbackDialog() {
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
+    externalOnOpenChange?.(next);
     if (!next) resetForm();
   };
 
@@ -99,23 +105,21 @@ export function FeedbackDialog() {
   const isValid = category !== "" && message.trim().length >= 10;
 
   return (
-    <section className="mt-12 text-center">
-      <h2 className="text-lg font-semibold tracking-tight">Sua opinião importa</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Encontrou um problema ou tem uma sugestão? Nos conte.
-      </p>
-
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {trigger ? (
+        <span onClick={() => setOpen(true)}>{trigger}</span>
+      ) : (
         <Button
           variant="outline"
-          className="mt-4 gap-2 rounded-full"
+          className="gap-2 rounded-full"
           onClick={() => setOpen(true)}
         >
           <MessageSquare className="h-4 w-4" />
           Enviar feedback
         </Button>
+      )}
 
-        <DialogContent
+      <DialogContent
           className="rounded-[24px] sm:max-w-md"
           style={{ backgroundColor: "hsl(var(--card))" }}
         >
@@ -200,7 +204,6 @@ export function FeedbackDialog() {
             </>
           )}
         </DialogContent>
-      </Dialog>
-    </section>
+    </Dialog>
   );
 }

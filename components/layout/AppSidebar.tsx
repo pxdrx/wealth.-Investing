@@ -18,6 +18,7 @@ import {
   Plus,
   Wallet,
   Crown,
+  MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
@@ -26,6 +27,7 @@ import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 
 interface SidebarConversation {
   id: string;
@@ -243,6 +245,17 @@ function AppSidebarInner() {
             <CreditCard className="h-4 w-4 shrink-0" />
             {!collapsed && <span className="text-sm font-medium">Planos</span>}
           </Link>
+          <FeedbackDialog
+            trigger={
+              <span
+                title={collapsed ? "Feedback" : undefined}
+                className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 cursor-pointer"
+              >
+                <MessageSquare className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">Feedback</span>}
+              </span>
+            }
+          />
 
           <button
             onClick={logout}

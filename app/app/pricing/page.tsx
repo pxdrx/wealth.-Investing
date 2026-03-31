@@ -1,7 +1,6 @@
 "use client";
 
 import { PricingCards } from "@/components/billing/PricingCards";
-import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 
 export default function PricingPage() {
   return (
@@ -11,7 +10,6 @@ export default function PricingPage() {
         Escolha o plano ideal para sua evolucao como trader.
       </p>
       <PricingCards />
-      <FeedbackDialog />
     </div>
   );
 }
