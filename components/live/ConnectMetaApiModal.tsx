@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Shield, Wifi, CheckCircle2, AlertCircle, ChevronRight, Monitor, Key, Server, HelpCircle } from "lucide-react";
-import { useLiveMonitoringContext } from "@/components/context/LiveMonitoringContext";
+import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface ConnectMetaApiModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accountName: string;
+  accountId: string | null;
+  onConnected: () => void;
 }
 
 type Step = "intro" | "tutorial" | "form" | "connecting" | "success" | "error";
@@ -44,8 +46,16 @@ const TUTORIAL_STEPS = [
   },
 ];
 
-export function ConnectMetaApiModal({ open, onOpenChange, accountName }: ConnectMetaApiModalProps) {
-  const { connect } = useLiveMonitoringContext();
+const PROGRESS_MESSAGES = [
+  "Validando credenciais...",
+  "Provisionando terminal cloud...",
+  "Conectando ao broker...",
+  "Sincronizando conta...",
+  "Obtendo dados da conta...",
+  "Quase lá...",
+];
+
+export function ConnectMetaApiModal({ open, onOpenChange, accountName, accountId, onConnected }: ConnectMetaApiModalProps) {
   const [step, setStep] = useState<Step>("intro");
   const [brokerLogin, setBrokerLogin] = useState("");
   const [brokerServer, setBrokerServer] = useState("");
@@ -53,6 +63,11 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
   const [platform, setPlatform] = useState<"mt5" | "mt4">("mt5");
   const [errorMsg, setErrorMsg] = useState("");
   const [showHelp, setShowHelp] = useState(false);
+  const [progressPct, setProgressPct] = useState(0);
+  const [progressMsg, setProgressMsg] = useState(PROGRESS_MESSAGES[0]);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const abortRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function reset() {
     setStep("intro");
@@ -61,27 +76,142 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
     setInvestorPassword("");
     setErrorMsg("");
     setShowHelp(false);
+    setProgressPct(0);
+    setProgressMsg(PROGRESS_MESSAGES[0]);
+    setElapsedSec(0);
+    abortRef.current = false;
+    if (timerRef.current) clearInterval(timerRef.current);
   }
 
   function handleClose(val: boolean) {
-    if (!val) reset();
+    if (step === "connecting") return; // Don't close while connecting
+    if (!val) {
+      abortRef.current = true;
+      reset();
+    }
     onOpenChange(val);
   }
 
   async function handleConnect() {
+    if (!accountId) return;
+    abortRef.current = false;
     setStep("connecting");
-    const result = await connect(brokerLogin, brokerServer, investorPassword, platform);
-    if (result.ok) {
-      setStep("success");
-    } else {
-      setErrorMsg(result.error ?? "Erro desconhecido");
+    setProgressPct(5);
+    setProgressMsg(PROGRESS_MESSAGES[0]);
+    setElapsedSec(0);
+
+    // Timer for elapsed seconds
+    const startTime = Date.now();
+    timerRef.current = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Sessão expirada. Faça login novamente.");
+      }
+
+      // Step 1: Provision (fast)
+      setProgressPct(10);
+      setProgressMsg(PROGRESS_MESSAGES[1]);
+
+      const res = await fetch("/api/metaapi/connect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          accountId,
+          brokerLogin,
+          brokerServer,
+          investorPassword,
+          platform,
+        }),
+      });
+
+      const json = await res.json();
+      if (!json.ok) {
+        throw new Error(json.error || "Erro ao provisionar conta");
+      }
+
+      // Step 2: Poll deploy
+      setProgressPct(25);
+      setProgressMsg(PROGRESS_MESSAGES[2]);
+
+      const MAX_ATTEMPTS = 18; // 18 * 10s = 3 minutes
+      const POLL_DELAY = 10_000;
+
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        if (abortRef.current) return;
+
+        await new Promise((resolve) => setTimeout(resolve, POLL_DELAY));
+        if (abortRef.current) return;
+
+        // Update progress bar smoothly
+        const pct = Math.min(90, 25 + (attempt / MAX_ATTEMPTS) * 65);
+        setProgressPct(pct);
+        const msgIdx = Math.min(
+          PROGRESS_MESSAGES.length - 1,
+          Math.floor((attempt / MAX_ATTEMPTS) * PROGRESS_MESSAGES.length) + 2
+        );
+        setProgressMsg(PROGRESS_MESSAGES[msgIdx]);
+
+        const deployRes = await fetch("/api/metaapi/deploy", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ accountId }),
+        });
+
+        const deployJson = await deployRes.json();
+
+        if (deployJson.ok) {
+          const status = deployJson.data?.connectionStatus;
+
+          if (status === "connected") {
+            setProgressPct(100);
+            setProgressMsg("Conectado!");
+            if (timerRef.current) clearInterval(timerRef.current);
+            onConnected();
+            setStep("success");
+            return;
+          }
+
+          if (status === "error") {
+            throw new Error(deployJson.data?.error || "Erro na conexão com o broker");
+          }
+        }
+        // Still "connecting" — continue polling
+      }
+
+      throw new Error("A conexão demorou mais de 3 minutos. Verifique se as credenciais estão corretas e tente novamente.");
+    } catch (err) {
+      if (abortRef.current) return;
+      const msg = (err as Error).message || "Erro desconhecido";
+      setErrorMsg(msg);
       setStep("error");
+    } finally {
+      if (timerRef.current) clearInterval(timerRef.current);
     }
+  }
+
+  function handleCancel() {
+    abortRef.current = true;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setStep("form");
   }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[520px]" style={{ backgroundColor: "hsl(var(--card))" }}>
+      <DialogContent
+        className="sm:max-w-[520px]"
+        style={{ backgroundColor: "hsl(var(--card))" }}
+        onInteractOutside={(e) => { if (step === "connecting") e.preventDefault(); }}
+      >
 
         {/* ── Step: Intro ── */}
         {step === "intro" && (
@@ -96,7 +226,6 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              {/* Security note */}
               <div className="flex items-start gap-3 rounded-[16px] border border-emerald-200/60 dark:border-emerald-800/40 p-4">
                 <Shield className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
                 <div>
@@ -106,8 +235,6 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
                   </p>
                 </div>
               </div>
-
-              {/* What you get */}
               <div className="rounded-[16px] border border-border/40 p-4 space-y-2.5">
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">O que você ganha</p>
                 <ul className="space-y-1.5 text-sm">
@@ -129,7 +256,6 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
                   </li>
                 </ul>
               </div>
-
               <Button className="w-full gap-2" onClick={() => setStep("tutorial")}>
                 Como conectar
                 <ChevronRight className="h-4 w-4" />
@@ -148,24 +274,20 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-4">
-              {TUTORIAL_STEPS.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <div
-                    key={s.number}
-                    className="flex items-start gap-3 rounded-[16px] border border-border/40 p-3.5"
-                  >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-xs font-bold shrink-0">
-                      {s.number}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{s.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{s.description}</p>
-                    </div>
+              {TUTORIAL_STEPS.map((s) => (
+                <div
+                  key={s.number}
+                  className="flex items-start gap-3 rounded-[16px] border border-border/40 p-3.5"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-xs font-bold shrink-0">
+                    {s.number}
                   </div>
-                );
-              })}
-
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{s.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{s.description}</p>
+                  </div>
+                </div>
+              ))}
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => setStep("intro")} className="flex-1">
                   Voltar
@@ -199,7 +321,7 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
                   className="rounded-[12px]"
                   autoComplete="off"
                 />
-                <p className="text-[10px] text-muted-foreground">Encontre no canto inferior direito do MT5 ou em Arquivo → Abrir uma Conta</p>
+                <p className="text-[10px] text-muted-foreground">Encontre no canto inferior direito do MT5</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="broker-server">Servidor do broker</Label>
@@ -211,7 +333,7 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
                   className="rounded-[12px]"
                   autoComplete="off"
                 />
-                <p className="text-[10px] text-muted-foreground">Aparece ao lado do login no MT5, ou no email que o broker enviou</p>
+                <p className="text-[10px] text-muted-foreground">Aparece ao lado do login no MT5</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="investor-password">Senha Investor (somente leitura)</Label>
@@ -224,7 +346,7 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
                   className="rounded-[12px]"
                   autoComplete="off"
                 />
-                <p className="text-[10px] text-muted-foreground">Diferente da senha master. Veio no email do broker ou crie em Ferramentas → Opções → Servidor</p>
+                <p className="text-[10px] text-muted-foreground">Diferente da senha master. Veio no email do broker</p>
               </div>
               <div className="space-y-2">
                 <Label>Plataforma</Label>
@@ -245,8 +367,6 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
                   ))}
                 </div>
               </div>
-
-              {/* Help toggle */}
               <button
                 onClick={() => setShowHelp(!showHelp)}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -256,12 +376,11 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
               </button>
               {showHelp && (
                 <div className="rounded-[12px] bg-muted/50 p-3 text-xs text-muted-foreground space-y-1.5">
-                  <p><strong>Login:</strong> É o número da conta, aparece no canto inferior direito do MT5.</p>
-                  <p><strong>Servidor:</strong> Aparece ao lado do login. Ex: FTMO-Server3, The5ers-Live.</p>
-                  <p><strong>Senha Investor:</strong> Veio no email quando a mesa criou sua conta. Se perdeu, vá em Ferramentas → Opções → Servidor → Alterar → escolha &ldquo;Investor&rdquo; e crie uma nova.</p>
+                  <p><strong>Login:</strong> Número da conta, canto inferior direito do MT5.</p>
+                  <p><strong>Servidor:</strong> Ao lado do login. Ex: FTMO-Server3.</p>
+                  <p><strong>Senha Investor:</strong> Veio no email do broker. Se perdeu: Ferramentas → Opções → Servidor → Alterar → &ldquo;Investor&rdquo;.</p>
                 </div>
               )}
-
               <div className="flex gap-2 pt-1">
                 <Button variant="outline" onClick={() => setStep("tutorial")} className="flex-1">
                   Voltar
@@ -278,15 +397,44 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
           </>
         )}
 
-        {/* ── Step: Connecting ── */}
+        {/* ── Step: Connecting (with progress bar) ── */}
         {step === "connecting" && (
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-            <div className="text-center">
+          <div className="py-8 space-y-6">
+            <div className="text-center space-y-2">
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mx-auto" />
               <p className="text-sm font-medium">Conectando à sua conta...</p>
-              <p className="text-xs text-muted-foreground mt-1">Estamos provisionando um terminal cloud seguro.</p>
-              <p className="text-xs text-muted-foreground">Isso pode levar até 2 minutos.</p>
+              <p className="text-xs text-muted-foreground">Não feche esta janela.</p>
             </div>
+
+            {/* Progress bar */}
+            <div className="space-y-2">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-700 ease-out"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>{progressMsg}</span>
+                <span>{elapsedSec}s</span>
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="rounded-[12px] bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+              <p>Estamos provisionando um terminal cloud seguro para sua conta.</p>
+              <p>Esse processo pode levar até 3 minutos na primeira conexão.</p>
+              <p>Nas próximas vezes será instantâneo.</p>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              className="w-full text-xs text-muted-foreground"
+            >
+              Cancelar
+            </Button>
           </div>
         )}
 
@@ -297,16 +445,15 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
             <div className="text-center">
               <p className="text-sm font-medium">Conta conectada com sucesso!</p>
               <p className="text-xs text-muted-foreground mt-1">
-                O monitoramento ao vivo está ativo. Você receberá alertas quando o drawdown se aproximar dos limites.
+                O monitoramento ao vivo está ativo.
               </p>
             </div>
             <div className="rounded-[12px] bg-muted/50 p-3 text-xs text-muted-foreground space-y-1 w-full">
               <p>Alertas padrão configurados:</p>
               <p>• DD Diário: aviso em <strong>4%</strong>, crítico em <strong>4.5%</strong></p>
               <p>• DD Geral: aviso em <strong>8%</strong>, crítico em <strong>9%</strong></p>
-              <p className="text-[10px] mt-1.5">Você pode alterar esses limites clicando no ícone de engrenagem no widget.</p>
             </div>
-            <Button onClick={() => handleClose(false)} className="mt-1">
+            <Button onClick={() => { reset(); onOpenChange(false); }} className="mt-1">
               Ir para o Dashboard
             </Button>
           </div>
@@ -331,7 +478,7 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName }: Connect
               <Button variant="outline" onClick={() => setStep("form")}>
                 Corrigir dados
               </Button>
-              <Button variant="ghost" onClick={() => handleClose(false)}>
+              <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }}>
                 Cancelar
               </Button>
             </div>
