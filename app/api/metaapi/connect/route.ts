@@ -71,19 +71,36 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 5. Check if user already has ANY connection (1 account at a time)
-  const { data: existingAny } = await supabase
+  // 5. Check existing connections
+  const { data: existingConns } = await supabase
     .from("metaapi_connections")
-    .select("id, account_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
+    .select("id, account_id, connection_status, created_at")
+    .eq("user_id", user.id);
 
-  if (existingAny) {
-    return NextResponse.json(
-      { ok: false, error: "Você já tem uma conta conectada. Desconecte-a antes de conectar outra." },
-      { status: 409 }
-    );
+  if (existingConns && existingConns.length > 0) {
+    // Auto-cleanup: remove connections stuck in "connecting" for > 5 minutes
+    for (const ec of existingConns) {
+      if (ec.connection_status === "connecting") {
+        const ageMin = (Date.now() - new Date(ec.created_at).getTime()) / 60_000;
+        if (ageMin > 5) {
+          await supabase.from("live_alert_configs").delete().eq("account_id", ec.account_id).eq("user_id", user.id);
+          await supabase.from("metaapi_connections").delete().eq("id", ec.id);
+          continue;
+        }
+      }
+      // If same account already connected/connecting, skip to deploy polling
+      if (ec.account_id === accountId) {
+        return NextResponse.json({
+          ok: true,
+          data: { connectionStatus: ec.connection_status, existing: true },
+        });
+      }
+      // Different account — block
+      return NextResponse.json(
+        { ok: false, error: "Você já tem uma conta conectada. Desconecte-a antes de conectar outra." },
+        { status: 409 }
+      );
+    }
   }
 
   // 6. Provision MetaAPI cloud account (fast — just creates the account)
