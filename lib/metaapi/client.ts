@@ -5,7 +5,11 @@
  */
 
 const PROVISIONING_API = "https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai";
-const TRADING_API = "https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai";
+
+/** Build regional Trading API URL. Region comes from account's provisioning data. */
+function tradingApiUrl(region: string): string {
+  return `https://mt-client-api-v1.${region}.agiliumtrade.ai`;
+}
 
 function getToken(): string {
   const token = process.env.METAAPI_TOKEN;
@@ -35,6 +39,7 @@ export interface MetaApiAccountStatus {
   server: string;
   platform: string;
   type: string;
+  region: string;
 }
 
 export interface AccountSnapshot {
@@ -194,15 +199,20 @@ export interface ReconstructedTrade {
 /**
  * Fetches deal history from MetaAPI Trading API.
  * Returns raw deals. Timestamps are already in UTC (ISO 8601).
- * Docs: https://metaapi.cloud/docs/client/api/getDealsByTimeRange/
+ * Docs: https://metaapi.cloud/docs/client/restApi/api/retrieveHistoricalData/readDealsByTimeRange/
  */
 export async function getDealsHistory(
   metaApiAccountId: string,
   startTime: string,
-  endTime: string
+  endTime: string,
+  region?: string
 ): Promise<MetaApiDeal[]> {
   const token = getToken();
-  const url = `${TRADING_API}/users/current/accounts/${metaApiAccountId}/history-deals/time/${encodeURIComponent(startTime)}/${encodeURIComponent(endTime)}`;
+
+  // Resolve region if not provided
+  const accountRegion = region || (await getAccountStatus(metaApiAccountId)).region || "vint-hill";
+  const baseUrl = tradingApiUrl(accountRegion);
+  const url = `${baseUrl}/users/current/accounts/${metaApiAccountId}/history-deals/time/${encodeURIComponent(startTime)}/${encodeURIComponent(endTime)}`;
 
   const res = await fetch(url, {
     headers: { "auth-token": token },
@@ -213,7 +223,11 @@ export async function getDealsHistory(
     throw new Error(`MetaAPI getDeals ${res.status}: ${text.slice(0, 300)}`);
   }
 
-  return res.json();
+  const body = await res.json();
+  // MetaAPI returns an array directly, but handle wrapper object just in case
+  if (Array.isArray(body)) return body;
+  if (body && Array.isArray(body.deals)) return body.deals;
+  return [];
 }
 
 /**
@@ -226,9 +240,10 @@ export async function getDealsHistory(
 export async function getTradeHistory(
   metaApiAccountId: string,
   startTime: string,
-  endTime: string
+  endTime: string,
+  region?: string
 ): Promise<ReconstructedTrade[]> {
-  const deals = await getDealsHistory(metaApiAccountId, startTime, endTime);
+  const deals = await getDealsHistory(metaApiAccountId, startTime, endTime, region);
 
   // Index IN deals by positionId for quick lookup
   const inDeals = new Map<string, MetaApiDeal>();
