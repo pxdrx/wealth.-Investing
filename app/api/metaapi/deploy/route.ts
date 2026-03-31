@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       try {
         const connection = account.getRPCConnection();
         await connection.connect();
-        await connection.waitSynchronized(undefined, 15);
+        await connection.waitSynchronized();
         const info = await connection.getAccountInformation();
         equity = info.equity;
         balance = info.balance;
