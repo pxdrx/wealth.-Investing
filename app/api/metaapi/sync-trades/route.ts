@@ -133,6 +133,7 @@ export async function POST(req: NextRequest) {
       closed_at: string;
       pnl_usd: number;
       fees_usd: number;
+      net_pnl_usd: number;
       external_source: string;
       external_id: string;
     }> = [];
@@ -149,6 +150,8 @@ export async function POST(req: NextRequest) {
       const symbol = trade.symbol;
       const category = inferCategory(symbol);
 
+      const pnl = trade.pnlUsd;
+      const fees = trade.feesUsd;
       toInsert.push({
         user_id: user.id,
         account_id: accountId,
@@ -157,8 +160,9 @@ export async function POST(req: NextRequest) {
         direction: trade.direction,
         opened_at: trade.openedAt,   // Already UTC from MetaAPI
         closed_at: trade.closedAt,   // Already UTC from MetaAPI
-        pnl_usd: trade.pnlUsd,
-        fees_usd: trade.feesUsd,
+        pnl_usd: pnl,
+        fees_usd: fees,
+        net_pnl_usd: pnl - fees,
         external_source: EXTERNAL_SOURCE,
         external_id: trade.positionId,
       });
