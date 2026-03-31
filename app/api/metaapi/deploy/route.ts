@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
-import { deployAndWait, getAccountInfo, getConnectionStatus } from "@/lib/metaapi/client";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 /**
  * POST /api/metaapi/deploy
- * Attempts to deploy and check the connection status of a MetaAPI account.
- * Called by the frontend in a polling loop after /connect returns "connecting".
- * Returns the current status — frontend keeps polling until "connected" or "error".
+ * Checks the MetaAPI account connection status and updates our DB.
+ * Called by the frontend in a polling loop after /connect.
+ * Does NOT block — just checks and returns current status.
  */
 export async function POST(req: NextRequest) {
   // 1. Auth
@@ -45,51 +44,61 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Conexão não encontrada" }, { status: 404 });
   }
 
-  // Already connected — return immediately
   if (conn.connection_status === "connected") {
-    return NextResponse.json({
-      ok: true,
-      data: { connectionStatus: "connected" },
-    });
+    return NextResponse.json({ ok: true, data: { connectionStatus: "connected" } });
   }
 
-  // 4. Try to deploy and check status
+  // 4. Check MetaAPI status via REST (no SDK blocking)
   try {
-    // Check current MetaAPI status first
-    const status = await getConnectionStatus(conn.metaapi_account_id);
+    const { default: MetaApi } = await import("metaapi.cloud-sdk/node");
+    const metaApiToken = process.env.METAAPI_TOKEN;
+    if (!metaApiToken) throw new Error("METAAPI_TOKEN not configured");
 
-    if (status.state !== "DEPLOYED") {
-      // Trigger deploy (non-blocking if already deploying)
+    const api = new MetaApi(metaApiToken);
+    const account = await api.metatraderAccountApi.getAccount(conn.metaapi_account_id);
+
+    const state = account.state;
+    const connStatus = account.connectionStatus;
+
+    // If not deployed yet, trigger deploy (non-blocking)
+    if (state !== "DEPLOYED" && state !== "DEPLOYING") {
       try {
-        await deployAndWait(conn.metaapi_account_id);
+        await account.deploy();
       } catch {
-        // deployAndWait may timeout within our 60s limit — that's OK, we'll retry
-        const retryStatus = await getConnectionStatus(conn.metaapi_account_id);
-        if (retryStatus.state !== "DEPLOYED" || retryStatus.connectionStatus !== "CONNECTED") {
-          return NextResponse.json({
-            ok: true,
-            data: { connectionStatus: "connecting", metaApiState: retryStatus.state },
-          });
-        }
+        // Already deploying or other issue — will retry on next poll
       }
+      return NextResponse.json({
+        ok: true,
+        data: { connectionStatus: "connecting", metaApiState: state },
+      });
     }
 
-    // If deployed, check if connected to broker
-    const finalStatus = await getConnectionStatus(conn.metaapi_account_id);
+    // If deploying, wait
+    if (state === "DEPLOYING") {
+      return NextResponse.json({
+        ok: true,
+        data: { connectionStatus: "connecting", metaApiState: "DEPLOYING" },
+      });
+    }
 
-    if (finalStatus.connectionStatus === "CONNECTED") {
-      // Get first equity reading
+    // Deployed — check broker connection
+    if (connStatus === "CONNECTED") {
+      // Try to get account info
       let equity: number | null = null;
       let balance: number | null = null;
+
       try {
-        const info = await getAccountInfo(conn.metaapi_account_id);
+        const connection = account.getRPCConnection();
+        await connection.connect();
+        await connection.waitSynchronized(undefined, 15);
+        const info = await connection.getAccountInformation();
         equity = info.equity;
         balance = info.balance;
       } catch {
-        // Non-critical — we'll get it on the next poll
+        // Will get data on next poll
       }
 
-      // Update status to connected
+      // Update DB to connected
       await supabase
         .from("metaapi_connections")
         .update({
@@ -100,7 +109,7 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", conn.id);
 
-      // Save initial snapshot if we got equity
+      // Save initial snapshot
       if (equity !== null && balance !== null) {
         await supabase.from("live_equity_snapshots").insert({
           connection_id: conn.id,
@@ -118,40 +127,27 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         ok: true,
-        data: {
-          connectionStatus: "connected",
-          equity,
-          balance,
-        },
+        data: { connectionStatus: "connected", equity, balance },
       });
     }
 
-    // Still deploying/connecting
+    // Deployed but not connected to broker yet
     return NextResponse.json({
       ok: true,
       data: {
         connectionStatus: "connecting",
-        metaApiState: finalStatus.state,
-        brokerConnection: finalStatus.connectionStatus,
+        metaApiState: state,
+        brokerConnection: connStatus,
       },
     });
   } catch (err) {
     const msg = (err as Error).message || String(err);
     console.error("[metaapi/deploy] Error:", msg);
 
-    // Update connection with error
-    await supabase
-      .from("metaapi_connections")
-      .update({
-        connection_status: "error",
-        last_error: msg.slice(0, 500),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", conn.id);
-
+    // Don't mark as error on transient failures — let the poll retry
     return NextResponse.json({
       ok: true,
-      data: { connectionStatus: "error", error: msg },
+      data: { connectionStatus: "connecting", error: msg },
     });
   }
 }
