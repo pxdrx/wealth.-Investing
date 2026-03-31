@@ -102,12 +102,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (events.length === 0) {
+      console.warn("[refresh-calendar] All sources returned 0 events");
       return NextResponse.json({ ok: true, fetched: 0, updated: 0, source: "none" });
     }
 
     // Force week_start to current Monday (or override) — Faireconomy "thisweek" may
     // start on Sunday, giving wrong week_start if derived from first event date
     const weekStart = weekStartOverride || getWeekStart();
+    console.log(`[refresh-calendar] Using week_start=${weekStart}, source=${source}, events=${events.length}`);
     // Patch all events to use the correct week_start
     for (const event of events) {
       event.week_start = weekStart;
