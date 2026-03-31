@@ -94,7 +94,12 @@ export function LiveMonitoringWidget({ propAccount }: { propAccount?: PropAccoun
           onOpenChange={setShowConnect}
           accountName={accountName}
           accountId={activeAccountId}
-          onConnected={() => monitoring.refresh()}
+          onConnected={() => {
+            // Refresh immediately + retry after delays to ensure DB state propagated
+            monitoring.refresh();
+            setTimeout(() => monitoring.refresh(), 2000);
+            setTimeout(() => monitoring.refresh(), 5000);
+          }}
         />
       </div>
     );
