@@ -69,6 +69,7 @@ export async function provisionAccount(
     magic: 0,
     manualTrades: true,
     quoteStreamingIntervalInSeconds: 2.5,
+    reliability: "regular" as const,
   });
 
   return {
