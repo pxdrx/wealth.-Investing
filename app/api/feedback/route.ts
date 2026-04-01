@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       import("resend").then(({ Resend }) => {
         const resend = new Resend(resendApiKey);
         resend.emails.send({
-          from: "wealth.Investing Feedback <onboarding@resend.dev>",
+          from: "wealth.Investing Feedback <feedback@owealthinvesting.com>",
           to: FEEDBACK_EMAIL,
           subject: `[Feedback] ${(category as string).toUpperCase()} — ${user.email}`,
           html: `
