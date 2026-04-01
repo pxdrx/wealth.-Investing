@@ -85,7 +85,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       const category = inferCategory(sym);
 
       // net_pnl_usd is a GENERATED column (pnl_usd - fees_usd) — do NOT send
-      const { error: dbError } = await supabase.from("journal_trades").insert({
+      const insertPromise = supabase.from("journal_trades").insert({
         user_id: userId,
         account_id: activeAccountId,
         symbol: sym,
@@ -100,6 +100,14 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         external_source: "manual",
         external_id: `manual_${Date.now()}`,
       });
+
+      // Timeout: abort after 10s to prevent infinite "Salvando..."
+      const { error: dbError } = await Promise.race([
+        insertPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout: o servidor demorou mais de 10s. Tente novamente.")), 10_000)
+        ),
+      ]);
 
       if (dbError) {
         console.error("[add-trade] DB error:", dbError.code, dbError.message);
@@ -123,7 +131,9 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       onSaved();
       onClose();
     } catch (err) {
-      console.error("[add-trade] Error:", err);
+      const msg = err instanceof Error ? err.message : "Erro ao salvar trade";
+      console.error("[add-trade] Error:", msg);
+      setError(msg);
     } finally {
       setSaving(false);
     }
