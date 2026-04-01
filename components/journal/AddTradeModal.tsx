@@ -132,9 +132,9 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
       <div
-        className="relative w-full max-w-lg rounded-t-[22px] sm:rounded-[22px] border border-border/40 shadow-lg isolate mx-0 sm:mx-4 flex flex-col max-h-[92vh] sm:max-h-[90vh]"
+        className="relative w-full max-w-lg rounded-t-[22px] sm:rounded-[22px] border border-border/40 shadow-lg isolate mx-0 sm:mx-4 flex flex-col max-h-[80vh] sm:max-h-[90vh]"
         style={{ backgroundColor: "hsl(var(--card))" }}
       >
         {/* Header — fixed */}
