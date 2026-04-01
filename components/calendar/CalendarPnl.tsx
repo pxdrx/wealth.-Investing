@@ -326,6 +326,7 @@ export function CalendarPnl({
         accountId={accountId}
         accountIds={accountIds}
         defaultReadOnly={defaultReadOnly}
+        filterSymbol={filterSymbol}
         open={modalOpen}
         onOpenChange={setModalOpen}
         onTradeDeleted={onTradeDeleted}

@@ -24,6 +24,8 @@ interface DayDetailModalProps {
   accountIds?: string[];
   /** When true, modal opens in read-only mode with a single "Editar" button */
   defaultReadOnly?: boolean;
+  /** When set, only show trades for this symbol */
+  filterSymbol?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNoteSaved?: () => void;
@@ -57,7 +59,7 @@ interface DayNote {
   tags: string[];
 }
 
-export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, open, onOpenChange, onNoteSaved, onTradeDeleted }: DayDetailModalProps) {
+export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, filterSymbol, open, onOpenChange, onNoteSaved, onTradeDeleted }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [individualTrades, setIndividualTrades] = useState<IndividualTrade[]>([]);
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
@@ -218,8 +220,34 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
         });
       }
 
-      setAccountSummaries(Array.from(byAccount.values()).sort((a, b) => b.pnl - a.pnl));
-      setIndividualTrades(tradesList.sort((a, b) => a.opened_at.localeCompare(b.opened_at)));
+      // Apply symbol filter if active
+      const filteredTrades = filterSymbol
+        ? tradesList.filter((t) => t.symbol === filterSymbol)
+        : tradesList;
+
+      // Recalculate account summaries from filtered trades
+      if (filterSymbol) {
+        const filteredByAccount = new Map<string, AccountTradesSummary>();
+        for (const t of filteredTrades) {
+          if (!filteredByAccount.has(t.account_id)) {
+            filteredByAccount.set(t.account_id, {
+              accountId: t.account_id,
+              accountName: t.accountName,
+              trades: 0, wins: 0, losses: 0, breakeven: 0, pnl: 0,
+            });
+          }
+          const s = filteredByAccount.get(t.account_id)!;
+          s.trades += 1;
+          s.pnl += t.net_pnl_usd;
+          if (t.net_pnl_usd > 0) s.wins += 1;
+          else if (t.net_pnl_usd < 0) s.losses += 1;
+          else s.breakeven += 1;
+        }
+        setAccountSummaries(Array.from(filteredByAccount.values()).sort((a, b) => b.pnl - a.pnl));
+      } else {
+        setAccountSummaries(Array.from(byAccount.values()).sort((a, b) => b.pnl - a.pnl));
+      }
+      setIndividualTrades(filteredTrades.sort((a, b) => a.opened_at.localeCompare(b.opened_at)));
 
       if (noteResult) {
         const obs = noteResult.observation ?? "";
@@ -243,7 +271,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
   // accountIds is a new array reference on each render. This is intentional
   // and the standard workaround for array dependencies.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, userId, accountId, JSON.stringify(accountIds)]);
+  }, [date, userId, accountId, filterSymbol, JSON.stringify(accountIds)]);
 
   useEffect(() => {
     if (open && date && userId) loadDayData();
@@ -381,6 +409,18 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
               : "Nenhuma operação neste dia"}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Filter active banner */}
+        {filterSymbol && (
+          <div className="flex items-center justify-between rounded-xl border border-blue-500/30 bg-blue-500/5 px-3 py-2">
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              Filtro ativo: <span className="font-semibold">{filterSymbol}</span>
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              Desative o filtro no calendário para ver todos
+            </p>
+          </div>
+        )}
 
         {loading ? (
           <div className="space-y-3">
