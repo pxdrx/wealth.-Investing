@@ -132,20 +132,21 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
       <div
-        className="relative w-full max-w-lg rounded-[22px] border border-border/40 p-6 shadow-lg isolate mx-4 max-h-[90vh] overflow-y-auto"
+        className="relative w-full max-w-lg rounded-t-[22px] sm:rounded-[22px] border border-border/40 shadow-lg isolate mx-0 sm:mx-4 flex flex-col max-h-[92vh] sm:max-h-[90vh]"
         style={{ backgroundColor: "hsl(var(--card))" }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Header — fixed */}
+        <div className="flex items-center justify-between p-4 sm:p-6 pb-0 sm:pb-0 shrink-0">
           <h2 className="text-lg font-semibold tracking-tight">Adicionar Trade</h2>
           <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted transition-colors" aria-label="Fechar modal">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* Scrollable form area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-4 space-y-4">
           {/* Quick symbol buttons */}
           <div>
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Ativo</label>
@@ -301,8 +302,10 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
+        </div>
 
-          {/* Save Button */}
+        {/* Save Button — fixed footer, always visible */}
+        <div className="shrink-0 p-4 sm:p-6 pt-3 sm:pt-3 border-t border-border/20">
           <button
             onClick={handleSave}
             disabled={saving || !symbol.trim() || !openedAt || !pnlUsd}
