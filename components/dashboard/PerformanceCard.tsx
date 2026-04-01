@@ -31,6 +31,14 @@ interface PerformanceCardProps {
   onTradeDeleted?: () => void;
 }
 
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(value);
+}
+
 export function PerformanceCard({
   trades,
   accounts,
@@ -41,12 +49,56 @@ export function PerformanceCard({
   onTradeDeleted,
 }: PerformanceCardProps) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | "all">("all");
+  const [perfView, setPerfView] = useState<"mensal" | "geral">("mensal");
 
   // Filter trades by selected account
   const filteredTrades = useMemo(() => {
     if (selectedAccountId === "all") return trades;
     return trades.filter((t) => t.account_id === selectedAccountId);
   }, [trades, selectedAccountId]);
+
+  // All-time stats for "Geral" view
+  const allTimeStats = useMemo(() => {
+    if (filteredTrades.length === 0) return null;
+
+    const totalPnl = filteredTrades.reduce((s, t) => s + (t.net_pnl_usd ?? 0), 0);
+    const wins = filteredTrades.filter((t) => (t.net_pnl_usd ?? 0) > 0);
+    const losses = filteredTrades.filter((t) => (t.net_pnl_usd ?? 0) < 0);
+    const winRate = (wins.length / filteredTrades.length) * 100;
+    const avgWin =
+      wins.length > 0
+        ? wins.reduce((s, t) => s + (t.net_pnl_usd ?? 0), 0) / wins.length
+        : 0;
+    const avgLoss =
+      losses.length > 0
+        ? Math.abs(
+            losses.reduce((s, t) => s + (t.net_pnl_usd ?? 0), 0) / losses.length
+          )
+        : 0;
+    const profitFactor =
+      avgLoss > 0
+        ? (avgWin * wins.length) / (avgLoss * losses.length)
+        : wins.length > 0
+          ? Infinity
+          : 0;
+    const bestTrade = Math.max(...filteredTrades.map((t) => t.net_pnl_usd ?? 0));
+    const worstTrade = Math.min(...filteredTrades.map((t) => t.net_pnl_usd ?? 0));
+    const avgTrade = totalPnl / filteredTrades.length;
+
+    return {
+      totalTrades: filteredTrades.length,
+      totalPnl,
+      winRate,
+      wins: wins.length,
+      losses: losses.length,
+      avgWin,
+      avgLoss,
+      profitFactor,
+      bestTrade,
+      worstTrade,
+      avgTrade,
+    };
+  }, [filteredTrades]);
 
   // Determine starting balance for selected account
   const effectiveStartingBalance = useMemo(() => {
@@ -75,8 +127,40 @@ export function PerformanceCard({
           <h3 className="text-sm font-semibold tracking-tight">Performance</h3>
         </div>
 
+        {/* View toggle + Account selector pills */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setPerfView("mensal")}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-all",
+                perfView === "mensal"
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-muted"
+              )}
+            >
+              Mensal
+            </button>
+            <button
+              type="button"
+              onClick={() => setPerfView("geral")}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-all",
+                perfView === "geral"
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-muted"
+              )}
+            >
+              Geral
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-border/60" />
+        </div>
+
         {/* Account selector pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap mt-2">
           <button
             type="button"
             onClick={() => setSelectedAccountId("all")}
@@ -109,25 +193,109 @@ export function PerformanceCard({
 
       {/* Content */}
       <div className="px-4 pb-4">
-        {/* Calendar (full mode with KPI strip) */}
-        <CalendarPnl
-          trades={filteredTrades}
-          accounts={calendarAccounts}
-          dayNotes={dayNotes}
-          userId={userId}
-          accountId={selectedAccountId === "all" ? null : selectedAccountId}
-          accountIds={accounts.map((a) => a.id)}
-          onTradeDeleted={onTradeDeleted}
-        />
+        {perfView === "mensal" && (
+          <>
+            {/* Calendar (full mode with KPI strip) */}
+            <CalendarPnl
+              trades={filteredTrades}
+              accounts={calendarAccounts}
+              dayNotes={dayNotes}
+              userId={userId}
+              accountId={selectedAccountId === "all" ? null : selectedAccountId}
+              accountIds={accounts.map((a) => a.id)}
+              onTradeDeleted={onTradeDeleted}
+            />
 
-        {/* Monthly Performance Grid */}
-        <div className="pt-3">
-          <MonthlyPerformanceGrid
-            trades={filteredTrades}
-            activeAccountId={selectedAccountId === "all" ? null : selectedAccountId}
-            startingBalance={effectiveStartingBalance}
-          />
-        </div>
+            {/* Monthly Performance Grid */}
+            <div className="pt-3">
+              <MonthlyPerformanceGrid
+                trades={filteredTrades}
+                activeAccountId={selectedAccountId === "all" ? null : selectedAccountId}
+                startingBalance={effectiveStartingBalance}
+              />
+            </div>
+          </>
+        )}
+
+        {perfView === "geral" && allTimeStats && (
+          <div className="space-y-4">
+            {/* Main PnL */}
+            <div className="text-center py-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
+                P&L Total
+              </p>
+              <p
+                className={cn(
+                  "text-2xl font-bold tabular-nums",
+                  allTimeStats.totalPnl >= 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                )}
+              >
+                {allTimeStats.totalPnl >= 0 ? "+" : ""}
+                {formatCurrency(allTimeStats.totalPnl)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {allTimeStats.totalTrades} trades
+              </p>
+            </div>
+
+            {/* KPI Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  label: "Win Rate",
+                  value: `${allTimeStats.winRate.toFixed(1)}%`,
+                  sub: `${allTimeStats.wins}W / ${allTimeStats.losses}L`,
+                },
+                {
+                  label: "Profit Factor",
+                  value:
+                    allTimeStats.profitFactor === Infinity
+                      ? "\u221E"
+                      : allTimeStats.profitFactor.toFixed(2),
+                },
+                {
+                  label: "M\u00E9dia/Trade",
+                  value: formatCurrency(allTimeStats.avgTrade),
+                },
+                {
+                  label: "Melhor Trade",
+                  value: formatCurrency(allTimeStats.bestTrade),
+                },
+                {
+                  label: "Pior Trade",
+                  value: formatCurrency(allTimeStats.worstTrade),
+                },
+                {
+                  label: "M\u00E9dia Win",
+                  value: formatCurrency(allTimeStats.avgWin),
+                },
+              ].map((kpi) => (
+                <div
+                  key={kpi.label}
+                  className="rounded-[16px] border border-border/30 p-3 text-center"
+                >
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+                    {kpi.label}
+                  </p>
+                  <p className="text-sm font-semibold tabular-nums">{kpi.value}</p>
+                  {kpi.sub && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {kpi.sub}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {perfView === "geral" && !allTimeStats && (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            Nenhum trade encontrado.
+          </div>
+        )}
       </div>
     </div>
   );

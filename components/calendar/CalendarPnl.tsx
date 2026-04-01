@@ -31,22 +31,36 @@ export function CalendarPnl({
   const [displayMonth, setDisplayMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [filterSymbol, setFilterSymbol] = useState<string | null>(null);
+
+  // Extract unique symbols from trades for filter pills
+  const symbols = useMemo(() => {
+    const set = new Set<string>();
+    trades.forEach((t) => { if (t.symbol) set.add(t.symbol); });
+    return Array.from(set).sort();
+  }, [trades]);
+
+  // Filter trades by selected symbol
+  const filteredTrades = useMemo(
+    () => filterSymbol ? trades.filter((t) => t.symbol === filterSymbol) : trades,
+    [trades, filterSymbol]
+  );
 
   const dailyData = useMemo(
-    () => aggregateByDay(trades, accounts),
-    [trades, accounts]
+    () => aggregateByDay(filteredTrades, accounts),
+    [filteredTrades, accounts]
   );
 
   // Compute set of dates that have trades with notes
   const hasTradeNotes = useMemo(() => {
     const set = new Set<string>();
-    for (const t of trades) {
+    for (const t of filteredTrades) {
       if ("notes" in t && t.notes) {
         set.add(toLocalDateKey(t.opened_at));
       }
     }
     return set;
-  }, [trades]);
+  }, [filteredTrades]);
 
   // Compute month stats filtered to displayMonth
   const monthStats = useMemo(() => {
@@ -197,6 +211,37 @@ export function CalendarPnl({
               </div>
             ))}
           </div>
+
+          {/* Symbol filter pills */}
+          {symbols.length > 1 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              <button
+                onClick={() => setFilterSymbol(null)}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-medium transition-all border",
+                  !filterSymbol
+                    ? "bg-foreground text-background border-foreground"
+                    : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                )}
+              >
+                Todos
+              </button>
+              {symbols.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setFilterSymbol(filterSymbol === s ? null : s)}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-[11px] font-medium transition-all border",
+                    filterSymbol === s
+                      ? "bg-foreground text-background border-foreground"
+                      : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -219,6 +264,37 @@ export function CalendarPnl({
               </div>
             ))}
           </div>
+
+          {/* Symbol filter pills (compact) */}
+          {symbols.length > 1 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              <button
+                onClick={() => setFilterSymbol(null)}
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium transition-all border",
+                  !filterSymbol
+                    ? "bg-foreground text-background border-foreground"
+                    : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                )}
+              >
+                Todos
+              </button>
+              {symbols.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setFilterSymbol(filterSymbol === s ? null : s)}
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-medium transition-all border",
+                    filterSymbol === s
+                      ? "bg-foreground text-background border-foreground"
+                      : "border-border/60 text-muted-foreground hover:border-foreground/40"
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

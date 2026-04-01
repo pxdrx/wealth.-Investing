@@ -68,6 +68,12 @@ export function AccountsOverview({
       }, 0);
   }, [accounts, propAccountMap]);
 
+  // KPI: P&L Geral (all accounts, all time)
+  const pnlGeral = useMemo(
+    () => trades.reduce((sum, t) => sum + t.net_pnl_usd, 0),
+    [trades]
+  );
+
   // KPI: P&L Mês (all accounts, current month)
   const pnlMes = useMemo(
     () => currentMonthTrades.reduce((sum, t) => sum + t.net_pnl_usd, 0),
@@ -190,8 +196,15 @@ export function AccountsOverview({
       render: <MoneyDisplay value={propPayoutsTotal} className="metric-value text-[26px] leading-tight" />,
     },
     {
-      label: "P&L Mês",
-      render: <MoneyDisplay value={pnlMes} showSign colorize className="metric-value text-[26px] leading-tight" />,
+      label: "P&L Geral",
+      render: (
+        <div>
+          <MoneyDisplay value={pnlGeral} showSign colorize className="metric-value text-[26px] leading-tight" />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Mês: <MoneyDisplay value={pnlMes} showSign colorize className="text-[10px]" />
+          </p>
+        </div>
+      ),
     },
     {
       label: "Contas Ativas",
