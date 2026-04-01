@@ -198,7 +198,7 @@
     background-size: 64px 64px;
   }
 
-  .landing-section { @apply py-20 md:py-28 lg:py-32; }
+  .landing-section { @apply py-12 sm:py-16 md:py-28 lg:py-32; }
   .landing-container { @apply mx-auto max-w-[1280px] px-6; }
 
   /* ── Premium Glass Cards ── */
@@ -280,7 +280,7 @@
 /* ── Mobile scale reduction ── */
 @media (max-width: 640px) {
   html {
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 @media (min-width: 641px) and (max-width: 768px) {

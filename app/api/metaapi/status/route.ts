@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { getAccountInfo, getOpenPositions, getAccountStatus } from "@/lib/metaapi/client";
+import { getForexDayStart } from "@/lib/trading/forex-day";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
@@ -96,17 +97,8 @@ export async function GET(req: NextRequest) {
 
       const startingBalance = propAccount?.starting_balance_usd || 0;
 
-      // Broker day boundary: forex close = 5pm ET (22:00 UTC winter, 21:00 UTC summer)
-      // MT5 servers reset at midnight server time (UTC+2) ≈ 22:00 UTC
-      const now = new Date();
-      const utcHour = now.getUTCHours();
-      const brokerDayStart = new Date(now);
-      // If before 22:00 UTC today, the broker day started at 22:00 UTC yesterday
-      // If after 22:00 UTC today, the broker day started at 22:00 UTC today
-      if (utcHour < 22) {
-        brokerDayStart.setUTCDate(brokerDayStart.getUTCDate() - 1);
-      }
-      brokerDayStart.setUTCHours(22, 0, 0, 0);
+      // Forex day boundary: 17:00 ET (DST-aware via Intl API)
+      const brokerDayStart = getForexDayStart();
 
       // Daily P&L: sum of trades closed since broker day start + unrealized PnL
       const { data: brokerDayTrades } = await supabase

@@ -1,4 +1,5 @@
 import type { DayData, TradeRow } from "./types";
+import { toForexDateKey } from "@/lib/trading/forex-day";
 
 /**
  * Converts an ISO timestamp to a broker-day YYYY-MM-DD key.
@@ -7,13 +8,7 @@ import type { DayData, TradeRow } from "./types";
  * A trade at 21:59 UTC Monday = Monday's broker day.
  */
 export function toLocalDateKey(iso: string): string {
-  const d = new Date(iso);
-  // Shift by +2 hours: UTC 22:00 becomes next day 00:00 in broker time (UTC+2 / MT5 server)
-  const brokerTime = new Date(d.getTime() + 2 * 60 * 60 * 1000);
-  const y = brokerTime.getUTCFullYear();
-  const m = String(brokerTime.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(brokerTime.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return toForexDateKey(iso);
 }
 
 /**

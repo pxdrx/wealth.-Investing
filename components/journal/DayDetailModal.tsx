@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { X, Save, Tag, FileText, Pencil, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toForexDateKey } from "@/lib/trading/forex-day";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -174,13 +175,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
         const r = row as { opened_at: string; closed_at?: string | null };
         const ts = r.closed_at || r.opened_at;
         if (!ts) return false;
-        const d = new Date(ts);
-        // Shift +2h: UTC 22:00 = next broker day 00:00 (MT5 server = UTC+2)
-        const brokerTime = new Date(d.getTime() + 2 * 60 * 60 * 1000);
-        const y = brokerTime.getUTCFullYear();
-        const m = String(brokerTime.getUTCMonth() + 1).padStart(2, "0");
-        const day = String(brokerTime.getUTCDate()).padStart(2, "0");
-        return `${y}-${m}-${day}` === date;
+        return toForexDateKey(ts) === date;
       });
       for (const row of allRows) {
         const r = row as {
