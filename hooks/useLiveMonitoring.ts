@@ -417,6 +417,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
       setState((prev) => ({
         ...prev,
         isConnected: false,
+        isLoading: false,
         equity: null,
         balance: null,
         dailyPnl: null,
@@ -432,9 +433,14 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
     }
   }, [accountId]);
 
+  const refresh = useCallback(async () => {
+    disconnectedRef.current = false;
+    return fetchStatus();
+  }, [fetchStatus]);
+
   return {
     ...state,
-    refresh: fetchStatus,
+    refresh,
     syncTrades,
     connect,
     disconnect,
