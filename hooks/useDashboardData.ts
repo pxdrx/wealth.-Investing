@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import {
   DEFAULT_LAYOUT,
@@ -105,17 +106,17 @@ export function useDashboardData(): DashboardData {
     // Safety timeout: force loading to resolve after 10s to prevent infinite spinner
     const safetyTimeout = setTimeout(() => {
       if (!cancelled && !sessionChecked) {
-        console.warn("[dashboard] Safety timeout: forcing session check after 10s");
+        console.warn("[dashboard] Safety timeout: forcing session check after 5s");
         setSessionChecked(true);
         setJournalLoading(false);
         initialLoadDone.current = true;
       }
-    }, 10_000);
+    }, 5_000);
     (async () => {
       const {
         data: { session },
         error,
-      } = await supabase.auth.getSession();
+      } = await safeGetSession();
       if (cancelled) return;
       if (error) {
         console.warn("[dashboard] getSession error", error.message);
@@ -178,10 +179,10 @@ export function useDashboardData(): DashboardData {
     // Safety timeout: force loading to resolve after 12s to prevent infinite spinner
     const dataTimeout = setTimeout(() => {
       if (!cancelled) {
-        console.warn("[dashboard] Data fetch safety timeout: forcing journalLoading=false after 12s");
+        console.warn("[dashboard] Data fetch safety timeout: forcing journalLoading=false after 6s");
         setJournalLoading(false);
       }
-    }, 12_000);
+    }, 6_000);
 
     (async () => {
       try {

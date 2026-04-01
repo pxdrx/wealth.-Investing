@@ -11,7 +11,7 @@ export function useSafetyTimeout(
   loading: boolean,
   setLoading: (value: boolean | ((prev: boolean) => boolean)) => void,
   label: string,
-  timeoutMs = 10_000
+  timeoutMs = 5_000
 ) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { listMyAccountsWithProp, type AccountWithProp } from "@/lib/accounts";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useAuthEvent } from "@/components/context/AuthEventContext";
 
 const STORAGE_KEY = "activeAccountId";
@@ -88,7 +89,7 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
 
     async function load() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await safeGetSession();
         if (!mounted) return;
         if (!session) {
           setAccounts([]);
@@ -158,7 +159,7 @@ export function useActiveAccount(): ActiveAccountContextValue {
       activeAccountId: null,
       setActiveAccountId: () => {},
       refreshAccounts: async () => {},
-      isLoading: true,
+      isLoading: false,
     };
   }
   return ctx;

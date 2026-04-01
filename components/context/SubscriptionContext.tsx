@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { fetchMySubscription, getTierLimits, isProOrAbove, isUltra } from "@/lib/subscription";
 import type { Plan, SubscriptionRow, TierLimits } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useAuthEvent } from "@/components/context/AuthEventContext";
 
 interface SubscriptionContextValue {
@@ -47,10 +48,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           return false;
         });
       }
-    }, 10_000);
+    }, 5_000);
 
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       if (!mounted) return;
       if (session) await load();
       else setIsLoading(false);
@@ -112,7 +113,7 @@ export function useSubscription(): SubscriptionContextValue {
       limits: getTierLimits("free"),
       isProOrAbove: false,
       isUltra: false,
-      isLoading: true,
+      isLoading: false,
       refreshSubscription: async () => {},
     };
   }

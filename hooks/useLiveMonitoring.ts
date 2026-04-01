@@ -129,9 +129,18 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
         return;
       }
 
-      const res = await fetch(`/api/metaapi/status?accountId=${accountId}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 8_000);
+
+      let res: Response;
+      try {
+        res = await fetch(`/api/metaapi/status?accountId=${accountId}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(fetchTimeout);
+      }
 
       const json = await res.json();
       if (!json.ok) {
