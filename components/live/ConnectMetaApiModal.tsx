@@ -480,7 +480,7 @@ export function ConnectMetaApiModal({ open, onOpenChange, accountName, accountId
               <p>• DD Diário: aviso em <strong>4%</strong>, crítico em <strong>4.5%</strong></p>
               <p>• DD Geral: aviso em <strong>8%</strong>, crítico em <strong>9%</strong></p>
             </div>
-            <Button onClick={() => { onConnected(); reset(); onOpenChange(false); }} className="mt-1">
+            <Button onClick={() => { reset(); onOpenChange(false); }} className="mt-1">
               Ir para o Dashboard
             </Button>
           </div>
