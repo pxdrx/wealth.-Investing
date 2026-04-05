@@ -118,8 +118,16 @@ function AICoachPageInner() {
 
   // Helper to get auth token
   const getToken = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token ?? null;
+    try {
+      const result = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("getToken timeout")), 5_000)),
+      ]);
+      return result.data.session?.access_token ?? null;
+    } catch {
+      console.warn("[ai-coach] getToken timed out");
+      return null;
+    }
   }, []);
 
   // Load conversations list and initialize active conversation
@@ -230,33 +238,42 @@ function AICoachPageInner() {
         setHistoryLoaded(true);
         return;
       }
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        setHistoryLoaded(true);
-        return;
-      }
+      try {
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5_000)),
+        ]);
+        if (!session?.user?.id) {
+          setHistoryLoaded(true);
+          return;
+        }
 
-      const { data, error } = await supabase
-        .from("ai_coach_messages")
-        .select("id, role, content, created_at")
-        .eq("user_id", session.user.id)
-        .eq("conversation_id", activeConversationId)
-        .order("created_at", { ascending: true })
-        .limit(MAX_HISTORY);
+        const { data, error } = await supabase
+          .from("ai_coach_messages")
+          .select("id, role, content, created_at")
+          .eq("user_id", session.user.id)
+          .eq("conversation_id", activeConversationId)
+          .order("created_at", { ascending: true })
+          .limit(MAX_HISTORY);
 
-      if (!error && data && data.length > 0) {
-        setMessages(
-          (data as { id: string; role: string; content: string }[]).map((row) => ({
-            id: row.id,
-            role: row.role as "user" | "assistant",
-            content: row.content,
-          }))
-        );
-      } else {
+        if (!error && data && data.length > 0) {
+          setMessages(
+            (data as { id: string; role: string; content: string }[]).map((row) => ({
+              id: row.id,
+              role: row.role as "user" | "assistant",
+              content: row.content,
+            }))
+          );
+        } else {
+          setMessages([]);
+        }
+        titleUpdatedRef.current = false;
+      } catch (err) {
+        console.warn("[ai-coach] loadHistory failed:", err);
         setMessages([]);
+      } finally {
+        setHistoryLoaded(true);
       }
-      titleUpdatedRef.current = false;
-      setHistoryLoaded(true);
     }
     setHistoryLoaded(false);
     loadHistory();
@@ -286,12 +303,12 @@ function AICoachPageInner() {
   useEffect(() => {
     if (!dataMode || !activeAccountId || tradesLoaded) return;
     async function loadTrades() {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user?.id) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
       const { data } = await supabase
         .from("journal_trades")
         .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, emotion, discipline, setup_quality, custom_tags, entry_rating, exit_rating, management_rating, mfe_usd, mae_usd")
-        .eq("user_id", session.session.user.id)
+        .eq("user_id", session.user.id)
         .eq("account_id", activeAccountId)
         .order("closed_at", { ascending: true })
         .limit(500);

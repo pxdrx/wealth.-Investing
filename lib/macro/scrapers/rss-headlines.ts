@@ -9,7 +9,7 @@ const FEEDS = {
   ],
   // Google News RSS as reliable replacement for Reuters (which returns 401)
   googlenews: [
-    "https://news.google.com/rss/search?q=forex+OR+gold+OR+bitcoin+OR+fed+OR+tariff+OR+treasury+when:1d&hl=en",
+    "https://news.google.com/rss/search?q=forex+OR+gold+OR+bitcoin+OR+fed+OR+tariff+OR+treasury+OR+iran+OR+military+OR+trump+OR+oil+OR+geopolitical+OR+sanctions+OR+nato+when:1d&hl=en",
   ],
 } as const;
 

@@ -26,6 +26,16 @@ const FINANCIAL_TERMS = [
   "debt ceiling", "teto da dívida", "fiscal", "orçamento", "budget", "deficit", "surplus",
   "trade war", "guerra comercial", "tariffs", "tarifas", "sanctions", "sanções",
   "geopolitical", "geopolítica", "opec",
+  // Geopolítica & segurança nacional
+  "military", "militar", "pentagon", "pentágono", "defense", "defesa",
+  "iran", "irã", "north korea", "coreia do norte",
+  "white house", "casa branca", "oval office",
+  "press conference", "coletiva de imprensa", "national security", "segurança nacional",
+  "invasion", "invasão", "troops", "tropas", "nato", "otan",
+  "ceasefire", "cessar-fogo", "missile", "míssil", "nuclear",
+  "embargo", "blockade", "bloqueio", "coup", "golpe",
+  "trump", "biden", "president", "presidente",
+  "energy crisis", "crise energética", "oil embargo", "embargo de petróleo",
   // Macro
   "china economy", "us economy", "economia americana",
   // Crypto

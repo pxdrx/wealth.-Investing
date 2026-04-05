@@ -62,13 +62,13 @@ export async function POST(req: NextRequest) {
 
   const { data: subscription } = await supabaseAuth
     .from("subscriptions")
-    .select("tier")
+    .select("plan")
     .eq("user_id", authUser.id)
     .maybeSingle();
 
-  if (!subscription || subscription.tier !== "pro") {
+  if (!subscription || subscription.plan !== "ultra") {
     return new Response(
-      JSON.stringify({ ok: false, error: "Pro subscription required" }),
+      JSON.stringify({ ok: false, error: "Assinatura Ultra necessária" }),
       { status: 403 }
     );
   }

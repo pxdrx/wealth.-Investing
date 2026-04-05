@@ -16,7 +16,7 @@ interface MastodonStatus {
  * Keywords to identify Trump-specific market-moving content from Google News.
  */
 const TRUMP_KEYWORDS =
-  /\b(Trump|POTUS|White House|Truth Social|tariff|tariffs|trade war|executive order|President said|President announces)\b/i;
+  /\b(Trump|POTUS|White House|Truth Social|tariff|tariffs|trade war|executive order|President said|President announces|military|Iran|national security|Pentagon|defense|invasion|troops|press conference|oval office|sanctions)\b/i;
 
 /**
  * Fetch Trump's Truth Social posts via public Mastodon API.
@@ -96,7 +96,7 @@ async function fetchFromMastodonApi(): Promise<MacroHeadline[] | null> {
 async function fetchTrumpFromGoogleNews(): Promise<MacroHeadline[] | null> {
   try {
     const query = encodeURIComponent(
-      '"Trump said" OR "Trump announces" OR "Trump tariff" OR "Trump signs" OR "Truth Social" OR "White House"'
+      '"Trump said" OR "Trump announces" OR "Trump tariff" OR "Trump Iran" OR "Trump military" OR "Trump sanctions" OR "White House" OR "Truth Social" OR "national security"'
     );
     const url = `https://news.google.com/rss/search?q=${query}+when:1d&hl=en`;
 

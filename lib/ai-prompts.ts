@@ -4,6 +4,14 @@ import type { TradeAnalytics } from "./trade-analytics";
 import type { JournalTradeRow } from "@/components/journal/types";
 import { getNetPnl } from "@/components/journal/types";
 
+export interface MacroContext {
+  headlines: { headline: string; source: string; impact: string }[];
+  panorama: string | null;
+  dailyUpdate: string | null;
+  highImpactEvents: { title: string; date: string; time: string | null; country: string; forecast: string | null; previous: string | null; actual: string | null }[];
+  rates: { bank_code: string; current_rate: number; last_action: string }[];
+}
+
 interface PromptContext {
   personalStats: PersonalTradeStats | null;
   newsHeadlines: string[];
@@ -12,6 +20,7 @@ interface PromptContext {
   accountName: string;
   tradeAnalytics?: TradeAnalytics | null;
   psychologyProfile?: string | null;
+  macroContext?: MacroContext | null;
 }
 
 const SYSTEM_BASE = `Voce e o AI Coach da plataforma wealth.Investing. Analista de trading senior.
@@ -111,6 +120,59 @@ function formatNews(headlines: string[]): string {
   for (const h of headlines) {
     lines.push(`- ${h}`);
   }
+  return lines.join("\n");
+}
+
+function formatMacroContext(macro: MacroContext): string {
+  const lines: string[] = ["## INTELIGÊNCIA MACRO (dados do site)", ""];
+
+  // Panorama semanal
+  if (macro.panorama) {
+    lines.push("### Panorama da Semana");
+    lines.push(macro.panorama);
+    lines.push("");
+  }
+
+  // Daily update
+  if (macro.dailyUpdate) {
+    lines.push("### Atualização do Dia");
+    lines.push(macro.dailyUpdate);
+    lines.push("");
+  }
+
+  // Headlines recentes
+  if (macro.headlines.length > 0) {
+    lines.push("### Headlines Recentes");
+    for (const h of macro.headlines) {
+      const tag = h.impact === "breaking" ? "[BREAKING]" : h.impact === "high" ? "[ALTO]" : "";
+      lines.push(`- ${tag} ${h.headline} (${h.source})`);
+    }
+    lines.push("");
+  }
+
+  // Eventos econômicos de alto impacto
+  if (macro.highImpactEvents.length > 0) {
+    lines.push("### Eventos Econômicos de Alto Impacto (esta semana)");
+    for (const e of macro.highImpactEvents) {
+      const time = e.time ? ` ${e.time}` : "";
+      const actual = e.actual ? ` | Real: ${e.actual}` : "";
+      const forecast = e.forecast ? ` | Prev: ${e.forecast}` : "";
+      const prev = e.previous ? ` | Ant: ${e.previous}` : "";
+      lines.push(`- ${e.date}${time} ${e.country}: ${e.title}${forecast}${prev}${actual}`);
+    }
+    lines.push("");
+  }
+
+  // Taxas de juros
+  if (macro.rates.length > 0) {
+    lines.push("### Taxas de Juros Atuais");
+    for (const r of macro.rates) {
+      const action = r.last_action === "hike" ? "↑" : r.last_action === "cut" ? "↓" : "→";
+      lines.push(`- ${r.bank_code}: ${r.current_rate}% ${action}`);
+    }
+    lines.push("");
+  }
+
   return lines.join("\n");
 }
 
@@ -256,8 +318,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push(`\n\n${ctx.psychologyProfile}`);
   }
 
-  const news = formatNews(ctx.newsHeadlines);
-  if (news) parts.push(`\n\n${news}`);
+  // Prefer rich macro context from site data; fall back to simple headlines
+  if (ctx.macroContext) {
+    const macro = formatMacroContext(ctx.macroContext);
+    if (macro) parts.push(`\n\n${macro}`);
+  } else {
+    const news = formatNews(ctx.newsHeadlines);
+    if (news) parts.push(`\n\n${news}`);
+  }
 
   const community = formatCommunity(ctx.communitySentiment);
   if (community) parts.push(`\n\n${community}`);

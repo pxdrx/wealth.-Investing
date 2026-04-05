@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 
 // Re-export shared types and utilities for existing consumers
 export type { Plan, SubStatus, TierLimits } from "./subscription-shared";
@@ -21,7 +22,7 @@ export interface SubscriptionRow {
 }
 
 export async function fetchMySubscription(): Promise<SubscriptionRow | null> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await safeGetSession();
   if (!session?.user?.id) return null;
 
   const { data, error } = await supabase

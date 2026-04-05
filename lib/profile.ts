@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 
 export type Profile = {
   id: string;
@@ -34,13 +35,7 @@ function devError(context: string, err: unknown) {
 export async function getMyProfile(): Promise<Profile | null> {
   const {
     data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    devError("getMyProfile session", sessionError);
-    throw sessionError;
-  }
+  } = await safeGetSession();
 
   if (!session?.user?.id) {
     return null;

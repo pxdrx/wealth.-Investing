@@ -7,6 +7,8 @@ import type { Plan } from "@/lib/subscription-shared";
 import { getPersonalTradeStats } from "@/lib/ai-stats";
 import { getCommunityIntelligence } from "@/lib/ai-community-stats";
 import { buildSystemPrompt, formatPsychologyProfile } from "@/lib/ai-prompts";
+import type { MacroContext } from "@/lib/ai-prompts";
+import { getWeekStart } from "@/lib/macro/constants";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import type { JournalTradeRow } from "@/components/journal/types";
 import { aiCoachRateLimit } from "@/lib/rate-limit";
@@ -156,7 +158,7 @@ export async function POST(req: NextRequest) {
 
   let personalStats: Awaited<ReturnType<typeof getPersonalTradeStats>>;
   let communitySentiment: Awaited<ReturnType<typeof getCommunityIntelligence>>;
-  let newsHeadlines: string[] = [];
+  let macroContext: MacroContext | null = null;
 
   try {
     [personalStats, communitySentiment] = await Promise.all([
@@ -169,20 +171,67 @@ export async function POST(req: NextRequest) {
     communitySentiment = [];
   }
 
-  // Fetch news headlines (best-effort, don't block on failure)
+  // Fetch macro intelligence from site's own database (best-effort)
   try {
-    const newsUrl = new URL("/api/news", req.url);
-    const newsRes = await fetch(newsUrl.toString());
-    if (newsRes.ok) {
-      const newsData = await newsRes.json();
-      if (Array.isArray(newsData.articles)) {
-        newsHeadlines = (newsData.articles as { title?: string }[])
-          .slice(0, 5)
-          .map((a) => a.title ?? "")
-          .filter(Boolean);
-      }
+    const weekStart = getWeekStart();
+    const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
+    const [headlinesRes, panoramaRes, eventsRes, ratesRes] = await Promise.all([
+      supabase
+        .from("macro_headlines")
+        .select("headline, source, impact")
+        .gte("published_at", since48h)
+        .order("published_at", { ascending: false })
+        .limit(15),
+      supabase
+        .from("weekly_panoramas")
+        .select("narrative, asset_impacts")
+        .eq("week_start", weekStart)
+        .maybeSingle(),
+      supabase
+        .from("economic_events")
+        .select("title, date, time, country, forecast, previous, actual")
+        .eq("week_start", weekStart)
+        .eq("impact", "high")
+        .order("date", { ascending: true })
+        .order("time", { ascending: true }),
+      supabase
+        .from("central_bank_rates")
+        .select("bank_code, current_rate, last_action"),
+    ]);
+
+    const headlines = (headlinesRes.data ?? []).map((h: { headline: string; source: string; impact: string }) => ({
+      headline: h.headline,
+      source: h.source,
+      impact: h.impact,
+    }));
+
+    const panorama = panoramaRes.data?.narrative ?? null;
+    const assetImpacts = panoramaRes.data?.asset_impacts as { daily_update?: string } | null;
+    const dailyUpdate = assetImpacts?.daily_update ?? null;
+
+    const highImpactEvents = (eventsRes.data ?? []).map((e: { title: string; date: string; time: string | null; country: string; forecast: string | null; previous: string | null; actual: string | null }) => ({
+      title: e.title,
+      date: e.date,
+      time: e.time,
+      country: e.country,
+      forecast: e.forecast,
+      previous: e.previous,
+      actual: e.actual,
+    }));
+
+    const rates = (ratesRes.data ?? []).map((r: { bank_code: string; current_rate: number; last_action: string }) => ({
+      bank_code: r.bank_code,
+      current_rate: r.current_rate,
+      last_action: r.last_action,
+    }));
+
+    if (headlines.length > 0 || panorama || highImpactEvents.length > 0 || rates.length > 0) {
+      macroContext = { headlines, panorama, dailyUpdate, highImpactEvents, rates };
     }
-  } catch {}
+  } catch (err) {
+    console.warn("[ai-coach] macro context fetch error:", err);
+  }
 
   // Fetch Dexter analyst reports (best-effort)
   let dexterReports = "";
@@ -270,12 +319,13 @@ Use esses dados para personalizar profundamente suas respostas.`;
   // 7. Build system prompt
   const systemPrompt = buildSystemPrompt({
     personalStats,
-    newsHeadlines,
+    newsHeadlines: [],
     communitySentiment: communitySentiment ?? [],
     analysisType: body.type,
     accountName,
     tradeAnalytics,
     psychologyProfile,
+    macroContext,
   }) + dexterReports + ultraTradeContext;
 
   // 8. Stream from Anthropic — model varies by tier

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
 import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
-import { FAIRECONOMY_URL } from "@/lib/macro/constants";
+import { FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL } from "@/lib/macro/constants";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
 import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
@@ -214,6 +214,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // --- Next week pre-fetch (so weekends show Monday's events) ---
+    let nextWeekFetched = 0;
+    try {
+      let nextEvents: Awaited<ReturnType<typeof fetchFaireconomyCalendar>> = [];
+      try {
+        nextEvents = await fetchFaireconomyCalendar(FAIRECONOMY_NEXT_WEEK_URL);
+      } catch (nwErr) {
+        console.warn("[calendar-sync] Next week Faireconomy failed:", nwErr);
+      }
+
+      if (nextEvents.length > 0) {
+        const nextWeekStart = getWeekStartOffset(1);
+        for (const ev of nextEvents) {
+          ev.week_start = nextWeekStart;
+        }
+
+        const { data: existingNext } = await supabase
+          .from("economic_events")
+          .select("event_uid")
+          .filter("week_start", "eq", nextWeekStart);
+        const existingNextSet = new Set((existingNext ?? []).map((r) => r.event_uid));
+
+        const newNextEvents = nextEvents.filter((ev) => !existingNextSet.has(ev.event_uid));
+        for (let i = 0; i < newNextEvents.length; i += 50) {
+          const batch = newNextEvents.slice(i, i + 50);
+          const { error: nwErr } = await supabase.from("economic_events").insert(batch);
+          if (!nwErr) nextWeekFetched += batch.length;
+        }
+      }
+    } catch (nwErr) {
+      console.warn("[calendar-sync] Next week sync failed:", nwErr);
+    }
+
     // Invalidate Redis cache after successful sync
     await invalidateCachePattern("macro:calendar:*");
     if (ratesUpdated > 0) {
@@ -229,6 +262,7 @@ export async function POST(req: NextRequest) {
       ratesUpdated,
       teActualsUpdated,
       icUpdated,
+      nextWeekFetched,
       ...(errors.length > 0 ? { errors: errors.slice(0, 10) } : {}),
     });
   } catch (error) {
