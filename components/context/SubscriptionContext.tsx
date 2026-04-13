@@ -30,6 +30,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (!silent) setIsLoading(true);
     try {
       const sub = await fetchMySubscription();
+      // When silent (tab return/poll), only update if we got a real result.
+      // If session was momentarily null (token refreshing), keep the cached plan.
+      if (silent && sub === null) return;
       setSubscription(sub);
     } catch {
       // On error, keep existing subscription — don't flash to free
