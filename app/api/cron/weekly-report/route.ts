@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Calculate week range (last 7 days)
-  const now = new Date();
+  // Calculate week range (last 7 days) using Brasilia time (UTC-3)
+  const utcNow = new Date();
+  const brOffset = -3 * 60;
+  const now = new Date(utcNow.getTime() + (brOffset + utcNow.getTimezoneOffset()) * 60000);
+
   const endOfWeek = new Date(now);
   endOfWeek.setHours(23, 59, 59, 999);
   const startOfWeek = new Date(now);
@@ -34,7 +37,9 @@ export async function POST(req: NextRequest) {
   const startStr = startOfWeek.toISOString();
   const endStr = endOfWeek.toISOString();
 
-  const weekLabel = `${startOfWeek.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })} — ${now.toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" })}`;
+  const fmt = (d: Date) => new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone: "America/Sao_Paulo" }).format(d);
+  const fmtYear = (d: Date) => new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Sao_Paulo" }).format(d);
+  const weekLabel = `${fmt(startOfWeek)} — ${fmtYear(utcNow)}`;
 
   // Get target users: test mode = single user, production = all Pro+
   let subs: { user_id: string; plan: string; status: string }[] | null;

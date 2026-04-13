@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  // Use Brasilia time (UTC-3) for date calculations
+  const now = new Date();
+  const brOffset = -3 * 60; // UTC-3 in minutes
+  const today = new Date(now.getTime() + (brOffset + now.getTimezoneOffset()) * 60000);
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   // Get today's economic events — if empty, look ahead up to 3 days for next events
   let events: { time: string; title: string; impact: string; currency: string; date?: string }[] | null = null;
@@ -33,7 +36,7 @@ export async function POST(req: NextRequest) {
   for (let offset = 0; offset <= 3; offset++) {
     const checkDate = new Date(today);
     checkDate.setDate(checkDate.getDate() + offset);
-    const checkStr = checkDate.toISOString().split("T")[0];
+    const checkStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
 
     const { data } = await supabase
       .from("economic_events")
@@ -98,12 +101,13 @@ export async function POST(req: NextRequest) {
   let sent = 0;
   let skipped = 0;
 
-  const formattedDate = today.toLocaleDateString("pt-BR", {
+  const formattedDate = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
+    timeZone: "America/Sao_Paulo",
+  }).format(now);
 
   for (const user of users) {
     if (!user.email || !user.email_confirmed_at) {
@@ -120,7 +124,7 @@ export async function POST(req: NextRequest) {
     if (isPro) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
+      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
 
       const { data: trades } = await supabase
         .from("journal_trades")
