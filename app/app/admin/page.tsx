@@ -216,14 +216,13 @@ export default function AdminPage() {
               <tr className="border-b text-left">
                 <th className="px-4 py-3 font-medium text-muted-foreground">Nome</th>
                 <th className="px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Email</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground">Plano Atual</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground">Acoes</th>
+                <th className="px-4 py-3 font-medium text-muted-foreground">Plano</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground">
                     <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     Nenhum usuario encontrado
                   </td>
@@ -244,26 +243,31 @@ export default function AdminPage() {
                       {user.email ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <PlanBadge plan={user.plan ?? "free"} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={user.plan ?? "free"}
-                          onChange={(e) => handlePlanChange(user.id, e.target.value)}
-                          disabled={promotingId === user.id}
-                          className={cn(
-                            "rounded-full border bg-transparent px-3 py-1.5 text-xs font-medium transition-colors",
-                            "focus:outline-none focus:ring-2 focus:ring-primary/30",
-                            "disabled:opacity-50 disabled:cursor-not-allowed"
-                          )}
-                        >
-                          {PLAN_OPTIONS.map((p) => (
-                            <option key={p} value={p}>
-                              {PLAN_LABELS[p]}
-                            </option>
-                          ))}
-                        </select>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          {PLAN_OPTIONS.map((p) => {
+                            const isActive = (user.plan ?? "free") === p;
+                            return (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => {
+                                  if (!isActive) handlePlanChange(user.id, p);
+                                }}
+                                disabled={promotingId === user.id}
+                                className={cn(
+                                  "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-200",
+                                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                                  isActive
+                                    ? PLAN_BADGE_STYLES[p]
+                                    : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )}
+                              >
+                                {PLAN_LABELS[p]}
+                              </button>
+                            );
+                          })}
+                        </div>
                         {promotingId === user.id && (
                           <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                         )}
