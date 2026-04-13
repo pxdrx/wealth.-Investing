@@ -668,7 +668,7 @@ export default function MacroIntelligencePage() {
             {/* Calendar & Rates */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
               {/* Economic Calendar */}
-              <section className="xl:col-span-8 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <section className="xl:col-span-9 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6" style={{ backgroundColor: "hsl(var(--card))" }}>
                 <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-blue-500"></span>
                   Calendário Econômico
@@ -684,7 +684,7 @@ export default function MacroIntelligencePage() {
               </section>
 
               {/* Interest Rates */}
-              <section className="xl:col-span-4 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <section className="xl:col-span-3 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
                 <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Taxas Baseadas (Bancos Centrais)</h2>
                 <PaywallGate requiredPlan="pro" blurContent>
                   <InterestRatesPanel rates={rates} />
