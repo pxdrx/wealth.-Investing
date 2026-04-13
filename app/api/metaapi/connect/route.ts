@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     .eq("status", "active")
     .maybeSingle();
 
-  if (!sub || sub.plan !== "ultra") {
+  if (!sub || (sub.plan !== "ultra" && sub.plan !== "mentor")) {
     return NextResponse.json({ ok: false, error: "Live monitoring é exclusivo do plano Ultra." }, { status: 403 });
   }
 

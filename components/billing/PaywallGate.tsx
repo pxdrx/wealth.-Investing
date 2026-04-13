@@ -61,8 +61,8 @@ export function PaywallGate({ requiredPlan, children, fallback, blurContent = fa
   if (isLoading) return <>{children}</>;
 
   const hasAccess = requiredPlan === "pro"
-    ? (plan === "pro" || plan === "ultra")
-    : plan === "ultra";
+    ? (plan === "pro" || plan === "ultra" || plan === "mentor")
+    : (plan === "ultra" || plan === "mentor");
 
   if (hasAccess) return <>{children}</>;
 

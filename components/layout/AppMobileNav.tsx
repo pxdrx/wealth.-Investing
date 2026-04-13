@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -9,7 +10,11 @@ import {
   LineChart,
   Scan,
   BrainCircuit,
+  GraduationCap,
+  Shield,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
+import { useSubscription } from "@/components/context/SubscriptionContext";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -18,7 +23,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/journal", label: "Journal", icon: BookOpen },
   { href: "/app/macro", label: "Macro", icon: LineChart },
@@ -26,10 +31,41 @@ const navItems: NavItem[] = [
   { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit },
 ];
 
+const mentorNavItem: NavItem = { href: "/app/mentor", label: "Mentor", icon: GraduationCap };
+const adminNavItem: NavItem = { href: "/app/admin", label: "Admin", icon: Shield };
+
 const easeApple = [0.16, 1, 0.3, 1] as const;
 
 export function AppMobileNav() {
   const pathname = usePathname();
+  const { isMentor } = useSubscription();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const safety = setTimeout(() => { /* noop */ }, 8000);
+    async function checkAdmin() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || cancelled) return;
+        const res = await fetch("/api/admin/me", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = await res.json();
+        if (!cancelled && json.ok && json.isAdmin) setIsAdmin(true);
+      } catch {
+        // silently ignore
+      }
+    }
+    checkAdmin();
+    return () => { cancelled = true; clearTimeout(safety); };
+  }, []);
+
+  const navItems = [
+    ...baseNavItems,
+    ...(isMentor ? [mentorNavItem] : []),
+    ...(isAdmin ? [adminNavItem] : []),
+  ];
 
   return (
     <nav
@@ -78,7 +114,7 @@ export function AppMobileNav() {
               />
               <span
                 className={cn(
-                  "text-[10px] leading-tight relative z-10 font-medium",
+                  "text-[10px] leading-tight relative z-10 font-medium truncate max-w-[56px] text-center",
                   isActive && "font-semibold"
                 )}
               >

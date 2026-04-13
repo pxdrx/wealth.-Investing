@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   const plan: Plan = (sub?.plan as Plan) ?? "free";
-  const isUltraTier = plan === "ultra";
+  const isUltraTier = plan === "ultra" || plan === "mentor";
   const limits = getTierLimits(plan);
   const currentMonth = new Date().toISOString().slice(0, 7);
 

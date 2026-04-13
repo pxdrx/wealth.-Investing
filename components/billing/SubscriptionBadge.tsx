@@ -7,12 +7,14 @@ const PLAN_STYLES = {
   free: "bg-zinc-500/10 text-zinc-500",
   pro: "bg-blue-500/10 text-blue-500",
   ultra: "bg-purple-500/10 text-purple-500",
+  mentor: "bg-amber-500/10 text-amber-600",
 } as const;
 
 const PLAN_LABELS = {
   free: "Free",
   pro: "Pro",
   ultra: "Ultra",
+  mentor: "Mentor",
 } as const;
 
 export function SubscriptionBadge({ className }: { className?: string }) {

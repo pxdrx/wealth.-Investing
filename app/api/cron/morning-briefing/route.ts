@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     }
 
     const plan = subMap.get(user.id) ?? "free";
-    const isPro = plan === "pro" || plan === "ultra";
+    const isPro = plan === "pro" || plan === "ultra" || plan === "mentor";
     const displayName = profileMap.get(user.id) ?? "Trader";
 
     // Get yesterday's trades for this user (Pro only)

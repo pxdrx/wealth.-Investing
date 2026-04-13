@@ -19,6 +19,8 @@ import {
   Wallet,
   Crown,
   MessageSquare,
+  GraduationCap,
+  Shield,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
@@ -35,7 +37,7 @@ interface SidebarConversation {
   updated_at: string;
 }
 
-const navLinks = [
+const baseNavLinks = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/journal", label: "Trade Journal", icon: BookOpen },
   { href: "/app/prop", label: "Contas", icon: Wallet },
@@ -43,6 +45,9 @@ const navLinks = [
   { href: "/app/analyst", label: "Analista Dexter", icon: Scan, highlight: true },
   { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
 ];
+
+const mentorNavLink = { href: "/app/mentor", label: "Painel Mentor", icon: GraduationCap, highlight: true };
+const adminNavLink = { href: "/app/admin", label: "Admin", icon: Shield, highlight: false };
 
 function logout() {
   const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0] ?? "";
@@ -61,7 +66,35 @@ function AppSidebarInner() {
   const [hasSession, setHasSession] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const { plan, isProOrAbove } = useSubscription();
+  const { plan, isProOrAbove, isMentor } = useSubscription();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    let cancelled = false;
+    const safety = setTimeout(() => { /* noop — just prevents hanging */ }, 8000);
+    async function checkAdmin() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || cancelled) return;
+        const res = await fetch("/api/admin/me", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = await res.json();
+        if (!cancelled && json.ok && json.isAdmin) setIsAdmin(true);
+      } catch {
+        // silently ignore — non-admin
+      }
+    }
+    checkAdmin();
+    return () => { cancelled = true; clearTimeout(safety); };
+  }, []);
+
+  const navLinks = [
+    ...baseNavLinks,
+    ...(isMentor ? [mentorNavLink] : []),
+    ...(isAdmin ? [adminNavLink] : []),
+  ];
   const [coachConversations, setCoachConversations] = useState<SidebarConversation[]>([]);
   const isOnCoachPage = pathname?.startsWith("/app/ai-coach") ?? false;
 
@@ -96,6 +129,7 @@ function AppSidebarInner() {
   }, []);
 
   useEffect(() => {
+    const safety = setTimeout(() => setProfileLoading(false), 8000);
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
       setHasSession(!!session);
@@ -109,7 +143,7 @@ function AppSidebarInner() {
     }
     load();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => load());
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); clearTimeout(safety); };
   }, []);
 
   const initials = displayName ? displayName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() : "U";
@@ -288,7 +322,7 @@ function AppSidebarInner() {
                     )}
                   </div>
                   <span className="truncate text-[10px] text-muted-foreground uppercase tracking-widest">
-                    Terminal {plan === 'ultra' ? 'Ultra' : plan === 'pro' ? 'Pro' : 'Free'}
+                    Terminal {plan === 'mentor' ? 'Mentor' : plan === 'ultra' ? 'Ultra' : plan === 'pro' ? 'Pro' : 'Free'}
                   </span>
                 </div>
                 <div className="shrink-0">

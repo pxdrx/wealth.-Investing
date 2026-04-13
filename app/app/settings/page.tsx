@@ -23,6 +23,7 @@ import {
   ChevronDown,
   RotateCcw,
   LayoutDashboard,
+  GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -60,6 +61,15 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
+
+  // ── Mentor ──
+  const [myMentor, setMyMentor] = useState<{ id: string; displayName: string; since: string } | null>(null);
+  const [mentorLoading, setMentorLoading] = useState(true);
+  const [inviteCode, setInviteCode] = useState("");
+  const [linkingMentor, setLinkingMentor] = useState(false);
+  const [mentorMsg, setMentorMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [revokingMentor, setRevokingMentor] = useState(false);
+  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
 
   // ── Dashboard layout ──
   const [dashLayout, setDashLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT);
@@ -103,6 +113,30 @@ export default function SettingsPage() {
     return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryKey]);
+
+  // ── Load mentor ──
+  useEffect(() => {
+    let mounted = true;
+    const safety = setTimeout(() => { if (mounted) setMentorLoading(false); }, 8000);
+    async function loadMentor() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { setMentorLoading(false); return; }
+        const res = await fetch("/api/mentor/my-mentor", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = await res.json();
+        if (!mounted) return;
+        if (json.ok && json.mentor) {
+          setMyMentor(json.mentor);
+        }
+      } catch {} finally {
+        if (mounted) setMentorLoading(false);
+      }
+    }
+    loadMentor();
+    return () => { mounted = false; clearTimeout(safety); };
+  }, []);
 
   // ── Load dashboard layout (independent from profile) ──
   useEffect(() => {
@@ -170,6 +204,59 @@ export default function SettingsPage() {
       setSaving(false);
     }
   }, [displayName]);
+
+  // ── Link mentor ──
+  const handleLinkMentor = useCallback(async () => {
+    if (!inviteCode.trim()) return;
+    setLinkingMentor(true);
+    setMentorMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada");
+      const res = await fetch("/api/mentor/link", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code: inviteCode.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error ?? "Erro ao vincular mentor");
+      setMyMentor({ id: json.mentorId, displayName: json.mentorName, since: new Date().toISOString() });
+      setInviteCode("");
+      setMentorMsg({ type: "success", text: `Vinculado ao mentor ${json.mentorName}!` });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao vincular mentor";
+      setMentorMsg({ type: "error", text: msg });
+    } finally {
+      setLinkingMentor(false);
+    }
+  }, [inviteCode]);
+
+  // ── Revoke mentor ──
+  const handleRevokeMentor = useCallback(async () => {
+    setRevokingMentor(true);
+    setMentorMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada");
+      const res = await fetch("/api/mentor/link", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error ?? "Erro ao revogar");
+      setMyMentor(null);
+      setShowRevokeConfirm(false);
+      setMentorMsg({ type: "success", text: "Acesso do mentor revogado com sucesso." });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao revogar";
+      setMentorMsg({ type: "error", text: msg });
+    } finally {
+      setRevokingMentor(false);
+    }
+  }, []);
 
   // ── Open Stripe portal ──
   const openPortal = useCallback(async () => {
@@ -432,6 +519,95 @@ export default function SettingsPage() {
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+        </Card>
+
+        {/* ═══════════ Mentor ═══════════ */}
+        <Card className="rounded-[22px] p-6" style={cardStyle}>
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <GraduationCap className="h-5 w-5 text-amber-500" />
+            Mentor
+          </h2>
+
+          {mentorLoading ? (
+            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando...
+            </div>
+          ) : myMentor ? (
+            <div className="mt-4 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Seu mentor:</p>
+                  <p className="text-base font-semibold">{myMentor.displayName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Vinculado desde {new Date(myMentor.since).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {!showRevokeConfirm ? (
+                    <Button
+                      variant="outline"
+                      className="rounded-full border-red-500/30 text-red-500 hover:bg-red-500/10"
+                      onClick={() => setShowRevokeConfirm(true)}
+                    >
+                      Revogar acesso
+                    </Button>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="destructive"
+                        className="rounded-full"
+                        onClick={handleRevokeMentor}
+                        disabled={revokingMentor}
+                      >
+                        {revokingMentor ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Confirmar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="rounded-full"
+                        onClick={() => setShowRevokeConfirm(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Seu mentor pode visualizar seu journal de trades e adicionar notas de orientação. Você pode revogar o acesso a qualquer momento.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Vincule-se a um mentor para receber acompanhamento personalizado.
+              </p>
+              <div className="flex items-center gap-3">
+                <Input
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                  placeholder="Código do mentor (ex: MENTOR-A3X9)"
+                  className="max-w-xs"
+                />
+                <Button
+                  onClick={handleLinkMentor}
+                  disabled={linkingMentor || !inviteCode.trim()}
+                  className="rounded-full"
+                >
+                  {linkingMentor ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Vincular
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {mentorMsg && (
+            <div className={mentorMsg.type === "success" ? "mt-3 flex items-center gap-2 text-sm text-green-600" : "mt-3 flex items-center gap-2 text-sm text-red-500"}>
+              <span>{mentorMsg.text}</span>
+              <button onClick={() => setMentorMsg(null)} className="underline text-xs opacity-70 hover:opacity-100">Fechar</button>
             </div>
           )}
         </Card>

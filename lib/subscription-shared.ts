@@ -1,4 +1,4 @@
-export type Plan = "free" | "pro" | "ultra";
+export type Plan = "free" | "pro" | "ultra" | "mentor";
 export type SubStatus = "active" | "canceled" | "past_due" | "trialing" | "incomplete";
 
 export interface TierLimits {
@@ -87,6 +87,27 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasRegenerateReport: true,
     hasLiveMonitoring: true,
   },
+  mentor: {
+    maxTrades: null,
+    maxAccounts: null,
+    aiCoachMonthly: 450,
+    aiCoachDaily: 15,
+    hasExportCsv: true,
+    hasCtrader: true,
+    hasDashboardOverview: true,
+    hasAccountComparison: true,
+    hasCustomAlerts: true,
+    hasPrioritySupport: true,
+    hasMacroIntelligence: true,
+    hasReports: true,
+    hasPsychology: true,
+    hasHeadlines: true,
+    hasAdvancedReports: true,
+    hasPdfExport: true,
+    hasHistoryMacro: true,
+    hasRegenerateReport: true,
+    hasLiveMonitoring: true,
+  },
 };
 
 export function getTierLimits(plan: Plan): TierLimits {
@@ -94,9 +115,21 @@ export function getTierLimits(plan: Plan): TierLimits {
 }
 
 export function isProOrAbove(plan: Plan): boolean {
-  return plan === "pro" || plan === "ultra";
+  return plan === "pro" || plan === "ultra" || plan === "mentor";
 }
 
 export function isUltra(plan: Plan): boolean {
-  return plan === "ultra";
+  return plan === "ultra" || plan === "mentor";
 }
+
+export function isMentor(plan: Plan): boolean {
+  return plan === "mentor";
+}
+
+export type MentorTier = "mentor_50" | "mentor_100" | "mentor_200";
+
+export const MENTOR_TIERS: Record<MentorTier, { price: number; maxStudents: number; label: string }> = {
+  mentor_50: { price: 50, maxStudents: 50, label: "Mentor 50" },
+  mentor_100: { price: 100, maxStudents: 100, label: "Mentor 100" },
+  mentor_200: { price: 200, maxStudents: 200, label: "Mentor 200" },
+};

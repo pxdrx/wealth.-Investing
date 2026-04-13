@@ -23,7 +23,7 @@ interface TierDef {
   badge?: string;
 }
 
-const PLAN_RANK: Record<Plan, number> = { free: 0, pro: 1, ultra: 2 };
+const PLAN_RANK: Record<Plan, number> = { free: 0, pro: 1, ultra: 2, mentor: 3 };
 
 const tiers: TierDef[] = [
   {

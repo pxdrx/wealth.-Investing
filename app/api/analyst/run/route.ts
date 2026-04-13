@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     .eq("user_id", authUser.id)
     .maybeSingle();
 
-  if (!subscription || subscription.plan !== "ultra") {
+  if (!subscription || (subscription.plan !== "ultra" && subscription.plan !== "mentor")) {
     return new Response(
       JSON.stringify({ ok: false, error: "Assinatura Ultra necessária" }),
       { status: 403 }

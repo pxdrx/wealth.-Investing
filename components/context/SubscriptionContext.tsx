@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { fetchMySubscription, getTierLimits, isProOrAbove, isUltra } from "@/lib/subscription";
+import { fetchMySubscription, getTierLimits, isProOrAbove, isUltra, isMentor } from "@/lib/subscription";
 import type { Plan, SubscriptionRow, TierLimits } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
@@ -14,6 +14,7 @@ interface SubscriptionContextValue {
   limits: TierLimits;
   isProOrAbove: boolean;
   isUltra: boolean;
+  isMentor: boolean;
   isLoading: boolean;
   refreshSubscription: () => Promise<void>;
 }
@@ -99,6 +100,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     limits: getTierLimits(plan),
     isProOrAbove: isProOrAbove(plan),
     isUltra: isUltra(plan),
+    isMentor: isMentor(plan),
     isLoading,
     refreshSubscription: load,
   }), [plan, subscription, isLoading, load]);
@@ -120,6 +122,7 @@ export function useSubscription(): SubscriptionContextValue {
       limits: getTierLimits("free"),
       isProOrAbove: false,
       isUltra: false,
+      isMentor: false,
       isLoading: false,
       refreshSubscription: async () => {},
     };

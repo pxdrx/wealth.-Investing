@@ -603,7 +603,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                 </div>
                 <p className="text-sm font-semibold">Limite de contas atingido</p>
                 <p className="text-xs text-muted-foreground">
-                  Seu plano {plan === "free" ? "Free" : "Pro"} permite {limits.maxAccounts} {limits.maxAccounts === 1 ? "conta" : "contas"}.
+                  Seu plano {plan === "free" ? "Free" : plan === "ultra" ? "Ultra" : plan === "mentor" ? "Mentor" : "Pro"} permite {limits.maxAccounts} {limits.maxAccounts === 1 ? "conta" : "contas"}.
                   Faça upgrade para adicionar mais.
                 </p>
                 <Link
