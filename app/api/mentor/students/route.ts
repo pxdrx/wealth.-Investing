@@ -15,14 +15,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get active relationships with student profiles
-    const { data: relationships, error: relErr } = await supabase
+    // Use service_role for all queries (RLS blocks cross-user reads)
+    const svc = createServiceRoleClient();
+
+    // Get active relationships
+    const { data: relationships, error: relErr } = await svc
       .from("mentor_relationships")
       .select("id, student_id, created_at")
       .eq("mentor_id", user.id)
-      .eq("status", "active");
+      .eq("status", "active")
+      .not("student_id", "is", null);
 
     if (relErr) {
+      console.error("[mentor/students] relErr:", relErr.message);
       return NextResponse.json({ ok: false, error: "Erro ao buscar alunos" }, { status: 500 });
     }
 
@@ -31,9 +36,9 @@ export async function GET(req: NextRequest) {
     }
 
     const studentIds = relationships.map((r) => r.student_id).filter(Boolean) as string[];
-
-    // Use service_role to read cross-user data (profiles, trades)
-    const svc = createServiceRoleClient();
+    if (studentIds.length === 0) {
+      return NextResponse.json({ ok: true, students: [] });
+    }
 
     // Fetch profiles for all students
     const { data: profiles, error: profErr } = await svc
@@ -61,7 +66,8 @@ export async function GET(req: NextRequest) {
       .gte("open_time", monthStart);
 
     if (tradesErr) {
-      return NextResponse.json({ ok: false, error: "Erro ao buscar trades" }, { status: 500 });
+      console.error("[mentor/students] tradesErr:", tradesErr.message);
+      // Non-fatal: continue with empty trades
     }
 
     // Fetch last trade date for each student (limit to 1 per student via post-processing)
@@ -73,7 +79,8 @@ export async function GET(req: NextRequest) {
       .limit(studentIds.length * 2);
 
     if (lastErr) {
-      return NextResponse.json({ ok: false, error: "Erro ao buscar último trade" }, { status: 500 });
+      console.error("[mentor/students] lastErr:", lastErr.message);
+      // Non-fatal: continue without last trade dates
     }
 
     // Build stats per student

@@ -90,11 +90,14 @@ function AppSidebarInner() {
     return () => { cancelled = true; clearTimeout(safety); };
   }, []);
 
-  const navLinks = [
-    ...baseNavLinks,
-    ...(isMentor ? [mentorNavLink] : []),
-    ...(isAdmin ? [adminNavLink] : []),
-  ];
+  const navLinks = (() => {
+    const links = [...baseNavLinks];
+    // Insert mentor after Journal (index 1) — before purple/AI items
+    if (isMentor) links.splice(2, 0, mentorNavLink);
+    // Admin goes at the end
+    if (isAdmin) links.push(adminNavLink);
+    return links;
+  })();
   const [coachConversations, setCoachConversations] = useState<SidebarConversation[]>([]);
   const isOnCoachPage = pathname?.startsWith("/app/ai-coach") ?? false;
 

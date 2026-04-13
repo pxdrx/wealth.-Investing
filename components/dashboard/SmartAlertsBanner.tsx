@@ -22,18 +22,22 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 
 const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
-function getDismissKey(): string {
-  const d = new Date();
-  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  return `dismissed-smart-alerts-${dateStr}`;
+const DISMISSED_ALERTS_KEY = "dismissed-smart-alert-ids";
+
+function getDismissedIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_ALERTS_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
+  }
 }
 
-function isDismissed(): boolean {
+function saveDismissedIds(ids: Set<string>): void {
   try {
-    return localStorage.getItem(getDismissKey()) === "1";
-  } catch {
-    return false;
-  }
+    localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify(Array.from(ids)));
+  } catch {}
 }
 
 interface SmartAlertsBannerProps {
@@ -42,23 +46,27 @@ interface SmartAlertsBannerProps {
 }
 
 export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerProps) {
-  const [dismissed, setDismissed] = useState(() => isDismissed());
+  const [dismissedIds, setDismissedIds] = useState(() => getDismissedIds());
 
-  const alerts = useMemo(
+  const allAlerts = useMemo(
     () => analyzeSmartAlerts({ trades, dailyDdLimit }),
     [trades, dailyDdLimit],
   );
 
-  const handleDismiss = useCallback(() => {
-    setDismissed(true);
-    try {
-      localStorage.setItem(getDismissKey(), "1");
-    } catch {
-      // ignore
-    }
-  }, []);
+  // Filter out alerts the user already dismissed
+  const alerts = useMemo(
+    () => allAlerts.filter((a) => !dismissedIds.has(a.id)),
+    [allAlerts, dismissedIds],
+  );
 
-  const visible = alerts.length > 0 && !dismissed;
+  const handleDismiss = useCallback(() => {
+    const newIds = new Set(dismissedIds);
+    for (const a of alerts) newIds.add(a.id);
+    setDismissedIds(newIds);
+    saveDismissedIds(newIds);
+  }, [dismissedIds, alerts]);
+
+  const visible = alerts.length > 0;
 
   const highestSeverity = alerts.some((a) => a.severity === "danger") ? "danger" : "warning";
 
