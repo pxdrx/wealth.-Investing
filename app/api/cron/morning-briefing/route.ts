@@ -23,15 +23,41 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Get today's economic events
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
-  const { data: events } = await supabase
-    .from("economic_events")
-    .select("time, title, impact, currency")
-    .gte("date", todayStr)
-    .lte("date", todayStr)
-    .order("time", { ascending: true });
+
+  // Get today's economic events — if empty, look ahead up to 3 days for next events
+  let events: { time: string; title: string; impact: string; currency: string; date?: string }[] | null = null;
+  let eventsDateLabel = "hoje";
+
+  for (let offset = 0; offset <= 3; offset++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() + offset);
+    const checkStr = checkDate.toISOString().split("T")[0];
+
+    const { data } = await supabase
+      .from("economic_events")
+      .select("time, title, impact, currency, date")
+      .eq("date", checkStr)
+      .order("time", { ascending: true });
+
+    if (data && data.length > 0) {
+      events = data;
+      if (offset > 0) {
+        eventsDateLabel = checkDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" });
+      }
+      break;
+    }
+  }
+
+  // Get recent headlines (last 24h, top 5 by importance)
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: headlines } = await supabase
+    .from("macro_headlines")
+    .select("title, source, published_at")
+    .gte("published_at", oneDayAgo)
+    .order("published_at", { ascending: false })
+    .limit(5);
 
   // Get users: test mode = single user, production = all users
   const { data: { users: allUsers }, error: usersErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
@@ -144,10 +170,17 @@ export async function POST(req: NextRequest) {
       currency: e.currency,
     }));
 
+    const formattedHeadlines = (headlines ?? []).map((h: { title: string; source: string; published_at: string | null }) => ({
+      title: h.title,
+      source: h.source,
+    }));
+
     const html = renderMorningBriefing({
       displayName,
       date: formattedDate,
       events: formattedEvents,
+      eventsDateLabel,
+      headlines: isPro ? formattedHeadlines : formattedHeadlines.slice(0, 2),
       yesterdaySummary,
       streak,
       isPro,

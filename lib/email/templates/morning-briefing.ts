@@ -2,6 +2,8 @@ interface MorningBriefingData {
   displayName: string;
   date: string;
   events: Array<{ time: string; title: string; impact: string; currency: string }>;
+  eventsDateLabel?: string;
+  headlines?: Array<{ title: string; source: string }>;
   yesterdaySummary?: {
     trades: number;
     pnl: number;
@@ -12,7 +14,7 @@ interface MorningBriefingData {
 }
 
 export function renderMorningBriefing(data: MorningBriefingData): string {
-  const { displayName, date, events, yesterdaySummary, streak, isPro } = data;
+  const { displayName, date, events, eventsDateLabel = "hoje", headlines = [], yesterdaySummary, streak, isPro } = data;
 
   const highImpactEvents = events.filter((e) => e.impact === "high");
   const mediumImpactEvents = events.filter((e) => e.impact === "medium");
@@ -25,6 +27,10 @@ export function renderMorningBriefing(data: MorningBriefingData): string {
       return `<tr><td style="padding:6px 0;font-size:13px;color:#666">${e.time}</td><td style="padding:6px 8px;font-size:13px">${dot}${e.currency} — ${e.title}</td></tr>`;
     })
     .join("");
+
+  const eventsTitle = eventsDateLabel === "hoje"
+    ? "Eventos do dia"
+    : `Próximos eventos — ${eventsDateLabel}`;
 
   const yesterdayHtml = yesterdaySummary && isPro
     ? `
@@ -44,10 +50,23 @@ export function renderMorningBriefing(data: MorningBriefingData): string {
     ? `<p style="margin:0 0 16px;font-size:13px;color:#666">🔥 Streak: <strong>${streak} ${streak === 1 ? "dia" : "dias"}</strong> consecutivos</p>`
     : "";
 
+  const headlinesHtml = headlines.length > 0
+    ? `
+    <div style="margin:16px 0">
+      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#333">📰 Headlines</p>
+      ${headlines.map((h) => `
+        <div style="padding:6px 0;border-bottom:1px solid #f0f0f0">
+          <p style="margin:0;font-size:13px;color:#333">${h.title}</p>
+          <p style="margin:2px 0 0;font-size:11px;color:#999">${h.source}</p>
+        </div>
+      `).join("")}
+    </div>`
+    : "";
+
   const upgradeHtml = !isPro
     ? `<div style="background:#eff6ff;border-radius:12px;padding:12px 16px;margin:16px 0;text-align:center">
         <p style="margin:0;font-size:12px;color:#3b82f6">
-          Faça upgrade para Pro e receba o briefing completo com AI insights ·
+          Faça upgrade para Pro e receba o briefing completo com headlines e AI insights ·
           <a href="https://owealthinvesting.com/app/pricing" style="color:#2563eb;font-weight:600">Ver planos</a>
         </p>
       </div>`
@@ -66,9 +85,11 @@ export function renderMorningBriefing(data: MorningBriefingData): string {
     ${yesterdayHtml}
 
     ${events.length > 0 ? `
-    <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#333">Eventos do dia</p>
+    <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#333">${eventsTitle}</p>
     <table style="width:100%;border-collapse:collapse">${eventsHtml}</table>
-    ` : `<p style="margin:16px 0;font-size:13px;color:#666">Sem eventos de alto impacto hoje. Bom dia para focar no operacional.</p>`}
+    ` : `<p style="margin:16px 0;font-size:13px;color:#666">Sem eventos de alto impacto nos próximos dias. Bom momento para focar no operacional.</p>`}
+
+    ${headlinesHtml}
 
     ${upgradeHtml}
 
