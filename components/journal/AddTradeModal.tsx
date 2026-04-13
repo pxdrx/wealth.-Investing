@@ -19,6 +19,9 @@ interface AddTradeModalProps {
 export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalProps) {
   const { activeAccountId } = useActiveAccount();
 
+  // Quick vs Complete mode
+  const [mode, setMode] = useState<"quick" | "complete">("quick");
+
   // Form state
   const [symbol, setSymbol] = useState("");
   const [direction, setDirection] = useState<"buy" | "sell">("buy");
@@ -65,11 +68,13 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
   }, [userId]);
 
   async function handleSave() {
-    if (!symbol.trim() || !openedAt || !pnlUsd || !activeAccountId) return;
+    const isQuick = mode === "quick";
+    if (!symbol.trim() || !pnlUsd || !activeAccountId) return;
+    if (!isQuick && !openedAt) return;
     setError(null);
 
-    // Validate closed_at > opened_at
-    if (closedAt) {
+    // Validate closed_at > opened_at (complete mode only)
+    if (!isQuick && closedAt) {
       const openDate = new Date(openedAt);
       const closeDate = new Date(closedAt);
       if (closeDate <= openDate) {
@@ -84,6 +89,11 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       const sym = symbol.trim().toUpperCase();
       const category = inferCategory(sym);
 
+      // Quick mode: auto-fill dates to now
+      const now = new Date();
+      const effectiveOpenedAt = isQuick ? now.toISOString() : new Date(openedAt).toISOString();
+      const effectiveClosedAt = isQuick ? now.toISOString() : (closedAt ? new Date(closedAt).toISOString() : now.toISOString());
+
       // net_pnl_usd is a GENERATED column (pnl_usd - fees_usd) — do NOT send
       const insertPromise = supabase.from("journal_trades").insert({
         user_id: userId,
@@ -91,12 +101,12 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         symbol: sym,
         category,
         direction,
-        opened_at: new Date(openedAt).toISOString(),
-        closed_at: closedAt ? new Date(closedAt).toISOString() : new Date().toISOString(),
+        opened_at: effectiveOpenedAt,
+        closed_at: effectiveClosedAt,
         pnl_usd: pnl,
         fees_usd: 0,
-        context: context.trim() || null,
-        notes: notes.trim() || null,
+        context: isQuick ? null : (context.trim() || null),
+        notes: isQuick ? null : (notes.trim() || null),
         external_source: "manual",
         external_id: `manual_${Date.now()}`,
       });
@@ -152,6 +162,34 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
           <h2 className="text-lg font-semibold tracking-tight">Adicionar Trade</h2>
           <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted transition-colors" aria-label="Fechar modal">
             <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Mode toggle */}
+        <div className="flex gap-1 mx-4 sm:mx-6 mt-3 p-1 rounded-xl bg-muted/50">
+          <button
+            type="button"
+            onClick={() => setMode("quick")}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+              mode === "quick"
+                ? "bg-foreground text-background shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Rápido
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("complete")}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+              mode === "complete"
+                ? "bg-foreground text-background shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Completo
           </button>
         </div>
 
@@ -246,29 +284,31 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
             </div>
           </div>
 
-          {/* Dates */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="add-trade-opened" className="text-sm font-medium text-muted-foreground mb-1.5 block">Abertura</label>
-              <input
-                id="add-trade-opened"
-                type="datetime-local"
-                value={openedAt}
-                onChange={(e) => setOpenedAt(e.target.value)}
-                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
+          {/* Dates — complete mode only */}
+          {mode === "complete" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="add-trade-opened" className="text-sm font-medium text-muted-foreground mb-1.5 block">Abertura</label>
+                <input
+                  id="add-trade-opened"
+                  type="datetime-local"
+                  value={openedAt}
+                  onChange={(e) => setOpenedAt(e.target.value)}
+                  className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor="add-trade-closed" className="text-sm font-medium text-muted-foreground mb-1.5 block">Fechamento</label>
+                <input
+                  id="add-trade-closed"
+                  type="datetime-local"
+                  value={closedAt}
+                  onChange={(e) => setClosedAt(e.target.value)}
+                  className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
             </div>
-            <div>
-              <label htmlFor="add-trade-closed" className="text-sm font-medium text-muted-foreground mb-1.5 block">Fechamento</label>
-              <input
-                id="add-trade-closed"
-                type="datetime-local"
-                value={closedAt}
-                onChange={(e) => setClosedAt(e.target.value)}
-                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
+          )}
 
           {/* PnL — full width */}
           <div>
@@ -284,29 +324,33 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
             />
           </div>
 
-          {/* Context */}
-          <div>
-            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Contexto (por que entrou?)</label>
-            <textarea
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder="Setup, analise, razao da entrada..."
-              rows={2}
-              className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-            />
-          </div>
+          {/* Context — complete mode only */}
+          {mode === "complete" && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Contexto (por que entrou?)</label>
+              <textarea
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+                placeholder="Setup, analise, razao da entrada..."
+                rows={2}
+                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              />
+            </div>
+          )}
 
-          {/* Notes */}
-          <div>
-            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Observacoes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="O que aprendeu, o que faria diferente..."
-              rows={2}
-              className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-            />
-          </div>
+          {/* Notes — complete mode only */}
+          {mode === "complete" && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Observacoes</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="O que aprendeu, o que faria diferente..."
+                rows={2}
+                className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              />
+            </div>
+          )}
 
           {/* Error message */}
           {error && (
@@ -318,7 +362,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         <div className="shrink-0 p-4 sm:p-6 pt-3 sm:pt-3 border-t border-border/20">
           <button
             onClick={handleSave}
-            disabled={saving || !symbol.trim() || !openedAt || !pnlUsd}
+            disabled={saving || !symbol.trim() || !pnlUsd || (mode === "complete" && !openedAt)}
             className="w-full rounded-full bg-foreground text-background py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Plus className="h-4 w-4" />

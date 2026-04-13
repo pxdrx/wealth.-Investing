@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
+import { ChurnPreventionModal } from "@/components/billing/ChurnPreventionModal";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, upsertMyProfileDisplayName } from "@/lib/profile";
@@ -51,6 +52,10 @@ export default function SettingsPage() {
   // ── Portal loading ──
   const [portalLoading, setPortalLoading] = useState(false);
 
+  // ── Churn prevention modal ──
+  const [showChurnModal, setShowChurnModal] = useState(false);
+  const [userId, setUserId] = useState<string>("");
+
   // ── Delete modal ──
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -82,6 +87,7 @@ export default function SettingsPage() {
           setDisplayName(profile.display_name ?? "");
         }
         if (session?.user?.email) setEmail(session.user.email);
+        if (session?.user?.id) setUserId(session.user.id);
       } catch (err) {
         console.error("[settings] failed to load profile:", err);
         if (mounted) {
@@ -573,16 +579,23 @@ export default function SettingsPage() {
                 <Button
                   variant="outline"
                   className="rounded-full border-red-500/30 text-red-500 hover:bg-red-500/10"
-                  onClick={openPortal}
+                  onClick={() => setShowChurnModal(true)}
                   disabled={portalLoading}
                 >
-                  {portalLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
                   Cancelar assinatura
                 </Button>
               </div>
             )}
+
+            <ChurnPreventionModal
+              open={showChurnModal}
+              onClose={() => setShowChurnModal(false)}
+              onConfirmCancel={() => {
+                setShowChurnModal(false);
+                openPortal();
+              }}
+              userId={userId}
+            />
 
             <div className="flex items-center justify-between">
               <div>

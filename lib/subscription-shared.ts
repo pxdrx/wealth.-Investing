@@ -27,7 +27,7 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
   free: {
     maxTrades: 10,
     maxAccounts: 1,
-    aiCoachMonthly: 0,
+    aiCoachMonthly: 3,
     aiCoachDaily: null,
     hasExportCsv: false,
     hasCtrader: false,
@@ -48,7 +48,7 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
   pro: {
     maxTrades: null,
     maxAccounts: 5,
-    aiCoachMonthly: 10,
+    aiCoachMonthly: 15,
     aiCoachDaily: null,
     hasExportCsv: true,
     hasCtrader: true,
@@ -69,8 +69,8 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
   ultra: {
     maxTrades: null,
     maxAccounts: null,
-    aiCoachMonthly: 300,
-    aiCoachDaily: 10,
+    aiCoachMonthly: 450,
+    aiCoachDaily: 15,
     hasExportCsv: true,
     hasCtrader: true,
     hasDashboardOverview: true,

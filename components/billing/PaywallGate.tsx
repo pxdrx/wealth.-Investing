@@ -14,7 +14,7 @@ interface PaywallGateProps {
 function DefaultFallback({ requiredPlan }: { requiredPlan: "pro" | "ultra" }) {
   const isPro = requiredPlan === "pro";
   const label = isPro ? "Pro" : "Ultra";
-  const priceHint = isPro ? "R$69,90" : "R$119";
+  const priceHint = isPro ? "R$29,90" : "R$49,90";
   const iconBg = isPro
     ? "bg-blue-100 dark:bg-blue-900/30"
     : "bg-purple-100 dark:bg-purple-900/30";

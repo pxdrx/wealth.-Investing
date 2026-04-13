@@ -75,6 +75,14 @@ const MacroWidgetEvents = dynamic(
   () => import("@/components/macro/MacroWidgetEvents").then((m) => ({ default: m.MacroWidgetEvents })),
   { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
 );
+const StreakBadge = dynamic(
+  () => import("@/components/dashboard/StreakBadge").then((m) => ({ default: m.StreakBadge })),
+  { ssr: false },
+);
+const DataAccumulation = dynamic(
+  () => import("@/components/dashboard/DataAccumulation").then((m) => ({ default: m.DataAccumulation })),
+  { ssr: false },
+);
 const SmartAlertsBanner = dynamic(
   () => import("@/components/dashboard/SmartAlertsBanner").then((m) => ({ default: m.SmartAlertsBanner })),
   { ssr: false },
@@ -301,9 +309,12 @@ function DashboardContent({
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden" data-account-id={activeAccountId ?? undefined}>
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-headline font-extrabold tracking-tight text-foreground">
-            Centro de Comando
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-headline font-extrabold tracking-tight text-foreground">
+              Centro de Comando
+            </h1>
+            <StreakBadge userId={userId} />
+          </div>
           <p className="mt-1 text-sm text-muted-foreground font-medium">
             Visão geral das suas contas.
           </p>
@@ -320,6 +331,9 @@ function DashboardContent({
           </span>
         </button>
       </div>
+
+      {/* Data accumulation indicator */}
+      <DataAccumulation userId={userId} className="mb-6" />
 
       {/* Empty state for new users with 0 trades (skip for backtest accounts) */}
       {journalTrades.length === 0 && (() => {

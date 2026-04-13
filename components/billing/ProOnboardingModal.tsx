@@ -41,7 +41,7 @@ function getSteps(plan: "pro" | "ultra"): OnboardingStep[] {
             "Tudo do Pro + exclusivos Ultra",
             "Contas ilimitadas",
             "Analista Dexter com IA",
-            "10 consultas AI Coach por dia",
+            "15 consultas AI Coach por dia",
           ]
         : [
             "Dashboard completo",
@@ -88,13 +88,13 @@ function getSteps(plan: "pro" | "ultra"): OnboardingStep[] {
       icon: <Brain className="h-10 w-10" />,
       title: "AI Coach",
       description: isUltra
-        ? "10 consultas por dia com o AI Coach. Pergunte qualquer coisa sobre seus trades e receba respostas baseadas nos seus dados reais."
+        ? "15 consultas por dia com o AI Coach. Pergunte qualquer coisa sobre seus trades e receba respostas baseadas nos seus dados reais."
         : "Pergunte qualquer coisa sobre seus trades e receba respostas baseadas nos seus dados reais. Não é um chatbot genérico — é o seu analista pessoal.",
       highlights: [
         '"Qual meu melhor dia da semana?"',
         '"Onde estou perdendo dinheiro?"',
         "Cruza suas métricas + contexto macro",
-        isUltra ? "10 consultas por dia" : "10 consultas por mês",
+        isUltra ? "15 consultas por dia" : "15 consultas por mês",
       ],
       gradient: "from-amber-500 to-orange-600",
     },
