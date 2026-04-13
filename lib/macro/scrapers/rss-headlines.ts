@@ -7,15 +7,54 @@ const FEEDS = {
     "https://www.forexlive.com/feed",
     "https://www.forexlive.com/feed/",
   ],
-  // Google News RSS as reliable replacement for Reuters (which returns 401)
-  googlenews: [
-    "https://news.google.com/rss/search?q=forex+OR+gold+OR+bitcoin+OR+fed+OR+tariff+OR+treasury+OR+iran+OR+military+OR+trump+OR+oil+OR+geopolitical+OR+sanctions+OR+nato+when:1d&hl=en",
+  // Google News RSS — expanded queries for high-impact market-moving news
+  // Split into EN + PT-BR feeds for better recall
+  googlenews_en: [
+    "https://news.google.com/rss/search?q=" +
+      encodeURIComponent(
+        [
+          // Macro indicators
+          "CPI", "NFP", "GDP", "inflation", "unemployment", "PMI", "retail sales",
+          // Central banks
+          "Fed", "ECB", "FOMC", "interest rate", "rate hike", "rate cut",
+          // Geopolitics
+          "war", "invasion", "sanctions", "tariff", "embargo", "blockade",
+          "Iran", "Hormuz", "NATO", "missile", "ceasefire",
+          // Markets & commodities
+          "treasury", "gold", "crude oil", "bitcoin",
+          // Politics
+          "trump", "White House",
+          // Crises
+          "recession", "default", "debt ceiling", "pandemic",
+        ].join(" OR ") + " when:1d"
+      ) +
+      "&hl=en",
+  ],
+  googlenews_ptbr: [
+    "https://news.google.com/rss/search?q=" +
+      encodeURIComponent(
+        [
+          // Macro
+          "inflação", "PIB", "Selic", "desemprego", "juros",
+          // Bancos centrais
+          "banco central", "Copom", "Fed",
+          // Geopolítica
+          "guerra", "sanções", "tarifas", "embargo", "invasão", "conflito",
+          // Mercados
+          "dólar", "ouro", "petróleo", "bitcoin", "Ibovespa",
+          // Política
+          "Trump", "Casa Branca",
+          // Crises
+          "recessão", "crise", "calote",
+        ].join(" OR ") + " when:1d"
+      ) +
+      "&hl=pt-BR",
   ],
 } as const;
 
-// Keywords that indicate market-moving content (expanded for better recall)
+// Keywords that indicate market-moving content — EN + PT-BR
 const HIGH_IMPACT_KEYWORDS =
-  /\b(rate|rates|CPI|NFP|GDP|FOMC|Fed|ECB|BoJ|BoE|RBA|SNB|BoC|RBNZ|tariff|tariffs|trade war|trade deal|oil|crude|WTI|Brent|gold|silver|copper|bitcoin|BTC|ETH|crypto|inflation|deflation|employment|jobs|unemployment|PMI|ISM|retail sales|housing|PPI|PCE|treasury|treasuries|yield|yields|bond|bonds|dollar|DXY|euro|EUR|yen|JPY|pound|GBP|franc|CHF|AUD|NZD|CAD|central bank|monetary policy|recession|stimulus|sanctions|war|geopolitical|stock|stocks|market|markets|economy|economic|bank|banking|policy|trade|export|import|China|Russia|Ukraine|Iran|OPEC|Nasdaq|S&P|Dow|equities|rally|crash|surge|plunge|cut|hike|dovish|hawkish|risk|volatility|VIX|forex|FX|currency|commodit)\b/i;
+  /\b(rate|rates|CPI|NFP|GDP|PIB|FOMC|Fed|ECB|BCE|BoJ|BoE|RBA|SNB|BoC|RBNZ|PBOC|Copom|Selic|tariff|tariffs|tarifas|trade war|guerra comercial|trade deal|oil|crude|WTI|Brent|petróleo|gold|ouro|silver|prata|copper|cobre|bitcoin|BTC|ETH|crypto|inflation|inflação|deflation|deflação|employment|jobs|unemployment|desemprego|payroll|PMI|ISM|retail sales|vendas.no.varejo|housing|PPI|PCE|treasury|treasuries|yield|yields|bond|bonds|dollar|dólar|DXY|euro|EUR|yen|JPY|pound|GBP|franc|CHF|AUD|NZD|CAD|central bank|banco central|monetary policy|política monetária|recession|recessão|stimulus|estímulo|sanctions|sanções|war|guerra|invasion|invasão|attack|ataque|conflict|conflito|missile|míssil|ceasefire|cessar-fogo|troops|tropas|military|militar|blockade|bloqueio|embargo|coup|golpe|geopolitical|geopolítica|stock|stocks|market|markets|economy|economic|economia|bank|banking|policy|trade|export|import|China|Russia|Rússia|Ukraine|Ucrânia|Iran|Irã|Taiwan|Israel|OPEC|NATO|OTAN|Nasdaq|S&P|Dow|Ibovespa|equities|rally|crash|surge|plunge|cut|hike|dovish|hawkish|risk|volatility|volatilidade|VIX|forex|FX|currency|câmbio|commodit|Hormuz|pandemic|pandemia|lockdown|default|calote|debt.ceiling|teto.da.dívida|nuclear|earnings|lucros|IPO|merger|fusão|bankruptcy|falência|black.swan|crisis|crise|hurricane|furacão|cyberattack|ciberataque)\b/i;
 
 // Keywords to EXCLUDE (noise + non-macro content)
 const EXCLUDE_KEYWORDS =
@@ -50,68 +89,67 @@ export async function fetchForexLiveHeadlines(): Promise<MacroHeadline[] | null>
 
 export async function fetchReutersHeadlines(): Promise<MacroHeadline[] | null> {
   // Reuters blocks server-side requests (returns 401).
-  // Use Google News RSS filtered for financial keywords as a reliable replacement.
+  // Use Google News RSS (EN + PT-BR) filtered for financial keywords.
   try {
-    console.log("[reuters] Fetching via Google News RSS...");
+    console.log("[reuters] Fetching via Google News RSS (EN + PT-BR)...");
 
-    const res = await fetchWithFallback(
-      FEEDS.googlenews,
-      "reuters-via-google",
-      {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "application/rss+xml, application/xml, text/xml",
-      }
-    );
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "application/rss+xml, application/xml, text/xml",
+    };
 
-    if (!res) {
-      console.warn("[reuters] Google News RSS also failed");
-      return null;
-    }
-
-    const xml = await res.text();
-    const cheerio = await import("cheerio");
-    const $ = cheerio.load(xml, { xml: true });
+    // Fetch both EN and PT-BR feeds in parallel
+    const [resEn, resPtBr] = await Promise.all([
+      fetchWithFallback(FEEDS.googlenews_en, "google-news-en", headers),
+      fetchWithFallback(FEEDS.googlenews_ptbr, "google-news-ptbr", headers),
+    ]);
 
     const items: MacroHeadline[] = [];
+    const seenTitles = new Set<string>();
 
-    $("item").each((_, el) => {
-      const title = stripHtml($(el).find("title").text().trim());
-      // Google News RSS uses <link> tag — extract text or next sibling text node
-      let link = $(el).find("link").text().trim();
-      // In some cheerio versions, <link> self-closing tag text is empty;
-      // the URL appears as a text node right after <link/>
-      if (!link) {
-        const linkNode = $(el).find("link");
-        const nextNode = linkNode.length ? linkNode[0].nextSibling : null;
-        if (nextNode && nextNode.type === "text") {
-          link = (nextNode as unknown as { data: string }).data?.trim() || "";
+    for (const res of [resEn, resPtBr]) {
+      if (!res) continue;
+      const xml = await res.text();
+      const cheerio = await import("cheerio");
+      const $ = cheerio.load(xml, { xml: true });
+
+      $("item").each((_, el) => {
+        const title = stripHtml($(el).find("title").text().trim());
+        let link = $(el).find("link").text().trim();
+        if (!link) {
+          const linkNode = $(el).find("link");
+          const nextNode = linkNode.length ? linkNode[0].nextSibling : null;
+          if (nextNode && nextNode.type === "text") {
+            link = (nextNode as unknown as { data: string }).data?.trim() || "";
+          }
         }
-      }
-      const pubDate = $(el).find("pubDate").text().trim();
-      const sourceTag = $(el).find("source").text().trim();
+        const pubDate = $(el).find("pubDate").text().trim();
+        const sourceTag = $(el).find("source").text().trim();
 
-      if (!title || title.length < 15) return;
-      if (EXCLUDE_KEYWORDS.test(title)) return;
-      // Google News is already filtered by query, but double-check relevance
-      if (!HIGH_IMPACT_KEYWORDS.test(title)) return;
-      if (items.some((h) => h.headline === title)) return;
+        if (!title || title.length < 15) return;
+        if (EXCLUDE_KEYWORDS.test(title)) return;
+        if (!HIGH_IMPACT_KEYWORDS.test(title)) return;
+        const titleLower = title.toLowerCase();
+        if (seenTitles.has(titleLower)) return;
+        seenTitles.add(titleLower);
 
-      items.push({
-        id: "",
-        source: "reuters",  // Keep source as "reuters" for UI compatibility
-        headline: title,
-        summary: sourceTag ? `Fonte: ${sourceTag}` : null,
-        author: null,
-        url: link || null,
-        impact: "high",
-        published_at: pubDate ? new Date(pubDate).toISOString() : null,
-        fetched_at: new Date().toISOString(),
-        external_id: link ? hashString(link) : hashString(title),
+        items.push({
+          id: "",
+          source: "reuters",
+          headline: title,
+          summary: sourceTag ? `Fonte: ${sourceTag}` : null,
+          author: null,
+          url: link || null,
+          impact: "high",
+          published_at: pubDate ? new Date(pubDate).toISOString() : null,
+          fetched_at: new Date().toISOString(),
+          external_id: link ? hashString(link) : hashString(title),
+        });
       });
-    });
+    }
 
-    console.log(`[reuters] Got ${items.length} headlines via Google News`);
-    return items.length > 0 ? items.slice(0, 15) : null;
+    console.log(`[reuters] Got ${items.length} headlines via Google News (EN+PT-BR)`);
+    return items.length > 0 ? items.slice(0, 25) : null;
   } catch (err) {
     console.error("[reuters] Error:", err);
     return null;
