@@ -665,32 +665,29 @@ export default function MacroIntelligencePage() {
         {/* Tab 1: Terminal — Calendar, Rates */}
         <TabsContent value="terminal" className="flex-1 min-h-0 mt-0">
           <div className="flex flex-col gap-6">
-            {/* Calendar & Rates */}
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-              {/* Economic Calendar */}
-              <section className="xl:col-span-9 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6" style={{ backgroundColor: "hsl(var(--card))" }}>
-                <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                  Calendário Econômico
-                </h2>
-                <div className="flex-1 min-h-[400px]">
-                  <EconomicCalendar
-                    events={events}
-                    weekStart={calendarWeek}
-                    onWeekChange={handleWeekChange}
-                    onRefresh={handleCalendarRefresh}
-                  />
-                </div>
-              </section>
+            {/* Economic Calendar — full width */}
+            <section className="w-full flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                Calendário Econômico
+              </h2>
+              <div className="flex-1 min-h-[400px]">
+                <EconomicCalendar
+                  events={events}
+                  weekStart={calendarWeek}
+                  onWeekChange={handleWeekChange}
+                  onRefresh={handleCalendarRefresh}
+                />
+              </div>
+            </section>
 
-              {/* Interest Rates */}
-              <section className="xl:col-span-3 flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
-                <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Taxas Baseadas (Bancos Centrais)</h2>
-                <PaywallGate requiredPlan="pro" blurContent>
-                  <InterestRatesPanel rates={rates} />
-                </PaywallGate>
-              </section>
-            </div>
+            {/* Interest Rates — horizontal, between calendar and headlines */}
+            <section className="w-full flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Taxas Baseadas (Bancos Centrais)</h2>
+              <PaywallGate requiredPlan="pro" blurContent>
+                <InterestRatesPanel rates={rates} />
+              </PaywallGate>
+            </section>
 
             {/* Headlines Feed — Terminal tab only */}
             <HeadlinesFeed

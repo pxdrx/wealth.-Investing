@@ -44,7 +44,7 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2.5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {filteredRates.map((rate) => {
         const action = rate.last_action ? ACTION_CONFIG[rate.last_action] : null;
         const ActionIcon = action?.icon || Minus;
@@ -53,28 +53,28 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
         return (
           <div
             key={rate.bank_code}
-            className="flex flex-col rounded-[14px] border border-border/30 px-3 py-3"
+            className="flex flex-col rounded-[16px] border border-border/30 px-4 py-3.5"
             style={{ backgroundColor: "hsl(var(--card))" }}
           >
-            <div className="mb-1.5 flex items-center gap-1.5">
+            <div className="mb-2 flex items-center gap-2">
               {flagCode ? (
                 <img
-                  src={`https://flagcdn.com/16x12/${flagCode}.png`}
+                  src={`https://flagcdn.com/20x15/${flagCode}.png`}
                   alt={rate.country}
-                  width={16}
-                  height={12}
+                  width={20}
+                  height={15}
                   className="rounded-[2px] shrink-0"
                 />
               ) : (
-                <span className="text-[10px]">{rate.country}</span>
+                <span className="text-xs">{rate.country}</span>
               )}
-              <span className="text-[11px] font-semibold tracking-wide">{rate.bank_code}</span>
+              <span className="text-xs font-semibold tracking-wide">{rate.bank_code}</span>
             </div>
-            <div className="text-xl font-bold tracking-tight">
+            <div className="text-2xl font-bold tracking-tight">
               {rate.current_rate.toFixed(2)}%
             </div>
             {action && (
-              <div className={`mt-1 flex items-center gap-1 text-[10px] font-medium ${action.color}`}>
+              <div className={`mt-1.5 flex items-center gap-1 text-[11px] font-medium ${action.color}`}>
                 <ActionIcon className="h-3 w-3 shrink-0" />
                 <span>
                   {action.label} {rate.last_change_bps ? `${Math.abs(rate.last_change_bps)}bps` : ""}
@@ -82,8 +82,8 @@ export function InterestRatesPanel({ rates }: InterestRatesPanelProps) {
               </div>
             )}
             {rate.next_meeting && (
-              <div className="mt-auto pt-2">
-                <div className="text-[10px] leading-snug text-muted-foreground">
+              <div className="mt-auto pt-2.5">
+                <div className="text-[11px] leading-snug text-muted-foreground">
                   Próx. reunião: {formatDate(rate.next_meeting)}
                 </div>
               </div>
