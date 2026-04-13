@@ -377,6 +377,24 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
         </span>
       </div>
 
+      {/* Hint: few events detected — suggest refresh */}
+      {isCurrentWeek && events.length > 0 && events.length < 10 && onRefresh && (
+        <div className="flex items-center gap-3 rounded-[16px] border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+          <span className="text-xs text-amber-600 dark:text-amber-400">
+            Apenas {events.length} evento{events.length !== 1 ? "s" : ""} encontrado{events.length !== 1 ? "s" : ""}. O calendário pode ainda estar sendo atualizado.
+          </span>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+          >
+            <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+            Atualizar
+          </button>
+        </div>
+      )}
+
       {/* Events grouped by day — collapsible */}
       {grouped.map(([date, dayEvents]) => {
         const isToday = date === today;
