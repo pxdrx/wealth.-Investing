@@ -103,21 +103,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, fetched: 0, updated: 0, source: "none" });
     }
 
-    // Force week_start to current Monday (or override) — Faireconomy "thisweek" may
-    // start on Sunday, giving wrong week_start if derived from first event date
-    const weekStart = weekStartOverride || getWeekStart();
-    // Patch all events to use the correct week_start
-    for (const event of events) {
-      event.week_start = weekStart;
+    // Each event has its own week_start derived from its date.
+    // Override only applies to explicit next-week requests.
+    if (weekStartOverride) {
+      for (const event of events) {
+        event.week_start = weekStartOverride;
+      }
     }
+    const weekStart = weekStartOverride || getWeekStart();
+    const weekStarts = [...new Set(events.map((e) => e.week_start))];
     let updated = 0;
     let inserted = 0;
 
-    // Load existing events for this week
+    // Load existing events for all relevant weeks
     const { data: existingRows } = await supabase
       .from("economic_events")
       .select("id, event_uid, actual")
-      .filter("week_start", "eq", weekStart);
+      .in("week_start", weekStarts);
 
     const existingMap = new Map<string, { id: string; actual: string | null }>();
     for (const row of existingRows ?? []) {

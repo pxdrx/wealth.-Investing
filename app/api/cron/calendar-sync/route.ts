@@ -45,22 +45,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, fetched: 0, upserted: 0, updated: 0 });
     }
 
-    // Force week_start to current Monday — the fetcher may derive a wrong
-    // week_start when Faireconomy data starts with a Sunday event.
+    // Each event now has its own week_start derived from its date.
+    // Collect unique week_starts for bulk lookups.
     const weekStart = getWeekStart();
-    for (const event of events) {
-      event.week_start = weekStart;
-    }
+    const weekStarts = [...new Set(events.map((e) => e.week_start))];
 
     let upserted = 0;
     let updated = 0;
     const errors: string[] = [];
 
-    // Load existing events for this week in bulk
+    // Load existing events for all relevant weeks in bulk
     const { data: existingRows } = await supabase
       .from("economic_events")
       .select("id, event_uid, actual")
-      .filter("week_start", "eq", weekStart);
+      .in("week_start", weekStarts);
 
     const existingMap = new Map<string, { id: string; actual: string | null }>();
     for (const row of existingRows ?? []) {

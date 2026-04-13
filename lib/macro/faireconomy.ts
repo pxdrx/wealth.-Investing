@@ -1,5 +1,5 @@
 // lib/macro/faireconomy.ts
-import { FAIRECONOMY_URL, getWeekStart } from "./constants";
+import { FAIRECONOMY_URL } from "./constants";
 import type { FaireconomyEvent, EconomicEvent } from "./types";
 
 function normalizeImpact(impact: string): "high" | "medium" | "low" | null {
@@ -10,7 +10,19 @@ function normalizeImpact(impact: string): "high" | "medium" | "low" | null {
   return null; // Skip holidays
 }
 
-function parseDate(dateStr: string): { date: string; time: string | null } {
+/** Derive the Monday (week_start) for a given date */
+function getWeekStartForDate(d: Date): string {
+  const copy = new Date(d);
+  const day = copy.getUTCDay();
+  const diff = copy.getUTCDate() - day + (day === 0 ? -6 : 1);
+  copy.setUTCDate(diff);
+  const y = copy.getUTCFullYear();
+  const m = String(copy.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(copy.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+function parseDate(dateStr: string): { date: string; time: string | null; weekStart: string } {
   // Faireconomy returns dates like "2026-03-19T13:30:00-04:00" or similar ISO
   try {
     const d = new Date(dateStr);
@@ -18,9 +30,10 @@ function parseDate(dateStr: string): { date: string; time: string | null } {
     const hours = d.getUTCHours().toString().padStart(2, "0");
     const minutes = d.getUTCMinutes().toString().padStart(2, "0");
     const time = hours === "00" && minutes === "00" ? null : `${hours}:${minutes}`;
-    return { date, time };
+    const weekStart = getWeekStartForDate(d);
+    return { date, time, weekStart };
   } catch {
-    return { date: dateStr.split("T")[0], time: null };
+    return { date: dateStr.split("T")[0], time: null, weekStart: dateStr.split("T")[0] };
   }
 }
 
@@ -45,16 +58,14 @@ export async function fetchFaireconomyCalendar(
 
   const raw: FaireconomyEvent[] = await res.json();
 
-  // Always use current Monday as week_start — deriving from first event date
-  // causes bugs when Faireconomy includes Sunday events (which belong to the
-  // previous week by getWeekStart logic, but are part of the trading week).
-  const weekStart = weekStartOverride || getWeekStart();
-
   return raw
     .filter((e) => normalizeImpact(e.impact) !== null)
     .map((e) => {
-      const { date, time } = parseDate(e.date);
+      const { date, time, weekStart: derivedWeekStart } = parseDate(e.date);
       const impact = normalizeImpact(e.impact)!;
+      // Use per-event week_start derived from the event's own date.
+      // Override only if explicitly requested (e.g. next-week fetch).
+      const weekStart = weekStartOverride || derivedWeekStart;
       return {
         event_uid: generateEventUid(e),
         date,
