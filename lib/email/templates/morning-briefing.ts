@@ -18,11 +18,16 @@ export function renderMorningBriefing(data: MorningBriefingData): string {
 
   const highImpactEvents = events.filter((e) => e.impact === "high");
   const mediumImpactEvents = events.filter((e) => e.impact === "medium");
+  const lowImpactEvents = events.filter((e) => e.impact === "low");
 
-  const eventsHtml = [...highImpactEvents, ...mediumImpactEvents]
+  // Show high + medium first; if none, show low events so the section is never empty
+  const priorityEvents = [...highImpactEvents, ...mediumImpactEvents];
+  const displayEvents = priorityEvents.length > 0 ? priorityEvents : lowImpactEvents;
+
+  const eventsHtml = displayEvents
     .slice(0, 8)
     .map((e) => {
-      const color = e.impact === "high" ? "#ef4444" : "#f59e0b";
+      const color = e.impact === "high" ? "#ef4444" : e.impact === "medium" ? "#f59e0b" : "#94a3b8";
       const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px"></span>`;
       return `<tr><td style="padding:6px 0;font-size:13px;color:#666">${e.time}</td><td style="padding:6px 8px;font-size:13px">${dot}${e.currency} — ${e.title}</td></tr>`;
     })
