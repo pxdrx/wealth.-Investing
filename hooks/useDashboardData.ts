@@ -165,8 +165,8 @@ export function useDashboardData(): DashboardData {
   // Journal trades, accounts, prop data, day notes fetch
   useEffect(() => {
     if (!userId) {
-      setJournalTrades([]);
-      setAccountsById(new Map());
+      // Don't clear existing data when userId is momentarily null (auth refresh).
+      // Only stop loading to prevent infinite spinner.
       setJournalLoading(false);
       return;
     }
