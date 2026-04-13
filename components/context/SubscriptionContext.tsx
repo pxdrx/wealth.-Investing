@@ -25,12 +25,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [isLoading, setIsLoading] = useState(true);
   const { event: authEvent } = useAuthEvent();
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
+    // silent=true: keep existing subscription visible while re-fetching (tab return, poll)
+    if (!silent) setIsLoading(true);
     try {
       const sub = await fetchMySubscription();
       setSubscription(sub);
     } catch {
-      // ignore
+      // On error, keep existing subscription — don't flash to free
     } finally {
       setIsLoading(false);
     }
@@ -68,16 +70,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   // React to centralized auth events (replaces local onAuthStateChange)
   useEffect(() => {
     if (authEvent === "SIGNED_IN") {
-      load();
+      // Silent reload: keep current subscription visible while re-fetching.
+      // This prevents flashing to "free" on tab return (token refresh emits SIGNED_IN).
+      load(true);
     } else if (authEvent === "SIGNED_OUT") {
       setSubscription(null);
       setIsLoading(false);
     }
   }, [authEvent, load]);
 
-  // Poll every 15 min — no visibility change handler to avoid re-renders on tab switch
+  // Poll every 15 min — silent to avoid flashing free
   useEffect(() => {
-    const interval = setInterval(load, 15 * 60 * 1000);
+    const interval = setInterval(() => load(true), 15 * 60 * 1000);
     return () => clearInterval(interval);
   }, [load]);
 
