@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     // Each event now has its own week_start derived from its date.
     // Collect unique week_starts for bulk lookups.
     const weekStart = getWeekStart();
-    const weekStarts = [...new Set(events.map((e) => e.week_start))];
+    const weekStarts = Array.from(new Set(events.map((e) => e.week_start)));
 
     let upserted = 0;
     let updated = 0;

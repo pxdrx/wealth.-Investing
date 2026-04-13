@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       }
     }
     const weekStart = weekStartOverride || getWeekStart();
-    const weekStarts = [...new Set(events.map((e) => e.week_start))];
+    const weekStarts = Array.from(new Set(events.map((e) => e.week_start)));
     let updated = 0;
     let inserted = 0;
 
