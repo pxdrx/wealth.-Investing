@@ -46,15 +46,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     let mounted = true;
 
-    // Safety timeout: force isLoading=false after 10s to prevent infinite spinner
+    // Safety timeout: force isLoading=false after 3s to prevent infinite spinner
     const safetyTimeout = setTimeout(() => {
       if (mounted) {
         setIsLoading((prev) => {
-          if (prev) console.warn("[subscription] Safety timeout: forcing isLoading=false after 10s");
+          if (prev) console.warn("[subscription] Safety timeout: forcing isLoading=false after 3s");
           return false;
         });
       }
-    }, 5_000);
+    }, 3_000);
 
     async function init() {
       const { data: { session } } = await safeGetSession();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,11 +32,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, mentor: null });
     }
 
-    // Fetch mentor profile
-    const { data: profile } = await supabase
+    // Fetch mentor profile — service role bypasses RLS for cross-user read
+    const svc = createServiceRoleClient();
+    const { data: profile } = await svc
       .from("profiles")
       .select("display_name")
-      .eq("user_id", relationship.mentor_id)
+      .eq("id", relationship.mentor_id)
       .maybeSingle();
 
     return NextResponse.json({

@@ -47,8 +47,14 @@ export default function SettingsPage() {
   } | null>(null);
 
   // ── Subscription ──
-  const { plan, status, subscription, isLoading: subLoading } =
+  const { plan, status, subscription, isLoading: subLoadingRaw } =
     useSubscription();
+  const [subTimedOut, setSubTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSubTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+  const subLoading = subLoadingRaw && !subTimedOut;
 
   // ── Portal loading ──
   const [portalLoading, setPortalLoading] = useState(false);

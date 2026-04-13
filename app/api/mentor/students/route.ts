@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,18 +32,21 @@ export async function GET(req: NextRequest) {
 
     const studentIds = relationships.map((r) => r.student_id).filter(Boolean) as string[];
 
+    // Use service_role to read cross-user data (profiles, trades)
+    const svc = createServiceRoleClient();
+
     // Fetch profiles for all students
-    const { data: profiles, error: profErr } = await supabase
+    const { data: profiles, error: profErr } = await svc
       .from("profiles")
-      .select("user_id, display_name")
-      .in("user_id", studentIds);
+      .select("id, display_name")
+      .in("id", studentIds);
 
     if (profErr) {
       return NextResponse.json({ ok: false, error: "Erro ao buscar perfis" }, { status: 500 });
     }
 
     const profileMap = new Map(
-      (profiles ?? []).map((p) => [p.user_id, p.display_name])
+      (profiles ?? []).map((p: { id: string; display_name: string | null }) => [p.id, p.display_name])
     );
 
     // Get this month's start date
@@ -50,7 +54,7 @@ export async function GET(req: NextRequest) {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     // Fetch monthly trade stats for all students in one query
-    const { data: trades, error: tradesErr } = await supabase
+    const { data: trades, error: tradesErr } = await svc
       .from("journal_trades")
       .select("user_id, pnl_usd, open_time")
       .in("user_id", studentIds)
@@ -61,7 +65,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch last trade date for each student (limit to 1 per student via post-processing)
-    const { data: lastTrades, error: lastErr } = await supabase
+    const { data: lastTrades, error: lastErr } = await svc
       .from("journal_trades")
       .select("user_id, open_time")
       .in("user_id", studentIds)

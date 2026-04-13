@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -42,8 +43,9 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "Vínculo não encontrado" }, { status: 403 });
     }
 
-    // Fetch trades (all accounts) for this student
-    const { data: trades, error: tradesErr } = await supabase
+    // Fetch trades (all accounts) for this student — service role bypasses RLS
+    const svc = createServiceRoleClient();
+    const { data: trades, error: tradesErr } = await svc
       .from("journal_trades")
       .select("id, symbol, direction, open_time, close_time, pnl_usd, net_pnl_usd, account_id, emotion, discipline, setup_quality, custom_tags")
       .eq("user_id", studentId)

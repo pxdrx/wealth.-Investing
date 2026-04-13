@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { isAdmin } from "@/lib/admin";
+import { sendEmail } from "@/lib/email/send";
+import { planUpgradeEmail } from "@/lib/email/templates/plan-upgrade";
 
 const VALID_PLANS = ["free", "pro", "ultra", "mentor"] as const;
 type Plan = (typeof VALID_PLANS)[number];
@@ -153,6 +155,23 @@ export async function POST(req: NextRequest) {
     console.log(
       `[admin/promote] Admin ${user.id} set user ${userId} to plan="${targetPlan}"`
     );
+
+    // Send email notification (non-blocking, don't fail the request)
+    if (targetPlan !== "free" && targetUser.email) {
+      const { data: profile } = await serviceClient
+        .from("profiles")
+        .select("display_name")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const { subject, html } = planUpgradeEmail(
+        profile?.display_name ?? "",
+        targetPlan
+      );
+      sendEmail({ to: targetUser.email, subject, html }).catch((err) =>
+        console.error("[admin/promote] email send error:", err)
+      );
+    }
 
     return NextResponse.json({ ok: true, plan: targetPlan });
   } catch (err) {

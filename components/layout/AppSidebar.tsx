@@ -46,7 +46,7 @@ const baseNavLinks = [
   { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
 ];
 
-const mentorNavLink = { href: "/app/mentor", label: "Painel Mentor", icon: GraduationCap, highlight: true };
+const mentorNavLink = { href: "/app/mentor", label: "Painel Mentor", icon: GraduationCap, highlight: false };
 const adminNavLink = { href: "/app/admin", label: "Admin", icon: Shield, highlight: false };
 
 function logout() {

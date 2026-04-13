@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,8 +21,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Código é obrigatório" }, { status: 400 });
     }
 
-    // Find pending relationship with this code
-    const { data: relationship, error: findErr } = await supabase
+    // Use service_role to bypass RLS — student can't SELECT mentor's pending rows
+    const serviceClient = createServiceRoleClient();
+
+    // Find pending relationship with this code (case-insensitive)
+    const { data: relationship, error: findErr } = await serviceClient
       .from("mentor_relationships")
       .select("id, mentor_id")
       .ilike("invite_code", code)
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if student already has an active relationship with this mentor
-    const { data: existingLink, error: checkErr } = await supabase
+    const { data: existingLink, error: checkErr } = await serviceClient
       .from("mentor_relationships")
       .select("id")
       .eq("mentor_id", relationship.mentor_id)
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Activate the relationship
-    const { error: updateErr } = await supabase
+    const { error: updateErr } = await serviceClient
       .from("mentor_relationships")
       .update({ student_id: user.id, status: "active" })
       .eq("id", relationship.id);
@@ -72,10 +76,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch mentor display name
-    const { data: mentorProfile } = await supabase
+    const { data: mentorProfile } = await serviceClient
       .from("profiles")
       .select("display_name")
-      .eq("user_id", relationship.mentor_id)
+      .eq("id", relationship.mentor_id)
       .maybeSingle();
 
     return NextResponse.json({
@@ -101,7 +105,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { error: updateErr } = await supabase
+    const svc = createServiceRoleClient();
+    const { error: updateErr } = await svc
       .from("mentor_relationships")
       .update({ status: "revoked", revoked_at: new Date().toISOString() })
       .eq("student_id", user.id)

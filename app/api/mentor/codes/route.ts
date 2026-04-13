@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,13 +38,15 @@ export async function GET(req: NextRequest) {
     let profileMap = new Map<string, string>();
 
     if (activeStudentIds.length > 0) {
-      const { data: profiles } = await supabase
+      // Service role bypasses RLS for cross-user profile reads
+      const svc = createServiceRoleClient();
+      const { data: profiles } = await svc
         .from("profiles")
-        .select("user_id, display_name")
-        .in("user_id", activeStudentIds);
+        .select("id, display_name")
+        .in("id", activeStudentIds);
 
       profileMap = new Map(
-        (profiles ?? []).map((p) => [p.user_id, p.display_name])
+        (profiles ?? []).map((p) => [p.id, p.display_name])
       );
     }
 
