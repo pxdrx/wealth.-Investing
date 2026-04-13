@@ -30,7 +30,7 @@ function getDismissKey(): string {
 
 function isDismissed(): boolean {
   try {
-    return sessionStorage.getItem(getDismissKey()) === "1";
+    return localStorage.getItem(getDismissKey()) === "1";
   } catch {
     return false;
   }
@@ -52,7 +52,7 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
   const handleDismiss = useCallback(() => {
     setDismissed(true);
     try {
-      sessionStorage.setItem(getDismissKey(), "1");
+      localStorage.setItem(getDismissKey(), "1");
     } catch {
       // ignore
     }

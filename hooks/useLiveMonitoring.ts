@@ -235,7 +235,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchStatus]);
 
-  // Supabase Realtime: listen for new live alerts
+  // Supabase Realtime: listen for live alert changes (INSERT, UPDATE, DELETE)
   useEffect(() => {
     if (!accountId) return;
 
@@ -250,28 +250,71 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
           filter: `account_id=eq.${accountId}`,
         },
         (payload) => {
-          const newAlert = payload.new as {
+          const row = payload.new as {
             id: string;
             alert_type: string;
             severity: string;
             actual_pct: number;
             message: string;
             created_at: string;
+            dismissed?: boolean;
           };
 
+          // Only add if not already dismissed
+          if (row.dismissed) return;
+
+          setState((prev) => {
+            // Deduplicate: don't add if already in list
+            if (prev.activeAlerts.some((a) => a.id === row.id)) return prev;
+            return {
+              ...prev,
+              activeAlerts: [
+                {
+                  id: row.id,
+                  alertType: row.alert_type,
+                  severity: row.severity,
+                  actualPct: row.actual_pct,
+                  message: row.message,
+                  createdAt: row.created_at,
+                },
+                ...prev.activeAlerts,
+              ],
+            };
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "live_alerts_log",
+          filter: `account_id=eq.${accountId}`,
+        },
+        (payload) => {
+          const row = payload.new as { id: string; dismissed?: boolean };
+          if (row.dismissed) {
+            // Remove dismissed alert from state immediately
+            setState((prev) => ({
+              ...prev,
+              activeAlerts: prev.activeAlerts.filter((a) => a.id !== row.id),
+            }));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "live_alerts_log",
+          filter: `account_id=eq.${accountId}`,
+        },
+        (payload) => {
+          const row = payload.old as { id: string };
           setState((prev) => ({
             ...prev,
-            activeAlerts: [
-              {
-                id: newAlert.id,
-                alertType: newAlert.alert_type,
-                severity: newAlert.severity,
-                actualPct: newAlert.actual_pct,
-                message: newAlert.message,
-                createdAt: newAlert.created_at,
-              },
-              ...prev.activeAlerts,
-            ],
+            activeAlerts: prev.activeAlerts.filter((a) => a.id !== row.id),
           }));
         }
       )

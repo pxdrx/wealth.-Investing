@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X, ShieldAlert } from "lucide-react";
 import { useLiveMonitoringSafe } from "@/components/context/LiveMonitoringContext";
@@ -8,29 +8,57 @@ import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const DISMISSED_KEY = "live-alerts-dismissed";
+
+function loadDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return new Set();
+    const ids: string[] = JSON.parse(raw);
+    return new Set(ids);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(ids: Set<string>) {
+  try {
+    // Keep only the last 100 to avoid unbounded growth
+    const arr = Array.from(ids).slice(-100);
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify(arr));
+  } catch {
+    // ignore
+  }
+}
 
 export function LiveAlertsBanner() {
   const monitoring = useLiveMonitoringSafe();
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed());
 
   if (!monitoring || !monitoring.isConnected) return null;
 
   const visibleAlerts = monitoring.activeAlerts.filter((a) => !dismissed.has(a.id));
   if (visibleAlerts.length === 0) return null;
 
-  function handleDismiss(alertId: string) {
+  async function handleDismiss(alertId: string) {
+    // Optimistic: hide immediately
     setDismissed((prev) => {
       const next = new Set(prev);
       next.add(alertId);
+      saveDismissed(next);
       return next;
     });
 
-    // Dismiss in DB (fire-and-forget)
-    supabase
+    // Persist to DB with error handling
+    const { error } = await supabase
       .from("live_alerts_log")
       .update({ dismissed: true })
-      .eq("id", alertId)
-      .then();
+      .eq("id", alertId);
+
+    if (error) {
+      console.error("[LiveAlertsBanner] Failed to dismiss alert in DB:", error.message);
+      // Keep it dismissed locally — the user doesn't want to see it again
+    }
   }
 
   return (
