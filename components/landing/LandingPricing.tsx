@@ -103,20 +103,6 @@ export function LandingPricing() {
           </p>
         </AnimatedSection>
 
-        {/* Launch promotion badge */}
-        <AnimatedSection delay={0.05}>
-          <div className="flex justify-center mb-6">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md"
-            >
-              <span>Cupom de lançamento: <span className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs tracking-wider">LANCAMENTO30</span> — 30% OFF na primeira cobrança!</span>
-            </motion.div>
-          </div>
-        </AnimatedSection>
-
         {/* Toggle */}
         <AnimatedSection delay={0.1}>
           <div className="flex items-center justify-center gap-3 mb-10">
