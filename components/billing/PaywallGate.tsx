@@ -56,7 +56,9 @@ function DefaultFallback({ requiredPlan }: { requiredPlan: "pro" | "ultra" }) {
 export function PaywallGate({ requiredPlan, children, fallback, blurContent = false }: PaywallGateProps) {
   const { plan, isLoading } = useSubscription();
 
-  if (isLoading) return null;
+  // While loading, show children optimistically to avoid flash of paywall.
+  // This prevents the "Pro overlay on Ultra user" bug during subscription re-fetch.
+  if (isLoading) return <>{children}</>;
 
   const hasAccess = requiredPlan === "pro"
     ? (plan === "pro" || plan === "ultra")
@@ -70,7 +72,7 @@ export function PaywallGate({ requiredPlan, children, fallback, blurContent = fa
         <div className="pointer-events-none select-none blur-[6px] opacity-50" aria-hidden="true">
           {children}
         </div>
-        <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
           {fallback ?? <DefaultFallback requiredPlan={requiredPlan} />}
         </div>
       </div>

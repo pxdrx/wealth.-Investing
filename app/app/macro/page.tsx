@@ -373,18 +373,26 @@ export default function MacroIntelligencePage() {
   // Headlines manual refresh — force live fetch to bypass stale DB cache
   const handleHeadlinesRefresh = useCallback(async () => {
     setHeadlinesRefreshing(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const headers: Record<string, string> = {};
       if (session?.access_token) {
         headers.Authorization = `Bearer ${session.access_token}`;
       }
-      const res = await fetch("/api/macro/headlines?limit=30&live=1", { headers });
+      const res = await fetch("/api/macro/headlines?limit=30&live=1", {
+        headers,
+        signal: controller.signal,
+      });
       const json = await res.json();
       if (json.ok) setHeadlines(json.data || []);
     } catch (err) {
-      console.error("[macro] Headlines refresh failed:", err);
+      if ((err as Error).name !== "AbortError") {
+        console.error("[macro] Headlines refresh failed:", err);
+      }
     } finally {
+      clearTimeout(timeout);
       setHeadlinesRefreshing(false);
     }
   }, []);
