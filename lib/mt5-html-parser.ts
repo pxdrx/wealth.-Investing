@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { createHash } from "node:crypto";
 import { inferCategory } from "@/lib/trading/category";
 import { mt5WallTimeToUtc } from "@/lib/trading/timezone";
 
@@ -315,9 +316,10 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
       if (isNextSectionOrTotalRow($, allRows[r], cells)) break;
       if (cells.length < 5) continue;
 
-      // Get position ID — try header map first, fallback to column 1
+      // Get position ID — try header map first, fallback to column 1.
+      // Non-numeric positions are allowed; they get a deterministic hash
+      // below so re-upload stays idempotent.
       const positionCell = getByAlias(cells, headerMap, "position", 1);
-      if (!isNumeric(positionCell)) continue;
 
       // Get type/direction — try header map first, fallback to column 3
       const tipo = getByAlias(cells, headerMap, "type", 3).toLowerCase();
@@ -363,8 +365,16 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
       const symbol = getByAlias(cells, headerMap, "symbol", 2).trim();
       if (!symbol) continue;
 
+      const trimmedPosition = positionCell.trim();
+      const external_id = isNumeric(trimmedPosition)
+        ? trimmedPosition
+        : `hash-${createHash("sha1")
+            .update(`${symbol}|${tipo}|${openedAt}|${closedAt}|${pnl_usd}`)
+            .digest("hex")
+            .slice(0, 16)}`;
+
       trades.push({
-        external_id: positionCell.trim(),
+        external_id,
         symbol,
         direction: tipo === "sell" ? "sell" : "buy",
         opened_at: openedAt,

@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { createHash } from "node:crypto";
 import { mt5WallTimeToUtc } from "@/lib/trading/timezone";
 
 export interface Mt5TradeRow {
@@ -204,8 +205,17 @@ function parseTradeRow(
   const comissao = comissaoCol >= 0 ? parseNumber(get(comissaoCol)) : 0;
   const swap = swapCol >= 0 ? parseNumber(get(swapCol)) : 0;
 
+  // When the broker didn't number the position, fall back to a deterministic
+  // hash so re-uploading the same report doesn't insert duplicates.
+  const externalId = position
+    ? position
+    : `hash-${createHash("sha1")
+        .update(`${ativo}|${tipoRaw}|${openedAt}|${closedAt}|${lucro}`)
+        .digest("hex")
+        .slice(0, 16)}`;
+
   return {
-    external_id: position || `row-${row}`,
+    external_id: externalId,
     symbol: ativo,
     direction: tipoRaw === "sell" ? "sell" : "buy",
     opened_at: openedAt,
