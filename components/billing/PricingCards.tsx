@@ -4,9 +4,6 @@ import { useState } from "react";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
 import { Check, ArrowDown, ArrowUp } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { supabase } from "@/lib/supabase/client";
@@ -28,14 +25,14 @@ const PLAN_RANK: Record<Plan, number> = { free: 0, pro: 1, ultra: 2, mentor: 3 }
 const tiers: TierDef[] = [
   {
     id: "free",
-    name: "Free",
+    name: "Grátis",
     description: "Comece a registrar. Sem compromisso.",
     monthlyPrice: 0,
     annualPrice: 0,
     features: [
       "10 trades por mês",
       "1 conta",
-      "3 consultas AI Coach/mês",
+      "3 consultas IA Coach/mês",
       "Journal básico",
       "Import MT5",
       "Calendário econômico",
@@ -52,11 +49,11 @@ const tiers: TierDef[] = [
     features: [
       "Trades ilimitados",
       "5 contas simultâneas",
-      "15 consultas AI Coach/mês",
-      "Journal completo + Tags",
-      "Inteligência Macro completa",
+      "15 consultas IA Coach/mês",
+      "Journal completo + tags",
+      "Macroeconomia completa",
       "Headlines ao vivo",
-      "Briefing Macroeconômico",
+      "Briefing macroeconômico",
       "Dashboard completo",
       "Relatórios de performance",
       "Export CSV",
@@ -72,13 +69,13 @@ const tiers: TierDef[] = [
     features: [
       "Tudo do Pro, mais:",
       "Contas ilimitadas",
-      "15 consultas AI Coach/dia",
+      "15 consultas IA Coach/dia",
       "Psicologia e tags avançadas",
       "Comparação de contas",
       "Alertas customizados",
-      "Relatórios avançados (MFE/MAE, Sharpe)",
+      "Relatórios avançados (MFE/MAE)",
       "Export PDF",
-      "Briefing on-demand",
+      "Dexter ilimitado",
       "Suporte prioritário",
     ],
   },
@@ -100,7 +97,6 @@ function getButtonState(
   const isPaid = currentPlan !== "free";
   const currentIsAnnual = currentInterval === "year";
 
-  // Free card: always disabled/dimmed if user has a paid plan
   if (tierId === "free") {
     if (currentPlan === "free") {
       return { label: "Plano atual", action: "none", disabled: true };
@@ -108,12 +104,10 @@ function getButtonState(
     return { label: "Plano atual", action: "none", disabled: true };
   }
 
-  // Exact match: same tier AND same interval
   if (tierId === currentPlan && ((viewingAnnual && currentIsAnnual) || (!viewingAnnual && !currentIsAnnual))) {
     return { label: "Plano atual", action: "manage", disabled: false };
   }
 
-  // Same tier, different interval (e.g., Ultra Monthly viewing Annual tab)
   if (tierId === currentPlan && viewingAnnual && !currentIsAnnual) {
     return { label: "Upgrade para Anual", action: "upgrade", disabled: false, icon: "up" };
   }
@@ -121,7 +115,6 @@ function getButtonState(
     return { label: "Mudar para Mensal", action: "subscribe", disabled: false };
   }
 
-  // Different tier
   if (!isPaid) {
     return { label: "Assinar", action: "subscribe", disabled: false };
   }
@@ -129,12 +122,10 @@ function getButtonState(
   const tierRank = PLAN_RANK[tierId];
   const currentRank = PLAN_RANK[currentPlan];
 
-  // Viewing annual tab while on monthly — any paid tier is an upgrade
   if (viewingAnnual && !currentIsAnnual) {
     return { label: "Upgrade para Anual", action: "upgrade", disabled: false, icon: "up" };
   }
 
-  // Same interval comparison
   if (tierRank > currentRank) {
     return { label: "Upgrade", action: "upgrade", disabled: false, icon: "up" };
   }
@@ -164,7 +155,7 @@ export function PricingCards() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) {
-        window.location.href = "/login";
+        window.location.href = "/login?next=/app/pricing";
         return;
       }
       const res = await fetch("/api/billing/checkout", {
@@ -196,23 +187,19 @@ export function PricingCards() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) {
-        window.location.href = "/login";
+        window.location.href = "/login?next=/app/pricing";
         return;
       }
       const res = await fetch("/api/billing/portal", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (!res.ok) {
         console.error("[billing] Portal error:", res.status === 404 ? "No active subscription" : (data.error || "Unknown error"));
         return;
       }
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      if (data.url) window.location.href = data.url;
     } catch (err) {
       console.error("[billing] Portal error:", err);
     } finally {
@@ -224,26 +211,26 @@ export function PricingCards() {
     if (action === "manage") {
       handleManageSubscription(tierId);
     } else if (action === "subscribe" || action === "upgrade" || action === "downgrade") {
-      // Always use Checkout for new subscriptions, upgrades, and downgrades
       handleSubscribe(tierId);
     }
   }
 
   return (
-    <div className="space-y-8">
-      {/* Toggle */}
+    <div className="space-y-10">
+      {/* Monthly/Annual toggle */}
       <div className="flex items-center justify-center gap-3">
-        <span className={cn("text-sm font-medium", !annual ? "text-foreground" : "text-muted-foreground")}>
+        <span className={cn("text-[13px] font-medium", !annual ? "text-zinc-900" : "text-zinc-500")}>
           Mensal
         </span>
         <button
           type="button"
           role="switch"
           aria-checked={annual}
+          aria-label="Alternar entre mensal e anual"
           onClick={handleToggle}
           className={cn(
             "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-            annual ? "bg-blue-600" : "bg-muted"
+            annual ? "bg-zinc-900" : "bg-zinc-200"
           )}
         >
           <span
@@ -254,18 +241,18 @@ export function PricingCards() {
             style={{ marginTop: "1px" }}
           />
         </button>
-        <span className={cn("text-sm font-medium", annual ? "text-foreground" : "text-muted-foreground")}>
+        <span className={cn("text-[13px] font-medium", annual ? "text-zinc-900" : "text-zinc-500")}>
           Anual
         </span>
         {annual && (
-          <span className="rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-600 dark:text-green-400">
+          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
             -25%
           </span>
         )}
       </div>
 
       {/* Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
         {tiers.map((tier) => {
           const price = annual ? tier.annualPrice : tier.monthlyPrice;
           const isFree = tier.id === "free";
@@ -274,106 +261,138 @@ export function PricingCards() {
           const isLoading = loadingTier === tier.id;
 
           return (
-            <Card
+            <div
               key={tier.id}
               className={cn(
-                "relative flex flex-col rounded-[22px] p-6",
-                tier.highlighted && "border-blue-500 border-2 shadow-lg",
-                isCurrentCard && !isFree && "ring-2 ring-green-500/30"
+                "relative rounded-[22px] border p-6 lg:p-8 flex flex-col transition-all",
+                tier.highlighted
+                  ? "bg-zinc-900 text-white border-zinc-900 shadow-xl lg:scale-[1.02]"
+                  : "bg-white text-zinc-900 border-zinc-200",
+                isCurrentCard && !isFree && "ring-2 ring-emerald-500/40"
               )}
-              style={{ backgroundColor: "hsl(var(--card))" }}
             >
               {tier.badge && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                <span
+                  className={cn(
+                    "absolute -top-3 left-6 text-[9px] uppercase tracking-wider font-semibold rounded-full px-2.5 py-1",
+                    tier.highlighted
+                      ? "bg-violet-500 text-white"
+                      : "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                  )}
+                >
                   {tier.badge}
                 </span>
               )}
 
-              <h3 className="text-lg font-semibold tracking-tight">{tier.name}</h3>
-              {tier.description && (
-                <p className="mt-1 text-sm text-muted-foreground">{tier.description}</p>
-              )}
+              <div className="mb-4">
+                <div className="text-[14px] font-semibold mb-1">{tier.name}</div>
+                {tier.description && (
+                  <p
+                    className={cn(
+                      "text-[12px] leading-snug",
+                      tier.highlighted ? "text-zinc-400" : "text-zinc-600"
+                    )}
+                  >
+                    {tier.description}
+                  </p>
+                )}
+              </div>
 
-              <div className="mt-4 flex items-baseline gap-1">
+              <div className="flex items-baseline gap-1 mb-2">
                 {isFree ? (
-                  <span className="text-3xl font-bold tracking-tight">Grátis</span>
+                  <span className="text-[32px] font-semibold tracking-tight">R$0</span>
                 ) : (
                   <>
-                    <span className="text-sm font-medium text-muted-foreground">R$</span>
+                    <span
+                      className={cn(
+                        "text-[14px] font-medium",
+                        tier.highlighted ? "text-zinc-400" : "text-zinc-500"
+                      )}
+                    >
+                      R$
+                    </span>
                     <NumberFlow
                       value={price}
                       format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}
                       locales="pt-BR"
-                      className="text-3xl font-bold tracking-tight"
+                      className="text-[32px] font-semibold tracking-tight"
                     />
-                    <span className="text-sm text-muted-foreground">/mês</span>
+                    <span className={tier.highlighted ? "text-zinc-400" : "text-zinc-500"}>
+                      /mês
+                    </span>
                   </>
                 )}
               </div>
-
               {!isFree && annual && (
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p
+                  className={cn(
+                    "text-[11px] mb-4",
+                    tier.highlighted ? "text-zinc-400" : "text-zinc-500"
+                  )}
+                >
                   Cobrado anualmente
                 </p>
               )}
+              {(isFree || !annual) && <div className="mb-4" />}
 
-              <ul className="mt-6 flex-1 space-y-2.5">
+              <button
+                type="button"
+                disabled={btnState.disabled || isLoading}
+                onClick={() => handleButtonClick(tier.id, btnState.action)}
+                className={cn(
+                  "inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[12px] font-medium transition-colors min-h-[44px] mb-6",
+                  btnState.disabled && "opacity-50 cursor-not-allowed",
+                  !btnState.disabled && tier.highlighted && "bg-white text-zinc-900 hover:bg-zinc-100",
+                  !btnState.disabled && !tier.highlighted && "bg-zinc-900 text-white hover:bg-zinc-800",
+                  btnState.action === "manage" && "bg-emerald-600 text-white hover:bg-emerald-700",
+                  btnState.action === "downgrade" && "bg-transparent text-orange-600 border border-orange-400 hover:bg-orange-50"
+                )}
+              >
+                {isLoading ? (
+                  "Redirecionando..."
+                ) : (
+                  <span className="inline-flex items-center gap-1.5">
+                    {btnState.icon === "up" && <ArrowUp className="h-3.5 w-3.5" />}
+                    {btnState.icon === "down" && <ArrowDown className="h-3.5 w-3.5" />}
+                    {btnState.label}
+                  </span>
+                )}
+              </button>
+
+              <ul className="space-y-2.5 flex-1">
                 {tier.features.map((f) => (
-                  <li
-                    key={f}
-                    className={cn(
-                      "flex items-start gap-2 text-sm",
-                      f.includes("Dexter") ? "font-semibold text-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                    {f}
+                  <li key={f} className="flex items-start gap-2 text-[13px] leading-snug">
+                    <Check
+                      className={cn(
+                        "w-4 h-4 shrink-0 mt-0.5",
+                        tier.highlighted ? "text-emerald-400" : "text-emerald-600"
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        tier.highlighted ? "text-zinc-200" : "text-zinc-700",
+                        f.includes("Dexter") && "font-semibold"
+                      )}
+                    >
+                      {f}
+                    </span>
                   </li>
                 ))}
               </ul>
 
-              <div className="mt-6 space-y-2">
-                <Button
+              {btnState.action === "manage" && (
+                <button
+                  type="button"
+                  onClick={() => handleManageSubscription(tier.id)}
                   className={cn(
-                    "w-full rounded-full",
-                    btnState.action === "manage" && "bg-green-600 text-white hover:bg-green-700",
-                    btnState.action === "upgrade" && "bg-blue-600 text-white hover:bg-blue-700",
-                    btnState.action === "downgrade" && "border-orange-500/50 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20",
-                    btnState.disabled && isFree && currentPlan !== "free" && "opacity-40",
+                    "mt-6 w-full text-center text-[11px] underline underline-offset-2 transition-colors",
+                    tier.highlighted ? "text-zinc-400 hover:text-white" : "text-zinc-500 hover:text-zinc-900"
                   )}
-                  variant={
-                    btnState.action === "manage" ? "default"
-                      : btnState.action === "upgrade" ? "default"
-                      : btnState.action === "downgrade" ? "outline"
-                      : btnState.disabled ? "outline"
-                      : tier.highlighted ? "default" : "outline"
-                  }
-                  disabled={btnState.disabled || isLoading}
-                  onClick={() => handleButtonClick(tier.id, btnState.action)}
                 >
-                  {isLoading ? (
-                    "Redirecionando..."
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5">
-                      {btnState.icon === "up" && <ArrowUp className="h-3.5 w-3.5" />}
-                      {btnState.icon === "down" && <ArrowDown className="h-3.5 w-3.5" />}
-                      {btnState.label}
-                    </span>
-                  )}
-                </Button>
-
-                {/* "Gerenciar assinatura" link on the current plan card */}
-                {btnState.action === "manage" && (
-                  <button
-                    type="button"
-                    onClick={() => handleManageSubscription(tier.id)}
-                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                  >
-                    Gerenciar assinatura
-                  </button>
-                )}
-              </div>
-            </Card>
+                  Gerenciar assinatura
+                </button>
+              )}
+            </div>
           );
         })}
       </div>
