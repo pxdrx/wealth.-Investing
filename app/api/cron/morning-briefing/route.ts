@@ -1,18 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { verifyCronAuth } from "@/lib/macro/cron-auth";
+import { verifyCronAuthDetailed } from "@/lib/macro/cron-auth";
 import { sendEmail } from "@/lib/email/send";
 import { renderMorningBriefing } from "@/lib/email/templates/morning-briefing";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+function brasiliaDateStr(offsetDays = 0): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(Date.now() + offsetDays * 86400000));
+  const y = parts.find((p) => p.type === "year")!.value;
+  const m = parts.find((p) => p.type === "month")!.value;
+  const d = parts.find((p) => p.type === "day")!.value;
+  return `${y}-${m}-${d}`;
+}
+
 export async function POST(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
+  const auth = verifyCronAuthDetailed(req);
+  if (!auth.ok) {
+    console.error("[morning-briefing] auth failed:", auth.reason);
+    if (auth.reason === "missing_secret") {
+      return NextResponse.json(
+        { ok: false, error: "CRON_SECRET not configured on server" },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  // Test mode: ?test_email=user@example.com — sends only to that email
+  console.log("[morning-briefing] cron fired", new Date().toISOString());
+
   const testEmail = req.nextUrl.searchParams.get("test_email");
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -23,20 +45,14 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Use Brasilia time (UTC-3) for date calculations
-  const now = new Date();
-  const brOffset = -3 * 60; // UTC-3 in minutes
-  const today = new Date(now.getTime() + (brOffset + now.getTimezoneOffset()) * 60000);
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayStr = brasiliaDateStr(0);
 
   // Get today's economic events — if empty, look ahead up to 3 days for next events
   let events: { time: string; title: string; impact: string; currency: string; date?: string }[] | null = null;
   let eventsDateLabel = "hoje";
 
   for (let offset = 0; offset <= 3; offset++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(checkDate.getDate() + offset);
-    const checkStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
+    const checkStr = brasiliaDateStr(offset);
 
     const { data } = await supabase
       .from("economic_events")
@@ -47,10 +63,22 @@ export async function POST(req: NextRequest) {
     if (data && data.length > 0) {
       events = data;
       if (offset > 0) {
-        eventsDateLabel = checkDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" });
+        const [yy, mm, dd] = checkStr.split("-").map(Number);
+        const labelDate = new Date(Date.UTC(yy, mm - 1, dd, 12));
+        eventsDateLabel = labelDate.toLocaleDateString("pt-BR", {
+          weekday: "long",
+          day: "numeric",
+          month: "short",
+          timeZone: "America/Sao_Paulo",
+        });
       }
+      console.log(`[morning-briefing] found ${data.length} events for ${checkStr} (offset=${offset})`);
       break;
     }
+  }
+
+  if (!events || events.length === 0) {
+    console.warn(`[morning-briefing] no events found in next 3 days starting ${todayStr}`);
   }
 
   // Get recent headlines (last 24h, top 5 by importance)
@@ -107,7 +135,7 @@ export async function POST(req: NextRequest) {
     month: "long",
     year: "numeric",
     timeZone: "America/Sao_Paulo",
-  }).format(now);
+  }).format(new Date());
 
   for (const user of users) {
     if (!user.email || !user.email_confirmed_at) {
@@ -122,9 +150,7 @@ export async function POST(req: NextRequest) {
     // Get yesterday's trades for this user (Pro only)
     let yesterdaySummary: { trades: number; pnl: number; winRate: number } | undefined;
     if (isPro) {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+      const yesterdayStr = brasiliaDateStr(-1);
 
       const { data: trades } = await supabase
         .from("journal_trades")
@@ -158,12 +184,11 @@ export async function POST(req: NextRequest) {
       for (const row of tradeDates) {
         dateSet.add(new Date(row.opened_at).toISOString().split("T")[0]);
       }
-      const checkDate = new Date(today);
-      // Check from yesterday backwards (morning briefing = before today's trades)
-      checkDate.setDate(checkDate.getDate() - 1);
-      while (dateSet.has(checkDate.toISOString().split("T")[0])) {
+      // Check from yesterday backwards in Brasília time
+      let dayOffset = -1;
+      while (dateSet.has(brasiliaDateStr(dayOffset))) {
         streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
+        dayOffset--;
       }
     }
 
