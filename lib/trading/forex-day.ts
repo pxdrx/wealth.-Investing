@@ -63,3 +63,17 @@ export function toForexDateKey(iso: string): string {
     : d;
   return etDateOf(adjusted);
 }
+
+/** "YYYY-MM" for the forex trading day of the given ISO timestamp. */
+export function toForexMonthKey(iso: string): string {
+  return toForexDateKey(iso).slice(0, 7);
+}
+
+/** { year, month0 } where month0 is 0-11, following JS Date convention. */
+export function toForexMonthParts(iso: string): { year: number; month0: number } {
+  const key = toForexDateKey(iso);
+  return {
+    year: Number(key.slice(0, 4)),
+    month0: Number(key.slice(5, 7)) - 1,
+  };
+}
