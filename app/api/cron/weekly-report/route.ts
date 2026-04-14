@@ -15,6 +15,13 @@ export async function POST(req: NextRequest) {
   // Test mode: ?test_email=user@example.com — sends only to that email (skips subscription check)
   const testEmail = req.nextUrl.searchParams.get("test_email");
 
+  // Only run on Sunday (UTC). Skip otherwise unless test_email provided.
+  const utcDay = new Date().getUTCDay();
+  if (!testEmail && utcDay !== 0) {
+    console.log("[weekly-report] skipped — not Sunday (utcDay=", utcDay, ")");
+    return NextResponse.json({ ok: true, skipped: "not_sunday", utcDay });
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey) {

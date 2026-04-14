@@ -61,6 +61,13 @@ export async function POST(req: NextRequest) {
 
   const testEmail = req.nextUrl.searchParams.get("test_email");
 
+  // Skip weekends (Sat=6, Sun=0) unless manually triggered via test_email or admin
+  const utcDay = new Date().getUTCDay();
+  if (!testEmail && !viaAdmin && (utcDay === 0 || utcDay === 6)) {
+    console.log("[morning-briefing] skipped — weekend (utcDay=", utcDay, ")");
+    return NextResponse.json({ ok: true, skipped: "weekend", utcDay });
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey) {

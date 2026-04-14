@@ -57,6 +57,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // Only run on Saturday (6) or Sunday (0) in UTC. Allow manual override via ?force=1
+  const utcDay = new Date().getUTCDay();
+  const force = req.nextUrl.searchParams.get("force") === "1";
+  if (!force && utcDay !== 0 && utcDay !== 6) {
+    console.log("[weekly-briefing] skipped — not weekend (utcDay=", utcDay, ")");
+    return NextResponse.json({ ok: true, skipped: "not_weekend", utcDay });
+  }
+
   const supabase = getSupabaseAdmin();
 
   try {
