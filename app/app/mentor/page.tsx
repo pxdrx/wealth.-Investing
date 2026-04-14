@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
 import { useSubscription } from "@/components/context/SubscriptionContext";
+import { MentorOnboardingModal } from "@/components/mentor/MentorOnboardingModal";
 
 // ─── Constants ───────────────────────────────────────────────────────
 const easeApple = [0.16, 1, 0.3, 1] as const;
@@ -820,12 +821,38 @@ export default function MentorPage() {
   const [selectedStudent, setSelectedStudent] = useState<StudentSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!subLoading && !isMentor) {
       router.replace("/app");
     }
   }, [subLoading, isMentor, router]);
+
+  useEffect(() => {
+    if (subLoading || !isMentor) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("mentor_onboarded_at")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (error) return;
+        if (mounted && data && data.mentor_onboarded_at === null) {
+          setShowOnboarding(true);
+        }
+      } catch {}
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [subLoading, isMentor]);
 
   useEffect(() => {
     if (!isMentor) return;
@@ -914,12 +941,18 @@ export default function MentorPage() {
 
   if (selectedStudent) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <StudentDetail
-          student={selectedStudent}
-          onBack={() => setSelectedStudent(null)}
+      <>
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <StudentDetail
+            student={selectedStudent}
+            onBack={() => setSelectedStudent(null)}
+          />
+        </div>
+        <MentorOnboardingModal
+          open={showOnboarding}
+          onComplete={() => setShowOnboarding(false)}
         />
-      </div>
+      </>
     );
   }
 
@@ -1030,6 +1063,10 @@ export default function MentorPage() {
           </div>
         )}
       </motion.div>
+      <MentorOnboardingModal
+        open={showOnboarding}
+        onComplete={() => setShowOnboarding(false)}
+      />
     </div>
   );
 }

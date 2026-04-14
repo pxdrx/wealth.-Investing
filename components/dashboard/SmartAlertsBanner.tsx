@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import { analyzeSmartAlerts, type TradeInput, type SmartAlert } from "@/lib/smart-alerts";
+import { supabase } from "@/lib/supabase/client";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   AlertTriangle,
@@ -24,19 +25,45 @@ const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const DISMISSED_ALERTS_KEY = "dismissed-smart-alert-ids";
 
-function getDismissedIds(): Set<string> {
+interface DismissalRecord {
+  id: string;
+  signature: string;
+}
+
+function dismissalKey(d: DismissalRecord): string {
+  return `${d.id}::${d.signature}`;
+}
+
+function getDismissedFromCache(): DismissalRecord[] {
   try {
     const raw = localStorage.getItem(DISMISSED_ALERTS_KEY);
-    if (!raw) return new Set();
-    return new Set(JSON.parse(raw) as string[]);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // New format: [{id, signature}]. Old format: string[] — discard.
+    const records: DismissalRecord[] = [];
+    for (const item of parsed) {
+      if (
+        item &&
+        typeof item === "object" &&
+        typeof (item as DismissalRecord).id === "string" &&
+        typeof (item as DismissalRecord).signature === "string"
+      ) {
+        records.push({
+          id: (item as DismissalRecord).id,
+          signature: (item as DismissalRecord).signature,
+        });
+      }
+    }
+    return records;
   } catch {
-    return new Set();
+    return [];
   }
 }
 
-function saveDismissedIds(ids: Set<string>): void {
+function saveDismissedToCache(records: DismissalRecord[]): void {
   try {
-    localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify(Array.from(ids)));
+    localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify(records));
   } catch {}
 }
 
@@ -46,25 +73,121 @@ interface SmartAlertsBannerProps {
 }
 
 export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerProps) {
-  const [dismissedIds, setDismissedIds] = useState(() => getDismissedIds());
+  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    return new Set(getDismissedFromCache().map(dismissalKey));
+  });
+
+  // On mount: pull server-side dismissals and merge with local cache.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) return;
+
+        const res = await fetch("/api/smart-alerts/dismissals", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        if (cancelled || !payload?.ok || !Array.isArray(payload.dismissals)) return;
+
+        const serverRecords: DismissalRecord[] = payload.dismissals
+          .filter(
+            (d: unknown) =>
+              d !== null &&
+              typeof d === "object" &&
+              typeof (d as { alert_id?: unknown }).alert_id === "string" &&
+              typeof (d as { alert_signature?: unknown }).alert_signature === "string",
+          )
+          .map((d: { alert_id: string; alert_signature: string }) => ({
+            id: d.alert_id,
+            signature: d.alert_signature,
+          }));
+
+        // Merge server + local cache (union).
+        const merged = new Map<string, DismissalRecord>();
+        for (const r of getDismissedFromCache()) merged.set(dismissalKey(r), r);
+        for (const r of serverRecords) merged.set(dismissalKey(r), r);
+
+        const mergedList = Array.from(merged.values());
+        saveDismissedToCache(mergedList);
+        setDismissedKeys(new Set(mergedList.map(dismissalKey)));
+      } catch {
+        // Graceful degrade — keep localStorage-only state.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const allAlerts = useMemo(
     () => analyzeSmartAlerts({ trades, dailyDdLimit }),
     [trades, dailyDdLimit],
   );
 
-  // Filter out alerts the user already dismissed
+  // Filter by (id + signature) — alert reappears when signature changes.
   const alerts = useMemo(
-    () => allAlerts.filter((a) => !dismissedIds.has(a.id)),
-    [allAlerts, dismissedIds],
+    () => allAlerts.filter((a) => !dismissedKeys.has(dismissalKey({ id: a.id, signature: a.signature }))),
+    [allAlerts, dismissedKeys],
   );
 
   const handleDismiss = useCallback(() => {
-    const newIds = new Set(dismissedIds);
-    for (const a of alerts) newIds.add(a.id);
-    setDismissedIds(newIds);
-    saveDismissedIds(newIds);
-  }, [dismissedIds, alerts]);
+    if (alerts.length === 0) return;
+
+    const newlyDismissed: DismissalRecord[] = alerts.map((a) => ({
+      id: a.id,
+      signature: a.signature,
+    }));
+
+    // Optimistic local update.
+    const nextKeys = new Set(dismissedKeys);
+    for (const r of newlyDismissed) nextKeys.add(dismissalKey(r));
+    setDismissedKeys(nextKeys);
+
+    const cacheList = [...getDismissedFromCache()];
+    for (const r of newlyDismissed) {
+      if (!cacheList.some((c) => c.id === r.id && c.signature === r.signature)) {
+        cacheList.push(r);
+      }
+    }
+    saveDismissedToCache(cacheList);
+
+    // Background POST per alert — unique constraint makes it idempotent.
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) return;
+
+        await Promise.all(
+          newlyDismissed.map((r) =>
+            fetch("/api/smart-alerts/dismissals", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                alert_id: r.id,
+                alert_signature: r.signature,
+              }),
+            }).catch((err) => {
+              console.warn("[smart-alerts] dismissal POST failed", err);
+            }),
+          ),
+        );
+      } catch (err) {
+        console.warn("[smart-alerts] dismissal sync failed", err);
+      }
+    })();
+  }, [dismissedKeys, alerts]);
 
   const visible = alerts.length > 0;
 
