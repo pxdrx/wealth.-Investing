@@ -125,11 +125,3 @@ export function isUltra(plan: Plan): boolean {
 export function isMentor(plan: Plan): boolean {
   return plan === "mentor";
 }
-
-export type MentorTier = "mentor_50" | "mentor_100" | "mentor_200";
-
-export const MENTOR_TIERS: Record<MentorTier, { price: number; maxStudents: number; label: string }> = {
-  mentor_50: { price: 50, maxStudents: 50, label: "Mentor 50" },
-  mentor_100: { price: 100, maxStudents: 100, label: "Mentor 100" },
-  mentor_200: { price: 200, maxStudents: 200, label: "Mentor 200" },
-};

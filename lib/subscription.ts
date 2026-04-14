@@ -5,8 +5,7 @@ import { safeGetSession } from "@/lib/supabase/safe-session";
 
 // Re-export shared types and utilities for existing consumers
 export type { Plan, SubStatus, TierLimits } from "./subscription-shared";
-export { getTierLimits, isProOrAbove, isUltra, isMentor, MENTOR_TIERS } from "./subscription-shared";
-export type { MentorTier } from "./subscription-shared";
+export { getTierLimits, isProOrAbove, isUltra, isMentor } from "./subscription-shared";
 
 import type { Plan as PlanType, SubStatus as SubStatusType } from "./subscription-shared";
 
