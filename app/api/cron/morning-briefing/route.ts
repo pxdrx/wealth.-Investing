@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuthDetailed } from "@/lib/macro/cron-auth";
+import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/admin";
 import { sendEmail } from "@/lib/email/send";
 import { renderMorningBriefing } from "@/lib/email/templates/morning-briefing";
+
+async function isAdminRequest(req: NextRequest): Promise<boolean> {
+  const authHeader = req.headers.get("authorization") ?? "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const cronSecret = process.env.CRON_SECRET ?? "";
+  if (!token || token === cronSecret) return false;
+  try {
+    const sb = createSupabaseClientForUser(token);
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return false;
+    return await isAdmin(sb, user.id);
+  } catch {
+    return false;
+  }
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -22,16 +39,23 @@ function brasiliaDateStr(offsetDays = 0): string {
 
 export async function POST(req: NextRequest) {
   const auth = verifyCronAuthDetailed(req);
+  let viaAdmin = false;
   if (!auth.ok) {
-    console.error("[morning-briefing] auth failed:", auth.reason);
-    if (auth.reason === "missing_secret") {
-      return NextResponse.json(
-        { ok: false, error: "CRON_SECRET not configured on server" },
-        { status: 503 },
-      );
+    if (auth.reason === "invalid_auth" && (await isAdminRequest(req))) {
+      viaAdmin = true;
+    } else {
+      console.error("[morning-briefing] auth failed:", auth.reason);
+      if (auth.reason === "missing_secret") {
+        return NextResponse.json(
+          { ok: false, error: "CRON_SECRET not configured on server" },
+          { status: 503 },
+        );
+      }
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
+
+  console.log("[morning-briefing] authorized via", viaAdmin ? "admin" : "cron_secret");
 
   console.log("[morning-briefing] cron fired", new Date().toISOString());
 
