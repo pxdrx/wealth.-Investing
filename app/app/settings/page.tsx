@@ -191,6 +191,17 @@ export default function SettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Convergent safety fallback — prevents infinite spinner in any pathological case ──
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setProfileLoading(false);
+      setMentorLoading(false);
+      setDashLayoutLoaded(true);
+      console.warn("[load-safety] settings convergent fallback");
+    }, 7_000);
+    return () => clearTimeout(t);
+  }, []);
+
   // ── Save profile ──
   const handleSaveProfile = useCallback(async () => {
     setSaving(true);
