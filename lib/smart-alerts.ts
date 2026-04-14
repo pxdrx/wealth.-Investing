@@ -9,6 +9,13 @@ export interface SmartAlert {
   title: string;
   message: string;
   icon: string; // lucide icon name
+  /**
+   * Stable fingerprint of the underlying problem state.
+   * Two alerts with the same (id, signature) represent the same incident;
+   * when the signature changes, the alert should re-surface even if the
+   * user previously dismissed a prior version.
+   */
+  signature: string;
 }
 
 export interface TradeInput {
@@ -49,6 +56,23 @@ function dayKey(dateStr: string): string {
   return dateStr.slice(0, 10);
 }
 
+/** yyyymmdd (no separators) for local date. */
+function yyyymmdd(d: Date): string {
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** ISO-8601 week string: "YYYY-Www" (e.g. "2026-W15"). */
+function isoWeek(d: Date): string {
+  // Copy in UTC to avoid DST edge effects
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  // ISO week: Monday is day 1, Sunday is 7
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${date.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
 // ── Analyzers ───────────────────────────────────────────────────
 
 /** 1. Losing streak — 3+ consecutive losses today → warning, 5+ → danger */
@@ -77,6 +101,7 @@ function analyzeStreak(trades: TradeInput[]): SmartAlert | null {
       title: `${streak} perdas consecutivas hoje`,
       message: "Considere pausar as operações. Sequências longas de perdas indicam que o mercado pode não estar favorável ao seu setup.",
       icon: "AlertTriangle",
+      signature: `streak:${streak}`,
     };
   }
 
@@ -88,6 +113,7 @@ function analyzeStreak(trades: TradeInput[]): SmartAlert | null {
       title: `${streak} perdas consecutivas hoje`,
       message: "Atenção: você está em uma sequência de perdas. Revise seu plano antes da próxima entrada.",
       icon: "AlertTriangle",
+      signature: `streak:${streak}`,
     };
   }
 
@@ -122,6 +148,7 @@ function analyzeToxicAsset(trades: TradeInput[]): SmartAlert | null {
         title: `${symbol} — 5 perdas seguidas`,
         message: `Suas últimas 5 operações em ${symbol} foram todas negativas. Considere evitar este ativo por enquanto.`,
         icon: "TrendingDown",
+        signature: `toxic:${symbol}:${yyyymmdd(new Date())}`,
       };
     }
   }
@@ -165,6 +192,7 @@ function analyzeTimePattern(trades: TradeInput[]): SmartAlert | null {
       title: `Win rate de ${pct}% entre ${worstBucket}`,
       message: `Seu desempenho nesse horário está muito abaixo da média. Considere evitar operar nesse período.`,
       icon: "Clock",
+      signature: `time:${worstBucket}:${isoWeek(new Date())}`,
     };
   }
 
@@ -185,6 +213,8 @@ function analyzeDrawdown(trades: TradeInput[], dailyDdLimit?: number | null): Sm
 
   const consumed = Math.abs(todayPnl) / dailyDdLimit;
 
+  const today = yyyymmdd(new Date());
+
   if (consumed >= 0.9) {
     return {
       id: "drawdown-danger",
@@ -193,6 +223,7 @@ function analyzeDrawdown(trades: TradeInput[], dailyDdLimit?: number | null): Sm
       title: `${Math.round(consumed * 100)}% do limite diário consumido`,
       message: "Você está muito próximo do limite de perda diária. Pare de operar AGORA para proteger sua conta.",
       icon: "AlertTriangle",
+      signature: `dd:${today}:danger`,
     };
   }
 
@@ -204,6 +235,7 @@ function analyzeDrawdown(trades: TradeInput[], dailyDdLimit?: number | null): Sm
       title: `${Math.round(consumed * 100)}% do limite diário consumido`,
       message: "Cuidado: a maior parte do seu limite de perda diária já foi utilizada. Reduza o risco ou pare por hoje.",
       icon: "AlertTriangle",
+      signature: `dd:${today}:warning`,
     };
   }
 
@@ -240,6 +272,8 @@ function analyzeOvertrading(trades: TradeInput[]): SmartAlert | null {
 
   const ratio = todayCount / avgPerDay;
 
+  const todayKey = yyyymmdd(new Date());
+
   if (ratio >= 3) {
     return {
       id: "overtrading-danger",
@@ -248,6 +282,7 @@ function analyzeOvertrading(trades: TradeInput[]): SmartAlert | null {
       title: `${todayCount} operações hoje (${ratio.toFixed(1)}x a média)`,
       message: "Você está operando muito mais do que o normal. Overtrading é uma das principais causas de prejuízo. Pare e reavalie.",
       icon: "Zap",
+      signature: `over:${todayKey}:danger`,
     };
   }
 
@@ -259,6 +294,7 @@ function analyzeOvertrading(trades: TradeInput[]): SmartAlert | null {
       title: `${todayCount} operações hoje (${ratio.toFixed(1)}x a média)`,
       message: "Número de operações acima do normal. Mantenha a disciplina e siga seu plano de trading.",
       icon: "Zap",
+      signature: `over:${todayKey}:warning`,
     };
   }
 
