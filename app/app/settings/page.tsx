@@ -47,7 +47,7 @@ export default function SettingsPage() {
   } | null>(null);
 
   // ── Subscription ──
-  const { plan, status, subscription, isLoading: subLoadingRaw } =
+  const { plan, status, subscription, isLoading: subLoadingRaw, isMentor } =
     useSubscription();
   const [subTimedOut, setSubTimedOut] = useState(false);
   useEffect(() => {
@@ -122,6 +122,7 @@ export default function SettingsPage() {
 
   // ── Load mentor ──
   useEffect(() => {
+    if (isMentor) return;
     let mounted = true;
     const safety = setTimeout(() => { if (mounted) setMentorLoading(false); }, 8000);
     async function loadMentor() {
@@ -142,7 +143,7 @@ export default function SettingsPage() {
     }
     loadMentor();
     return () => { mounted = false; clearTimeout(safety); };
-  }, []);
+  }, [isMentor]);
 
   // ── Load dashboard layout (independent from profile) ──
   useEffect(() => {
@@ -541,6 +542,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* ═══════════ Mentor ═══════════ */}
+        {!isMentor && (
         <Card className="rounded-[22px] p-6" style={cardStyle}>
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <GraduationCap className="h-5 w-5 text-amber-500" />
@@ -628,6 +630,7 @@ export default function SettingsPage() {
             </div>
           )}
         </Card>
+        )}
 
         {/* ═══════════ 3. Preferências ═══════════ */}
         <Card className="rounded-[22px] p-6" style={cardStyle}>
