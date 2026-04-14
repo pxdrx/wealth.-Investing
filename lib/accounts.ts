@@ -110,6 +110,16 @@ export async function listMyAccountsWithProp(): Promise<AccountWithProp[]> {
   })) as AccountWithProp[];
 }
 
+/**
+ * Defensive client-side filter that drops backtest accounts from any list.
+ * Backtest accounts are fictitious and must never appear outside /app/backtest.
+ * Prefer excluding on the server (via `.neq("kind", "backtest")`); use this as
+ * a safety net when rendering data from heterogeneous sources.
+ */
+export function excludeBacktest<T extends { kind?: string | null }>(items: T[]): T[] {
+  return items.filter((item) => item.kind !== "backtest");
+}
+
 export function phaseLabel(phase: PropPhase): string {
   const labels: Record<PropPhase, string> = {
     phase_1: "Phase 1",

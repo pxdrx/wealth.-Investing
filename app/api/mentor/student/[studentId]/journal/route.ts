@@ -52,13 +52,30 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "Vínculo não encontrado" }, { status: 403 });
     }
 
-    // Fetch trades (all accounts) for this student — service role bypasses RLS
-    const { data: trades, error: tradesErr } = await svc
-      .from("journal_trades")
-      .select("id, symbol, direction, opened_at, closed_at, pnl_usd, net_pnl_usd, account_id, emotion, discipline, setup_quality, custom_tags")
+    // Fetch student's non-backtest account IDs first (backtest accounts are fictitious
+    // and must NEVER leak into mentor view — they belong exclusively to /app/backtest).
+    const { data: acctRows, error: acctErr } = await svc
+      .from("accounts")
+      .select("id")
       .eq("user_id", studentId)
-      .order("closed_at", { ascending: false })
-      .limit(500);
+      .neq("kind", "backtest");
+
+    if (acctErr) {
+      return NextResponse.json({ ok: false, error: "Erro ao buscar contas" }, { status: 500 });
+    }
+
+    const allowedAccountIds = (acctRows ?? []).map((a) => a.id as string);
+
+    // Fetch trades restricted to non-backtest accounts — service role bypasses RLS.
+    const { data: trades, error: tradesErr } = allowedAccountIds.length === 0
+      ? { data: [], error: null as null }
+      : await svc
+          .from("journal_trades")
+          .select("id, symbol, direction, opened_at, closed_at, pnl_usd, net_pnl_usd, account_id, emotion, discipline, setup_quality, custom_tags")
+          .eq("user_id", studentId)
+          .in("account_id", allowedAccountIds)
+          .order("closed_at", { ascending: false })
+          .limit(500);
 
     if (tradesErr) {
       return NextResponse.json({ ok: false, error: "Erro ao buscar trades" }, { status: 500 });

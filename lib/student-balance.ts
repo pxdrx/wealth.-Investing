@@ -59,10 +59,22 @@ export async function getStudentLastUsedAccount(
   svc: SupabaseClient,
   userId: string,
 ): Promise<LastAccountStats | null> {
+  // Exclude backtest accounts — they are fictitious data and must never leak
+  // into mentor views.
+  const { data: allowedAccounts } = await svc
+    .from("accounts")
+    .select("id")
+    .eq("user_id", userId)
+    .neq("kind", "backtest");
+
+  const allowedIds = (allowedAccounts ?? []).map((a) => a.id as string);
+  if (allowedIds.length === 0) return null;
+
   const { data: lastTradeRow } = await svc
     .from("journal_trades")
     .select("account_id, closed_at")
     .eq("user_id", userId)
+    .in("account_id", allowedIds)
     .order("closed_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -73,8 +85,9 @@ export async function getStudentLastUsedAccount(
 
   const { data: accRow } = await svc
     .from("accounts")
-    .select("id, name, starting_balance_usd")
+    .select("id, name, starting_balance_usd, kind")
     .eq("id", accountId)
+    .neq("kind", "backtest")
     .maybeSingle();
 
   if (!accRow) return null;
@@ -111,7 +124,8 @@ export async function getStudentKpisByAccount(
   const { data: accountsRows } = await svc
     .from("accounts")
     .select("id, name, kind, is_active, created_at, starting_balance_usd")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .neq("kind", "backtest");
 
   const accounts = (accountsRows ?? []) as Array<{
     id: string;

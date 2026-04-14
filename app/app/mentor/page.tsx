@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { MentorOnboardingModal } from "@/components/mentor/MentorOnboardingModal";
 
@@ -97,7 +98,7 @@ interface MentorNote {
 async function apiFetch(path: string, options?: RequestInit) {
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await safeGetSession();
   if (!session) throw new Error("Sessão expirada");
   const res = await fetch(path, {
     ...options,
@@ -514,11 +515,23 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
 
   useEffect(() => {
     let mounted = true;
-    const safety = setTimeout(() => {
+
+    // Standalone safety timers — fire independently of fetch resolution.
+    // Same pattern as app/app/settings/page.tsx (convergent fallback).
+    const safetyKpis = setTimeout(() => {
       if (!mounted) return;
       setLoadingKpis(false);
+      console.warn("[load-safety] mentor student kpis fallback");
+    }, SAFETY_TIMEOUT);
+    const safetyTrades = setTimeout(() => {
+      if (!mounted) return;
       setLoadingTrades(false);
+      console.warn("[load-safety] mentor student trades fallback");
+    }, SAFETY_TIMEOUT);
+    const safetyNotes = setTimeout(() => {
+      if (!mounted) return;
       setLoadingNotes(false);
+      console.warn("[load-safety] mentor student notes fallback");
     }, SAFETY_TIMEOUT);
 
     (async () => {
@@ -551,6 +564,9 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
         setNotes(notesR.value.notes ?? []);
       }
 
+      clearTimeout(safetyKpis);
+      clearTimeout(safetyTrades);
+      clearTimeout(safetyNotes);
       setLoadingKpis(false);
       setLoadingTrades(false);
       setLoadingNotes(false);
@@ -558,7 +574,9 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
 
     return () => {
       mounted = false;
-      clearTimeout(safety);
+      clearTimeout(safetyKpis);
+      clearTimeout(safetyTrades);
+      clearTimeout(safetyNotes);
     };
   }, [student.id]);
 
@@ -647,6 +665,9 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
         </div>
       ) : accounts.length > 0 ? (
         <>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+            Contas de {student.displayName ?? "do aluno"}
+          </h3>
           {accounts.length > 1 && (
             <div className="flex flex-wrap gap-2 mb-4">
               {accounts.map((a) => (
@@ -836,7 +857,7 @@ export default function MentorPage() {
       try {
         const {
           data: { session },
-        } = await supabase.auth.getSession();
+        } = await safeGetSession();
         if (!session) return;
         const { data, error } = await supabase
           .from("profiles")
