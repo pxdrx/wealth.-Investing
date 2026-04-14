@@ -1,9 +1,33 @@
 import Link from "next/link";
 
-const TIERS = [
-  { name: "Grátis", desc: "Journal básico, até 1 conta prop, IA Coach limitada." },
-  { name: "Pro", desc: "Tudo grátis + contas ilimitadas, IA Coach completa, macroeconomia e backtest." },
-  { name: "Mentor", desc: "Tudo Pro + painel de alunos, códigos de convite, gestão de turmas." },
+type Tier = {
+  name: string;
+  price: string;
+  period: string;
+  desc: string;
+  highlighted?: boolean;
+};
+
+const TIERS: Tier[] = [
+  {
+    name: "Grátis",
+    price: "R$0",
+    period: "/mês",
+    desc: "Comece a registrar. Journal básico, 1 conta prop, IA Coach limitada.",
+  },
+  {
+    name: "Pro",
+    price: "R$29,90",
+    period: "/mês",
+    desc: "Contas ilimitadas, IA Coach completa, macroeconomia, backtest e Risk.",
+    highlighted: true,
+  },
+  {
+    name: "Ultra",
+    price: "R$49,90",
+    period: "/mês",
+    desc: "Tudo do Pro + Dexter ilimitado, análises profundas e suporte prioritário.",
+  },
 ];
 
 export function PricingSummary() {
@@ -14,7 +38,8 @@ export function PricingSummary() {
           Preços
         </div>
         <h2 className="text-[28px] lg:text-[36px] font-semibold leading-tight tracking-tight text-zinc-900 mb-3">
-          Planos a partir de <span className="text-zinc-500 italic font-normal">R$0/mês.</span>
+          Planos a partir de{" "}
+          <span className="text-zinc-500 italic font-normal">R$0/mês.</span>
         </h2>
         <p className="text-[14px] text-zinc-600 max-w-xl mx-auto mb-10">
           Comece grátis. Faça upgrade quando quiser — sem contrato, sem taxa de cancelamento.
@@ -23,10 +48,32 @@ export function PricingSummary() {
           {TIERS.map((t) => (
             <div
               key={t.name}
-              className="rounded-[22px] border border-zinc-200 bg-white p-5 text-left"
+              className={
+                "rounded-[22px] border p-5 text-left transition-colors " +
+                (t.highlighted
+                  ? "bg-zinc-900 text-white border-zinc-900 shadow-lg"
+                  : "bg-white text-zinc-900 border-zinc-200")
+              }
             >
-              <div className="text-[14px] font-semibold text-zinc-900 mb-1.5">{t.name}</div>
-              <p className="text-[12px] text-zinc-600 leading-snug">{t.desc}</p>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[14px] font-semibold">{t.name}</div>
+                {t.highlighted && (
+                  <span className="text-[9px] uppercase tracking-wider font-semibold text-violet-300">
+                    Mais popular
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className={"text-[22px] font-semibold " + (t.highlighted ? "text-white" : "text-zinc-900")}>
+                  {t.price}
+                </span>
+                <span className={"text-[11px] " + (t.highlighted ? "text-zinc-400" : "text-zinc-500")}>
+                  {t.period}
+                </span>
+              </div>
+              <p className={"text-[12px] leading-snug " + (t.highlighted ? "text-zinc-300" : "text-zinc-600")}>
+                {t.desc}
+              </p>
             </div>
           ))}
         </div>
