@@ -1,54 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { getStudentKpisByAccount } from "@/lib/student-balance";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-interface KpiBlock {
-  totalTrades: number;
-  winRate: number;
-  totalPnl: number;
-  avgPnl: number;
-  profitFactor: number;
-  bestTrade: number;
-  worstTrade: number;
-}
-
-function calcKpis(trades: { pnl_usd: number | null }[]): KpiBlock {
-  if (trades.length === 0) {
-    return {
-      totalTrades: 0,
-      winRate: 0,
-      totalPnl: 0,
-      avgPnl: 0,
-      profitFactor: 0,
-      bestTrade: 0,
-      worstTrade: 0,
-    };
-  }
-
-  const pnls = trades.map((t) => t.pnl_usd ?? 0);
-  const totalTrades = pnls.length;
-  const wins = pnls.filter((p) => p > 0);
-  const losses = pnls.filter((p) => p < 0);
-  const totalPnl = pnls.reduce((s, p) => s + p, 0);
-  const grossProfit = wins.reduce((s, p) => s + p, 0);
-  const grossLoss = Math.abs(losses.reduce((s, p) => s + p, 0));
-
-  return {
-    totalTrades,
-    winRate: Math.round((wins.length / totalTrades) * 10000) / 100,
-    totalPnl: Math.round(totalPnl * 100) / 100,
-    avgPnl: Math.round((totalPnl / totalTrades) * 100) / 100,
-    profitFactor: grossLoss > 0 ? Math.round((grossProfit / grossLoss) * 100) / 100 : grossProfit > 0 ? 999.99 : 0,
-    bestTrade: Math.round(Math.max(...pnls) * 100) / 100,
-    worstTrade: Math.round(Math.min(...pnls) * 100) / 100,
-  };
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: { studentId: string } },
 ) {
   try {
     const token = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -67,7 +30,6 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify active relationship
     const { data: relationship, error: relErr } = await supabase
       .from("mentor_relationships")
       .select("id")
@@ -80,37 +42,36 @@ export async function GET(
     if (relErr) {
       return NextResponse.json({ ok: false, error: "Erro ao verificar vínculo" }, { status: 500 });
     }
-
     if (!relationship) {
       return NextResponse.json({ ok: false, error: "Vínculo não encontrado" }, { status: 403 });
     }
 
-    // Fetch all trades for the student — service role bypasses RLS
     const svc = createServiceRoleClient();
-    const { data: allTrades, error: tradesErr } = await svc
-      .from("journal_trades")
-      .select("pnl_usd, closed_at")
-      .eq("user_id", studentId);
+    const accounts = await getStudentKpisByAccount(svc, studentId);
 
-    if (tradesErr) {
-      return NextResponse.json({ ok: false, error: "Erro ao buscar trades" }, { status: 500 });
-    }
-
-    const trades = allTrades ?? [];
-
-    // Filter this month's trades
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const monthTrades = trades.filter((t) => t.closed_at >= monthStart);
+    const totalTrades = accounts.reduce((s, a) => s + a.totalTrades, 0);
+    const netPnl = accounts.reduce((s, a) => s + a.netPnl, 0);
+    const pnlMonth = accounts.reduce((s, a) => s + a.pnlMonth, 0);
+    const balance = accounts.reduce((s, a) => s + a.balance, 0);
+    const wins = accounts.reduce(
+      (s, a) => s + Math.round((a.winRate / 100) * a.totalTrades),
+      0,
+    );
+    const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
 
     return NextResponse.json({
       ok: true,
-      kpis: {
-        month: calcKpis(monthTrades),
-        allTime: calcKpis(trades),
+      accounts,
+      aggregate: {
+        totalTrades,
+        netPnl: round2(netPnl),
+        pnlMonth: round2(pnlMonth),
+        balance: round2(balance),
+        winRate: round2(winRate),
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[mentor/kpis] unexpected:", err);
     return NextResponse.json({ ok: false, error: "Erro interno" }, { status: 500 });
   }
 }

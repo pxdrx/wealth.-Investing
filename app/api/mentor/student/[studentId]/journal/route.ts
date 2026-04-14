@@ -50,7 +50,7 @@ export async function GET(
       .select("id, symbol, direction, opened_at, closed_at, pnl_usd, net_pnl_usd, account_id, emotion, discipline, setup_quality, custom_tags")
       .eq("user_id", studentId)
       .order("closed_at", { ascending: false })
-      .limit(100);
+      .limit(500);
 
     if (tradesErr) {
       return NextResponse.json({ ok: false, error: "Erro ao buscar trades" }, { status: 500 });

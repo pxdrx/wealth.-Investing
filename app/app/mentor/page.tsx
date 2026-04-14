@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -16,15 +16,18 @@ import {
   BarChart3,
   Calendar,
   Loader2,
+  Search,
+  Wallet,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
 
 // ─── Constants ───────────────────────────────────────────────────────
 const easeApple = [0.16, 1, 0.3, 1] as const;
-const SAFETY_TIMEOUT = 8000;
+const SAFETY_TIMEOUT = 6000;
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -40,18 +43,32 @@ interface MentorCode {
 interface StudentSummary {
   id: string;
   displayName: string;
-  netPnl: number;
-  winRate: number;
-  totalTrades: number;
-  lastTradeDate: string | null;
   linkedAt: string;
+  lastAccountName: string | null;
+  lastAccountBalance: number;
+  lastAccountPnl: number;
+  lastAccountTotalTrades: number;
+  lastTradeDate: string | null;
 }
 
-interface StudentKpis {
-  total_trades: number;
-  win_rate: number;
-  pnl_total: number;
-  pnl_month: number;
+interface AccountKpi {
+  accountId: string;
+  accountName: string;
+  kind: string;
+  balance: number;
+  totalTrades: number;
+  winRate: number;
+  netPnl: number;
+  pnlMonth: number;
+  lastTradeDate: string | null;
+}
+
+interface AggregateKpis {
+  totalTrades: number;
+  netPnl: number;
+  pnlMonth: number;
+  balance: number;
+  winRate: number;
 }
 
 interface StudentTrade {
@@ -61,6 +78,7 @@ interface StudentTrade {
   direction: "buy" | "sell";
   pnl_usd: number;
   net_pnl_usd: number;
+  account_id: string;
 }
 
 interface MentorNote {
@@ -77,7 +95,7 @@ async function apiFetch(path: string, options?: RequestInit) {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) throw new Error("Sessao expirada");
+  if (!session) throw new Error("Sessão expirada");
   const res = await fetch(path, {
     ...options,
     headers: {
@@ -89,6 +107,15 @@ async function apiFetch(path: string, options?: RequestInit) {
   const json = await res.json();
   if (!res.ok || !json.ok) throw new Error(json.error ?? "Erro desconhecido");
   return json;
+}
+
+function formatUsd(value: number, withSign = false): string {
+  const formatted = value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "USD",
+  });
+  if (withSign && value > 0) return `+${formatted}`;
+  return formatted;
 }
 
 // ─── Star Rating ─────────────────────────────────────────────────────
@@ -154,9 +181,9 @@ function InviteCodeSection({ codes, loadingCodes, onGenerate, generating }: Invi
     >
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Codigo de Convite</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Código de Convite</h2>
           <p className="text-sm text-muted-foreground">
-            Compartilhe com seus alunos para vincula-los
+            Compartilhe com seus alunos para vinculá-los
           </p>
         </div>
         <Button
@@ -171,7 +198,7 @@ function InviteCodeSection({ codes, loadingCodes, onGenerate, generating }: Invi
           ) : (
             <RefreshCw className="h-4 w-4 mr-2" />
           )}
-          Gerar novo codigo
+          Gerar novo código
         </Button>
       </div>
 
@@ -181,7 +208,7 @@ function InviteCodeSection({ codes, loadingCodes, onGenerate, generating }: Invi
         </div>
       ) : codes.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4 text-center">
-          Nenhum codigo gerado ainda. Clique em &ldquo;Gerar novo codigo&rdquo; acima.
+          Nenhum código gerado ainda. Clique em &ldquo;Gerar novo código&rdquo; acima.
         </p>
       ) : (
         <div className="space-y-2">
@@ -190,24 +217,19 @@ function InviteCodeSection({ codes, loadingCodes, onGenerate, generating }: Invi
               key={c.id}
               className="flex items-center justify-between rounded-xl border px-4 py-3"
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3">
                 <code className="text-sm font-mono font-semibold tracking-wide">
                   {c.code}
                 </code>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   c.status === "active"
                     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                     : c.status === "pending"
                     ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                     : "bg-muted text-muted-foreground"
                 }`}>
-                  {c.status === "active" ? "Vinculado" : c.status === "pending" ? "Disponivel" : "Revogado"}
+                  {c.status === "active" ? "Vinculado" : c.status === "pending" ? "Disponível" : "Revogado"}
                 </span>
-                {c.status === "active" && c.studentName && (
-                  <span className="text-xs text-muted-foreground truncate">
-                    {c.studentName}
-                  </span>
-                )}
               </div>
               <Button
                 variant="ghost"
@@ -235,7 +257,9 @@ interface StudentCardProps {
 }
 
 function StudentCard({ student, onClick, index }: StudentCardProps) {
-  const isPositive = (student.netPnl ?? 0) >= 0;
+  const hasActivity = student.lastAccountName !== null;
+  const pnl = student.lastAccountPnl ?? 0;
+  const isPositive = pnl >= 0;
 
   return (
     <motion.div
@@ -248,46 +272,49 @@ function StudentCard({ student, onClick, index }: StudentCardProps) {
         style={{ backgroundColor: "hsl(var(--card))" }}
         onClick={onClick}
       >
-        <div className="flex items-start justify-between mb-3">
+        <div className="mb-3">
           <h3 className="font-semibold tracking-tight truncate">
             {student.displayName}
           </h3>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
+            {student.lastAccountName ?? "Sem conta"}
+          </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground mb-0.5">P&L Mes</p>
-            <p
-              className={`text-sm font-semibold ${
-                isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-              }`}
-            >
-              {isPositive ? "+" : ""}
-              {(student.netPnl ?? 0).toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "USD",
-              })}
-            </p>
+        {!hasActivity ? (
+          <p className="text-sm text-muted-foreground">Sem operações ainda.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">P&L Geral</p>
+              <p
+                className={`text-sm font-semibold ${
+                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {formatUsd(pnl, true)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">Saldo Atual</p>
+              <p className="text-sm font-semibold">
+                {formatUsd(student.lastAccountBalance ?? 0)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">Total Trades</p>
+              <p className="text-sm font-semibold">{student.lastAccountTotalTrades ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">Último Trade</p>
+              <p className="text-sm font-semibold text-muted-foreground">
+                {student.lastTradeDate
+                  ? new Date(student.lastTradeDate).toLocaleDateString("pt-BR")
+                  : "—"}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-0.5">Win Rate</p>
-            <p className="text-sm font-semibold">
-              {(student.winRate ?? 0).toFixed(1)}%
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-0.5">Total Trades</p>
-            <p className="text-sm font-semibold">{student.totalTrades ?? 0}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-0.5">Ultimo Trade</p>
-            <p className="text-sm font-semibold text-muted-foreground">
-              {student.lastTradeDate
-                ? new Date(student.lastTradeDate).toLocaleDateString("pt-BR")
-                : "\u2014"}
-            </p>
-          </div>
-        </div>
+        )}
       </Card>
     </motion.div>
   );
@@ -355,18 +382,18 @@ function NoteForm({ onSubmit, submitting }: NoteFormProps) {
       <div className="space-y-4">
         <div>
           <Label htmlFor="note-content" className="text-sm">
-            Observacao
+            Observação
           </Label>
           <textarea
             id="note-content"
             className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2 text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-            placeholder="Escreva suas observacoes sobre o aluno..."
+            placeholder="Escreva suas observações sobre o aluno..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
         </div>
         <div>
-          <Label className="text-sm mb-1.5 block">Avaliacao (opcional)</Label>
+          <Label className="text-sm mb-1.5 block">Avaliação (opcional)</Label>
           <StarRating value={rating} onChange={setRating} />
         </div>
         <Button
@@ -458,7 +485,9 @@ interface StudentDetailProps {
 }
 
 function StudentDetail({ student, onBack }: StudentDetailProps) {
-  const [kpis, setKpis] = useState<StudentKpis | null>(null);
+  const [accounts, setAccounts] = useState<AccountKpi[]>([]);
+  const [aggregate, setAggregate] = useState<AggregateKpis | null>(null);
+  const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
   const [trades, setTrades] = useState<StudentTrade[]>([]);
   const [notes, setNotes] = useState<MentorNote[]>([]);
   const [loadingKpis, setLoadingKpis] = useState(true);
@@ -468,71 +497,12 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
   const [deletingNote, setDeletingNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch KPIs
-  useEffect(() => {
-    let mounted = true;
-    const safety = setTimeout(() => {
-      if (mounted) setLoadingKpis(false);
-    }, SAFETY_TIMEOUT);
-
-    async function load() {
-      try {
-        const json = await apiFetch(`/api/mentor/student/${student.id}/kpis`);
-        if (mounted) {
-          const k = json.kpis;
-          if (k) {
-            setKpis({
-              total_trades: k.month?.totalTrades ?? 0,
-              win_rate: k.month?.winRate ?? 0,
-              pnl_total: k.allTime?.totalPnl ?? 0,
-              pnl_month: k.month?.totalPnl ?? 0,
-            });
-          }
-        }
-      } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : "Erro ao carregar KPIs");
-      } finally {
-        if (mounted) setLoadingKpis(false);
-      }
-    }
-    load();
-    return () => {
-      mounted = false;
-      clearTimeout(safety);
-    };
-  }, [student.id]);
-
-  // Fetch trades
-  useEffect(() => {
-    let mounted = true;
-    const safety = setTimeout(() => {
-      if (mounted) setLoadingTrades(false);
-    }, SAFETY_TIMEOUT);
-
-    async function load() {
-      try {
-        const json = await apiFetch(`/api/mentor/student/${student.id}/journal`);
-        if (mounted) setTrades(json.trades ?? []);
-      } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : "Erro ao carregar trades");
-      } finally {
-        if (mounted) setLoadingTrades(false);
-      }
-    }
-    load();
-    return () => {
-      mounted = false;
-      clearTimeout(safety);
-    };
-  }, [student.id]);
-
-  // Fetch notes
   const fetchNotes = useCallback(async () => {
     try {
       const json = await apiFetch(`/api/mentor/notes?student_id=${student.id}`);
       setNotes(json.notes ?? []);
     } catch {
-      // Notes are non-critical, fail silently
+      // Notes are non-critical
     } finally {
       setLoadingNotes(false);
     }
@@ -541,15 +511,52 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
   useEffect(() => {
     let mounted = true;
     const safety = setTimeout(() => {
-      if (mounted) setLoadingNotes(false);
+      if (!mounted) return;
+      setLoadingKpis(false);
+      setLoadingTrades(false);
+      setLoadingNotes(false);
     }, SAFETY_TIMEOUT);
 
-    fetchNotes();
+    (async () => {
+      const [kpisR, journalR, notesR] = await Promise.allSettled([
+        apiFetch(`/api/mentor/student/${student.id}/kpis`),
+        apiFetch(`/api/mentor/student/${student.id}/journal`),
+        apiFetch(`/api/mentor/notes?student_id=${student.id}`),
+      ]);
+      if (!mounted) return;
+
+      if (kpisR.status === "fulfilled") {
+        const accs: AccountKpi[] = kpisR.value.accounts ?? [];
+        setAccounts(accs);
+        setAggregate(kpisR.value.aggregate ?? null);
+        const lastUsed = accs
+          .filter((a) => a.lastTradeDate)
+          .sort((a, b) => (b.lastTradeDate! > a.lastTradeDate! ? 1 : -1))[0];
+        setActiveAccountId(lastUsed?.accountId ?? accs[0]?.accountId ?? null);
+      } else {
+        setError("Erro ao carregar KPIs");
+      }
+
+      if (journalR.status === "fulfilled") {
+        setTrades(journalR.value.trades ?? []);
+      } else {
+        setError((e) => e ?? "Erro ao carregar trades");
+      }
+
+      if (notesR.status === "fulfilled") {
+        setNotes(notesR.value.notes ?? []);
+      }
+
+      setLoadingKpis(false);
+      setLoadingTrades(false);
+      setLoadingNotes(false);
+    })();
+
     return () => {
       mounted = false;
       clearTimeout(safety);
     };
-  }, [fetchNotes]);
+  }, [student.id]);
 
   const handleAddNote = async (content: string, rating: number | null) => {
     setSubmittingNote(true);
@@ -589,9 +596,20 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
       ? "text-emerald-600 dark:text-emerald-400"
       : "text-red-600 dark:text-red-400";
 
+  const activeAccount = useMemo(
+    () => accounts.find((a) => a.accountId === activeAccountId) ?? null,
+    [accounts, activeAccountId],
+  );
+
+  const visibleTrades = useMemo(
+    () => (activeAccountId ? trades.filter((t) => t.account_id === activeAccountId) : trades),
+    [trades, activeAccountId],
+  );
+
+  const aggregateHasTrades = (aggregate?.totalTrades ?? 0) > 0;
+
   return (
     <div>
-      {/* Back button */}
       <Button
         variant="ghost"
         className="rounded-full mb-6 -ml-2"
@@ -601,14 +619,12 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
         Voltar para alunos
       </Button>
 
-      {/* Student header */}
       <div className="flex items-center gap-3 mb-8">
         <h2 className="text-2xl font-semibold tracking-tight">
           {student.displayName}
         </h2>
       </div>
 
-      {/* Error banner */}
       {error && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-400">
           {error}
@@ -621,55 +637,73 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
         </div>
       )}
 
-      {/* KPI Cards */}
       {loadingKpis ? (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : kpis ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <KpiCard
-            label="Total Trades"
-            value={String(kpis.total_trades)}
-            icon={<BarChart3 className="h-4 w-4" />}
-            index={0}
-          />
-          <KpiCard
-            label="Win Rate"
-            value={`${kpis.win_rate.toFixed(1)}%`}
-            icon={<Target className="h-4 w-4" />}
-            index={1}
-          />
-          <KpiCard
-            label="P&L Total"
-            value={kpis.pnl_total.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "USD",
-            })}
-            icon={
-              kpis.pnl_total >= 0 ? (
-                <TrendingUp className="h-4 w-4" />
-              ) : (
-                <TrendingDown className="h-4 w-4" />
-              )
-            }
-            color={pnlColor(kpis.pnl_total)}
-            index={2}
-          />
-          <KpiCard
-            label="P&L Mes"
-            value={kpis.pnl_month.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "USD",
-            })}
-            icon={<Calendar className="h-4 w-4" />}
-            color={pnlColor(kpis.pnl_month)}
-            index={3}
-          />
-        </div>
+      ) : accounts.length > 0 ? (
+        <>
+          {accounts.length > 1 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {accounts.map((a) => (
+                <button
+                  key={a.accountId}
+                  type="button"
+                  onClick={() => setActiveAccountId(a.accountId)}
+                  className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                    activeAccountId === a.accountId
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {a.accountName}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeAccount ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <KpiCard
+                label="Saldo Atual"
+                value={formatUsd(activeAccount.balance)}
+                icon={<Wallet className="h-4 w-4" />}
+                index={0}
+              />
+              <KpiCard
+                label="P&L Geral"
+                value={formatUsd(activeAccount.netPnl, true)}
+                icon={
+                  activeAccount.netPnl >= 0 ? (
+                    <TrendingUp className="h-4 w-4" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4" />
+                  )
+                }
+                color={pnlColor(activeAccount.netPnl)}
+                index={1}
+              />
+              <KpiCard
+                label="Win Rate"
+                value={`${activeAccount.winRate.toFixed(1)}%`}
+                icon={<Target className="h-4 w-4" />}
+                index={2}
+              />
+              <KpiCard
+                label="Total Trades"
+                value={String(activeAccount.totalTrades)}
+                icon={<BarChart3 className="h-4 w-4" />}
+                index={3}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Esse aluno ainda não registrou trades.
+            </p>
+          )}
+        </>
       ) : null}
 
-      {/* Trades Table */}
       <Card
         className="rounded-[22px] p-5 mb-8"
         style={{ backgroundColor: "hsl(var(--card))" }}
@@ -679,9 +713,11 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : trades.length === 0 ? (
+        ) : visibleTrades.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
-            Nenhum trade encontrado.
+            {aggregateHasTrades
+              ? "Sincronizando trades — recarregue em alguns segundos."
+              : "Nenhum trade encontrado."}
           </p>
         ) : (
           <div className="overflow-x-auto -mx-5">
@@ -689,14 +725,14 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground uppercase tracking-wide">
                   <th className="px-5 py-2 font-medium">Data</th>
-                  <th className="px-5 py-2 font-medium">Simbolo</th>
-                  <th className="px-5 py-2 font-medium">Direcao</th>
+                  <th className="px-5 py-2 font-medium">Símbolo</th>
+                  <th className="px-5 py-2 font-medium">Direção</th>
                   <th className="px-5 py-2 font-medium text-right">P&L</th>
                   <th className="px-5 py-2 font-medium text-right">Net P&L</th>
                 </tr>
               </thead>
               <tbody>
-                {trades.map((trade) => (
+                {visibleTrades.map((trade) => (
                   <tr
                     key={trade.id}
                     className="border-b last:border-0 hover:bg-muted/30 transition-colors"
@@ -717,18 +753,10 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
                       </span>
                     </td>
                     <td className={`px-5 py-2.5 text-right font-medium ${pnlColor(trade.pnl_usd ?? 0)}`}>
-                      {(trade.pnl_usd ?? 0) >= 0 ? "+" : ""}
-                      {(trade.pnl_usd ?? 0).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "USD",
-                      })}
+                      {formatUsd(trade.pnl_usd ?? 0, true)}
                     </td>
                     <td className={`px-5 py-2.5 text-right font-medium ${pnlColor(trade.net_pnl_usd ?? 0)}`}>
-                      {(trade.net_pnl_usd ?? 0) >= 0 ? "+" : ""}
-                      {(trade.net_pnl_usd ?? 0).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "USD",
-                      })}
+                      {formatUsd(trade.net_pnl_usd ?? 0, true)}
                     </td>
                   </tr>
                 ))}
@@ -738,7 +766,6 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
         )}
       </Card>
 
-      {/* Mentor Notes */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold tracking-tight">Notas do Mentor</h3>
 
@@ -787,39 +814,38 @@ export default function MentorPage() {
   const [generating, setGenerating] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [studentSearch, setStudentSearch] = useState("");
 
-  // Fetch codes
   useEffect(() => {
     let mounted = true;
     const safety = setTimeout(() => {
       if (mounted) setLoadingCodes(false);
     }, SAFETY_TIMEOUT);
 
-    async function load() {
+    (async () => {
       try {
         const json = await apiFetch("/api/mentor/codes");
         if (mounted) setCodes(json.codes ?? []);
       } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : "Erro ao carregar codigos");
+        if (mounted) setError(err instanceof Error ? err.message : "Erro ao carregar códigos");
       } finally {
         if (mounted) setLoadingCodes(false);
       }
-    }
-    load();
+    })();
+
     return () => {
       mounted = false;
       clearTimeout(safety);
     };
   }, []);
 
-  // Fetch students
   useEffect(() => {
     let mounted = true;
     const safety = setTimeout(() => {
       if (mounted) setLoadingStudents(false);
     }, SAFETY_TIMEOUT);
 
-    async function load() {
+    (async () => {
       try {
         const json = await apiFetch("/api/mentor/students");
         if (mounted) setStudents(json.students ?? []);
@@ -828,8 +854,8 @@ export default function MentorPage() {
       } finally {
         if (mounted) setLoadingStudents(false);
       }
-    }
-    load();
+    })();
+
     return () => {
       mounted = false;
       clearTimeout(safety);
@@ -849,13 +875,18 @@ export default function MentorPage() {
       await apiFetch("/api/mentor/generate-code", { method: "POST" });
       await fetchCodes();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao gerar codigo");
+      setError(err instanceof Error ? err.message : "Erro ao gerar código");
     } finally {
       setGenerating(false);
     }
   };
 
-  // ─── Student Detail View ─────────────────────────────────────────
+  const filteredStudents = useMemo(() => {
+    const q = studentSearch.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((s) => s.displayName.toLowerCase().includes(q));
+  }, [students, studentSearch]);
+
   if (selectedStudent) {
     return (
       <div className="mx-auto max-w-6xl px-6 py-10">
@@ -867,25 +898,25 @@ export default function MentorPage() {
     );
   }
 
-  // ─── Student List View ───────────────────────────────────────────
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: easeApple }}
         className="mb-8"
       >
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Painel do Mentor
-        </h1>
+        <div className="flex items-center gap-3">
+          <Users className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Painel do Mentor
+          </h1>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Acompanhe o desempenho dos seus alunos
         </p>
       </motion.div>
 
-      {/* Error banner */}
       {error && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -903,7 +934,6 @@ export default function MentorPage() {
         </motion.div>
       )}
 
-      {/* Invite Code */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -918,14 +948,12 @@ export default function MentorPage() {
         />
       </motion.div>
 
-      {/* Students Grid */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1, ease: easeApple }}
       >
         <div className="flex items-center gap-2 mb-4">
-          <Users className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold tracking-tight">Alunos</h2>
           {!loadingStudents && (
             <span className="text-sm text-muted-foreground">
@@ -933,6 +961,18 @@ export default function MentorPage() {
             </span>
           )}
         </div>
+
+        {students.length > 0 && (
+          <div className="relative mb-4 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar aluno por nome..."
+              value={studentSearch}
+              onChange={(e) => setStudentSearch(e.target.value)}
+              className="pl-9 rounded-full"
+            />
+          </div>
+        )}
 
         {loadingStudents ? (
           <div className="flex items-center justify-center py-16">
@@ -945,12 +985,16 @@ export default function MentorPage() {
           >
             <Users className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
-              Nenhum aluno vinculado ainda. Compartilhe seu codigo de convite!
+              Nenhum aluno vinculado ainda. Compartilhe seu código de convite!
             </p>
           </Card>
+        ) : filteredStudents.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6">
+            Nenhum aluno encontrado.
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {students.map((student, i) => (
+            {filteredStudents.map((student, i) => (
               <StudentCard
                 key={student.id}
                 student={student}
