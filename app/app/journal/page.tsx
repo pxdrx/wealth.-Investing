@@ -98,7 +98,7 @@ export default function JournalPage() {
   const [tradesPage, setTradesPage] = useState(0);
   const [hasMoreTrades, setHasMoreTrades] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [allTradesSummary, setAllTradesSummary] = useState<{ net_pnl_usd: number; opened_at: string; account_id: string }[]>([]);
+  const [allTradesSummary, setAllTradesSummary] = useState<{ net_pnl_usd: number; opened_at: string; closed_at: string | null; account_id: string }[]>([]);
   // Get userId once on mount — AuthGate already validates the session
   useEffect(() => {
     let cancelled = false;
@@ -191,14 +191,14 @@ export default function JournalPage() {
     (async () => {
       const { data } = await supabase
         .from("journal_trades")
-        .select("net_pnl_usd, opened_at, account_id")
+        .select("net_pnl_usd, opened_at, closed_at, account_id")
         .eq("account_id", activeAccountId)
         .not("opened_at", "is", null)
         .not("net_pnl_usd", "is", null)
         .order("opened_at", { ascending: true })
         .limit(5000);
       if (aborted) return;
-      setAllTradesSummary((data ?? []) as { net_pnl_usd: number; opened_at: string; account_id: string }[]);
+      setAllTradesSummary((data ?? []) as { net_pnl_usd: number; opened_at: string; closed_at: string | null; account_id: string }[]);
     })();
     return () => { aborted = true; };
   }, [activeAccountId]);

@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { cn } from "@/lib/utils";
 
-type MetricMode = "pnl" | "pct_accum" | "pct_geral" | "saldo_inicial" | "saldo_atual";
+type MetricMode = "pnl" | "pct_geral" | "saldo_atual";
 
 interface Trade {
   net_pnl_usd: number | null;
   opened_at: string | null;
+  closed_at?: string | null;
   account_id?: string | null;
 }
 
@@ -21,13 +22,12 @@ interface MonthlyPerformanceGridProps {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const BASE_METRICS: { key: MetricMode; label: string }[] = [
-  { key: "pnl", label: "P&L ($)" },
+  { key: "pnl", label: "PNL" },
 ];
 
 const BALANCE_METRICS: { key: MetricMode; label: string }[] = [
-  { key: "pct_accum", label: "% acumulada" },
-  { key: "pct_geral", label: "% geral" },
-  { key: "saldo_atual", label: "Saldo atual" },
+  { key: "pct_geral", label: "Porcentagem" },
+  { key: "saldo_atual", label: "Saldo Fechado" },
 ];
 
 interface MonthData {
@@ -83,7 +83,7 @@ export function MonthlyPerformanceGrid({
 
   // Reset to PnL mode if balance-dependent mode is active but no balance
   useEffect(() => {
-    const isBalanceMode = mode === "pct_accum" || mode === "pct_geral" || mode === "saldo_inicial" || mode === "saldo_atual";
+    const isBalanceMode = mode === "pct_geral" || mode === "saldo_atual";
     if (isBalanceMode && !hasBalance) {
       setMode("pnl");
     }
@@ -103,7 +103,7 @@ export function MonthlyPerformanceGrid({
     const byYearMonth = new Map<string, MonthData>();
 
     for (const t of accountTrades) {
-      const date = new Date(t.opened_at!);
+      const date = new Date(t.closed_at ?? t.opened_at!);
       const year = date.getFullYear();
       const month = date.getMonth();
       const key = `${year}-${month}`;
@@ -179,18 +179,10 @@ export function MonthlyPerformanceGrid({
     const balance = balanceByYearMonth.get(key) ?? 0;
 
     switch (mode) {
-      case "pct_accum": {
-        // % acumulada = retorno do mês sobre o saldo no início daquele mês (composto)
-        if (balance <= 0) return "—";
-        return formatPct((data.pnl / balance) * 100);
-      }
       case "pct_geral": {
-        // % geral = retorno do mês sobre o saldo inicial original
         if (!hasBalance) return "—";
         return formatPct((data.pnl / startingBalance!) * 100);
       }
-      case "saldo_inicial":
-        return balance > 0 ? formatUsd(balance) : "—";
       case "saldo_atual":
         return balance > 0 ? formatUsd(balance + data.pnl) : "—";
       default:
@@ -207,12 +199,8 @@ export function MonthlyPerformanceGrid({
     const balance = balanceByYearMonth.get(key) ?? 0;
 
     switch (mode) {
-      case "pct_accum":
-        return balance > 0 ? (data.pnl / balance) * 100 : 0;
       case "pct_geral":
         return hasBalance ? (data.pnl / startingBalance!) * 100 : 0;
-      case "saldo_inicial":
-        return balance;
       case "saldo_atual":
         return balance + data.pnl;
       default:
@@ -224,21 +212,7 @@ export function MonthlyPerformanceGrid({
     if (mode === "pnl") {
       return formatPnlValue(row.ytdPnl);
     }
-    if (mode === "pct_accum") {
-      let compound = 1;
-      for (let m = 0; m < 12; m++) {
-        const data = row.months[m];
-        if (!data) continue;
-        const key = `${row.year}-${m}`;
-        const balance = balanceByYearMonth.get(key) ?? 0;
-        if (balance > 0) {
-          compound *= 1 + data.pnl / balance;
-        }
-      }
-      return formatPct((compound - 1) * 100);
-    }
     if (mode === "pct_geral") {
-      // % geral YTD = P&L do ano / saldo inicial original
       if (!hasBalance) return "—";
       return formatPct((row.ytdPnl / startingBalance!) * 100);
     }
@@ -253,28 +227,16 @@ export function MonthlyPerformanceGrid({
       }
       return "—";
     }
-    const bal = balanceByYearMonth.get(`${row.year}-0`);
-    return bal ? formatUsd(bal) : "—";
+    return "—";
   }
 
   function getYtdNumericValue(row: YearRow): number {
     if (mode === "pnl") return row.ytdPnl;
-    if (mode === "pct_accum") {
-      let compound = 1;
-      for (let m = 0; m < 12; m++) {
-        const data = row.months[m];
-        if (!data) continue;
-        const key = `${row.year}-${m}`;
-        const balance = balanceByYearMonth.get(key) ?? 0;
-        if (balance > 0) compound *= 1 + data.pnl / balance;
-      }
-      return (compound - 1) * 100;
-    }
     return row.ytdPnl;
   }
 
   // Colorize based on mode
-  const shouldColorize = mode === "pnl" || mode === "pct_accum" || mode === "pct_geral";
+  const shouldColorize = mode === "pnl" || mode === "pct_geral";
 
   if (yearRows.length === 0) return null;
 
@@ -285,7 +247,7 @@ export function MonthlyPerformanceGrid({
     >
       <div className="px-5 pt-4 pb-3">
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
-          Desempenho por mês
+          Desempenho
         </h3>
 
         {/* Metric toggles */}
@@ -407,26 +369,22 @@ export function MonthlyPerformanceGrid({
                     {mask(
                       mode === "pnl"
                         ? formatPnlValue(totalPnl)
-                        : mode === "pct_accum" || mode === "pct_geral"
+                        : mode === "pct_geral"
                           ? totalReturn !== null
                             ? formatPct(totalReturn)
                             : "—"
-                          : mode === "saldo_atual"
-                            ? (() => {
-                                const lastRow = yearRows[0];
-                                for (let m = 11; m >= 0; m--) {
-                                  const data = lastRow.months[m];
-                                  if (data) {
-                                    const key = `${lastRow.year}-${m}`;
-                                    const balance = balanceByYearMonth.get(key) ?? 0;
-                                    return formatUsd(balance + data.pnl);
-                                  }
+                          : (() => {
+                              const lastRow = yearRows[0];
+                              for (let m = 11; m >= 0; m--) {
+                                const data = lastRow.months[m];
+                                if (data) {
+                                  const key = `${lastRow.year}-${m}`;
+                                  const balance = balanceByYearMonth.get(key) ?? 0;
+                                  return formatUsd(balance + data.pnl);
                                 }
-                                return "—";
-                              })()
-                            : hasBalance
-                              ? formatUsd(startingBalance!)
-                              : "—"
+                              }
+                              return "—";
+                            })()
                     )}
                   </span>
                 </div>
