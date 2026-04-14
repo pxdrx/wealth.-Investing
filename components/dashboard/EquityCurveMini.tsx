@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { formatPnl } from "@/components/calendar/utils";
+import { toForexDateKey } from "@/lib/trading/forex-day";
 
 interface EquityCurveMiniProps {
   trades: { net_pnl_usd: number | null; opened_at: string | null }[];
@@ -25,7 +26,7 @@ export function EquityCurveMini({ trades, startingBalanceUsd }: EquityCurveMiniP
     // Aggregate by day
     const byDay = new Map<string, number>();
     for (const t of valid) {
-      const day = t.opened_at!.slice(0, 10);
+      const day = toForexDateKey(t.opened_at!);
       byDay.set(day, (byDay.get(day) ?? 0) + (t.net_pnl_usd ?? 0));
     }
 

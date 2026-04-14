@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
+import { toForexDateKey } from "@/lib/trading/forex-day";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PnlCalendarProps {
@@ -127,8 +128,7 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
     const map: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {};
     for (const row of rawTrades) {
       if (!row.opened_at) continue;
-      const d = new Date(row.opened_at);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const key = toForexDateKey(row.opened_at);
       if (!map[key]) map[key] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
       const net = getNet(row);
       map[key].pnl += net;

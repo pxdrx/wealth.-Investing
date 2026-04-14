@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePrivacy } from "@/components/context/PrivacyContext";
+import { toForexMonthParts } from "@/lib/trading/forex-day";
 import { cn } from "@/lib/utils";
 
 type MetricMode = "pnl" | "pct_geral" | "saldo_atual";
@@ -103,10 +104,8 @@ export function MonthlyPerformanceGrid({
     const byYearMonth = new Map<string, MonthData>();
 
     for (const t of accountTrades) {
-      const date = new Date(t.closed_at ?? t.opened_at!);
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      const key = `${year}-${month}`;
+      const { year, month0 } = toForexMonthParts(t.closed_at ?? t.opened_at!);
+      const key = `${year}-${month0}`;
       const existing = byYearMonth.get(key) ?? { pnl: 0, tradeCount: 0 };
       existing.pnl += t.net_pnl_usd ?? 0;
       existing.tradeCount += 1;

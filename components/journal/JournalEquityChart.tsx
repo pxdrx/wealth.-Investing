@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePrivacy } from "@/components/context/PrivacyContext";
+import { toForexDateKey } from "@/lib/trading/forex-day";
 import { filterTradesByPeriod, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import type { PeriodFilter } from "./types";
@@ -45,10 +46,13 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
     const sorted = [...filtered].sort((a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime());
     for (const t of sorted) {
       cum += getNetPnl(t);
-      const d = new Date(t.opened_at);
+      // Anchor the label to the forex-day so trades in the same 17:00-ET
+      // session share the same "dd/mon" tick on the axis.
+      const forexDay = toForexDateKey(t.opened_at);
+      const d = new Date(`${forexDay}T12:00:00Z`);
       points.push({
-        date: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
-        fullDate: d.toLocaleString("pt-BR"),
+        date: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }),
+        fullDate: new Date(t.opened_at).toLocaleString("pt-BR"),
         equity: Math.round(cum * 100) / 100,
       });
     }

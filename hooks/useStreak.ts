@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { toForexDateKey } from "@/lib/trading/forex-day";
 
 interface StreakData {
   currentStreak: number;
@@ -49,18 +50,17 @@ export function useStreak(userId: string | null | undefined): StreakData {
         return;
       }
 
-      // Extract unique dates (YYYY-MM-DD)
+      // Extract unique forex-day keys (17:00-ET rollover).
       const dateSet = new Set<string>();
       for (const row of rows) {
-        const d = new Date(row.opened_at);
-        dateSet.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+        dateSet.add(toForexDateKey(row.opened_at));
       }
 
       const sortedDates = Array.from(dateSet).sort().reverse();
 
       // Calculate current streak (from today backwards)
       const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const todayStr = toForexDateKey(today.toISOString());
 
       let currentStreak = 0;
       let checkDate = new Date(today);
@@ -68,12 +68,10 @@ export function useStreak(userId: string | null | undefined): StreakData {
       // Allow streak to start from today or yesterday
       const startFromToday = sortedDates[0] === todayStr;
       if (!startFromToday) {
-        // Check if yesterday has trades (streak still alive)
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+        const yesterdayStr = toForexDateKey(yesterday.toISOString());
         if (sortedDates[0] !== yesterdayStr) {
-          // Streak is broken
           currentStreak = 0;
         } else {
           checkDate = yesterday;
@@ -123,5 +121,5 @@ export function useStreak(userId: string | null | undefined): StreakData {
 }
 
 function formatDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return toForexDateKey(d.toISOString());
 }

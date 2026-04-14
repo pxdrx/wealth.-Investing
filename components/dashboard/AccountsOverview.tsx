@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
+import { toForexDateKey, toForexMonthKey } from "@/lib/trading/forex-day";
 
 interface AccountsOverviewProps {
   accounts: Array<{
@@ -34,9 +35,7 @@ function formatPercent(value: number): string {
 }
 
 function isCurrentMonth(dateStr: string): boolean {
-  const d = new Date(dateStr);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  return toForexMonthKey(dateStr) === toForexMonthKey(new Date().toISOString());
 }
 
 export function AccountsOverview({
@@ -114,13 +113,15 @@ export function AccountsOverview({
         if (pa && account.kind === "prop") {
           const startingBalance = pa.starting_balance_usd;
 
-          // Daily DD: net P&L today (only count as DD if net negative)
-          const todayStr = new Date().toISOString().slice(0, 10);
+          // Daily DD: net P&L today (only count as DD if net negative).
+          // Uses 17:00-ET forex day so this aligns with the prop firm's
+          // daily-reset window (FTMO/The5ers).
+          const todayKey = toForexDateKey(new Date().toISOString());
           const todayNetPnl = trades
             .filter(
               (t) =>
                 t.account_id === account.id &&
-                t.opened_at.slice(0, 10) === todayStr
+                toForexDateKey(t.opened_at) === todayKey
             )
             .reduce((sum, t) => sum + t.net_pnl_usd, 0);
           ddDiario =

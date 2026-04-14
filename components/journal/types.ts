@@ -1,3 +1,5 @@
+import { toForexDateKey, toForexMonthKey } from "@/lib/trading/forex-day";
+
 export type PeriodFilter = "today" | "week" | "month" | "all";
 
 export interface JournalTradeRow {
@@ -34,24 +36,24 @@ export function getNetPnl(row: JournalTradeRow): number {
 
 export function filterTradesByPeriod<T extends { opened_at: string }>(trades: T[], period: PeriodFilter): T[] {
   if (period === "all") return trades;
-  const now = new Date();
-  let start: Date;
-  let end: Date = new Date(now);
-  end.setHours(23, 59, 59, 999);
+  const nowIso = new Date().toISOString();
   if (period === "today") {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  } else if (period === "week") {
-    start = new Date(now);
-    start.setDate(start.getDate() - 7);
-    start.setHours(0, 0, 0, 0);
-  } else {
-    // month
-    start = new Date(now.getFullYear(), now.getMonth(), 1);
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const todayKey = toForexDateKey(nowIso);
+    return trades.filter((t) => toForexDateKey(t.opened_at) === todayKey);
   }
-  const startIso = start.toISOString();
-  const endIso = end.toISOString();
-  return trades.filter((t) => t.opened_at >= startIso && t.opened_at <= endIso);
+  if (period === "month") {
+    const monthKey = toForexMonthKey(nowIso);
+    return trades.filter((t) => toForexMonthKey(t.opened_at) === monthKey);
+  }
+  // week: last 7 forex-days ending today (inclusive)
+  const todayKey = toForexDateKey(nowIso);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 6);
+  const cutoffKey = toForexDateKey(cutoff.toISOString());
+  return trades.filter((t) => {
+    const k = toForexDateKey(t.opened_at);
+    return k >= cutoffKey && k <= todayKey;
+  });
 }
 
 export function formatDateTime(iso: string): string {

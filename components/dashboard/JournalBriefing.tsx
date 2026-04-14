@@ -17,6 +17,7 @@ import {
   formatPnl,
 } from "@/components/calendar/utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
+import { toForexDateKey, toForexMonthKey } from "@/lib/trading/forex-day";
 import { cn } from "@/lib/utils";
 
 interface JournalBriefingProps {
@@ -57,7 +58,9 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
 
   const kpis = useMemo(() => {
     const now = new Date();
-    const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // Forex-month prefix (17:00-ET rollover). Matches day.date produced by
+    // aggregateByDay, which is already forex-day keyed.
+    const prefix = toForexMonthKey(now.toISOString());
 
     let totalPnl = 0;
     let totalTrades = 0;
@@ -81,12 +84,13 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
     });
 
     for (const t of filteredTrades) {
-      const dateKey = t.opened_at.slice(0, 10);
+      const dateKey = toForexDateKey(t.opened_at);
       if (!dateKey.startsWith(prefix)) continue;
       if (t.net_pnl_usd > 0) winSum += t.net_pnl_usd;
       if (t.net_pnl_usd < 0) lossSum += Math.abs(t.net_pnl_usd);
     }
 
+    // Civil-calendar cardinality for "day N of M" — not a PnL grouping.
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const winRate = totalTrades > 0 ? wins / totalTrades : 0;
     const avgWin = wins > 0 ? winSum / wins : 0;
