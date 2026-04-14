@@ -41,6 +41,7 @@ import { useDashboardData, type JournalTradeKpiRow, type PropAccountRow } from "
 import { useNewsData, type NewsItem } from "@/hooks/useNewsData";
 import { useLiveMonitoringSafe } from "@/components/context/LiveMonitoringContext";
 import type { TradeInput } from "@/lib/smart-alerts";
+import { getMyProfile } from "@/lib/profile";
 
 // ── Dynamic imports for heavy components (perf: code-split) ──
 const CalendarPnl = dynamic(
@@ -117,6 +118,28 @@ const QUICK_ASSETS = [
 ] as const;
 
 const LIVE_REFRESH_MS = 60_000; // Auto-refresh dashboard every 60s when live
+
+function getGreeting(date: Date): string {
+  const h = date.getHours();
+  if (h >= 5 && h < 12) return "Bom dia";
+  if (h >= 12 && h < 18) return "Boa tarde";
+  if (h >= 18 && h < 24) return "Boa noite";
+  return "Boa madrugada";
+}
+
+function getFirstName(displayName: string | null): string | null {
+  if (!displayName) return null;
+  const first = displayName.trim().split(/\s+/)[0];
+  return first || null;
+}
+
+function getDashboardSubtitle(date: Date): string {
+  const h = date.getHours();
+  if (h >= 5 && h < 12) return "Aqui está o resumo das suas contas para abrir o dia.";
+  if (h >= 12 && h < 18) return "Sessão em andamento — aqui estão seus dados.";
+  if (h >= 18 && h < 24) return "Fechamento do dia. Hora de analisar os resultados.";
+  return "Mercado descansando — bom momento para revisar a estratégia.";
+}
 
 export default function DashboardPage() {
   const { activeAccountId } = useActiveAccount();
@@ -250,6 +273,30 @@ function DashboardContent({
   const [chartExpanded, setChartExpanded] = useState(false);
   const [chartSymbol, setChartSymbol] = useState("FX:EURUSD");
   const [localLayout, setLocalLayout] = useState(dashboardLayout);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await getMyProfile();
+        if (!cancelled) setDisplayName(profile?.display_name?.trim() ?? null);
+      } catch {
+        // silent — cai no fallback sem nome
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const firstName = getFirstName(displayName);
+  const greetingText = firstName ? `${getGreeting(now)}, ${firstName}` : getGreeting(now);
+  const subtitleText = getDashboardSubtitle(now);
 
   // Sync with prop changes
   useEffect(() => {
@@ -311,12 +358,12 @@ function DashboardContent({
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-headline font-extrabold tracking-tight text-foreground">
-              Centro de Comando
+              {greetingText}
             </h1>
             <StreakBadge userId={userId} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground font-medium">
-            Visão geral das suas contas.
+            {subtitleText}
           </p>
         </div>
         <button
