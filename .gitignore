@@ -36,6 +36,50 @@ tsconfig.tsbuildinfo
 .gstack/
 skills-lock.json
 
+# Abandoned agent / IDE tool configs (local only, never deploy)
+.adal/
+.agent/
+.agents/
+.augment/
+.claude-flow/
+.codebuddy/
+.commandcode/
+.continue/
+.cortex/
+.crush/
+.cursor/
+.factory/
+.goose/
+.iflow/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.superpowers/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
+
+# Local experiments / scratch (never deploy)
+ralph-claude-code/
+dexter/
+posts/
+skills/
+forexfactory-ESSENCIAL/
+mockup-*.html
+AUDIT_REPORT.md
+CLAUDE_HANDOFF.md
+
 # Output files
 *_out.txt
 *_output.txt

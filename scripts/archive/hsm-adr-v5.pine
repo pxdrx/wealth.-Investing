@@ -1,0 +1,392 @@
+// This Pine Script™ is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Recriação baseada em evidências visuais do HSM ADR v5.0
+
+//@version=5
+indicator("HSM ADR v5.0", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=200)
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONFIGURAÇÕES GERAIS
+// ═══════════════════════════════════════════════════════════════════
+autoColor = input.bool(true, "Cor Automática", group="CONFIGURAÇÕES GERAIS")
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONFIGURAÇÕES ADR
+// ═══════════════════════════════════════════════════════════════════
+adrDays   = input.int(5, "Dias", minval=1, maxval=50, group="CONFIGURAÇÕES ADR")
+showHist  = input.bool(false, "Mostrar Níveis ADR Históricos", group="CONFIGURAÇÕES ADR")
+showTable = input.bool(true, "Mostrar Tabela de Ranges Diários Anteriores", group="CONFIGURAÇÕES ADR")
+i_tblSize = input.string("Pequeno", "", options=["Pequeno", "Normal", "Grande"], inline="tbl_cfg", group="CONFIGURAÇÕES ADR")
+i_tblH    = input.string("Centro", "", options=["Esquerda", "Centro", "Direita"], inline="tbl_cfg", group="CONFIGURAÇÕES ADR")
+i_tblV    = input.string("Fundo", "", options=["Topo", "Centro", "Fundo"], inline="tbl_cfg", group="CONFIGURAÇÕES ADR")
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONFIGURAÇÕES ICT
+// ═══════════════════════════════════════════════════════════════════
+i_tz = input.string("UTC -4", "Seleção de Fuso Horário",
+     options=["UTC -12","UTC -11","UTC -10","UTC -9","UTC -8","UTC -7","UTC -6","UTC -5","UTC -4",
+              "UTC -3","UTC -2","UTC -1","UTC 0","UTC +1","UTC +2","UTC +3","UTC +4","UTC +5",
+              "UTC +6","UTC +7","UTC +8","UTC +9","UTC +10","UTC +11","UTC +12"],
+     tooltip="Fuso horário para determinação da meia-noite", group="CONFIGURAÇÕES ICT")
+useNYMid  = input.bool(true, "Usar Meia-noite NY como Âncora",
+     tooltip="Usa meia-noite no fuso selecionado como referência para projeção do ADR", group="CONFIGURAÇÕES ICT")
+showJudas = input.bool(true, "Mostrar Rótulos Judas Swing",
+     tooltip="Exibe labels indicando zona de Judas Swing (1/3 ADR)", group="CONFIGURAÇÕES ICT")
+anchorAdj = input.int(0, "Ajuste Fino da Âncora (minutos)", minval=-120, maxval=120,
+     tooltip="Desloca a âncora em minutos a partir da meia-noite", group="CONFIGURAÇÕES ICT")
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONFIGURAÇÕES FIBONACCI
+// ═══════════════════════════════════════════════════════════════════
+showFib      = input.bool(true, "Mostrar Retrações Fibonacci", group="CONFIGURAÇÕES FIBONACCI")
+fibStr       = input.string("0.333 0.666 0", "Níveis Fibonacci", group="CONFIGURAÇÕES FIBONACCI")
+fibUpColor   = input.color(#00C853, "Cor Fib Ascendente", group="CONFIGURAÇÕES FIBONACCI")
+fibDownColor = input.color(#FF1744, "Cor Fib Descendente", group="CONFIGURAÇÕES FIBONACCI")
+i_fibStyle   = input.string("Pontilhada", "Estilo da Linha Fib", options=["Sólida","Pontilhada","Tracejada"], group="CONFIGURAÇÕES FIBONACCI")
+fibWidth     = input.int(1, "Largura da Linha Fib", minval=1, maxval=4, group="CONFIGURAÇÕES FIBONACCI")
+showFibLbl   = input.bool(true, "Mostrar Rótulos Fib", group="CONFIGURAÇÕES FIBONACCI")
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONFIGURAÇÕES DE PLOTAGEM
+// ═══════════════════════════════════════════════════════════════════
+showText  = input.bool(true, "Mostrar Texto", inline="txt_cfg", group="CONFIGURAÇÕES DE PLOTAGEM")
+i_txtSize = input.string("Pequeno", "", options=["Pequeno","Normal","Grande"], inline="txt_cfg", group="CONFIGURAÇÕES DE PLOTAGEM")
+plotOff   = input.int(50, "Deslocamento", group="CONFIGURAÇÕES DE PLOTAGEM")
+
+// ═══════════════════════════════════════════════════════════════════
+//  ESTILOS DE LINHA
+// ═══════════════════════════════════════════════════════════════════
+i_adrStyle   = input.string("Sólida", "", options=["Sólida","Pontilhada","Tracejada"], inline="adr_cfg", group="ADR")
+i_adrColor   = input.color(#363A45, "", inline="adr_cfg", group="ADR")
+hideAdr      = input.bool(false, "Ocultar", inline="adr_cfg", group="ADR")
+
+i_thirdStyle = input.string("Pontilhada", "", options=["Sólida","Pontilhada","Tracejada"], inline="third_cfg", group="1/3 ADR")
+i_thirdColor = input.color(#363A45, "", inline="third_cfg", group="1/3 ADR")
+hideThird    = input.bool(true, "Ocultar", inline="third_cfg", group="1/3 ADR")
+
+i_ancStyle   = input.string("Pontilhada", "", options=["Sólida","Pontilhada","Tracejada"], inline="anc_cfg", group="ÂNCORA")
+i_ancColor   = input.color(#363A45, "", inline="anc_cfg", group="ÂNCORA")
+hideAnc      = input.bool(false, "Ocultar", inline="anc_cfg", group="ÂNCORA")
+
+// ═══════════════════════════════════════════════════════════════════
+//  CONSTANTES E HELPERS
+// ═══════════════════════════════════════════════════════════════════
+TRANSPARENT = color.new(color.white, 100)
+HIST_FADE = 75
+
+f_lineStyle(_s) =>
+    _s == "Sólida" ? line.style_solid : _s == "Pontilhada" ? line.style_dotted : line.style_dashed
+
+f_sz(_s) =>
+    _s == "Pequeno" ? size.small : _s == "Normal" ? size.normal : size.large
+
+f_tablePos(_h, _v) =>
+    _v == "Topo" ? (_h == "Esquerda" ? position.top_left : _h == "Centro" ? position.top_center : position.top_right) : _v == "Centro" ? (_h == "Esquerda" ? position.middle_left : _h == "Centro" ? position.middle_center : position.middle_right) : (_h == "Esquerda" ? position.bottom_left : _h == "Centro" ? position.bottom_center : position.bottom_right)
+
+// ═══════════════════════════════════════════════════════════════════
+//  RESOLUÇÃO DE CONFIGURAÇÕES
+// ═══════════════════════════════════════════════════════════════════
+tz = i_tz == "UTC -12" ? "Etc/GMT+12" : i_tz == "UTC -11" ? "Etc/GMT+11" : i_tz == "UTC -10" ? "Etc/GMT+10" : i_tz == "UTC -9" ? "Etc/GMT+9" : i_tz == "UTC -8" ? "Etc/GMT+8" : i_tz == "UTC -7" ? "Etc/GMT+7" : i_tz == "UTC -6" ? "Etc/GMT+6" : i_tz == "UTC -5" ? "Etc/GMT+5" : i_tz == "UTC -4" ? "Etc/GMT+4" : i_tz == "UTC -3" ? "Etc/GMT+3" : i_tz == "UTC -2" ? "Etc/GMT+2" : i_tz == "UTC -1" ? "Etc/GMT+1" : i_tz == "UTC 0" ? "Etc/GMT" : i_tz == "UTC +1" ? "Etc/GMT-1" : i_tz == "UTC +2" ? "Etc/GMT-2" : i_tz == "UTC +3" ? "Etc/GMT-3" : i_tz == "UTC +4" ? "Etc/GMT-4" : i_tz == "UTC +5" ? "Etc/GMT-5" : i_tz == "UTC +6" ? "Etc/GMT-6" : i_tz == "UTC +7" ? "Etc/GMT-7" : i_tz == "UTC +8" ? "Etc/GMT-8" : i_tz == "UTC +9" ? "Etc/GMT-9" : i_tz == "UTC +10" ? "Etc/GMT-10" : i_tz == "UTC +11" ? "Etc/GMT-11" : i_tz == "UTC +12" ? "Etc/GMT-12" : "Etc/GMT+4"
+
+adrStyle   = f_lineStyle(i_adrStyle)
+thirdStyle = f_lineStyle(i_thirdStyle)
+ancStyle   = f_lineStyle(i_ancStyle)
+fibStyle   = f_lineStyle(i_fibStyle)
+txtSize    = f_sz(i_txtSize)
+tblSize    = f_sz(i_tblSize)
+
+// Parse fibonacci levels (skip 0 — anchor is drawn separately)
+fibLevels = array.new_float()
+fibParts  = str.split(fibStr, " ")
+if array.size(fibParts) > 0
+    for i = 0 to array.size(fibParts) - 1
+        val = str.tonumber(array.get(fibParts, i))
+        if na(val) == false and val > 0.001
+            array.push(fibLevels, val)
+
+// ═══════════════════════════════════════════════════════════════════
+//  DADOS DIÁRIOS — Ranges dos últimos 10 dias completados
+// ═══════════════════════════════════════════════════════════════════
+f_ranges_a() =>
+    r = high - low
+    [r[1], r[2], r[3], r[4], r[5]]
+
+f_ranges_b() =>
+    r = high - low
+    [r[6], r[7], r[8], r[9], r[10]]
+
+[dr1, dr2, dr3, dr4, dr5]     = request.security(syminfo.tickerid, "D", f_ranges_a(), lookahead=barmerge.lookahead_on)
+[dr6, dr7, dr8, dr9, dr10]    = request.security(syminfo.tickerid, "D", f_ranges_b(), lookahead=barmerge.lookahead_on)
+dailyOpen = request.security(syminfo.tickerid, "D", open, lookahead=barmerge.lookahead_on)
+
+// Compute ADR
+rangesArr = array.from(dr1, dr2, dr3, dr4, dr5, dr6, dr7, dr8, dr9, dr10)
+effectiveDays = math.min(adrDays, 10)
+adrSum = 0.0
+for i = 0 to effectiveDays - 1
+    adrSum += nz(array.get(rangesArr, i))
+adrValue = adrSum / effectiveDays
+
+// ═══════════════════════════════════════════════════════════════════
+//  DETECÇÃO DE SESSÃO E ÂNCORA
+// ═══════════════════════════════════════════════════════════════════
+adjMs   = anchorAdj * 60 * 1000
+adjTime = time - adjMs
+
+newSession = useNYMid ? ta.change(dayofmonth(adjTime, tz)) != 0 : ta.change(dayofmonth(time, syminfo.timezone)) != 0
+
+var float anchorPrice = na
+if newSession
+    anchorPrice := useNYMid ? open : dailyOpen
+
+// ═══════════════════════════════════════════════════════════════════
+//  CORES
+// ═══════════════════════════════════════════════════════════════════
+upCol        = autoColor ? fibUpColor   : i_adrColor
+downCol      = autoColor ? fibDownColor : i_adrColor
+ancCol       = i_ancColor
+thirdUpCol   = autoColor ? fibUpColor   : i_thirdColor
+thirdDownCol = autoColor ? fibDownColor : i_thirdColor
+
+// ═══════════════════════════════════════════════════════════════════
+//  NÍVEIS
+// ═══════════════════════════════════════════════════════════════════
+sadrPlus  = anchorPrice + adrValue
+sadrMinus = anchorPrice - adrValue
+thirdUp   = anchorPrice + adrValue / 3
+thirdDown = anchorPrice - adrValue / 3
+
+// ═══════════════════════════════════════════════════════════════════
+//  DESENHO — Variáveis persistentes
+// ═══════════════════════════════════════════════════════════════════
+var line lineUp        = na
+var line lineDown      = na
+var line lineAnc       = na
+var line lineThirdUp   = na
+var line lineThirdDown = na
+
+var label lblUp        = na
+var label lblDown      = na
+var label lblAnc       = na
+var label lblThirdUp   = na
+var label lblThirdDown = na
+var label lblJudasUp   = na
+var label lblJudasDown = na
+
+var line[]  fibLinesArr  = array.new_line()
+var label[] fibLabelsArr = array.new_label()
+
+// ═══════════════════════════════════════════════════════════════════
+//  CRIAÇÃO DE DESENHOS — Nova sessão
+// ═══════════════════════════════════════════════════════════════════
+if newSession and na(anchorPrice) == false and na(adrValue) == false
+
+    // ── Cleanup ──
+    if showHist
+        // Modo histórico: fade nas linhas anteriores
+        histUpCol    = color.new(upCol, HIST_FADE)
+        histDownCol  = color.new(downCol, HIST_FADE)
+        histAncCol   = color.new(ancCol, HIST_FADE)
+        histThirdUp  = color.new(thirdUpCol, HIST_FADE)
+        histThirdDn  = color.new(thirdDownCol, HIST_FADE)
+        histFibUp    = color.new(fibUpColor, HIST_FADE)
+        histFibDn    = color.new(fibDownColor, HIST_FADE)
+        if na(lineUp) == false
+            line.set_color(lineUp, histUpCol)
+            line.set_width(lineUp, 1)
+        if na(lineDown) == false
+            line.set_color(lineDown, histDownCol)
+            line.set_width(lineDown, 1)
+        if na(lineAnc) == false
+            line.set_color(lineAnc, histAncCol)
+        if na(lineThirdUp) == false
+            line.set_color(lineThirdUp, histThirdUp)
+        if na(lineThirdDown) == false
+            line.set_color(lineThirdDown, histThirdDn)
+        if array.size(fibLinesArr) > 0
+            for i = 0 to array.size(fibLinesArr) - 1
+                _fl = array.get(fibLinesArr, i)
+                if na(_fl) == false
+                    line.set_color(_fl, i % 2 == 0 ? histFibUp : histFibDn)
+        // Deletar labels antigos
+        label.delete(lblUp)
+        label.delete(lblDown)
+        label.delete(lblAnc)
+        label.delete(lblThirdUp)
+        label.delete(lblThirdDown)
+        label.delete(lblJudasUp)
+        label.delete(lblJudasDown)
+        if array.size(fibLabelsArr) > 0
+            for i = 0 to array.size(fibLabelsArr) - 1
+                label.delete(array.get(fibLabelsArr, i))
+        fibLinesArr  := array.new_line()
+        fibLabelsArr := array.new_label()
+    else
+        // Modo atual: deletar tudo
+        line.delete(lineUp)
+        line.delete(lineDown)
+        line.delete(lineAnc)
+        line.delete(lineThirdUp)
+        line.delete(lineThirdDown)
+        label.delete(lblUp)
+        label.delete(lblDown)
+        label.delete(lblAnc)
+        label.delete(lblThirdUp)
+        label.delete(lblThirdDown)
+        label.delete(lblJudasUp)
+        label.delete(lblJudasDown)
+        if array.size(fibLinesArr) > 0
+            for i = 0 to array.size(fibLinesArr) - 1
+                line.delete(array.get(fibLinesArr, i))
+            array.clear(fibLinesArr)
+        if array.size(fibLabelsArr) > 0
+            for i = 0 to array.size(fibLabelsArr) - 1
+                label.delete(array.get(fibLabelsArr, i))
+            array.clear(fibLabelsArr)
+
+    // ── Linhas ADR (SADR+ e SADR-) ──
+    if hideAdr == false
+        lineUp   := line.new(bar_index, sadrPlus,  bar_index + plotOff, sadrPlus,  color=upCol,   style=adrStyle, width=2)
+        lineDown := line.new(bar_index, sadrMinus, bar_index + plotOff, sadrMinus, color=downCol,  style=adrStyle, width=2)
+    else
+        lineUp   := na
+        lineDown := na
+
+    // ── Linha da Âncora (00:00) ──
+    if hideAnc == false
+        lineAnc := line.new(bar_index, anchorPrice, bar_index + plotOff, anchorPrice, color=ancCol, style=ancStyle, width=1)
+    else
+        lineAnc := na
+
+    // ── Linhas 1/3 ADR ──
+    if hideThird == false
+        lineThirdUp   := line.new(bar_index, thirdUp,   bar_index + plotOff, thirdUp,   color=thirdUpCol,   style=thirdStyle, width=1)
+        lineThirdDown := line.new(bar_index, thirdDown,  bar_index + plotOff, thirdDown, color=thirdDownCol, style=thirdStyle, width=1)
+    else
+        lineThirdUp   := na
+        lineThirdDown := na
+
+    // ── Linhas Fibonacci ──
+    if showFib and array.size(fibLevels) > 0
+        for i = 0 to array.size(fibLevels) - 1
+            lvl       = array.get(fibLevels, i)
+            priceUp   = anchorPrice + adrValue * lvl
+            priceDown = anchorPrice - adrValue * lvl
+            lU = line.new(bar_index, priceUp,   bar_index + plotOff, priceUp,   color=fibUpColor,   style=fibStyle, width=fibWidth)
+            lD = line.new(bar_index, priceDown, bar_index + plotOff, priceDown, color=fibDownColor, style=fibStyle, width=fibWidth)
+            array.push(fibLinesArr, lU)
+            array.push(fibLinesArr, lD)
+
+            if showFibLbl and showText
+                pct = str.tostring(lvl * 100, "#.#") + "%"
+                lb1 = label.new(bar_index + plotOff, priceUp,   pct, color=TRANSPARENT, textcolor=fibUpColor,   style=label.style_label_left, size=txtSize)
+                lb2 = label.new(bar_index + plotOff, priceDown, pct, color=TRANSPARENT, textcolor=fibDownColor, style=label.style_label_left, size=txtSize)
+                array.push(fibLabelsArr, lb1)
+                array.push(fibLabelsArr, lb2)
+
+    // ── Labels principais ──
+    if showText
+        if hideAdr == false
+            lblUp   := label.new(bar_index + plotOff, sadrPlus,  "SADR+", color=TRANSPARENT, textcolor=upCol,   style=label.style_label_left, size=txtSize)
+            lblDown := label.new(bar_index + plotOff, sadrMinus, "SADR-", color=TRANSPARENT, textcolor=downCol,  style=label.style_label_left, size=txtSize)
+        else
+            lblUp   := na
+            lblDown := na
+
+        if hideAnc == false
+            lblAnc := label.new(bar_index + plotOff, anchorPrice, "00:00", color=TRANSPARENT, textcolor=ancCol, style=label.style_label_left, size=txtSize)
+        else
+            lblAnc := na
+
+        if hideThird == false
+            lblThirdUp   := label.new(bar_index + plotOff, thirdUp,   "1/3", color=TRANSPARENT, textcolor=thirdUpCol,   style=label.style_label_left, size=txtSize)
+            lblThirdDown := label.new(bar_index + plotOff, thirdDown, "1/3", color=TRANSPARENT, textcolor=thirdDownCol, style=label.style_label_left, size=txtSize)
+        else
+            lblThirdUp   := na
+            lblThirdDown := na
+    else
+        lblUp        := na
+        lblDown      := na
+        lblAnc       := na
+        lblThirdUp   := na
+        lblThirdDown := na
+
+    // ── Judas Swing Labels ──
+    if showJudas and showText
+        judasUpY   = anchorPrice + adrValue / 6
+        judasDownY = anchorPrice - adrValue / 6
+        lblJudasUp   := label.new(bar_index + plotOff, judasUpY,   "Judas", color=TRANSPARENT, textcolor=color.new(upCol, 40),   style=label.style_label_left, size=txtSize)
+        lblJudasDown := label.new(bar_index + plotOff, judasDownY, "Judas", color=TRANSPARENT, textcolor=color.new(downCol, 40), style=label.style_label_left, size=txtSize)
+    else
+        lblJudasUp   := na
+        lblJudasDown := na
+
+// ═══════════════════════════════════════════════════════════════════
+//  ATUALIZAÇÃO CONTÍNUA — Estender linhas + reposicionar labels
+// ═══════════════════════════════════════════════════════════════════
+rightEdge = bar_index + plotOff
+
+if na(lineUp) == false
+    line.set_x2(lineUp, rightEdge)
+if na(lineDown) == false
+    line.set_x2(lineDown, rightEdge)
+if na(lineAnc) == false
+    line.set_x2(lineAnc, rightEdge)
+if na(lineThirdUp) == false
+    line.set_x2(lineThirdUp, rightEdge)
+if na(lineThirdDown) == false
+    line.set_x2(lineThirdDown, rightEdge)
+
+if array.size(fibLinesArr) > 0
+    for i = 0 to array.size(fibLinesArr) - 1
+        line.set_x2(array.get(fibLinesArr, i), rightEdge)
+
+if na(lblUp) == false
+    label.set_x(lblUp, rightEdge)
+if na(lblDown) == false
+    label.set_x(lblDown, rightEdge)
+if na(lblAnc) == false
+    label.set_x(lblAnc, rightEdge)
+if na(lblThirdUp) == false
+    label.set_x(lblThirdUp, rightEdge)
+if na(lblThirdDown) == false
+    label.set_x(lblThirdDown, rightEdge)
+if na(lblJudasUp) == false
+    label.set_x(lblJudasUp, rightEdge)
+if na(lblJudasDown) == false
+    label.set_x(lblJudasDown, rightEdge)
+
+if array.size(fibLabelsArr) > 0
+    for i = 0 to array.size(fibLabelsArr) - 1
+        label.set_x(array.get(fibLabelsArr, i), rightEdge)
+
+// ═══════════════════════════════════════════════════════════════════
+//  TABELA DE RANGES DIÁRIOS ANTERIORES
+// ═══════════════════════════════════════════════════════════════════
+var table rangeTable = na
+
+if barstate.islast
+    if na(rangeTable) == false
+        table.delete(rangeTable)
+
+    if showTable
+        tblPos  = f_tablePos(i_tblH, i_tblV)
+        numCols = effectiveDays + 1
+        tblBg   = color.new(#131722, 10)
+        tblBdr  = color.new(#363A45, 0)
+        rangeTable := table.new(tblPos, numCols, 1, tblBg, tblBdr, 1, tblBdr, 1)
+
+        for i = 0 to effectiveDays - 1
+            val = nz(array.get(rangesArr, i))
+            table.cell(rangeTable, i, 0, str.tostring(val, "#.##"), 0, 0, text.align_center, text.align_center, color.white, tblSize, tblBg)
+
+        table.cell(rangeTable, effectiveDays, 0, str.tostring(adrDays) + "ADR = " + str.tostring(adrValue, "#.##"), 0, 0, text.align_center, text.align_center, color.yellow, tblSize, color.new(#131722, 0))
+
+// ═══════════════════════════════════════════════════════════════════
+//  STATUS LINE — Valores na barra de status inferior
+// ═══════════════════════════════════════════════════════════════════
+plot(dr1, "R1", TRANSPARENT)
+plot(dr2, "R2", TRANSPARENT)
+plot(dr3, "R3", TRANSPARENT)
+plot(dr4, "R4", TRANSPARENT)
+plot(dr5, "R5", TRANSPARENT)
+plot(adrValue, "5ADR", TRANSPARENT)
