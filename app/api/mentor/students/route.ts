@@ -61,9 +61,9 @@ export async function GET(req: NextRequest) {
     // Fetch monthly trade stats for all students in one query
     const { data: trades, error: tradesErr } = await svc
       .from("journal_trades")
-      .select("user_id, pnl_usd, open_time")
+      .select("user_id, pnl_usd, closed_at")
       .in("user_id", studentIds)
-      .gte("open_time", monthStart);
+      .gte("closed_at", monthStart);
 
     if (tradesErr) {
       console.error("[mentor/students] tradesErr:", tradesErr.message);
@@ -73,9 +73,9 @@ export async function GET(req: NextRequest) {
     // Fetch last trade date for each student (limit to 1 per student via post-processing)
     const { data: lastTrades, error: lastErr } = await svc
       .from("journal_trades")
-      .select("user_id, open_time")
+      .select("user_id, closed_at")
       .in("user_id", studentIds)
-      .order("open_time", { ascending: false })
+      .order("closed_at", { ascending: false })
       .limit(studentIds.length * 2);
 
     if (lastErr) {
@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
     const lastTradeMap = new Map<string, string>();
     for (const t of lastTrades ?? []) {
       if (!lastTradeMap.has(t.user_id)) {
-        lastTradeMap.set(t.user_id, t.open_time);
+        lastTradeMap.set(t.user_id, t.closed_at);
       }
     }
     lastTradeMap.forEach((date, sid) => {

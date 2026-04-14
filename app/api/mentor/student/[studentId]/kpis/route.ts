@@ -89,7 +89,7 @@ export async function GET(
     const svc = createServiceRoleClient();
     const { data: allTrades, error: tradesErr } = await svc
       .from("journal_trades")
-      .select("pnl_usd, open_time")
+      .select("pnl_usd, closed_at")
       .eq("user_id", studentId);
 
     if (tradesErr) {
@@ -101,7 +101,7 @@ export async function GET(
     // Filter this month's trades
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const monthTrades = trades.filter((t) => t.open_time >= monthStart);
+    const monthTrades = trades.filter((t) => t.closed_at >= monthStart);
 
     return NextResponse.json({
       ok: true,

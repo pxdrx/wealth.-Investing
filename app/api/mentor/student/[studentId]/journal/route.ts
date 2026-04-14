@@ -47,9 +47,9 @@ export async function GET(
     const svc = createServiceRoleClient();
     const { data: trades, error: tradesErr } = await svc
       .from("journal_trades")
-      .select("id, symbol, direction, open_time, close_time, pnl_usd, net_pnl_usd, account_id, emotion, discipline, setup_quality, custom_tags")
+      .select("id, symbol, direction, opened_at, closed_at, pnl_usd, net_pnl_usd, account_id, emotion, discipline, setup_quality, custom_tags")
       .eq("user_id", studentId)
-      .order("open_time", { ascending: false })
+      .order("closed_at", { ascending: false })
       .limit(100);
 
     if (tradesErr) {

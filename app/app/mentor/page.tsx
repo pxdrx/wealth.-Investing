@@ -56,7 +56,7 @@ interface StudentKpis {
 
 interface StudentTrade {
   id: string;
-  close_time: string;
+  closed_at: string;
   symbol: string;
   direction: "buy" | "sell";
   pnl_usd: number;
@@ -190,19 +190,24 @@ function InviteCodeSection({ codes, loadingCodes, onGenerate, generating }: Invi
               key={c.id}
               className="flex items-center justify-between rounded-xl border px-4 py-3"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <code className="text-sm font-mono font-semibold tracking-wide">
                   {c.code}
                 </code>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
                   c.status === "active"
                     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                     : c.status === "pending"
                     ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                     : "bg-muted text-muted-foreground"
                 }`}>
-                  {c.status === "active" ? c.studentName ?? "Vinculado" : c.status === "pending" ? "Disponivel" : "Revogado"}
+                  {c.status === "active" ? "Vinculado" : c.status === "pending" ? "Disponivel" : "Revogado"}
                 </span>
+                {c.status === "active" && c.studentName && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {c.studentName}
+                  </span>
+                )}
               </div>
               <Button
                 variant="ghost"
@@ -697,7 +702,7 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
                     className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                   >
                     <td className="px-5 py-2.5 text-muted-foreground">
-                      {new Date(trade.close_time).toLocaleDateString("pt-BR")}
+                      {new Date(trade.closed_at).toLocaleDateString("pt-BR")}
                     </td>
                     <td className="px-5 py-2.5 font-medium">{trade.symbol}</td>
                     <td className="px-5 py-2.5">
