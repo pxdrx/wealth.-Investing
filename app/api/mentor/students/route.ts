@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getStudentLastUsedAccount } from "@/lib/student-balance";
+import { isMentorPlan } from "@/lib/mentor-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,6 +21,10 @@ export async function GET(req: NextRequest) {
     }
 
     const svc = createServiceRoleClient();
+
+    if (!(await isMentorPlan(svc, user.id))) {
+      return NextResponse.json({ ok: false, error: "Acesso restrito a mentores" }, { status: 403 });
+    }
 
     const { data: relationships, error: relErr } = await svc
       .from("mentor_relationships")
