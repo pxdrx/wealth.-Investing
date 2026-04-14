@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { inferCategory } from "@/lib/trading/category";
-import { MT5_TO_UTC_MS } from "@/lib/trading/timezone";
+import { mt5WallTimeToUtc } from "@/lib/trading/timezone";
 
 export interface Mt5HtmlTrade {
   external_id: string;
@@ -33,9 +33,7 @@ function decodeUtf16Le(buffer: ArrayBuffer): string {
   return new TextDecoder("utf-16le", { fatal: false }).decode(buffer);
 }
 
-// MT5_TO_UTC_MS imported from @/lib/trading/timezone
-
-/** MT5 date format "2026.02.09 17:45:29" (UTC+2) → ISO in UTC */
+/** MT5 date format "2026.02.09 17:45:29" (broker wall-time, Europe/Athens) → UTC ISO. */
 function mt5DateToIso(s: string): string {
   const raw = (s ?? "").toString().replace(/\u00A0/g, " ").trim();
   if (!raw) return "";
@@ -51,16 +49,14 @@ function mt5DateToIso(s: string): string {
       parseInt(sec ?? "0", 10)
     );
     if (isNaN(date.getTime())) return "";
-    const adjusted = new Date(date.getTime() + MT5_TO_UTC_MS);
-    return adjusted.toISOString();
+    return mt5WallTimeToUtc(date);
   }
   // Only try native Date parsing if the string looks like a date (contains separators
   // and has at least year-month-day). Avoid false positives like "5084.10" (a price).
   if (/^\d{4}[-/.]?\d{2}[-/.]?\d{2}/.test(raw) && raw.length >= 8) {
     const d = new Date(raw);
     if (!isNaN(d.getTime()) && d.getFullYear() >= 2000 && d.getFullYear() <= 2100) {
-      const adjusted = new Date(d.getTime() + MT5_TO_UTC_MS);
-      return adjusted.toISOString();
+      return mt5WallTimeToUtc(d);
     }
   }
   return "";
