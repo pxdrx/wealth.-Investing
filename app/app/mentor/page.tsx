@@ -98,6 +98,7 @@ async function apiFetch(path: string, options?: RequestInit) {
   if (!session) throw new Error("Sessão expirada");
   const res = await fetch(path, {
     ...options,
+    cache: "no-store",
     headers: {
       ...options?.headers,
       Authorization: `Bearer ${session.access_token}`,
