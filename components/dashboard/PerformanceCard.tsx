@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,12 +48,24 @@ export function PerformanceCard({
   startingBalance,
   onTradeDeleted,
 }: PerformanceCardProps) {
-  const [selectedAccountId, setSelectedAccountId] = useState<string | "all">("all");
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [perfView, setPerfView] = useState<"mensal" | "geral">("mensal");
 
-  // Filter trades by selected account
+  // Default to first account once the list arrives; aggregating multiple
+  // accounts (the old "Todas") mixed distinct balances and produced nonsense
+  // numbers, so the card is strictly single-account.
+  useEffect(() => {
+    if (!selectedAccountId && accounts.length > 0) {
+      setSelectedAccountId(accounts[0].id);
+      return;
+    }
+    if (selectedAccountId && !accounts.some((a) => a.id === selectedAccountId)) {
+      setSelectedAccountId(accounts[0]?.id ?? null);
+    }
+  }, [accounts, selectedAccountId]);
+
   const filteredTrades = useMemo(() => {
-    if (selectedAccountId === "all") return trades;
+    if (!selectedAccountId) return [];
     return trades.filter((t) => t.account_id === selectedAccountId);
   }, [trades, selectedAccountId]);
 
@@ -102,16 +114,11 @@ export function PerformanceCard({
 
   // Determine starting balance for selected account
   const effectiveStartingBalance = useMemo(() => {
-    if (selectedAccountId === "all") return null;
-    // Check prop_accounts first
+    if (!selectedAccountId) return null;
     const prop = propAccounts?.find((p) => p.account_id === selectedAccountId);
     if (prop?.starting_balance_usd) return prop.starting_balance_usd;
-    // No prop match — pass through the parent's starting balance only if it matches
     return startingBalance;
   }, [selectedAccountId, propAccounts, startingBalance]);
-
-  // Accounts for calendar (show breakdown only in "all" mode)
-  const calendarAccounts = selectedAccountId === "all" ? accounts : undefined;
 
   return (
     <div
@@ -161,18 +168,6 @@ export function PerformanceCard({
 
         {/* Account selector pills */}
         <div className="flex items-center gap-1.5 flex-wrap mt-2">
-          <button
-            type="button"
-            onClick={() => setSelectedAccountId("all")}
-            className={cn(
-              "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
-              selectedAccountId === "all"
-                ? "bg-foreground text-background border-foreground"
-                : "border-border/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground"
-            )}
-          >
-            Todas
-          </button>
           {accounts.map((a) => (
             <button
               key={a.id}
@@ -198,10 +193,9 @@ export function PerformanceCard({
             {/* Calendar (full mode with KPI strip) */}
             <CalendarPnl
               trades={filteredTrades}
-              accounts={calendarAccounts}
               dayNotes={dayNotes}
               userId={userId}
-              accountId={selectedAccountId === "all" ? null : selectedAccountId}
+              accountId={selectedAccountId}
               accountIds={accounts.map((a) => a.id)}
               onTradeDeleted={onTradeDeleted}
             />
@@ -210,7 +204,7 @@ export function PerformanceCard({
             <div className="pt-3">
               <MonthlyPerformanceGrid
                 trades={filteredTrades}
-                activeAccountId={selectedAccountId === "all" ? null : selectedAccountId}
+                activeAccountId={selectedAccountId}
                 startingBalance={effectiveStartingBalance}
               />
             </div>
