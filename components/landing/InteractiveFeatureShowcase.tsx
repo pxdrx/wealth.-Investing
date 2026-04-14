@@ -57,7 +57,7 @@ export function ShowcasePills({ className = "" }: { className?: string }) {
               "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors min-h-[36px] active:scale-95 " +
               (isActive
                 ? "bg-zinc-900 text-white border border-zinc-900"
-                : "bg-white text-zinc-600 border border-zinc-200 hover:border-zinc-400")
+                : "bg-card text-muted-foreground border border-border hover:border-muted-foreground")
             }
           >
             {f.label}
@@ -81,7 +81,7 @@ export function ShowcaseScreenshot() {
         id={`panel-${active}`}
         role="tabpanel"
         aria-labelledby={`tab-${active}`}
-        className="relative rounded-xl border border-zinc-200 bg-gradient-to-b from-white to-zinc-50 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.14)] h-[420px] lg:h-[460px] p-4 overflow-hidden"
+        className="relative rounded-xl border border-border bg-gradient-to-b from-card to-muted/40 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.14)] h-[420px] lg:h-[460px] p-4 overflow-hidden"
       >
         <div className="flex gap-1.5 mb-3">
           <span className="w-2 h-2 rounded-full bg-red-400" />

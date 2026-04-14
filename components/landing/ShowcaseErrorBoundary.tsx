@@ -33,7 +33,7 @@ export class ShowcaseErrorBoundary extends Component<Props, State> {
       return (
         <div
           role="alert"
-          className="rounded-[22px] border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-600"
+          className="rounded-[22px] border border-border bg-card p-6 text-center text-sm text-muted-foreground"
         >
           Não foi possível carregar este painel — recarregue a página.
         </div>

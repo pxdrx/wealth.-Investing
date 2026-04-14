@@ -6,27 +6,27 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section className="py-16 lg:py-20 bg-white border-y border-zinc-200">
+    <section className="py-16 lg:py-20 bg-card border-y border-border">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-10 text-center lg:text-left">
-          <div className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium mb-2">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
             Como funciona
           </div>
-          <h2 className="text-[28px] lg:text-[36px] font-semibold leading-tight tracking-tight text-zinc-900 max-w-xl">
+          <h2 className="text-[28px] lg:text-[36px] font-semibold leading-tight tracking-tight text-foreground max-w-xl">
             Três passos.{" "}
-            <span className="text-zinc-500 italic font-normal">Zero fricção.</span>
+            <span className="text-muted-foreground italic font-normal">Zero fricção.</span>
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {STEPS.map((s) => (
             <div key={s.n} className="flex flex-col">
-              <div className="text-[48px] font-semibold tracking-tight text-zinc-300 leading-none mb-3">
+              <div className="text-[48px] font-semibold tracking-tight text-muted-foreground/40 leading-none mb-3">
                 {s.n}
               </div>
-              <h3 className="text-[18px] font-semibold text-zinc-900 mb-2 tracking-tight">
+              <h3 className="text-[18px] font-semibold text-foreground mb-2 tracking-tight">
                 {s.title}
               </h3>
-              <p className="text-[14px] text-zinc-600 leading-snug">{s.body}</p>
+              <p className="text-[14px] text-muted-foreground leading-snug">{s.body}</p>
             </div>
           ))}
         </div>

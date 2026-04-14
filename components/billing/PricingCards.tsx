@@ -219,7 +219,7 @@ export function PricingCards() {
     <div className="space-y-10">
       {/* Monthly/Annual toggle */}
       <div className="flex items-center justify-center gap-3">
-        <span className={cn("text-[13px] font-medium", !annual ? "text-zinc-900" : "text-zinc-500")}>
+        <span className={cn("text-[13px] font-medium", !annual ? "text-foreground" : "text-muted-foreground")}>
           Mensal
         </span>
         <button
@@ -230,7 +230,7 @@ export function PricingCards() {
           onClick={handleToggle}
           className={cn(
             "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-            annual ? "bg-zinc-900" : "bg-zinc-200"
+            annual ? "bg-zinc-900" : "bg-muted"
           )}
         >
           <span
@@ -241,7 +241,7 @@ export function PricingCards() {
             style={{ marginTop: "1px" }}
           />
         </button>
-        <span className={cn("text-[13px] font-medium", annual ? "text-zinc-900" : "text-zinc-500")}>
+        <span className={cn("text-[13px] font-medium", annual ? "text-foreground" : "text-muted-foreground")}>
           Anual
         </span>
         {annual && (
@@ -266,8 +266,8 @@ export function PricingCards() {
               className={cn(
                 "relative rounded-[22px] border p-6 lg:p-8 flex flex-col transition-all",
                 tier.highlighted
-                  ? "bg-zinc-900 text-white border-zinc-900 shadow-xl lg:scale-[1.02]"
-                  : "bg-white text-zinc-900 border-zinc-200",
+                  ? "bg-zinc-900 dark:bg-zinc-950 text-white border-zinc-900 shadow-xl lg:scale-[1.02]"
+                  : "bg-card text-foreground border-border",
                 isCurrentCard && !isFree && "ring-2 ring-emerald-500/40"
               )}
             >
@@ -277,7 +277,7 @@ export function PricingCards() {
                     "absolute -top-3 left-6 text-[9px] uppercase tracking-wider font-semibold rounded-full px-2.5 py-1",
                     tier.highlighted
                       ? "bg-violet-500 text-white"
-                      : "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                      : "bg-muted text-muted-foreground border border-border"
                   )}
                 >
                   {tier.badge}
@@ -290,7 +290,7 @@ export function PricingCards() {
                   <p
                     className={cn(
                       "text-[12px] leading-snug",
-                      tier.highlighted ? "text-zinc-400" : "text-zinc-600"
+                      tier.highlighted ? "text-zinc-400" : "text-muted-foreground"
                     )}
                   >
                     {tier.description}
@@ -306,7 +306,7 @@ export function PricingCards() {
                     <span
                       className={cn(
                         "text-[14px] font-medium",
-                        tier.highlighted ? "text-zinc-400" : "text-zinc-500"
+                        tier.highlighted ? "text-zinc-400" : "text-muted-foreground"
                       )}
                     >
                       R$
@@ -317,7 +317,7 @@ export function PricingCards() {
                       locales="pt-BR"
                       className="text-[32px] font-semibold tracking-tight"
                     />
-                    <span className={tier.highlighted ? "text-zinc-400" : "text-zinc-500"}>
+                    <span className={tier.highlighted ? "text-zinc-400" : "text-muted-foreground"}>
                       /mês
                     </span>
                   </>
@@ -327,7 +327,7 @@ export function PricingCards() {
                 <p
                   className={cn(
                     "text-[11px] mb-4",
-                    tier.highlighted ? "text-zinc-400" : "text-zinc-500"
+                    tier.highlighted ? "text-zinc-400" : "text-muted-foreground"
                   )}
                 >
                   Cobrado anualmente
@@ -343,7 +343,7 @@ export function PricingCards() {
                   "inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[12px] font-medium transition-colors min-h-[44px] mb-6",
                   btnState.disabled && "opacity-50 cursor-not-allowed",
                   !btnState.disabled && tier.highlighted && "bg-white text-zinc-900 hover:bg-zinc-100",
-                  !btnState.disabled && !tier.highlighted && "bg-zinc-900 text-white hover:bg-zinc-800",
+                  !btnState.disabled && !tier.highlighted && "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white",
                   btnState.action === "manage" && "bg-emerald-600 text-white hover:bg-emerald-700",
                   btnState.action === "downgrade" && "bg-transparent text-orange-600 border border-orange-400 hover:bg-orange-50"
                 )}
@@ -370,7 +370,7 @@ export function PricingCards() {
                     />
                     <span
                       className={cn(
-                        tier.highlighted ? "text-zinc-200" : "text-zinc-700",
+                        tier.highlighted ? "text-zinc-200" : "text-foreground/80",
                         f.includes("Dexter") && "font-semibold"
                       )}
                     >
@@ -386,7 +386,7 @@ export function PricingCards() {
                   onClick={() => handleManageSubscription(tier.id)}
                   className={cn(
                     "mt-6 w-full text-center text-[11px] underline underline-offset-2 transition-colors",
-                    tier.highlighted ? "text-zinc-400 hover:text-white" : "text-zinc-500 hover:text-zinc-900"
+                    tier.highlighted ? "text-zinc-400 hover:text-white" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Gerenciar assinatura

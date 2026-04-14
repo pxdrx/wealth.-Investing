@@ -76,16 +76,16 @@ function JournalVisual() {
 function BacktestVisual() {
   return (
     <div className="mt-4 grid grid-cols-3 gap-2">
-      <div className="rounded-lg bg-zinc-50 border border-zinc-200 px-3 py-2">
-        <div className="text-[9px] uppercase tracking-wider text-zinc-400">Retorno</div>
+      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2">
+        <div className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Retorno</div>
         <div className="text-[14px] font-semibold text-emerald-600 mt-0.5">+34.2%</div>
       </div>
-      <div className="rounded-lg bg-zinc-50 border border-zinc-200 px-3 py-2">
-        <div className="text-[9px] uppercase tracking-wider text-zinc-400">Acerto</div>
-        <div className="text-[14px] font-semibold text-zinc-900 mt-0.5">62%</div>
+      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2">
+        <div className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Acerto</div>
+        <div className="text-[14px] font-semibold text-foreground mt-0.5">62%</div>
       </div>
-      <div className="rounded-lg bg-zinc-50 border border-zinc-200 px-3 py-2">
-        <div className="text-[9px] uppercase tracking-wider text-zinc-400">Drawdown</div>
+      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2">
+        <div className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Drawdown</div>
         <div className="text-[14px] font-semibold text-red-600 mt-0.5">-4.1%</div>
       </div>
     </div>
@@ -145,12 +145,12 @@ export function BentoFeatures() {
     <section className="py-16 lg:py-24">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-10 lg:mb-14 text-center lg:text-left">
-          <div className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium mb-2">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
             Funcionalidades
           </div>
-          <h2 className="text-[28px] lg:text-[40px] font-semibold leading-tight tracking-tight text-zinc-900 max-w-xl">
+          <h2 className="text-[28px] lg:text-[40px] font-semibold leading-tight tracking-tight text-foreground max-w-xl">
             Tudo que seu trading precisa.{" "}
-            <span className="text-zinc-500 italic font-normal">Num lugar só.</span>
+            <span className="text-muted-foreground italic font-normal">Num lugar só.</span>
           </h2>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 lg:auto-rows-[minmax(180px,auto)]">
@@ -161,7 +161,7 @@ export function BentoFeatures() {
                 "rounded-[22px] p-6 border flex flex-col " +
                 (c.dark
                   ? "bg-zinc-900 text-white border-zinc-800"
-                  : "bg-white text-zinc-900 border-zinc-200") +
+                  : "bg-card text-foreground border-border") +
                 " " +
                 c.className
               }
@@ -169,13 +169,13 @@ export function BentoFeatures() {
               <div
                 className={
                   "w-9 h-9 rounded-lg flex items-center justify-center mb-4 " +
-                  (c.dark ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-700")
+                  (c.dark ? "bg-zinc-800 text-zinc-300" : "bg-muted text-muted-foreground")
                 }
               >
                 {c.icon}
               </div>
               <h3 className="text-[16px] font-semibold mb-1.5 tracking-tight">{c.title}</h3>
-              <p className={"text-[13px] leading-snug " + (c.dark ? "text-zinc-400" : "text-zinc-600")}>
+              <p className={"text-[13px] leading-snug " + (c.dark ? "text-zinc-400" : "text-muted-foreground")}>
                 {c.body}
               </p>
               {c.visual}
