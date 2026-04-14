@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { FEATURES, DEFAULT_FEATURE, type FeatureKey } from "./feature-panels/types";
 import { JournalPanel } from "./feature-panels/JournalPanel";
 import { AiCoachPanel } from "./feature-panels/AiCoachPanel";
@@ -22,8 +23,11 @@ const PANELS: Record<FeatureKey, () => JSX.Element> = {
 
 export function InteractiveFeatureShowcase() {
   const [active, setActive] = useState<FeatureKey>(DEFAULT_FEATURE);
-  const ActivePanel = PANELS[active];
+  // Defensive: if `active` ever becomes invalid, fall back to journal.
+  const ActivePanel = PANELS[active] ?? PANELS.journal;
   const showCallouts = active === "journal";
+  const prefersReducedMotion = useReducedMotion();
+  const fadeDuration = prefersReducedMotion ? 0 : 0.2;
 
   return (
     <div className="grid lg:grid-cols-[1fr_1.15fr] gap-8 lg:gap-12 items-center">
@@ -70,8 +74,19 @@ export function InteractiveFeatureShowcase() {
             <span className="w-2 h-2 rounded-full bg-amber-400" />
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
           </div>
-          <div className="h-[calc(100%-20px)]">
-            <ActivePanel />
+          <div className="h-[calc(100%-20px)] relative">
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={active}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: fadeDuration }}
+                className="absolute inset-0"
+              >
+                <ActivePanel />
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
@@ -79,6 +94,7 @@ export function InteractiveFeatureShowcase() {
         <div
           data-testid="showcase-callouts"
           data-visible={showCallouts}
+          aria-hidden={!showCallouts}
           className={
             "hidden lg:block pointer-events-none transition-opacity duration-300 " +
             (showCallouts ? "opacity-100" : "opacity-0")

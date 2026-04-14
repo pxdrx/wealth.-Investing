@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { InteractiveFeatureShowcase } from "./InteractiveFeatureShowcase";
+import { ShowcaseErrorBoundary } from "./ShowcaseErrorBoundary";
 
 export function Hero() {
   return (
@@ -62,7 +63,9 @@ export function Hero() {
             </div>
           </div>
           <div>
-            <InteractiveFeatureShowcase />
+            <ShowcaseErrorBoundary>
+              <InteractiveFeatureShowcase />
+            </ShowcaseErrorBoundary>
           </div>
         </div>
       </div>
