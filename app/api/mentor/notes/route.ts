@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
+import { isMentorPlan } from "@/lib/mentor-guard";
+
+export const dynamic = "force-dynamic";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -14,6 +18,11 @@ export async function GET(req: NextRequest) {
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
     if (authErr || !user) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const svc = createServiceRoleClient();
+    if (!(await isMentorPlan(svc, user.id))) {
+      return NextResponse.json({ ok: false, error: "Acesso restrito a mentores" }, { status: 403 });
     }
 
     const studentId = req.nextUrl.searchParams.get("student_id");
@@ -67,6 +76,11 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
     if (authErr || !user) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const svc = createServiceRoleClient();
+    if (!(await isMentorPlan(svc, user.id))) {
+      return NextResponse.json({ ok: false, error: "Acesso restrito a mentores" }, { status: 403 });
     }
 
     const body = await req.json() as {

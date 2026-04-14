@@ -19,11 +19,13 @@ import {
   Search,
   Wallet,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
+import { useSubscription } from "@/components/context/SubscriptionContext";
 
 // ─── Constants ───────────────────────────────────────────────────────
 const easeApple = [0.16, 1, 0.3, 1] as const;
@@ -808,6 +810,8 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
 // ─── Main Page ───────────────────────────────────────────────────────
 
 export default function MentorPage() {
+  const router = useRouter();
+  const { isMentor, isLoading: subLoading } = useSubscription();
   const [codes, setCodes] = useState<MentorCode[]>([]);
   const [students, setStudents] = useState<StudentSummary[]>([]);
   const [loadingCodes, setLoadingCodes] = useState(true);
@@ -818,6 +822,13 @@ export default function MentorPage() {
   const [studentSearch, setStudentSearch] = useState("");
 
   useEffect(() => {
+    if (!subLoading && !isMentor) {
+      router.replace("/app");
+    }
+  }, [subLoading, isMentor, router]);
+
+  useEffect(() => {
+    if (!isMentor) return;
     let mounted = true;
     const safety = setTimeout(() => {
       if (mounted) setLoadingCodes(false);
@@ -838,9 +849,10 @@ export default function MentorPage() {
       mounted = false;
       clearTimeout(safety);
     };
-  }, []);
+  }, [isMentor]);
 
   useEffect(() => {
+    if (!isMentor) return;
     let mounted = true;
     const safety = setTimeout(() => {
       if (mounted) setLoadingStudents(false);
@@ -861,7 +873,7 @@ export default function MentorPage() {
       mounted = false;
       clearTimeout(safety);
     };
-  }, []);
+  }, [isMentor]);
 
   const fetchCodes = useCallback(async () => {
     try {
@@ -887,6 +899,18 @@ export default function MentorPage() {
     if (!q) return students;
     return students.filter((s) => s.displayName.toLowerCase().includes(q));
   }, [students, studentSearch]);
+
+  if (subLoading) {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-10 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isMentor) {
+    return null;
+  }
 
   if (selectedStudent) {
     return (

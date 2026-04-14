@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { isMentorPlan } from "@/lib/mentor-guard";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,6 +17,11 @@ export async function GET(req: NextRequest) {
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
     if (authErr || !user) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const svcGate = createServiceRoleClient();
+    if (!(await isMentorPlan(svcGate, user.id))) {
+      return NextResponse.json({ ok: false, error: "Acesso restrito a mentores" }, { status: 403 });
     }
 
     // Fetch all invite codes for this mentor

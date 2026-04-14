@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { isMentorPlan } from "@/lib/mentor-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,6 +29,11 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const svc = createServiceRoleClient();
+    if (!(await isMentorPlan(svc, user.id))) {
+      return NextResponse.json({ ok: false, error: "Acesso restrito a mentores" }, { status: 403 });
+    }
+
     // Verify active relationship
     const { data: relationship, error: relErr } = await supabase
       .from("mentor_relationships")
@@ -47,7 +53,6 @@ export async function GET(
     }
 
     // Fetch trades (all accounts) for this student — service role bypasses RLS
-    const svc = createServiceRoleClient();
     const { data: trades, error: tradesErr } = await svc
       .from("journal_trades")
       .select("id, symbol, direction, opened_at, closed_at, pnl_usd, net_pnl_usd, account_id, emotion, discipline, setup_quality, custom_tags")

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { getStudentKpisByAccount } from "@/lib/student-balance";
+import { isMentorPlan } from "@/lib/mentor-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -33,6 +34,11 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const svc = createServiceRoleClient();
+    if (!(await isMentorPlan(svc, user.id))) {
+      return NextResponse.json({ ok: false, error: "Acesso restrito a mentores" }, { status: 403 });
+    }
+
     const { data: relationship, error: relErr } = await supabase
       .from("mentor_relationships")
       .select("id")
@@ -49,7 +55,6 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "Vínculo não encontrado" }, { status: 403 });
     }
 
-    const svc = createServiceRoleClient();
     const accounts = await getStudentKpisByAccount(svc, studentId);
 
     const totalTrades = accounts.reduce((s, a) => s + a.totalTrades, 0);
