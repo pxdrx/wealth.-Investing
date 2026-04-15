@@ -481,6 +481,25 @@ export default function JournalPage() {
     setModalOpen(true);
   };
 
+  const handleOpenTradeById = useCallback(async (tradeId: string) => {
+    const cached = trades.find((t) => t.id === tradeId);
+    if (cached) {
+      setSelectedTrade(cached);
+      setModalOpen(true);
+      return;
+    }
+    // Fallback: trade annotated but outside current pagination window
+    const { data, error } = await supabase
+      .from("journal_trades")
+      .select("*")
+      .eq("id", tradeId)
+      .maybeSingle();
+    if (!error && data) {
+      setSelectedTrade(data as JournalTradeRow);
+      setModalOpen(true);
+    }
+  }, [trades]);
+
   const hasData = activeAccountId && !loadingTrades && !tradesError;
   const { hidden: valuesHidden, toggle: toggleValues } = usePrivacy();
 
@@ -733,7 +752,7 @@ export default function JournalPage() {
               <NotesHistory
                 userId={userId}
                 accountId={activeAccountId}
-                trades={trades}
+                onOpenTrade={handleOpenTradeById}
                 onChanged={() => loadTrades(true)}
               />
             )}

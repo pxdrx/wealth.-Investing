@@ -46,7 +46,6 @@ const baseNavLinks = [
   { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
 ];
 
-const mentorNavLink = { href: "/app/mentor", label: "Painel Mentor", icon: GraduationCap, highlight: false };
 const adminNavLink = { href: "/app/admin", label: "Admin", icon: Shield, highlight: false };
 
 function logout() {
@@ -68,6 +67,7 @@ function AppSidebarInner() {
   const [profileLoading, setProfileLoading] = useState(true);
   const { plan, isProOrAbove, isMentor } = useSubscription();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLinkedStudent, setIsLinkedStudent] = useState(false);
 
   // Check admin status
   useEffect(() => {
@@ -90,10 +90,42 @@ function AppSidebarInner() {
     return () => { cancelled = true; clearTimeout(safety); };
   }, []);
 
+  // Detect active mentor relationship (student side)
+  useEffect(() => {
+    if (isMentor) return; // mentors don't need the student check
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || cancelled) return;
+        const res = await fetch("/api/mentor/my-mentor", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = await res.json();
+        if (!cancelled && json.ok && json.mentor) setIsLinkedStudent(true);
+      } catch {
+        // silent — unlinked is the fallback
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isMentor]);
+
   const navLinks = (() => {
     const links = [...baseNavLinks];
-    // Insert mentor after Journal (index 1) — before purple/AI items
-    if (isMentor) links.splice(2, 0, mentorNavLink);
+    // Mentor entry is always visible; label varies by role
+    const mentorLabel = isMentor
+      ? "Painel Mentor"
+      : isLinkedStudent
+      ? "Mentor"
+      : "Mentoria";
+    const mentorNavLink = {
+      href: "/app/mentor",
+      label: mentorLabel,
+      icon: GraduationCap,
+      highlight: false,
+    };
+    // Insert mentor after Journal (index 1) — before Contas
+    links.splice(2, 0, mentorNavLink);
     // Admin goes at the end
     if (isAdmin) links.push(adminNavLink);
     return links;

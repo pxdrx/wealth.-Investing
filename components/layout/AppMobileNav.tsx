@@ -14,7 +14,6 @@ import {
   Shield,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { useSubscription } from "@/components/context/SubscriptionContext";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -38,7 +37,6 @@ const easeApple = [0.16, 1, 0.3, 1] as const;
 
 export function AppMobileNav() {
   const pathname = usePathname();
-  const { isMentor } = useSubscription();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -63,7 +61,7 @@ export function AppMobileNav() {
 
   const navItems = [
     ...baseNavItems,
-    ...(isMentor ? [mentorNavItem] : []),
+    mentorNavItem,
     ...(isAdmin ? [adminNavItem] : []),
   ];
 

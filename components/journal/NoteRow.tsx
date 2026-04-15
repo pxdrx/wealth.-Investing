@@ -1,20 +1,16 @@
 "use client";
 
-import { Trash2, FileText, Calendar } from "lucide-react";
+import { Trash2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type NoteKind = "trade" | "day";
-
 export interface NoteRowItem {
-  id: string;
-  kind: NoteKind;
-  date: string; // ISO or YYYY-MM-DD
-  title: string;
+  id: string; // trade id
+  date: string; // ISO
+  symbol: string;
+  direction: string;
   preview: string;
   tags: string[];
-  // Extra context for trade notes
-  symbol?: string | null;
-  netPnl?: number | null;
+  netPnl: number | null;
 }
 
 interface NoteRowProps {
@@ -25,7 +21,7 @@ interface NoteRowProps {
 }
 
 function formatDate(iso: string): string {
-  const d = new Date(iso.length <= 10 ? `${iso}T12:00:00` : iso);
+  const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -35,24 +31,16 @@ function formatDate(iso: string): string {
 }
 
 export function NoteRow({ item, onOpen, onDelete, deleting }: NoteRowProps) {
-  const isTrade = item.kind === "trade";
-  const Icon = isTrade ? FileText : Calendar;
   const pnl = item.netPnl ?? 0;
+  const isBuy = item.direction.toLowerCase() === "buy";
 
   return (
     <div
       className="group flex items-start gap-3 rounded-[18px] border border-border/50 p-4 transition-colors hover:bg-muted/30"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
-      <div
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-          isTrade
-            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-        )}
-      >
-        <Icon className="h-4 w-4" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+        <FileText className="h-4 w-4" />
       </div>
 
       <button
@@ -61,16 +49,21 @@ export function NoteRow({ item, onOpen, onDelete, deleting }: NoteRowProps) {
         className="flex-1 min-w-0 text-left"
       >
         <div className="flex items-center gap-2 flex-wrap mb-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {isTrade ? "Por trade" : "Diária"}
-          </span>
           <span className="text-xs text-muted-foreground">
             {formatDate(item.date)}
           </span>
-          {isTrade && item.symbol && (
-            <span className="text-xs font-semibold">{item.symbol}</span>
-          )}
-          {isTrade && item.netPnl != null && (
+          <span className="text-xs font-semibold">{item.symbol}</span>
+          <span
+            className={cn(
+              "rounded-full border px-1.5 py-px text-[10px] font-medium capitalize",
+              isBuy
+                ? "border-emerald-300/60 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400"
+                : "border-amber-300/60 text-amber-700 dark:border-amber-800 dark:text-amber-400"
+            )}
+          >
+            {item.direction}
+          </span>
+          {item.netPnl != null && (
             <span
               className={cn(
                 "text-xs font-medium",
@@ -86,7 +79,7 @@ export function NoteRow({ item, onOpen, onDelete, deleting }: NoteRowProps) {
         </div>
         <p className="text-sm line-clamp-2 whitespace-pre-wrap">
           {item.preview || (
-            <span className="text-muted-foreground italic">Sem texto</span>
+            <span className="text-muted-foreground italic">Sem texto (apenas tags)</span>
           )}
         </p>
         {item.tags.length > 0 && (
