@@ -6,7 +6,7 @@ import NumberFlow from "@number-flow/react";
 import { Check, ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/components/context/SubscriptionContext";
-import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import type { Plan } from "@/lib/subscription";
 
 interface TierDef {
@@ -151,11 +151,13 @@ export function PricingCards() {
 
   async function handleSubscribe(tier: Plan) {
     setLoadingTier(tier);
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 15_000);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       const token = session?.access_token;
       if (!token) {
-        window.location.href = "/login?next=/app/pricing";
+        window.location.href = "/login?next=/pricing";
         return;
       }
       const res = await fetch("/api/billing/checkout", {
@@ -165,44 +167,58 @@ export function PricingCards() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ plan: tier, interval: annual ? "year" : "month" }),
+        signal: controller.signal,
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.url) {
-        console.error("[billing] Checkout error:", data.error || "No URL returned");
+        console.error("[billing] Checkout error:", data.error || `HTTP ${res.status}`);
         alert(data.error || "Erro ao iniciar checkout. Tente novamente.");
         return;
       }
       window.location.href = data.url;
     } catch (err) {
+      const msg = err instanceof Error && err.name === "AbortError"
+        ? "A requisição demorou demais. Tente novamente."
+        : "Erro de conexão ao iniciar checkout. Tente novamente.";
       console.error("[billing] Checkout exception:", err);
-      alert("Erro de conexão ao iniciar checkout. Tente novamente.");
+      alert(msg);
     } finally {
+      clearTimeout(fetchTimeout);
       setLoadingTier(null);
     }
   }
 
   async function handleManageSubscription(tier?: Plan) {
     setLoadingTier(tier ?? currentPlan);
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 15_000);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       const token = session?.access_token;
       if (!token) {
-        window.location.href = "/login?next=/app/pricing";
+        window.location.href = "/login?next=/pricing";
         return;
       }
       const res = await fetch("/api/billing/portal", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error("[billing] Portal error:", res.status === 404 ? "No active subscription" : (data.error || "Unknown error"));
+        alert(data.error || "Não foi possível abrir o portal de cobrança.");
         return;
       }
       if (data.url) window.location.href = data.url;
     } catch (err) {
+      const msg = err instanceof Error && err.name === "AbortError"
+        ? "A requisição demorou demais. Tente novamente."
+        : "Erro de conexão. Tente novamente.";
       console.error("[billing] Portal error:", err);
+      alert(msg);
     } finally {
+      clearTimeout(fetchTimeout);
       setLoadingTier(null);
     }
   }
