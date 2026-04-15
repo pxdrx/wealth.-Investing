@@ -28,6 +28,7 @@ import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { MentorOnboardingModal } from "@/components/mentor/MentorOnboardingModal";
+import { StudentFeedbackFeed } from "@/components/mentor/StudentFeedbackFeed";
 
 // ─── Constants ───────────────────────────────────────────────────────
 const easeApple = [0.16, 1, 0.3, 1] as const;
@@ -843,12 +844,51 @@ export default function MentorPage() {
   const [error, setError] = useState<string | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isStudent, setIsStudent] = useState<boolean | null>(null);
+
+  // Detect if the current user is a student with an active mentor relationship
+  useEffect(() => {
+    if (subLoading) return;
+    if (isMentor) {
+      setIsStudent(false);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      try {
+        const {
+          data: { session },
+        } = await safeGetSession();
+        if (!session) {
+          if (mounted) setIsStudent(false);
+          return;
+        }
+        const { data, error } = await supabase
+          .from("mentor_relationships")
+          .select("id")
+          .eq("student_id", session.user.id)
+          .eq("status", "active")
+          .limit(1);
+        if (error) {
+          if (mounted) setIsStudent(false);
+          return;
+        }
+        if (mounted) setIsStudent((data ?? []).length > 0);
+      } catch {
+        if (mounted) setIsStudent(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [subLoading, isMentor]);
 
   useEffect(() => {
-    if (!subLoading && !isMentor) {
-      router.replace("/app");
-    }
-  }, [subLoading, isMentor, router]);
+    if (subLoading) return;
+    if (isMentor) return;
+    if (isStudent === null) return; // still checking
+    if (!isStudent) router.replace("/app");
+  }, [subLoading, isMentor, isStudent, router]);
 
   useEffect(() => {
     if (subLoading || !isMentor) return;
@@ -948,10 +988,34 @@ export default function MentorPage() {
     return students.filter((s) => s.displayName.toLowerCase().includes(q));
   }, [students, studentSearch]);
 
-  if (subLoading) {
+  if (subLoading || (!isMentor && isStudent === null)) {
     return (
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isMentor && isStudent) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: easeApple }}
+          className="mb-8"
+        >
+          <div className="flex items-center gap-3">
+            <Star className="h-6 w-6 text-muted-foreground" />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Feedback do seu mentor
+            </h1>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Anotações e avaliações enviadas pelo seu mentor
+          </p>
+        </motion.div>
+        <StudentFeedbackFeed />
       </div>
     );
   }

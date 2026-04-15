@@ -16,8 +16,16 @@ import { cn } from "@/lib/utils";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { supabase } from "@/lib/supabase/client";
-import { X, Trash2 } from "lucide-react";
+import { X, Trash2, Star, MessageSquare } from "lucide-react";
 import { validateCustomTags } from "@/lib/psychology-tags";
+
+interface MentorNoteForTrade {
+  id: string;
+  content: string;
+  rating: number | null;
+  created_at: string;
+  mentor_name: string;
+}
 
 interface TradeDetailModalProps {
   trade: JournalTradeRow | null;
@@ -34,6 +42,7 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [mentorNotes, setMentorNotes] = useState<MentorNoteForTrade[]>([]);
 
   const MAX_TAGS = 4;
 
@@ -43,8 +52,34 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
       setCustomTags(Array.isArray(trade.custom_tags) ? [...trade.custom_tags] : []);
       setNewTag("");
       setToast(null);
+      setMentorNotes([]);
     }
   }, [trade]);
+
+  // Fetch mentor feedback attached to this trade (student view)
+  useEffect(() => {
+    if (!trade?.id || !open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch("/api/mentor/my-feedback", {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok || cancelled) return;
+        const filtered = (json.notes ?? []).filter(
+          (n: { trade_id: string | null }) => n.trade_id === trade.id
+        );
+        setMentorNotes(filtered);
+      } catch {
+        // silent — student may not have a mentor
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [trade?.id, open]);
 
   const handleAddTag = () => {
     const t = newTag.trim();
@@ -194,6 +229,42 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
               </p>
             </div>
           </div>
+
+          {mentorNotes.length > 0 && (
+            <div className="space-y-2">
+              {mentorNotes.map((n) => (
+                <div
+                  key={n.id}
+                  className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/20"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-amber-900 dark:text-amber-300">
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Nota do mentor · {n.mentor_name}
+                    </div>
+                    {n.rating ? (
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={12}
+                            className={
+                              s <= (n.rating ?? 0)
+                                ? "fill-amber-500 text-amber-500"
+                                : "fill-transparent text-amber-900/30 dark:text-amber-300/30"
+                            }
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  <p className="text-sm text-amber-900/90 dark:text-amber-100/90 whitespace-pre-wrap">
+                    {n.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="context">Contexto</Label>

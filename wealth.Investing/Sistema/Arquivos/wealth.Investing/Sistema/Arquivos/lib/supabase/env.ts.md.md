@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: wealth.Investing/Sistema/Arquivos/lib/supabase/env.ts.md
-hits: 1
+hits: 2
 hub: false
-last_seen: "2026-04-14T21:55:36-03:00"
+last_seen: "2026-04-15T16:15:16-03:00"
 tags: ["arquivo"]
 ---
 
 # `wealth.Investing/Sistema/Arquivos/lib/supabase/env.ts.md`
 
-> 1 commit(s) tocaram este arquivo. 
+> 2 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/67144ff-unifica-links-de-precos-para-pricing]]
+[[Sistema/Commits/47a8e7f-expose-attempted-priceid-in-checkout-error-for-diag]]

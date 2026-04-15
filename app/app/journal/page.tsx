@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus, FileSpreadsheet, FileText } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus, FileSpreadsheet, FileText, NotebookPen } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
@@ -26,6 +26,7 @@ import { usePrivacy } from "@/components/context/PrivacyContext";
 import { JournalReports } from "@/components/journal/JournalReports";
 import { AddTradeModal } from "@/components/journal/AddTradeModal";
 import { PaywallGate } from "@/components/billing/PaywallGate";
+import { NotesHistory } from "@/components/journal/NotesHistory";
 
 type ImportFlowState = "idle" | "previewing" | "importing" | "done";
 
@@ -63,6 +64,7 @@ interface ImportResultData {
 const tabs = [
   { title: "Visão Geral", icon: LayoutDashboard },
   { title: "Trades", icon: TrendingUp },
+  { title: "Anotações", icon: NotebookPen },
   { title: "Relatórios", icon: BarChart3 },
   { type: "separator" as const },
   { title: "Importar MT5", icon: Upload },
@@ -70,8 +72,9 @@ const tabs = [
 
 const SECTION_OVERVIEW = 0;
 const SECTION_TRADES = 1;
-const SECTION_REPORTS = 2;
-const SECTION_IMPORT = 4;
+const SECTION_NOTES = 2;
+const SECTION_REPORTS = 3;
+const SECTION_IMPORT = 5;
 
 /** TECH-022: Pagination — load trades in pages instead of all at once */
 const PAGE_SIZE = 100;
@@ -725,6 +728,14 @@ export default function JournalPage() {
                   </div>
                 )}
               </div>
+            )}
+            {activeTab === SECTION_NOTES && (
+              <NotesHistory
+                userId={userId}
+                accountId={activeAccountId}
+                trades={trades}
+                onChanged={() => loadTrades(true)}
+              />
             )}
             {activeTab === SECTION_REPORTS && (
               <PaywallGate requiredPlan="pro" blurContent>
