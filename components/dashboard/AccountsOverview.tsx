@@ -187,21 +187,22 @@ export function AccountsOverview({
       });
   }, [accounts, propAccountMap, currentMonthTrades, trades]);
 
+  const valueCls = "metric-value text-[15px] sm:text-[18px] lg:text-[26px] leading-tight block truncate";
   const kpis = [
     {
       label: "Capital Funded",
-      render: <MoneyDisplay value={capitalFunded} className="metric-value text-[26px] leading-tight" />,
+      render: <MoneyDisplay value={capitalFunded} className={valueCls} />,
     },
     {
       label: "Total Sacado",
-      render: <MoneyDisplay value={propPayoutsTotal} className="metric-value text-[26px] leading-tight" />,
+      render: <MoneyDisplay value={propPayoutsTotal} className={valueCls} />,
     },
     {
       label: "P&L Geral",
       render: (
-        <div>
-          <MoneyDisplay value={pnlGeral} showSign colorize className="metric-value text-[26px] leading-tight" />
-          <p className="text-[10px] text-muted-foreground mt-1">
+        <div className="min-w-0">
+          <MoneyDisplay value={pnlGeral} showSign colorize className={valueCls} />
+          <p className="text-[10px] text-muted-foreground mt-1 truncate">
             Mês: <MoneyDisplay value={pnlMes} showSign colorize className="text-[10px]" />
           </p>
         </div>
@@ -209,7 +210,7 @@ export function AccountsOverview({
     },
     {
       label: "Contas Ativas",
-      render: <span className="metric-value text-[26px] leading-tight">{contasAtivas}</span>,
+      render: <span className={valueCls}>{contasAtivas}</span>,
     },
   ];
 
@@ -220,10 +221,10 @@ export function AccountsOverview({
         {kpis.map((kpi) => (
           <div
             key={kpi.label}
-            className="bg-card rounded-[22px] p-5 relative isolate overflow-hidden border border-border/40 shadow-sm"
+            className="bg-card rounded-[22px] p-3 sm:p-5 relative isolate overflow-hidden border border-border/40 shadow-sm min-w-0"
             style={{ backgroundColor: "hsl(var(--card))" }}
           >
-            <p className="text-[11px] uppercase font-semibold tracking-wider text-muted-foreground mb-1.5">
+            <p className="text-[10px] sm:text-[11px] uppercase font-semibold tracking-wider text-muted-foreground mb-1.5 truncate">
               {kpi.label}
             </p>
             {kpi.render}
