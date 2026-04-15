@@ -271,8 +271,9 @@ async function handle(req: NextRequest) {
 
     const success = await sendEmail({
       to: user.email,
-      subject: `☀️ Briefing ${formattedDate}`,
+      subject: `Briefing — ${formattedDate}`,
       html,
+      listId: "morning-briefing.owealthinvesting.com",
     });
 
     if (success) sent++;
