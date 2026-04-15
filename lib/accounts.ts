@@ -11,19 +11,25 @@ export interface Account {
   starting_balance_usd?: number | null;
 }
 
-export type PropPhase = "phase_1" | "phase_2" | "funded";
+export type PropPhase = "phase_1" | "phase_2" | "phase_3" | "funded";
+export type DrawdownType = "static" | "trailing" | "eod";
 
 export interface PropAccountRow {
   account_id: string;
   firm_name: string;
   phase: PropPhase;
+  /** 0 = funded, 1-3 = evaluation with N phases total */
+  total_phases: number;
   starting_balance_usd: number;
   profit_target_percent: number;
   max_daily_loss_percent: number;
   max_overall_loss_percent: number;
   reset_timezone: string;
   reset_rule: string;
-  drawdown_type: "static" | "trailing";
+  drawdown_type: DrawdownType;
+  /** EOD: when HWM_EOD ≥ threshold, floor locks at trail_locked_floor_usd */
+  trail_lock_threshold_usd: number | null;
+  trail_locked_floor_usd: number | null;
 }
 
 export interface AccountWithProp extends Account {
@@ -96,7 +102,7 @@ export async function listMyAccountsWithProp(): Promise<AccountWithProp[]> {
 
   const { data: propRows } = await supabase
     .from("prop_accounts")
-    .select("account_id, firm_name, phase, starting_balance_usd, profit_target_percent, max_daily_loss_percent, max_overall_loss_percent, reset_timezone, reset_rule, drawdown_type")
+    .select("account_id, firm_name, phase, total_phases, starting_balance_usd, profit_target_percent, max_daily_loss_percent, max_overall_loss_percent, reset_timezone, reset_rule, drawdown_type, trail_lock_threshold_usd, trail_locked_floor_usd")
     .in("account_id", propIds);
 
   const propByAccountId = new Map<string, PropAccountRow>();
@@ -124,6 +130,7 @@ export function phaseLabel(phase: PropPhase): string {
   const labels: Record<PropPhase, string> = {
     phase_1: "Phase 1",
     phase_2: "Phase 2",
+    phase_3: "Phase 3",
     funded: "Funded",
   };
   return labels[phase] ?? phase;

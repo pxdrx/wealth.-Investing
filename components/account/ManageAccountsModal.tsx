@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, Wallet, Bitcoin, FlaskConical, Trash2, Pencil, Check, X } from "lucide-react";
+import { Briefcase, Wallet, Bitcoin, FlaskConical, Trash2, Pencil, Check, X, SlidersHorizontal } from "lucide-react";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase/client";
 import type { AccountWithProp, AccountKind } from "@/lib/accounts";
+import { EditAccountRulesDrawer } from "@/components/account/EditAccountRulesDrawer";
 
 interface ManageAccountsModalProps {
   open: boolean;
@@ -45,6 +46,7 @@ export function ManageAccountsModal({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [rulesEditingAccount, setRulesEditingAccount] = useState<AccountWithProp | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const groupedKinds: AccountKind[] = ["prop", "personal", "crypto", "backtest"];
@@ -250,6 +252,21 @@ export function ManageAccountsModal({
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
+                                {account.kind === "prop" && account.prop && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRulesEditingAccount(account);
+                                      setConfirmingId(null);
+                                      setEditingId(null);
+                                      setError(null);
+                                    }}
+                                    className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                    title="Editar regras da mesa"
+                                  >
+                                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -275,6 +292,20 @@ export function ManageAccountsModal({
           </div>
         )}
       </DialogContent>
+      {rulesEditingAccount?.prop && (
+        <EditAccountRulesDrawer
+          open={!!rulesEditingAccount}
+          onOpenChange={(v) => {
+            if (!v) setRulesEditingAccount(null);
+          }}
+          accountId={rulesEditingAccount.id}
+          accountName={rulesEditingAccount.name}
+          prop={rulesEditingAccount.prop}
+          onSaved={async () => {
+            await refreshAccounts();
+          }}
+        />
+      )}
     </Dialog>
   );
 }

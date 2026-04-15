@@ -38,9 +38,16 @@ interface PropFirmPreset {
   ddDaily: number;
   targetPhase1: number;
   targetPhase2: number;
+  drawdownType: "static" | "trailing" | "eod";
+  totalPhases: number; // 0 = funded-direct, 1-3 = evaluation
+  /** EOD trail lock threshold as %-of-starting (ex: 0.1 = starting+0.1%) */
+  trailLockThresholdPct: number | null;
+  /** EOD trail-locked floor as %-of-starting (ex: -2.9 = starting-2.9%) */
+  trailLockedFloorPct: number | null;
 }
 
 const PROP_FIRMS: PropFirmPreset[] = [
+  // Forex
   {
     id: "ftmo",
     name: "FTMO",
@@ -51,6 +58,10 @@ const PROP_FIRMS: PropFirmPreset[] = [
     ddDaily: 5,
     targetPhase1: 10,
     targetPhase2: 5,
+    drawdownType: "static",
+    totalPhases: 2,
+    trailLockThresholdPct: null,
+    trailLockedFloorPct: null,
   },
   {
     id: "the5ers",
@@ -62,39 +73,56 @@ const PROP_FIRMS: PropFirmPreset[] = [
     ddDaily: 5,
     targetPhase1: 8,
     targetPhase2: 5,
+    drawdownType: "static",
+    totalPhases: 2,
+    trailLockThresholdPct: null,
+    trailLockedFloorPct: null,
+  },
+  // Futures (EOD)
+  {
+    id: "lucid",
+    name: "Lucid Trading",
+    color: "#a855f7",
+    bgColor: "rgba(168, 85, 247, 0.1)",
+    borderColor: "rgba(168, 85, 247, 0.3)",
+    ddTotal: 3,
+    ddDaily: 0,
+    targetPhase1: 6,
+    targetPhase2: 0,
+    drawdownType: "eod",
+    totalPhases: 1,
+    trailLockThresholdPct: 0.1,  // +$100 em conta de 100k
+    trailLockedFloorPct: -2.9,   // $97.100 em conta de 100k
   },
   {
-    id: "fundednext",
-    name: "FundedNext",
-    color: "#8b5cf6",
-    bgColor: "rgba(139, 92, 246, 0.1)",
-    borderColor: "rgba(139, 92, 246, 0.3)",
-    ddTotal: 10,
-    ddDaily: 5,
-    targetPhase1: 8,
-    targetPhase2: 5,
+    id: "apex",
+    name: "Apex Trader Funding",
+    color: "#22d3ee",
+    bgColor: "rgba(34, 211, 238, 0.1)",
+    borderColor: "rgba(34, 211, 238, 0.3)",
+    ddTotal: 3,
+    ddDaily: 0,
+    targetPhase1: 6,
+    targetPhase2: 0,
+    drawdownType: "eod",
+    totalPhases: 1,
+    trailLockThresholdPct: 0.1,
+    trailLockedFloorPct: -2.9,
   },
   {
     id: "topstep",
-    name: "TopStep",
+    name: "Topstep",
     color: "#10b981",
     bgColor: "rgba(16, 185, 129, 0.1)",
     borderColor: "rgba(16, 185, 129, 0.3)",
-    ddTotal: 10,
-    ddDaily: 5,
-    targetPhase1: 8,
-    targetPhase2: 5,
-  },
-  {
-    id: "myforexfunds",
-    name: "MyForexFunds",
-    color: "#ef4444",
-    bgColor: "rgba(239, 68, 68, 0.1)",
-    borderColor: "rgba(239, 68, 68, 0.3)",
-    ddTotal: 10,
-    ddDaily: 5,
-    targetPhase1: 8,
-    targetPhase2: 5,
+    ddTotal: 3,
+    ddDaily: 0,
+    targetPhase1: 6,
+    targetPhase2: 0,
+    drawdownType: "eod",
+    totalPhases: 1,
+    trailLockThresholdPct: 0.1,
+    trailLockedFloorPct: -2.9,
   },
   {
     id: "other",
@@ -106,6 +134,10 @@ const PROP_FIRMS: PropFirmPreset[] = [
     ddDaily: 5,
     targetPhase1: 8,
     targetPhase2: 5,
+    drawdownType: "static",
+    totalPhases: 2,
+    trailLockThresholdPct: null,
+    trailLockedFloorPct: null,
   },
 ];
 
@@ -121,8 +153,10 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
   const [accountName, setAccountName] = useState("");
   const [balance, setBalance] = useState<number>(50000);
   const [customBalance, setCustomBalance] = useState("");
-  const [phases, setPhases] = useState<number | "funded">(2);
-  const [drawdownType, setDrawdownType] = useState<"static" | "trailing">("static");
+  const [totalPhases, setTotalPhases] = useState<number>(2); // 0 = funded, 1-3 = evaluation
+  const [drawdownType, setDrawdownType] = useState<"static" | "trailing" | "eod">("static");
+  const [trailLockThresholdUsd, setTrailLockThresholdUsd] = useState<string>("");
+  const [trailLockedFloorUsd, setTrailLockedFloorUsd] = useState<string>("");
   const [cryptoSubKind, setCryptoSubKind] = useState<"prop" | "personal" | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,8 +173,10 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
     setAccountName("");
     setBalance(50000);
     setCustomBalance("");
-    setPhases(2 as number | "funded");
+    setTotalPhases(2);
     setDrawdownType("static");
+    setTrailLockThresholdUsd("");
+    setTrailLockedFloorUsd("");
     setCryptoSubKind(null);
     setSaving(false);
     setError(null);
@@ -181,8 +217,18 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
 
   const handleSelectFirm = (firm: PropFirmPreset) => {
     setSelectedFirm(firm);
+    setDrawdownType(firm.drawdownType);
+    setTotalPhases(firm.totalPhases);
     setStep("details");
   };
+
+  // Auto-fill trail lock USD when preset + balance are known and user hasn't typed overrides
+  const computedTrailThreshold = (selectedFirm?.trailLockThresholdPct != null && drawdownType === "eod")
+    ? (customBalance ? Number(customBalance) : balance) * (1 + (selectedFirm.trailLockThresholdPct / 100))
+    : null;
+  const computedTrailFloor = (selectedFirm?.trailLockedFloorPct != null && drawdownType === "eod")
+    ? (customBalance ? Number(customBalance) : balance) * (1 + (selectedFirm.trailLockedFloorPct / 100))
+    : null;
 
   // Wraps onRefreshAccounts with a 5s timeout to prevent deadlock from getSession()
   const safeRefresh = () => {
@@ -278,13 +324,27 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       // If prop flow (including crypto-prop), create prop_accounts entry
       if (isPropFlow && selectedFirm) {
         const preset = selectedFirm;
+        const initialPhase = totalPhases === 0 ? "funded" : "phase_1";
+        const trailThresholdFinal =
+          drawdownType === "eod"
+            ? trailLockThresholdUsd
+              ? Number(trailLockThresholdUsd)
+              : computedTrailThreshold
+            : null;
+        const trailFloorFinal =
+          drawdownType === "eod"
+            ? trailLockedFloorUsd
+              ? Number(trailLockedFloorUsd)
+              : computedTrailFloor
+            : null;
         const { error: propError } = await supabase
           .from("prop_accounts")
           .insert({
             user_id: session.user.id,
             account_id: accountId,
             firm_name: firmName,
-            phase: phases === "funded" ? "funded" : `phase_${phases}`,
+            phase: initialPhase,
+            total_phases: totalPhases,
             starting_balance_usd: finalBalance,
             profit_target_percent: preset.targetPhase1,
             max_daily_loss_percent: preset.ddDaily,
@@ -292,6 +352,8 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
             reset_timezone: "America/New_York",
             reset_rule: "forex_close",
             drawdown_type: drawdownType,
+            trail_lock_threshold_usd: trailThresholdFinal,
+            trail_locked_floor_usd: trailFloorFinal,
           });
 
         if (propError) {
@@ -511,44 +573,72 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Fase atual</Label>
+                  <Label>Tipo de conta</Label>
                   <div className="flex gap-2">
-                    {([
-                      { value: 1 as number | "funded", label: "Phase 1" },
-                      { value: 2 as number | "funded", label: "Phase 2" },
-                      { value: 3 as number | "funded", label: "Phase 3" },
-                      { value: "funded" as number | "funded", label: "Funded" },
-                    ]).map((opt) => (
-                      <button
-                        key={String(opt.value)}
-                        type="button"
-                        onClick={() => setPhases(opt.value)}
-                        className={cn(
-                          "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all",
-                          phases === opt.value
-                            ? "border-blue-500 bg-blue-500/10 text-blue-500"
-                            : "border-border/60 text-muted-foreground hover:border-border"
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setTotalPhases(selectedFirm.totalPhases > 0 ? selectedFirm.totalPhases : 2)}
+                      className={cn(
+                        "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all",
+                        totalPhases > 0
+                          ? "border-blue-500 bg-blue-500/10 text-blue-500"
+                          : "border-border/60 text-muted-foreground hover:border-border"
+                      )}
+                    >
+                      Evaluation
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTotalPhases(0)}
+                      className={cn(
+                        "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all",
+                        totalPhases === 0
+                          ? "border-blue-500 bg-blue-500/10 text-blue-500"
+                          : "border-border/60 text-muted-foreground hover:border-border"
+                      )}
+                    >
+                      Funded
+                    </button>
                   </div>
                 </div>
 
+                {totalPhases > 0 && (
+                  <div className="space-y-2">
+                    <Label>Quantas fases tem o challenge?</Label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setTotalPhases(n)}
+                          className={cn(
+                            "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all",
+                            totalPhases === n
+                              ? "border-blue-500 bg-blue-500/10 text-blue-500"
+                              : "border-border/60 text-muted-foreground hover:border-border"
+                          )}
+                        >
+                          {n === 1 ? "1 fase" : `${n} fases`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Tipo de drawdown</Label>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {([
-                      { value: "static" as const, label: "Estatico", desc: "DD fixo desde o saldo inicial" },
-                      { value: "trailing" as const, label: "Trailing", desc: "DD acompanha o lucro maximo" },
+                      { value: "static" as const, label: "Fixo", desc: "DD sobre saldo inicial" },
+                      { value: "trailing" as const, label: "Trailing", desc: "DD acompanha HWM intraday" },
+                      { value: "eod" as const, label: "EOD", desc: "DD trava por fechamento diário" },
                     ]).map((opt) => (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => setDrawdownType(opt.value)}
                         className={cn(
-                          "flex-1 rounded-lg border px-3 py-2 text-left transition-all",
+                          "rounded-lg border px-3 py-2 text-left transition-all",
                           drawdownType === opt.value
                             ? "border-blue-500 bg-blue-500/10"
                             : "border-border/60 hover:border-border"
@@ -561,6 +651,37 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                   </div>
                 </div>
 
+                {drawdownType === "eod" && (
+                  <div className="space-y-3 rounded-xl border border-border/60 p-3" style={{ backgroundColor: "hsl(var(--muted) / 0.15)" }}>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-1">Trail lock (opcional)</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Em mesas como Lucid/Apex/Topstep, o floor trava permanentemente quando a conta fecha acima de um threshold. Deixe em branco para auto-preencher com base no preset.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Threshold (USD)</Label>
+                        <Input
+                          type="number"
+                          value={trailLockThresholdUsd}
+                          onChange={(e) => setTrailLockThresholdUsd(e.target.value)}
+                          placeholder={computedTrailThreshold ? `$${computedTrailThreshold.toLocaleString()}` : "—"}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Floor travado (USD)</Label>
+                        <Input
+                          type="number"
+                          value={trailLockedFloorUsd}
+                          onChange={(e) => setTrailLockedFloorUsd(e.target.value)}
+                          placeholder={computedTrailFloor ? `$${computedTrailFloor.toLocaleString()}` : "—"}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Preset preview */}
                 <div className="rounded-xl border border-border/40 p-3 space-y-1" style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}>
                   <p className="text-xs font-semibold text-muted-foreground mb-2">Regras aplicadas</p>
@@ -571,7 +692,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                     <span className="font-medium text-foreground">{selectedFirm.ddDaily}%</span>
                     <span className="text-muted-foreground">Meta Fase 1:</span>
                     <span className="font-medium text-foreground">{selectedFirm.targetPhase1}%</span>
-                    {typeof phases === "number" && phases >= 2 && (
+                    {totalPhases >= 2 && selectedFirm.targetPhase2 > 0 && (
                       <>
                         <span className="text-muted-foreground">Meta Fase 2:</span>
                         <span className="font-medium text-foreground">{selectedFirm.targetPhase2}%</span>

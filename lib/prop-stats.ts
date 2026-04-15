@@ -3,27 +3,38 @@ import { supabase } from "@/lib/supabase/client";
 
 // ── Drawdown Stats (RPC-based) ──────────────────────────────
 
+export type DrawdownType = "static" | "trailing" | "eod";
+
 export interface DrawdownStats {
   dailyPnl: number;
   overallPnl: number;
   highWaterMark: number;
+  /** Equity à HWM considerando apenas balances EOD (broker TZ) */
+  hwmEodUsd: number;
   startingBalance: number;
-  drawdownType: "static" | "trailing";
+  drawdownType: DrawdownType;
   dailyDdPct: number;
   overallDdPct: number;
+  /** USD floor abaixo do qual a conta breach-a (só relevante para EOD) */
+  eodFloorUsd: number | null;
+  /** True quando o trail lock disparou (floor permanente) */
+  eodLocked: boolean;
 }
 
 /**
  * Calls the calc_drawdown Postgres RPC and computes drawdown percentages.
  * For static: dd% = loss / startingBalance
  * For trailing: dd% = loss / highWaterMark
+ * For eod: floor = max(hwmEod, starting) - ddLimitUsd; se lock engaged, floor = trailLockedFloorUsd.
  */
 export async function getDrawdownStats(
   client: SupabaseClient,
   accountId: string,
   userId: string,
   maxDailyLossPct: number,
-  maxOverallLossPct: number
+  maxOverallLossPct: number,
+  trailLockThresholdUsd?: number | null,
+  trailLockedFloorUsd?: number | null
 ): Promise<DrawdownStats | null> {
   const { data, error } = await client.rpc("calc_drawdown", {
     p_account_id: accountId,
@@ -41,45 +52,84 @@ export async function getDrawdownStats(
   const dailyPnl = Number(row.daily_pnl) || 0;
   const overallPnl = Number(row.overall_pnl) || 0;
   const highWaterMark = Number(row.high_water_mark) || 0;
+  const hwmEodUsd = Number(row.hwm_eod_usd) || 0;
   const startingBalance = Number(row.starting_balance) || 0;
-  const drawdownType = (row.drawdown_type as "static" | "trailing") || "static";
+  const drawdownType = (row.drawdown_type as DrawdownType) || "static";
 
-  const denominator =
-    drawdownType === "trailing" ? highWaterMark : startingBalance;
-
-  // FIX TECH-008: If starting balance (or HWM for trailing) is 0, we cannot
-  // calculate a meaningful drawdown percentage. Return 0% instead of dividing
-  // by 1 which would produce absurd percentages.
-  if (denominator <= 0) {
+  if (startingBalance <= 0) {
     return {
       dailyPnl,
       overallPnl,
       highWaterMark,
+      hwmEodUsd,
       startingBalance,
       drawdownType,
       dailyDdPct: 0,
       overallDdPct: 0,
+      eodFloorUsd: null,
+      eodLocked: false,
     };
   }
 
-  // Drawdown is loss as positive %, so negate negative PnL
+  // Daily is always measured against starting balance (intraday unaffected by type)
   const dailyDdPct =
     dailyPnl < 0
-      ? Math.min(Math.abs(dailyPnl / denominator) * 100, maxDailyLossPct)
+      ? Math.min(Math.abs(dailyPnl / startingBalance) * 100, maxDailyLossPct)
       : 0;
-  const overallDdPct =
-    overallPnl < 0
-      ? Math.min(Math.abs(overallPnl / denominator) * 100, maxOverallLossPct)
-      : 0;
+
+  let overallDdPct = 0;
+  let eodFloorUsd: number | null = null;
+  let eodLocked = false;
+
+  if (drawdownType === "eod") {
+    const ddLimitUsd = startingBalance * (maxOverallLossPct / 100);
+    const hwmEodBalance = Math.max(hwmEodUsd, startingBalance);
+    const currentBalance = startingBalance + overallPnl;
+    const lockEngaged =
+      trailLockThresholdUsd != null &&
+      trailLockedFloorUsd != null &&
+      hwmEodBalance >= trailLockThresholdUsd;
+    eodLocked = lockEngaged;
+    // Floor: trava permanente se lock engajado; senão trail HWM_EOD - dd_limit
+    // (nunca menor que starting - dd_limit, pois o floor só sobe)
+    const floorNonLocked = Math.max(
+      hwmEodBalance - ddLimitUsd,
+      startingBalance - ddLimitUsd
+    );
+    eodFloorUsd = lockEngaged ? (trailLockedFloorUsd as number) : floorNonLocked;
+    // Ceiling = floor + limite → ponto em que o bar está em 0% consumido
+    const safeCeiling = eodFloorUsd + ddLimitUsd;
+    const distanceBelow = Math.max(0, safeCeiling - currentBalance);
+    overallDdPct = Math.min(
+      maxOverallLossPct,
+      (distanceBelow / startingBalance) * 100
+    );
+    if (currentBalance <= eodFloorUsd) overallDdPct = maxOverallLossPct;
+  } else if (drawdownType === "trailing") {
+    const denom = highWaterMark > 0 ? highWaterMark : startingBalance;
+    overallDdPct =
+      overallPnl < 0
+        ? Math.min(Math.abs(overallPnl / denom) * 100, maxOverallLossPct)
+        : 0;
+  } else {
+    // static
+    overallDdPct =
+      overallPnl < 0
+        ? Math.min(Math.abs(overallPnl / startingBalance) * 100, maxOverallLossPct)
+        : 0;
+  }
 
   return {
     dailyPnl,
     overallPnl,
     highWaterMark,
+    hwmEodUsd,
     startingBalance,
     drawdownType,
     dailyDdPct,
     overallDdPct,
+    eodFloorUsd,
+    eodLocked,
   };
 }
 

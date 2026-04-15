@@ -17,8 +17,9 @@ import { getPropCycleStats, getDrawdownStats, type PropCycleStats, type Drawdown
 import { type PropAccountRow, phaseLabel } from "@/lib/accounts";
 import { DrawdownBar } from "@/components/prop/DrawdownBar";
 import { StaleBadge } from "@/components/prop/StaleBadge";
+import { EditAccountRulesDrawer } from "@/components/account/EditAccountRulesDrawer";
 import { supabase } from "@/lib/supabase/client";
-import { AlertCircle, TrendingUp } from "lucide-react";
+import { AlertCircle, TrendingUp, Pencil } from "lucide-react";
 
 const RISCO_THRESHOLD_PCT = 70;
 
@@ -32,7 +33,7 @@ interface PropCardData {
 }
 
 export default function PropPage() {
-  const { accounts } = useActiveAccount();
+  const { accounts, refreshAccounts } = useActiveAccount();
   const propAccounts = accounts.filter((a) => a.kind === "prop" && a.is_active);
 
   const [cardsData, setCardsData] = useState<PropCardData[]>([]);
@@ -72,7 +73,9 @@ export default function PropPage() {
                 account.id,
                 userId,
                 propInfo.max_daily_loss_percent,
-                propInfo.max_overall_loss_percent
+                propInfo.max_overall_loss_percent,
+                propInfo.trail_lock_threshold_usd,
+                propInfo.trail_locked_floor_usd
               ),
               supabase
                 .from("journal_trades")
@@ -206,15 +209,23 @@ export default function PropPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {cardsData.map((card) => (
-          <PropAccountCard key={card.accountId} data={card} />
+          <PropAccountCard
+            key={card.accountId}
+            data={card}
+            onRulesChanged={async () => {
+              await refreshAccounts();
+              await fetchAllPropData();
+            }}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function PropAccountCard({ data }: { data: PropCardData }) {
-  const { propInfo, cycleStats, drawdownStats, accountName, lastTradeAt } = data;
+function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRulesChanged: () => Promise<void> }) {
+  const { propInfo, cycleStats, drawdownStats, accountName, lastTradeAt, accountId } = data;
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const startingBalance = propInfo.starting_balance_usd;
   const profitTargetPct = propInfo.profit_target_percent;
   const maxDailyLossPct = propInfo.max_daily_loss_percent;
@@ -230,14 +241,26 @@ function PropAccountCard({ data }: { data: PropCardData }) {
   const dailyDdPct = drawdownStats?.dailyDdPct ?? 0;
   const overallDdPct = drawdownStats?.overallDdPct ?? 0;
   const hwm = drawdownStats?.highWaterMark ?? startingBalance;
+  const hwmEod = drawdownStats?.hwmEodUsd ?? startingBalance;
   const currentEquity = startingBalance + profit;
-  const overallLossUsed = propInfo.drawdown_type === "trailing"
-    ? Math.max(0, hwm - currentEquity)
-    : Math.max(0, -profit);
+  let overallLossUsed = 0;
+  if (propInfo.drawdown_type === "trailing") {
+    overallLossUsed = Math.max(0, hwm - currentEquity);
+  } else if (propInfo.drawdown_type === "eod") {
+    const hwmEodBalance = Math.max(hwmEod, startingBalance);
+    overallLossUsed = Math.max(0, hwmEodBalance - currentEquity);
+  } else {
+    overallLossUsed = Math.max(0, -profit);
+  }
   const overallDistance = Math.max(0, maxOverallLoss - overallLossUsed);
 
   const metaProgressPct = profitTarget > 0 ? Math.min(100, (profit / profitTarget) * 100) : 0;
-  const ddTypeLabel = propInfo.drawdown_type === "trailing" ? "Trailing" : "Estático";
+  const ddTypeLabel =
+    propInfo.drawdown_type === "trailing"
+      ? "Trailing"
+      : propInfo.drawdown_type === "eod"
+      ? "EOD"
+      : "Estático";
 
   const status: "ok" | "risco" = overallDdPct >= RISCO_THRESHOLD_PCT ? "risco" : "ok";
 
@@ -257,6 +280,14 @@ function PropAccountCard({ data }: { data: PropCardData }) {
           ) : (
             <Badge variant="warning">Risco</Badge>
           )}
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title="Editar regras"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -318,6 +349,14 @@ function PropAccountCard({ data }: { data: PropCardData }) {
           />
         </div>
       </CardContent>
+      <EditAccountRulesDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        accountId={accountId}
+        accountName={accountName}
+        prop={propInfo}
+        onSaved={onRulesChanged}
+      />
     </Card>
   );
 }
