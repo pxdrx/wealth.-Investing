@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { ddAnalysisRateLimit } from "@/lib/rate-limit";
+import { getTierLimits } from "@/lib/subscription-shared";
+import type { Plan } from "@/lib/subscription-shared";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -21,6 +24,45 @@ export async function POST(req: NextRequest) {
   const { data: { user }, error: authErr } = await supabaseUser.auth.getUser();
   if (authErr || !user) {
     return NextResponse.json({ ok: false, error: "Token inválido" }, { status: 401 });
+  }
+  const userId = user.id;
+
+  // Burst rate limit
+  const { success: withinBurst, remaining } = await ddAnalysisRateLimit.limit(userId);
+  if (!withinBurst) {
+    return NextResponse.json(
+      { ok: false, error: "Muitas requisições. Aguarde um momento." },
+      { status: 429, headers: { "X-RateLimit-Remaining": String(remaining) } }
+    );
+  }
+
+  // Tier quota (shares the ai_usage bucket with AI Coach)
+  const { data: sub } = await supabaseUser
+    .from("subscriptions")
+    .select("plan")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const plan: Plan = ((sub as { plan?: Plan } | null)?.plan) ?? "free";
+  const limits = getTierLimits(plan);
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
+  const { data: usage } = await supabaseUser
+    .from("ai_usage")
+    .select("usage_count")
+    .eq("user_id", userId)
+    .eq("month", currentMonth)
+    .maybeSingle();
+
+  const usageCount = (usage as { usage_count?: number } | null)?.usage_count ?? 0;
+  if (usageCount >= limits.aiCoachMonthly) {
+    return NextResponse.json({
+      ok: false,
+      error: "quota_exceeded",
+      limit: limits.aiCoachMonthly,
+      used: usageCount,
+      plan,
+    }, { status: 429 });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -73,6 +115,15 @@ Analise a sequência dos trades, os símbolos operados, horários, resultado ind
 
 Seja direto, sem rodeios, sem frases genéricas de coaching. Fale como um gestor de risco que precisa explicar ao trader o que aconteceu e por quê. Use os dados específicos. Em PT-BR. Máximo 250 palavras.`;
 
+  // Optimistic increment before Anthropic call
+  const { error: incrError } = await supabaseUser.rpc("increment_ai_usage", {
+    p_user_id: userId,
+    p_month: currentMonth,
+  });
+  if (incrError) {
+    console.warn("[dd-analysis] increment error:", incrError.message);
+  }
+
   try {
     const response = await getAnthropic().messages.create({
       model: "claude-sonnet-4-6",
@@ -88,6 +139,13 @@ Seja direto, sem rodeios, sem frases genéricas de coaching. Fale como um gestor
     return NextResponse.json({ ok: true, data: { analysis: text } });
   } catch (err) {
     console.error("[dd-analysis] Claude API error:", err);
+    // Rollback on failure
+    try {
+      await supabaseUser.rpc("decrement_ai_usage", {
+        p_user_id: userId,
+        p_month: currentMonth,
+      });
+    } catch {}
     return NextResponse.json({ ok: false, error: "Erro na análise. Tente novamente." }, { status: 500 });
   }
 }

@@ -28,3 +28,17 @@ export const apiRateLimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(30, "60 s"),
   prefix: "ratelimit:api",
 });
+
+// DD analysis: 3 requests per 60 seconds per user
+export const ddAnalysisRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(3, "60 s"),
+  prefix: "ratelimit:dd-analysis",
+});
+
+// Psychology analysis: 3 requests per 60 seconds per user
+export const psychologyRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(3, "60 s"),
+  prefix: "ratelimit:psychology",
+});

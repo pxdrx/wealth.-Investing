@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
+import { psychologyRateLimit } from "@/lib/rate-limit";
+import { getTierLimits } from "@/lib/subscription-shared";
+import type { Plan } from "@/lib/subscription-shared";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -180,6 +183,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Token inválido" }, { status: 401 });
   }
 
+  // 1b. Burst rate limit (Upstash)
+  const { success: withinBurst, remaining } = await psychologyRateLimit.limit(user.id);
+  if (!withinBurst) {
+    return NextResponse.json(
+      { ok: false, error: "Muitas requisições. Aguarde um momento." },
+      { status: 429, headers: { "X-RateLimit-Remaining": String(remaining) } }
+    );
+  }
+
   // 2. Parse body
   const body = await req.json().catch(() => ({}));
   const accountId = body.account_id as string | undefined;
@@ -283,6 +295,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Análise IA indisponível no momento. A chave da API não está configurada." }, { status: 503 });
   }
 
+  // Tier quota check (shares ai_usage bucket with AI Coach)
+  const { data: subRow } = await supabase
+    .from("subscriptions")
+    .select("plan")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const plan: Plan = ((subRow as { plan?: Plan } | null)?.plan) ?? "free";
+  const limits = getTierLimits(plan);
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
+  const { data: usageRow } = await supabase
+    .from("ai_usage")
+    .select("usage_count")
+    .eq("user_id", user.id)
+    .eq("month", currentMonth)
+    .maybeSingle();
+
+  const usageCount = (usageRow as { usage_count?: number } | null)?.usage_count ?? 0;
+  if (usageCount >= limits.aiCoachMonthly) {
+    return NextResponse.json({
+      ok: false,
+      error: "quota_exceeded",
+      limit: limits.aiCoachMonthly,
+      used: usageCount,
+      plan,
+    }, { status: 429 });
+  }
+
+  // Optimistic increment
+  const { error: incrError } = await supabase.rpc("increment_ai_usage", {
+    p_user_id: user.id,
+    p_month: currentMonth,
+  });
+  if (incrError) {
+    console.warn("[psychology] increment error:", incrError.message);
+  }
+
   try {
     const response = await getAnthropic().messages.create({
       model: "claude-sonnet-4-6",
@@ -337,6 +387,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, data: analysis, cached: false, generated_at: new Date().toISOString() });
   } catch (err) {
+    // Rollback usage on failure
+    try {
+      await supabase.rpc("decrement_ai_usage", {
+        p_user_id: user.id,
+        p_month: currentMonth,
+      });
+    } catch {}
+
     const error = err as Error;
     const msg = error.message || String(err);
     console.error("[psychology] Claude API error:", msg);
