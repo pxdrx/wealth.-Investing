@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, toFriendlyMessage } from "@/lib/profile";
 
 const easeApple = [0.16, 1, 0.3, 1] as const;
-type Mode = "signin" | "signup" | "magic";
+type Mode = "signin" | "signup" | "magic" | "forgot";
 
 function GoogleIcon() {
   return (
@@ -37,6 +37,7 @@ export default function LoginPage() {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirm, setSignupConfirm] = useState("");
   const [magicEmail, setMagicEmail] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,17 @@ export default function LoginPage() {
   const callbackError = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("error")
     : null;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("info") === "password-updated") {
+      setInfo("Senha atualizada com sucesso. Entre com a nova senha.");
+    }
+    if (params.get("error") === "callback") {
+      setError("Falha ao autenticar. Tente novamente.");
+    }
+  }, []);
 
   useEffect(() => {
     if (!isExiting) return;
@@ -101,6 +113,20 @@ export default function LoginPage() {
       });
       if (err) { setError(err.message); return; }
       setInfo("Link enviado! Verifique seu e-mail.");
+    } catch (err) { setError(toFriendlyMessage(err)); }
+    finally { setLoading(false); }
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault(); setError(null); setInfo(null);
+    if (!forgotEmail.trim()) { setError("Informe o e-mail."); return; }
+    setLoading(true);
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (err) { setError(err.message); return; }
+      setInfo("Se existir uma conta com este e-mail, enviamos um link para redefinir a senha.");
     } catch (err) { setError(toFriendlyMessage(err)); }
     finally { setLoading(false); }
   }
@@ -200,6 +226,7 @@ export default function LoginPage() {
             transition={{ duration: 0.6, delay: 0.2, ease: easeApple }}
           >
             {/* Tab bar */}
+            {mode !== "forgot" && (
             <div className="flex items-center gap-1 rounded-full bg-muted p-1.5 mb-8 border border-border/30">
               {MODES.map(({ key, label }) => (
                 <button
@@ -217,6 +244,7 @@ export default function LoginPage() {
                 </button>
               ))}
             </div>
+            )}
 
             {/* Feedback messages */}
             {error && (
@@ -243,7 +271,7 @@ export default function LoginPage() {
                 transition={{ duration: 0.25, ease: easeApple }}
               >
                 {/* Google Button */}
-                {mode !== "magic" && (
+                {mode !== "magic" && mode !== "forgot" && (
                   <>
                     <button type="button" onClick={handleGoogle} disabled={loading}
                       className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-border bg-card py-3.5 text-[14px] font-semibold text-foreground transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98]">
@@ -270,7 +298,7 @@ export default function LoginPage() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center px-1">
                         <label htmlFor="signin-password" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Senha</label>
-                        <a href="#" className="text-[11px] font-bold text-foreground hover:underline" onClick={(e) => { e.preventDefault(); setError("A recuperar senha ainda não foi implementada neste demo."); }}>Esqueceu a senha?</a>
+                        <a href="#" className="text-[11px] font-bold text-foreground hover:underline" onClick={(e) => { e.preventDefault(); setForgotEmail(email); switchMode("forgot"); }}>Esqueceu a senha?</a>
                       </div>
                       <input id="signin-password"
                         type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" 
@@ -335,6 +363,29 @@ export default function LoginPage() {
                     </div>
                     <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
                       {loading ? "Enviando e-mail..." : "Enviar link mágico"}
+                    </button>
+                  </form>
+                )}
+
+                {/* FORGOT PASSWORD FORM */}
+                {mode === "forgot" && (
+                  <form onSubmit={handleForgotPassword} className="space-y-5">
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-extrabold text-foreground tracking-tight">Redefinir senha</h3>
+                      <p className="text-[14px] text-muted-foreground leading-relaxed">
+                        Digite seu e-mail e enviaremos um link para você criar uma nova senha.
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label htmlFor="forgot-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">E-mail</label>
+                      <input id="forgot-email" type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder="seu@email.com"
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" />
+                    </div>
+                    <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
+                      {loading ? "Enviando..." : "Enviar link de redefinição"}
+                    </button>
+                    <button type="button" onClick={() => switchMode("signin")} className="w-full text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                      ← Voltar para entrar
                     </button>
                   </form>
                 )}
