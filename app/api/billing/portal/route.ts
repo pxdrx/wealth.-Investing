@@ -25,9 +25,17 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
 
+    let intent: "cancel" | "manage" = "manage";
+    try {
+      const body = await req.json();
+      if (body?.intent === "cancel") intent = "cancel";
+    } catch {
+      // no body — ok, default manage
+    }
+
     const { data: sub, error: subErr } = await supabase
       .from("subscriptions")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, stripe_subscription_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -49,10 +57,23 @@ export async function POST(req: NextRequest) {
     const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     try {
-      const session = await getStripe().billingPortal.sessions.create({
+      const params: Stripe.BillingPortal.SessionCreateParams = {
         customer: sub.stripe_customer_id,
         return_url: `${origin}/app/settings`,
-      });
+      };
+
+      if (intent === "cancel" && sub.stripe_subscription_id) {
+        params.flow_data = {
+          type: "subscription_cancel",
+          subscription_cancel: { subscription: sub.stripe_subscription_id },
+          after_completion: {
+            type: "redirect",
+            redirect: { return_url: `${origin}/app/settings?canceled=1` },
+          },
+        };
+      }
+
+      const session = await getStripe().billingPortal.sessions.create(params);
       return NextResponse.json({ ok: true, url: session.url });
     } catch (stripeErr) {
       const err = stripeErr as Stripe.errors.StripeError;

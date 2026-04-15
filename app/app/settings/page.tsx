@@ -59,6 +59,21 @@ export default function SettingsPage() {
   // ── Portal loading ──
   const [portalLoading, setPortalLoading] = useState(false);
 
+  // ── Cancelamento feedback (retorno do Stripe portal) ──
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("canceled") === "1") {
+      setSaveMsg({
+        type: "success",
+        text: "Assinatura cancelada. Você mantém acesso até o fim do período atual.",
+      });
+      params.delete("canceled");
+      const qs = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    }
+  }, []);
+
   // ── Churn prevention modal ──
   const [showChurnModal, setShowChurnModal] = useState(false);
   const [userId, setUserId] = useState<string>("");
@@ -277,7 +292,7 @@ export default function SettingsPage() {
   }, []);
 
   // ── Open Stripe portal ──
-  const openPortal = useCallback(async () => {
+  const openPortal = useCallback(async (opts?: { cancelFlow?: boolean }) => {
     setPortalLoading(true);
     try {
       const {
@@ -291,18 +306,29 @@ export default function SettingsPage() {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ intent: opts?.cancelFlow ? "cancel" : "manage" }),
+        signal: AbortSignal.timeout(15000),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.url) {
-        throw new Error(json.error === "No subscription found"
-          ? "Nenhuma assinatura encontrada para gerenciar."
-          : json.error ?? "Erro ao abrir portal de pagamentos");
+        const code = json?.code as string | undefined;
+        if (code === "no_subscription" || code === "stale_customer") {
+          alert(json?.error ?? "Você ainda não tem uma assinatura ativa. Redirecionando para o pricing.");
+          window.location.href = "/app/pricing";
+          return;
+        }
+        throw new Error(json?.error ?? "Erro ao abrir portal de pagamentos");
       }
-      // Clear loading BEFORE redirect
       setPortalLoading(false);
       window.location.href = json.url;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao abrir portal";
+      const isTimeout = err instanceof DOMException && err.name === "TimeoutError";
+      const msg = isTimeout
+        ? "O portal da Stripe demorou demais para responder. Tente novamente."
+        : err instanceof Error
+        ? err.message
+        : "Erro ao abrir portal";
+      alert(msg);
       setSaveMsg({ type: "error", text: msg });
       setPortalLoading(false);
     }
@@ -519,7 +545,7 @@ export default function SettingsPage() {
                   <Button
                     variant="outline"
                     className="rounded-full"
-                    onClick={openPortal}
+                    onClick={() => openPortal()}
                     disabled={portalLoading}
                   >
                     {portalLoading ? (
@@ -788,7 +814,7 @@ export default function SettingsPage() {
               onClose={() => setShowChurnModal(false)}
               onConfirmCancel={() => {
                 setShowChurnModal(false);
-                openPortal();
+                openPortal({ cancelFlow: true });
               }}
               userId={userId}
             />
