@@ -62,6 +62,12 @@ export default function ResetPasswordPage() {
     try {
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) { setError(err.message); setStatus("ready"); return; }
+      // Clear recovery session so user logs in fresh with new password
+      try {
+        const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0] ?? "";
+        localStorage.removeItem(`sb-${projectRef}-auth-token`);
+        sessionStorage.clear();
+      } catch {}
       window.location.href = "/login?info=password-updated";
     } catch (err) {
       setError(toFriendlyMessage(err));

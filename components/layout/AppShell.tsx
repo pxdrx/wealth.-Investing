@@ -56,7 +56,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname === "/changelog" ||
     pathname === "/blog" ||
     pathname === "/pricing" ||
-    pathname === "/risk-disclaimer";
+    pathname === "/risk-disclaimer" ||
+    pathname?.startsWith("/reset-password");
 
   return (
     <AuthEventProvider>
