@@ -45,8 +45,6 @@ interface TradeNoteRow {
   closed_at: string | null;
   context: string | null;
   custom_tags: string[] | null;
-  notes: string | null;
-  mistakes: string[] | null;
   pnl_usd: number | null;
   fees_usd: number | null;
   net_pnl_usd: number | null;
@@ -114,11 +112,13 @@ export function NotesHistory({
       .eq("user_id", userId)
       .order("date", { ascending: false });
 
-    // Trade notes — filtered by active account if provided; widened to all plausible annotation fields
+    // Trade notes — scoped to active account. Backtest trades are isolated in
+    // their own backtest account; never include notes/mistakes columns (those
+    // belong to the backtest flow).
     let tradeQuery = supabase
       .from("journal_trades")
       .select(
-        "id, symbol, direction, opened_at, closed_at, context, custom_tags, notes, mistakes, pnl_usd, fees_usd, net_pnl_usd"
+        "id, symbol, direction, opened_at, closed_at, context, custom_tags, pnl_usd, fees_usd, net_pnl_usd"
       )
       .eq("user_id", userId);
     if (accountId) tradeQuery = tradeQuery.eq("account_id", accountId);
@@ -131,15 +131,8 @@ export function NotesHistory({
     if (!tradeRes.error) {
       const clean = (tradeRes.data ?? []).filter((t) => {
         const ctx = (t.context ?? "").trim();
-        const notesTxt = (t.notes ?? "").trim();
         const tags = Array.isArray(t.custom_tags) ? t.custom_tags.filter(Boolean) : [];
-        const mistakes = Array.isArray(t.mistakes) ? t.mistakes.filter(Boolean) : [];
-        return (
-          ctx.length > 0 ||
-          notesTxt.length > 0 ||
-          tags.length > 0 ||
-          mistakes.length > 0
-        );
+        return ctx.length > 0 || tags.length > 0;
       });
       setTradeNotes(clean as TradeNoteRow[]);
     } else {
@@ -168,22 +161,12 @@ export function NotesHistory({
       });
     }
     for (const t of tradeNotes) {
-      const parts: string[] = [];
-      const ctx = (t.context ?? "").trim();
-      const notesTxt = (t.notes ?? "").trim();
-      if (ctx) parts.push(ctx);
-      if (notesTxt && notesTxt !== ctx) parts.push(notesTxt);
-      const tags = [
-        ...(Array.isArray(t.custom_tags) ? t.custom_tags.filter(Boolean) : []),
-        ...(Array.isArray(t.mistakes)
-          ? t.mistakes.filter(Boolean).map((m) => `erro: ${m}`)
-          : []),
-      ];
+      const tags = Array.isArray(t.custom_tags) ? t.custom_tags.filter(Boolean) : [];
       arr.push({
         kind: "trade",
         id: t.id,
         date: t.closed_at || t.opened_at,
-        text: parts.join("\n\n"),
+        text: (t.context ?? "").trim(),
         tags,
         symbol: t.symbol,
         direction: t.direction,
@@ -223,8 +206,6 @@ export function NotesHistory({
           .update({
             context: null,
             custom_tags: null,
-            notes: null,
-            mistakes: null,
           })
           .eq("id", item.id)
           .eq("user_id", userId);
