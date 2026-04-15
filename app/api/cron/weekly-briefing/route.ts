@@ -10,6 +10,7 @@ import { FAIRECONOMY_NEXT_WEEK_URL } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
 import { invalidateCache } from "@/lib/cache";
 import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
+import { acquireCronLock } from "@/lib/cron-lock";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -60,6 +61,10 @@ export async function POST(req: NextRequest) {
   // Only run on Saturday (6) or Sunday (0) in UTC. Allow manual override via ?force=1
   const utcDay = new Date().getUTCDay();
   const force = req.nextUrl.searchParams.get("force") === "1";
+
+  if (!force && !(await acquireCronLock("weekly-briefing"))) {
+    return NextResponse.json({ ok: true, skipped: "lock_held" });
+  }
   if (!force && utcDay !== 0 && utcDay !== 6) {
     console.log("[weekly-briefing] skipped — not weekend (utcDay=", utcDay, ")");
     return NextResponse.json({ ok: true, skipped: "not_weekend", utcDay });

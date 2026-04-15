@@ -7,8 +7,8 @@ import { getSupabaseConfig } from "./env";
  * Throws SupabaseConfigError if env is missing or invalid.
  */
 export function createSupabaseClientForUser(accessToken: string) {
-  const { url, anonKey } = getSupabaseConfig();
-  return createClient(url, anonKey, {
+  const { url, anonKey, poolerUrl } = getSupabaseConfig();
+  return createClient(poolerUrl ?? url, anonKey, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
 }

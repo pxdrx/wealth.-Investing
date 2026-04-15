@@ -5,6 +5,7 @@ import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { scrapeTeCalendarActuals } from "@/lib/macro/te-scraper";
 import { mergeTeActuals } from "@/lib/macro/actuals-merger";
 import { requireEnv } from "@/lib/env";
+import { acquireCronLock } from "@/lib/cron-lock";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -19,6 +20,10 @@ export const maxDuration = 30;
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!(await acquireCronLock("calendar-sync-pm", 120))) {
+    return NextResponse.json({ ok: true, skipped: "lock_held" });
   }
 
   try {

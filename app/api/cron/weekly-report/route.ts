@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { sendEmail } from "@/lib/email/send";
 import { renderWeeklyReport } from "@/lib/email/templates/weekly-report";
+import { acquireCronLock } from "@/lib/cron-lock";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -14,6 +15,10 @@ export async function POST(req: NextRequest) {
 
   // Test mode: ?test_email=user@example.com — sends only to that email (skips subscription check)
   const testEmail = req.nextUrl.searchParams.get("test_email");
+
+  if (!testEmail && !(await acquireCronLock("weekly-report"))) {
+    return NextResponse.json({ ok: true, skipped: "lock_held" });
+  }
 
   // Only run on Sunday (UTC). Skip otherwise unless test_email provided.
   const utcDay = new Date().getUTCDay();

@@ -8,6 +8,7 @@ import { fetchRatesViaApify } from "@/lib/macro/apify/rates-scraper";
 import { scrapeTradingEconomicsRates } from "@/lib/macro/scrapers/te-rates";
 import { requireEnv } from "@/lib/env";
 import { invalidateCache } from "@/lib/cache";
+import { acquireCronLock } from "@/lib/cron-lock";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -20,10 +21,17 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  let viaAdmin = false;
   if (!verifyCronAuth(req)) {
-    if (!(await isAdminRequest(req))) {
+    if (await isAdminRequest(req)) {
+      viaAdmin = true;
+    } else {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
+  }
+
+  if (!viaAdmin && !(await acquireCronLock("rates-sync", 180))) {
+    return NextResponse.json({ ok: true, skipped: "lock_held" });
   }
 
   const supabase = getSupabaseAdmin();

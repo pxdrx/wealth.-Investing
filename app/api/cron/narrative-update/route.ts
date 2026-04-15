@@ -7,6 +7,7 @@ import { getWeekStart } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
 import { invalidateCache } from "@/lib/cache";
 import type { EconomicEvent } from "@/lib/macro/types";
+import { acquireCronLock } from "@/lib/cron-lock";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -28,6 +29,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const eventId = body.event_id;
+
+    // Lock per event to prevent duplicate narrative generation on retry
+    const lockKey = eventId ? `narrative-update:${eventId}` : "narrative-update";
+    if (!(await acquireCronLock(lockKey, 120))) {
+      return NextResponse.json({ ok: true, skipped: "lock_held" });
+    }
 
     if (!eventId) {
       return NextResponse.json({ ok: false, error: "Missing event_id" }, { status: 400 });

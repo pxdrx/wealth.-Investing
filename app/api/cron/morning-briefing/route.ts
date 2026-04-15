@@ -4,6 +4,7 @@ import { verifyCronAuthDetailed } from "@/lib/macro/cron-auth";
 import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { sendEmail } from "@/lib/email/send";
 import { renderMorningBriefing } from "@/lib/email/templates/morning-briefing";
+import { acquireCronLock } from "@/lib/cron-lock";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -40,6 +41,13 @@ export async function POST(req: NextRequest) {
   }
 
   console.log("[morning-briefing] authorized via", viaAdmin ? "admin" : "cron_secret");
+
+  // Distributed lock — prevents Vercel double-invocation sending duplicate briefings.
+  // Skipped for admin-triggered runs (manual retests must never be silently dropped).
+  if (!viaAdmin && !(await acquireCronLock("morning-briefing"))) {
+    console.log("[morning-briefing] skipped — lock held by another invocation");
+    return NextResponse.json({ ok: true, skipped: "lock_held" });
+  }
 
   console.log("[morning-briefing] cron fired", new Date().toISOString());
 

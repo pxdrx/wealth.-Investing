@@ -59,6 +59,7 @@ function validateAnonKey(key: string | undefined): key is string {
 export interface SupabaseConfig {
   url: string;
   anonKey: string;
+  poolerUrl: string | null;
 }
 
 /**
@@ -96,8 +97,12 @@ export function getSupabaseConfig(): SupabaseConfig {
     console.debug("[Supabase] config ok", { urlPrefix: url!.trim().slice(0, 28) + "..." });
   }
 
+  const poolerRaw = process.env.SUPABASE_POOLER_URL;
+  const poolerUrl = validateUrl(poolerRaw) ? poolerRaw!.trim() : null;
+
   return {
     url: url!.trim(),
     anonKey: anonKey!.trim(),
+    poolerUrl,
   };
 }

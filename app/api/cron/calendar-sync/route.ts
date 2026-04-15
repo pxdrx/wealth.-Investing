@@ -10,6 +10,7 @@ import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetche
 import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
 import { invalidateCachePattern, invalidateCache } from "@/lib/cache";
+import { acquireCronLock } from "@/lib/cron-lock";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -21,10 +22,17 @@ function getSupabaseAdmin() {
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  let viaAdmin = false;
   if (!verifyCronAuth(req)) {
-    if (!(await isAdminRequest(req))) {
+    if (await isAdminRequest(req)) {
+      viaAdmin = true;
+    } else {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
+  }
+
+  if (!viaAdmin && !(await acquireCronLock("calendar-sync", 180))) {
+    return NextResponse.json({ ok: true, skipped: "lock_held" });
   }
 
   const supabase = getSupabaseAdmin();

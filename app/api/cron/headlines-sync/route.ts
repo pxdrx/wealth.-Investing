@@ -14,6 +14,7 @@ import { getWeekStart } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
 import { invalidateCache } from "@/lib/cache";
 import type { MacroHeadline } from "@/lib/macro/types";
+import { acquireCronLock } from "@/lib/cron-lock";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -28,6 +29,10 @@ export const maxDuration = 120;
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!(await acquireCronLock("headlines-sync", 240))) {
+    return NextResponse.json({ ok: true, skipped: "lock_held" });
   }
 
   const supabase = getSupabaseAdmin();
