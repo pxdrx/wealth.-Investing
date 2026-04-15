@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb, Loader2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
+import { useAuthEvent } from "@/components/context/AuthEventContext";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { getTierLimits } from "@/lib/subscription-shared";
 import { ChatMessage } from "@/components/ai/ChatMessage";
@@ -82,6 +83,7 @@ const MAX_HISTORY = 50;
 
 function AICoachPageInner() {
   const { activeAccountId } = useActiveAccount();
+  const { session: ctxSession } = useAuthEvent();
   const { plan, isUltra: isUltraTier } = useSubscription();
   const limits = getTierLimits(plan);
   const searchParams = useSearchParams();
@@ -116,22 +118,30 @@ function AICoachPageInner() {
 
   const hasMessages = messages.length > 0;
 
-  // Helper to get auth token
+  // Helper to get auth token.
+  // Prefer the session broadcast by AuthEventProvider (no network, no lock) to
+  // avoid stalling on soft-nav when multiple effects would otherwise call
+  // supabase.auth.getSession() concurrently. Fall back to getSession() only if
+  // the context hasn't populated yet (initial paint before INITIAL_SESSION fires).
   const getToken = useCallback(async () => {
+    if (ctxSession?.access_token) return ctxSession.access_token;
     try {
-      const result = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("getToken timeout")), 5_000)),
-      ]);
-      return result.data.session?.access_token ?? null;
-    } catch {
-      console.warn("[ai-coach] getToken timed out");
+      const { data } = await supabase.auth.getSession();
+      return data.session?.access_token ?? null;
+    } catch (err) {
+      console.warn("[ai-coach] getToken failed:", err);
       return null;
     }
-  }, []);
+  }, [ctxSession]);
 
-  // Load conversations list and initialize active conversation
+  // Load conversations list and initialize active conversation.
+  // Re-runs when ctxSession arrives so soft-nav (where ctxSession is null on
+  // first render) still bootstraps once the session is broadcast.
+  const initConversationsRanRef = useRef(false);
   useEffect(() => {
+    if (initConversationsRanRef.current) return;
+    if (!ctxSession?.access_token) return;
+    initConversationsRanRef.current = true;
     async function initConversations() {
       try {
         const token = await getToken();
@@ -181,10 +191,10 @@ function AICoachPageInner() {
       }
     }
     initConversations();
-    // Run once on mount — loads or creates the initial conversation list.
-    // supabase and searchParams at mount time are the only inputs needed.
+    // Re-run when ctxSession changes so we bootstrap as soon as the session
+    // becomes available (important on soft-nav where initial render has null).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ctxSession]);
 
   // React to URL searchParams changes (e.g., sidebar conversation clicks, browser back/forward)
   useEffect(() => {
@@ -201,36 +211,35 @@ function AICoachPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Load current usage
+  // Load current usage — waits for context session before querying, so on
+  // soft-nav we don't fire a second getSession() that could race.
   useEffect(() => {
+    const userId = ctxSession?.user?.id;
+    if (!userId) {
+      // Wait for session. If it never arrives, safety timeout will flip usageLoaded.
+      return;
+    }
+    let cancelled = false;
     async function loadUsage() {
       try {
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<{ data: { session: null } }>((resolve) =>
-            setTimeout(() => resolve({ data: { session: null } }), 4_000),
-          ),
-        ]);
-        if (!session?.user?.id) return;
         const currentMonth = new Date().toISOString().slice(0, 7);
         const { data } = await supabase
           .from("ai_usage")
           .select("usage_count")
-          .eq("user_id", session.user.id)
+          .eq("user_id", userId)
           .eq("month", currentMonth)
           .maybeSingle();
+        if (cancelled) return;
         setUsageCount((data as { usage_count?: number } | null)?.usage_count ?? 0);
       } catch (err) {
         console.error("[ai-coach] loadUsage failed:", err);
       } finally {
-        setUsageLoaded(true);
+        if (!cancelled) setUsageLoaded(true);
       }
     }
     loadUsage();
-    // Run once on mount — usage count is loaded once and updated after
-    // each AI message send, not via re-running this effect.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => { cancelled = true; };
+  }, [ctxSession]);
 
   // Load chat history for active conversation
   useEffect(() => {
@@ -245,20 +254,16 @@ function AICoachPageInner() {
         setHistoryLoaded(true);
         return;
       }
+      const userId = ctxSession?.user?.id;
+      if (!userId) {
+        // Context session not ready yet; effect will re-run when ctxSession changes.
+        return;
+      }
       try {
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5_000)),
-        ]);
-        if (!session?.user?.id) {
-          setHistoryLoaded(true);
-          return;
-        }
-
         const { data, error } = await supabase
           .from("ai_coach_messages")
           .select("id, role, content, created_at")
-          .eq("user_id", session.user.id)
+          .eq("user_id", userId)
           .eq("conversation_id", activeConversationId)
           .order("created_at", { ascending: true })
           .limit(MAX_HISTORY);
@@ -284,19 +289,32 @@ function AICoachPageInner() {
     }
     setHistoryLoaded(false);
     loadHistory();
-  }, [activeConversationId]);
+    // Depend on ctxSession so history loads as soon as session becomes available
+    // after soft-nav (when context session may be null on first render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversationId, ctxSession]);
 
-  // Safety timeout: force loaded flags after 10s to prevent infinite spinner
+  // Safety timeout: force loaded flags after 3s to prevent infinite spinner.
+  // Shortened from 10s because with ctx-session plumbing the happy path is
+  // <500ms; anything taking 3s indicates a real stall we want to surface.
+  // Logs which flag was stuck so we can diagnose remaining edge cases.
   useEffect(() => {
     const timeout = setTimeout(() => {
-      setConversationsLoaded(true);
-      setHistoryLoaded(true);
-      setUsageLoaded(true);
-      if (typeof window !== "undefined") {
-        console.warn("[AI Coach] Safety timeout: forced loaded flags after 10s");
-      }
-    }, 10_000);
+      setConversationsLoaded((prev) => {
+        if (!prev) console.warn("[AI Coach] Safety timeout: conversationsLoaded was still false after 3s");
+        return true;
+      });
+      setHistoryLoaded((prev) => {
+        if (!prev) console.warn("[AI Coach] Safety timeout: historyLoaded was still false after 3s", { activeConversationId, hasCtxSession: Boolean(ctxSession) });
+        return true;
+      });
+      setUsageLoaded((prev) => {
+        if (!prev) console.warn("[AI Coach] Safety timeout: usageLoaded was still false after 3s", { hasCtxSession: Boolean(ctxSession) });
+        return true;
+      });
+    }, 3_000);
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Scroll to bottom when history loads or new messages arrive
