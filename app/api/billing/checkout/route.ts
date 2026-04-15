@@ -64,6 +64,29 @@ export async function POST(req: NextRequest) {
 
     let customerId = existingSub?.stripe_customer_id;
 
+    // Self-heal: if cached customer doesn't exist in live mode (common after
+    // test↔live switch or manual deletion), clear it and recreate.
+    if (customerId) {
+      try {
+        const existing = await getStripe().customers.retrieve(customerId);
+        if ((existing as { deleted?: boolean }).deleted) {
+          customerId = undefined;
+        }
+      } catch (retrieveErr) {
+        const re = retrieveErr as { code?: string; raw?: { code?: string } };
+        if ((re?.code || re?.raw?.code) === "resource_missing") {
+          console.warn("[billing/checkout] Stale customer", customerId, "— recreating");
+          await supabase
+            .from("subscriptions")
+            .update({ stripe_customer_id: null })
+            .eq("user_id", user.id);
+          customerId = undefined;
+        } else {
+          throw retrieveErr;
+        }
+      }
+    }
+
     if (!customerId) {
       const customer = await getStripe().customers.create({
         email: user.email,

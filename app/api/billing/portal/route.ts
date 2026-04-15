@@ -64,6 +64,23 @@ export async function POST(req: NextRequest) {
         statusCode: err?.statusCode,
       });
 
+      // Self-heal: stale customer_id (common after test↔live switch). Clear it
+      // so the next checkout creates a fresh one in the current Stripe mode.
+      if (err?.code === "resource_missing" && (err?.message || "").includes("No such customer")) {
+        await supabase
+          .from("subscriptions")
+          .update({ stripe_customer_id: null })
+          .eq("user_id", user.id);
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Sua assinatura precisa ser revinculada. Abra uma nova no /app/pricing.",
+            code: "stale_customer",
+          },
+          { status: 404 },
+        );
+      }
+
       const portalInactive =
         err?.code === "billing_portal_configuration_inactive" ||
         (err?.message || "").toLowerCase().includes("customer portal");
