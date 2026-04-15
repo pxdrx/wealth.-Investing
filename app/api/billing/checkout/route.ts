@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStripe, PRICE_IDS } from "@/lib/stripe";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 type PlanInterval = "pro_monthly" | "pro_annual" | "ultra_monthly" | "ultra_annual";
 
 export async function POST(req: NextRequest) {
+  const isDev = process.env.NODE_ENV !== "production";
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json(
+        { ok: false, error: "Stripe não configurado no servidor." },
+        { status: 503 },
+      );
+    }
     const token = req.headers.get("authorization")?.replace("Bearer ", "");
     if (!token) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
@@ -29,7 +39,17 @@ export async function POST(req: NextRequest) {
       planInterval = body.plan as PlanInterval;
     }
     const priceId = PRICE_IDS[planInterval];
-    if (!priceId) return NextResponse.json({ ok: false, error: "Invalid plan" }, { status: 400 });
+    if (!priceId) {
+      console.error("[billing/checkout] Missing price ID for", planInterval, "— env not set in Vercel?");
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Preço não configurado. Env var ausente no servidor.",
+          ...(isDev ? { debug: { planInterval, availableKeys: Object.keys(PRICE_IDS).filter(k => PRICE_IDS[k]) } } : {}),
+        },
+        { status: 503 },
+      );
+    }
 
     // Check if user already has a Stripe customer
     const { data: existingSub } = await supabase
@@ -66,7 +86,28 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, url: session.url });
   } catch (err) {
-    console.error("[billing/checkout] Error:", err);
-    return NextResponse.json({ ok: false, error: "Internal error" }, { status: 500 });
+    const e = err as { code?: string; type?: string; message?: string; raw?: { code?: string; message?: string } };
+    const code = e?.code || e?.raw?.code;
+    const message = e?.message || e?.raw?.message || "Unknown error";
+    console.error("[billing/checkout] Error:", { code, type: e?.type, message });
+    // Surface common Stripe errors
+    if (code === "resource_missing") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Preço inválido no Stripe. Verifique STRIPE_*_PRICE_ID no Vercel.",
+          ...(isDev ? { debug: { code, message } } : {}),
+        },
+        { status: 502 },
+      );
+    }
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Erro ao criar checkout.",
+        ...(isDev ? { debug: { code, message } } : {}),
+      },
+      { status: 500 },
+    );
   }
 }
