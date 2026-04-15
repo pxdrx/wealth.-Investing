@@ -187,3 +187,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, sent, skipped });
 }
+
+// Vercel Cron dispatches GET; Next.js returns 405 if the verb isn't exported.
+export { POST as GET };

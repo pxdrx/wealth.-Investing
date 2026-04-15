@@ -5,9 +5,18 @@ import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { sendEmail } from "@/lib/email/send";
 import { renderMorningBriefing } from "@/lib/email/templates/morning-briefing";
 import { acquireCronLock } from "@/lib/cron-lock";
+import { logCronRun } from "@/lib/cron-log";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+export async function GET(req: NextRequest) {
+  return logCronRun("morning-briefing", () => handle(req));
+}
+
+export async function POST(req: NextRequest) {
+  return logCronRun("morning-briefing", () => handle(req));
+}
 
 function brasiliaDateStr(offsetDays = 0): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -22,7 +31,7 @@ function brasiliaDateStr(offsetDays = 0): string {
   return `${y}-${m}-${d}`;
 }
 
-export async function POST(req: NextRequest) {
+async function handle(req: NextRequest) {
   const auth = verifyCronAuthDetailed(req);
   let viaAdmin = false;
   if (!auth.ok) {
