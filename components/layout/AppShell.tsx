@@ -79,6 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname === "/academy" ||
     pathname === "/changelog" ||
     pathname === "/blog" ||
+    pathname === "/pricing" ||
     pathname === "/risk-disclaimer";
 
   return (
