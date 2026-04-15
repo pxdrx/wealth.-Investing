@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { JournalTradeRow, getNetPnl } from "@/components/journal/types";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import { MetricCard } from "@/components/reports/MetricCard";
@@ -96,9 +97,11 @@ export function JournalReports() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       setLoading(true);
-      const { data: session } = await supabase.auth.getSession();
+      const { data: session } = await safeGetSession();
+      if (cancelled) return;
       if (!session?.session?.user?.id) {
         setLoading(false);
         return;
@@ -109,19 +112,28 @@ export function JournalReports() {
         .from("journal_trades")
         .select("id, symbol, direction, opened_at, closed_at, pnl_usd, fees_usd, net_pnl_usd, category, context, custom_tags")
         .eq("user_id", userId)
-        .order("opened_at", { ascending: true });
+        .order("opened_at", { ascending: true })
+        .limit(5000);
 
       if (activeAccountId) {
         query = query.eq("account_id", activeAccountId);
       }
 
-      const { data, error } = await query;
+      const queryResult = await Promise.race([
+        query,
+        new Promise<{ data: null; error: Error }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: new Error("timeout") }), 10_000),
+        ),
+      ]);
+      if (cancelled) return;
+      const { data, error } = queryResult as { data: JournalTradeRow[] | null; error: unknown };
       if (!error && data) {
-        setTrades(data as JournalTradeRow[]);
+        setTrades(data);
       }
       setLoading(false);
     }
     load();
+    return () => { cancelled = true; };
   }, [activeAccountId]);
 
   const filtered = useMemo(() => filterByPeriod(trades, period), [trades, period]);

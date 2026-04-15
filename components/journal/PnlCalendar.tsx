@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
-import { toForexDateKey } from "@/lib/trading/forex-day";
+import { toForexDateKey, forexMonthBoundsUtc } from "@/lib/trading/forex-day";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PnlCalendarProps {
@@ -58,8 +58,9 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
     }
 
     setLoading(true);
-    const startIso = new Date(displayYear, displayMonth, 1).toISOString();
-    const endIso = new Date(displayYear, displayMonth + 1, 1).toISOString();
+    // Use forex-day-aware bounds so trades near day boundaries (e.g. opened
+    // after 17:00 ET) are fetched in the same month the indicator groups them.
+    const { startUtc: startIso, endUtc: endIso } = forexMonthBoundsUtc(displayYear, displayMonth);
 
     let cancelled = false;
     (async () => {

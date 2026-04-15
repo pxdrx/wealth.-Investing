@@ -77,3 +77,46 @@ export function toForexMonthParts(iso: string): { year: number; month0: number }
     month0: Number(key.slice(5, 7)) - 1,
   };
 }
+
+/**
+ * Convert a forex date key (YYYY-MM-DD) to UTC 17:00 ET boundary timestamp.
+ * Handles DST automatically.
+ */
+function forex17EtToUtc(dateKey: string): Date {
+  // Estimate as EST (UTC-5): 17:00 ET ≈ 22:00 UTC
+  const estimate = new Date(`${dateKey}T22:00:00Z`);
+  const checkHour = etHourOf(estimate);
+  // If we're in EDT (UTC-4), checkHour will be 18; shift back 1h
+  const correctionMs = (checkHour - 17) * 3600_000;
+  return new Date(estimate.getTime() - correctionMs);
+}
+
+/**
+ * UTC bounds of a single forex trading day.
+ * Forex day N = [17:00 ET of calendar N-1, 17:00 ET of calendar N).
+ */
+export function forexDayBoundsUtc(dateKey: string): { startUtc: string; endUtc: string } {
+  const endDate = forex17EtToUtc(dateKey);
+  const prevDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
+  // Recompute precise 17:00 ET of previous day to handle DST transitions
+  const prevKey = etDateOf(prevDate);
+  const startDate = forex17EtToUtc(prevKey);
+  return { startUtc: startDate.toISOString(), endUtc: endDate.toISOString() };
+}
+
+/**
+ * UTC bounds covering the forex trading days of a calendar month grid.
+ * Accepts the calendar month (year, month0) and returns the UTC window that
+ * contains all trades whose forex-day falls within that month, plus a safety buffer.
+ */
+export function forexMonthBoundsUtc(year: number, month0: number): { startUtc: string; endUtc: string } {
+  const firstKey = `${year}-${String(month0 + 1).padStart(2, "0")}-01`;
+  const lastDay = new Date(Date.UTC(year, month0 + 1, 0)).getUTCDate();
+  const lastKey = `${year}-${String(month0 + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const { startUtc } = forexDayBoundsUtc(firstKey);
+  const { endUtc } = forexDayBoundsUtc(lastKey);
+  // Add ±6h buffer for safety (captures opened_at recorded slightly off)
+  const start = new Date(new Date(startUtc).getTime() - 6 * 3600_000);
+  const end = new Date(new Date(endUtc).getTime() + 6 * 3600_000);
+  return { startUtc: start.toISOString(), endUtc: end.toISOString() };
+}

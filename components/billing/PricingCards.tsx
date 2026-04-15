@@ -3,7 +3,7 @@
 import { useState } from "react";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
-import { Check, ArrowDown, ArrowUp } from "lucide-react";
+import { Check, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/components/context/SubscriptionContext";
 import { safeGetSession } from "@/lib/supabase/safe-session";
@@ -87,53 +87,54 @@ function fireConfetti() {
   confetti({ ...defaults, particleCount: 50, origin: { x: 0.7, y: 0.6 } });
 }
 
-/** Determine the button label and action for a tier card */
+/** Combined score: annual > monthly, then tier rank. Free = 0. */
+function planScore(plan: Plan, interval: "month" | "year" | null): number {
+  if (plan === "free") return 0;
+  const base = PLAN_RANK[plan]; // pro=1, ultra=2, mentor=3
+  return (interval === "year" ? 10 : 0) + base;
+}
+
+/** Determine the button label and action for a tier card.
+ *  Rules: no downgrades. Show "Seu plano é superior" (disabled) instead.
+ *  Annual always scores higher than monthly of the same tier.
+ */
 function getButtonState(
   tierId: Plan,
   currentPlan: Plan,
   currentInterval: "month" | "year" | null,
   viewingAnnual: boolean,
-): { label: string; action: "none" | "subscribe" | "upgrade" | "downgrade" | "manage"; disabled: boolean; icon?: "up" | "down" } {
+): { label: string; action: "none" | "subscribe" | "upgrade" | "manage"; disabled: boolean; icon?: "up" } {
+  const cardInterval: "month" | "year" = viewingAnnual ? "year" : "month";
   const isPaid = currentPlan !== "free";
-  const currentIsAnnual = currentInterval === "year";
 
+  // Free tier card
   if (tierId === "free") {
     if (currentPlan === "free") {
       return { label: "Plano atual", action: "none", disabled: true };
     }
-    return { label: "Plano atual", action: "none", disabled: true };
+    return { label: "Seu plano é superior", action: "none", disabled: true };
   }
 
-  if (tierId === currentPlan && ((viewingAnnual && currentIsAnnual) || (!viewingAnnual && !currentIsAnnual))) {
+  // Same plan + same interval = current plan card → manage via portal
+  if (tierId === currentPlan && currentInterval === cardInterval) {
     return { label: "Plano atual", action: "manage", disabled: false };
   }
 
-  if (tierId === currentPlan && viewingAnnual && !currentIsAnnual) {
-    return { label: "Upgrade para Anual", action: "upgrade", disabled: false, icon: "up" };
-  }
-  if (tierId === currentPlan && !viewingAnnual && currentIsAnnual) {
-    return { label: "Mudar para Mensal", action: "subscribe", disabled: false };
-  }
-
+  // Unpaid user looking at any paid card
   if (!isPaid) {
     return { label: "Assinar", action: "subscribe", disabled: false };
   }
 
-  const tierRank = PLAN_RANK[tierId];
-  const currentRank = PLAN_RANK[currentPlan];
+  // Paid user: compare combined scores
+  const cardScore = planScore(tierId, cardInterval);
+  const currentScore = planScore(currentPlan, currentInterval);
 
-  if (viewingAnnual && !currentIsAnnual) {
-    return { label: "Upgrade para Anual", action: "upgrade", disabled: false, icon: "up" };
-  }
-
-  if (tierRank > currentRank) {
+  if (cardScore > currentScore) {
     return { label: "Upgrade", action: "upgrade", disabled: false, icon: "up" };
   }
-  if (tierRank < currentRank) {
-    return { label: "Downgrade", action: "downgrade", disabled: false, icon: "down" };
-  }
 
-  return { label: "Assinar", action: "subscribe", disabled: false };
+  // cardScore <= currentScore → already have equal or better
+  return { label: "Seu plano é superior", action: "none", disabled: true };
 }
 
 export function PricingCards() {
@@ -206,8 +207,14 @@ export function PricingCards() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        console.error("[billing] Portal error:", res.status === 404 ? "No active subscription" : (data.error || "Unknown error"));
-        alert(data.error || "Não foi possível abrir o portal de cobrança.");
+        console.error("[billing] Portal error:", res.status, data.code, data.error);
+        const userMsg =
+          data.error ||
+          (res.status === 503 ? "Pagamento indisponível. Tente em instantes." :
+            res.status === 502 ? "Portal de cobrança indisponível. Fale com o suporte." :
+            res.status === 404 ? "Você ainda não tem uma assinatura ativa." :
+            "Não foi possível abrir o portal de cobrança.");
+        alert(userMsg);
         return;
       }
       if (data.url) window.location.href = data.url;
@@ -226,9 +233,10 @@ export function PricingCards() {
   function handleButtonClick(tierId: Plan, action: string) {
     if (action === "manage") {
       handleManageSubscription(tierId);
-    } else if (action === "subscribe" || action === "upgrade" || action === "downgrade") {
+    } else if (action === "subscribe" || action === "upgrade") {
       handleSubscribe(tierId);
     }
+    // action === "none" → no-op (disabled button)
   }
 
   return (
@@ -360,8 +368,7 @@ export function PricingCards() {
                   btnState.disabled && "opacity-50 cursor-not-allowed",
                   !btnState.disabled && tier.highlighted && "bg-white text-zinc-900 hover:bg-zinc-100",
                   !btnState.disabled && !tier.highlighted && "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white",
-                  btnState.action === "manage" && "bg-emerald-600 text-white hover:bg-emerald-700",
-                  btnState.action === "downgrade" && "bg-transparent text-orange-600 border border-orange-400 hover:bg-orange-50"
+                  btnState.action === "manage" && "bg-emerald-600 text-white hover:bg-emerald-700"
                 )}
               >
                 {isLoading ? (
@@ -369,7 +376,6 @@ export function PricingCards() {
                 ) : (
                   <span className="inline-flex items-center gap-1.5">
                     {btnState.icon === "up" && <ArrowUp className="h-3.5 w-3.5" />}
-                    {btnState.icon === "down" && <ArrowDown className="h-3.5 w-3.5" />}
                     {btnState.label}
                   </span>
                 )}

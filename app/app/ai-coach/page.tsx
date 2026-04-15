@@ -139,6 +139,7 @@ function AICoachPageInner() {
 
         const res = await fetch("/api/ai/conversations", {
           headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(12_000),
         });
         const json = await res.json();
         if (json.ok && json.data) {
@@ -163,6 +164,7 @@ function AICoachPageInner() {
             method: "POST",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ title: "Nova conversa" }),
+            signal: AbortSignal.timeout(12_000),
           });
           const createJson = await createRes.json();
           if (createJson.ok && createJson.data) {
@@ -203,7 +205,12 @@ function AICoachPageInner() {
   useEffect(() => {
     async function loadUsage() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null } }>((resolve) =>
+            setTimeout(() => resolve({ data: { session: null } }), 4_000),
+          ),
+        ]);
         if (!session?.user?.id) return;
         const currentMonth = new Date().toISOString().slice(0, 7);
         const { data } = await supabase

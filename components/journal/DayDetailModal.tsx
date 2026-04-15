@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { X, Save, Tag, FileText, Pencil, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toForexDateKey } from "@/lib/trading/forex-day";
+import { toForexDateKey, forexDayBoundsUtc } from "@/lib/trading/forex-day";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -122,11 +122,12 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     setConfirmingTradeId(null);
 
     try {
-      // Expand range by ±12h to catch any timezone edge cases (UTC vs local vs MT5)
-      // Then filter client-side by local date for precision
-      const baseDate = new Date(date + "T00:00:00");
-      const startOfDay = new Date(baseDate.getTime() - 12 * 60 * 60 * 1000).toISOString();
-      const endOfDay = new Date(baseDate.getTime() + 36 * 60 * 60 * 1000).toISOString();
+      // Use forex-day UTC bounds + generous buffer to ensure trades near the
+      // 17:00 ET boundary are fetched. Client-side filter (below) narrows to
+      // the exact forex day via toForexDateKey(), so the wide window is safe.
+      const { startUtc, endUtc } = forexDayBoundsUtc(date);
+      const startOfDay = new Date(new Date(startUtc).getTime() - 18 * 60 * 60 * 1000).toISOString();
+      const endOfDay = new Date(new Date(endUtc).getTime() + 18 * 60 * 60 * 1000).toISOString();
 
       // Query by closed_at (P&L realized on close day), with opened_at fallback range
       let tradesQuery = supabase
