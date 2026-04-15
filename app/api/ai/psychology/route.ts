@@ -192,52 +192,54 @@ export async function POST(req: NextRequest) {
   // Use the user's authenticated client for all queries
   const supabase = supabaseUser;
 
-  // 3. Check saved analysis — always return if exists (persistent)
-  const cacheKey = `psych_${user.id}_${accountId}_${period}`;
-  const forceRefresh = body.force === true;
+  // "Hoje" no fuso America/Sao_Paulo — define o escopo da análise do dia.
+  // Reseta à meia-noite BR automaticamente (muda o cache_date).
+  const todayBR = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // "YYYY-MM-DD"
+  const cacheKey = `psych_${user.id}_${accountId}_${period}_${todayBR}`;
+
+  // 3. Tenta cache do dia (user + account + period + cache_date = hoje)
   try {
-    const { data: cached } = await supabase
+    const { data: cachedToday } = await supabase
       .from("ai_psychology_cache")
       .select("analysis, created_at")
-      .eq("cache_key", cacheKey)
+      .eq("user_id", user.id)
+      .eq("account_id", accountId)
+      .eq("period", period)
+      .eq("cache_date", todayBR)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (cached && !forceRefresh) {
-      const ageMs = Date.now() - new Date(cached.created_at).getTime();
-      const stale = ageMs > 24 * 60 * 60 * 1000; // > 24h = stale
+    if (cachedToday) {
       return NextResponse.json({
         ok: true,
-        data: cached.analysis,
+        data: cachedToday.analysis,
         cached: true,
-        stale,
-        generated_at: cached.created_at,
+        generated_at: cachedToday.created_at,
       });
     }
   } catch {
-    // Cache read failed — proceed without cache
+    // Cache read failed — segue pro fluxo de geração
   }
 
-  // 3b. Rate limit: max 3 AI generations per user per day
-  const MAX_DAILY_GENERATIONS = 3;
+  // 3b. Safety cap: no máximo 20 gerações/dia por usuário (anti-abuso)
+  const MAX_DAILY_GENERATIONS = 20;
   try {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
     const { count } = await supabase
       .from("ai_psychology_cache")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .gte("created_at", todayStart.toISOString());
+      .eq("cache_date", todayBR);
 
     if (count !== null && count >= MAX_DAILY_GENERATIONS) {
       return NextResponse.json({
         ok: false,
-        error: `Limite de ${MAX_DAILY_GENERATIONS} análises por dia atingido. Tente novamente amanhã.`,
+        error: `Limite diário atingido. Tente novamente amanhã.`,
         daily_limit_reached: true,
       }, { status: 429 });
     }
   } catch {
-    // Rate limit check failed — proceed (fail open)
+    // Rate limit check failed — fail open
   }
 
   // 4. Fetch trades
@@ -313,12 +315,20 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // 6. Cache result (non-blocking)
+    // 6. Cache do dia (chave inclui cache_date; "hoje" = fuso BR)
     try {
       await supabase
         .from("ai_psychology_cache")
         .upsert(
-          { cache_key: cacheKey, user_id: user.id, account_id: accountId, period, analysis, created_at: new Date().toISOString() },
+          {
+            cache_key: cacheKey,
+            user_id: user.id,
+            account_id: accountId,
+            period,
+            cache_date: todayBR,
+            analysis,
+            created_at: new Date().toISOString(),
+          },
           { onConflict: "cache_key" }
         );
     } catch {
