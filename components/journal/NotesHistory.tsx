@@ -28,6 +28,8 @@ interface UnifiedNote {
   symbol?: string;
   direction?: string;
   netPnl?: number | null;
+  openedAt?: string;
+  closedAt?: string | null;
 }
 
 interface DayNoteRow {
@@ -82,6 +84,21 @@ function formatDate(iso: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const date = d.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
+  const time = d.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${date} · ${time}`;
 }
 
 export function NotesHistory({
@@ -171,6 +188,8 @@ export function NotesHistory({
         symbol: t.symbol,
         direction: t.direction,
         netPnl: computeNetPnl(t),
+        openedAt: t.opened_at,
+        closedAt: t.closed_at,
       });
     }
     arr.sort((a, b) => {
@@ -297,44 +316,52 @@ export function NotesHistory({
                     !isTrade && "cursor-default"
                   )}
                 >
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {isTrade ? "Por trade" : "Diária"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(item.date)}
-                    </span>
-                    {isTrade && item.symbol && (
-                      <>
-                        <span className="text-xs font-semibold">
-                          {item.symbol}
-                        </span>
-                        <span
-                          className={cn(
-                            "rounded-full border px-1.5 py-px text-[10px] font-medium capitalize",
-                            isBuy
-                              ? "border-emerald-300/60 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400"
-                              : "border-amber-300/60 text-amber-700 dark:border-amber-800 dark:text-amber-400"
-                          )}
-                        >
-                          {item.direction}
-                        </span>
-                      </>
-                    )}
-                    {isTrade && item.netPnl != null && (
+                  {isTrade ? (
+                    <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-1.5">
+                      <span className="text-sm font-semibold">
+                        {item.symbol}
+                      </span>
                       <span
                         className={cn(
-                          "text-xs font-medium",
-                          pnl >= 0
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-red-600 dark:text-red-400"
+                          "rounded-full border px-1.5 py-px text-[10px] font-medium capitalize",
+                          isBuy
+                            ? "border-emerald-300/60 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400"
+                            : "border-amber-300/60 text-amber-700 dark:border-amber-800 dark:text-amber-400"
                         )}
                       >
-                        {pnl >= 0 ? "+" : ""}
-                        {pnl.toFixed(2)} USD
+                        {item.direction}
                       </span>
-                    )}
-                  </div>
+                      {item.netPnl != null && (
+                        <span
+                          className={cn(
+                            "text-xs font-semibold",
+                            pnl >= 0
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400"
+                          )}
+                        >
+                          {pnl >= 0 ? "+" : ""}
+                          {pnl.toFixed(2)} USD
+                        </span>
+                      )}
+                      <span className="ml-auto text-[11px] text-muted-foreground">
+                        {item.closedAt
+                          ? formatDateTime(item.closedAt)
+                          : item.openedAt
+                          ? formatDateTime(item.openedAt)
+                          : formatDate(item.date)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Diária
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(item.date)}
+                      </span>
+                    </div>
+                  )}
                   <p className="text-sm line-clamp-3 whitespace-pre-wrap">
                     {item.text || (
                       <span className="text-muted-foreground italic">
