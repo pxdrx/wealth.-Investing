@@ -950,7 +950,7 @@ export default function MentorPage() {
 
   if (subLoading) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-10 flex items-center justify-center">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -963,7 +963,7 @@ export default function MentorPage() {
   if (selectedStudent) {
     return (
       <>
-        <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden">
           <StudentDetail
             student={selectedStudent}
             onBack={() => setSelectedStudent(null)}
@@ -978,7 +978,7 @@ export default function MentorPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

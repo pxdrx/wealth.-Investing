@@ -138,7 +138,7 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" showClose={true}>
+      <DialogContent className="max-w-lg" showClose={true}>
         <DialogHeader>
           <DialogTitle>Detalhe do trade</DialogTitle>
         </DialogHeader>

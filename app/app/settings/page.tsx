@@ -390,7 +390,7 @@ export default function SettingsPage() {
   const cardStyle = { backgroundColor: "hsl(var(--card))" };
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden">
       <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Gerencie seu perfil, assinatura e preferências.
@@ -690,12 +690,12 @@ export default function SettingsPage() {
                     <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
                       {label.tier}
                     </span>
-                    <div className="flex items-center gap-0.5 w-16 justify-center">
+                    <div className="flex items-center gap-1 justify-center shrink-0">
                       <button
                         type="button"
                         onClick={() => moveWidget(w.id, "up")}
                         disabled={idx === 0}
-                        className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
                         title="Mover para cima"
                       >
                         <ChevronUp className="h-4 w-4" />
@@ -704,7 +704,7 @@ export default function SettingsPage() {
                         type="button"
                         onClick={() => moveWidget(w.id, "down")}
                         disabled={idx === arr.length - 1}
-                        className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
                         title="Mover para baixo"
                       >
                         <ChevronDown className="h-4 w-4" />

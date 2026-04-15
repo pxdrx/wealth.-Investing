@@ -196,7 +196,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
       {/* Top: KPIs + Equity side by side */}
       <div className="flex flex-col lg:flex-row">
         {/* KPIs */}
-        <div className="flex-[4] p-5">
+        <div className="flex-none lg:flex-[4] p-4 sm:p-5">
           <p className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground mb-3">
             Performance Mensal — {selectedAccountName}
           </p>
@@ -208,7 +208,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
             {v(formatPnl(kpis.totalPnl))}
           </p>
 
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+          <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-2.5">
             <KpiRow label="Win Rate">
               <div className="flex items-center gap-2">
                 <div
@@ -290,7 +290,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
         <div className="lg:hidden h-px" style={{ backgroundColor: "hsl(var(--border))" }} />
 
         {/* Equity Chart — expanded */}
-        <div className="flex-[5] p-5 flex flex-col">
+        <div className="flex-none lg:flex-[5] p-4 sm:p-5 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground">
               Curva de Equity (30d)
@@ -306,7 +306,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
           </div>
 
           {equityData.length >= 2 ? (
-            <div className="flex-1 min-h-[220px]">
+            <div className="h-[220px] lg:h-auto lg:flex-1 lg:min-h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={equityData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                   <defs>

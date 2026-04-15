@@ -169,8 +169,8 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
         </div>
 
         {/* Table */}
-        <div className="rounded-input border border-border/40 shadow-sm overflow-hidden">
-          <Table>
+        <div className="rounded-input border border-border/40 shadow-sm overflow-x-auto">
+          <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow className="border-border/40 hover:bg-transparent">
                 <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Símbolo</TableHead>

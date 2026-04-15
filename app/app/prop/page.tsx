@@ -194,7 +194,7 @@ export default function PropPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 overflow-x-hidden">
       <div className="mb-10">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Contas

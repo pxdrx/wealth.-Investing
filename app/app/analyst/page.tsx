@@ -753,7 +753,7 @@ export default function AnalystPage() {
 
   return (
     <PaywallGate requiredPlan="ultra" blurContent>
-      <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-10">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden">
         {/* Background removed — clean empty state per user request */}
         {/* Header */}
         <div className="mb-8">
@@ -880,7 +880,7 @@ export default function AnalystPage() {
                 >
                   <button
                     onClick={(e) => handleDeleteReport(item.id, e)}
-                    className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 rounded-full p-1 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
+                    className="absolute top-1.5 right-1.5 inline-flex h-9 w-9 items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 rounded-full hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
                     title="Excluir análise"
                     aria-label="Excluir análise"
                   >

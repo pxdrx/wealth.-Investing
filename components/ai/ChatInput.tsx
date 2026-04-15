@@ -38,11 +38,11 @@ export function ChatInput({ onSubmit, disabled, placeholder }: ChatInputProps) {
   );
 
   return (
-    <div className="relative group mx-auto w-full max-w-[95%]">
+    <div className="relative group mx-auto w-full">
       {/* Glow effect behind the input */}
       <div className="absolute -inset-1 rounded-[32px] bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-teal-500/0 opacity-0 group-focus-within:opacity-100 blur-md transition-opacity duration-500" />
       
-      <div className="relative flex items-end gap-3 rounded-[28px] border border-white/10 dark:border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-xl px-5 py-3.5 transition-all focus-within:border-blue-500/40 focus-within:bg-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.1)]">
+      <div className="relative flex items-end gap-2 sm:gap-3 rounded-[28px] border border-white/10 dark:border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-xl px-3 sm:px-5 py-2.5 sm:py-3.5 transition-all focus-within:border-blue-500/40 focus-within:bg-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.1)]">
         <textarea
           ref={textareaRef}
           value={text}

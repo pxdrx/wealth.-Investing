@@ -34,9 +34,9 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
       )}
 
       {/* Message Bubble */}
-      <div className={`flex flex-col gap-1 w-full max-w-[85%] ${isUser ? "items-end" : "items-start"}`}>
+      <div className={`flex flex-col gap-1 w-full max-w-[92%] sm:max-w-[85%] ${isUser ? "items-end" : "items-start"}`}>
         <div
-          className={`relative px-5 py-4 text-[15px] leading-relaxed ${
+          className={`relative px-4 py-3 sm:px-5 sm:py-4 text-[15px] leading-relaxed ${
             isUser
               ? "rounded-[24px] rounded-tr-[4px] bg-blue-600 text-white shadow-[0_8px_24px_rgba(37,99,235,0.25)]"
               : isError

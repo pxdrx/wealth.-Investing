@@ -400,7 +400,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto" showClose={true}>
+      <DialogContent className="max-w-xl" showClose={true}>
         <DialogHeader>
           <DialogTitle className="capitalize">{formattedDate}</DialogTitle>
           <DialogDescription>

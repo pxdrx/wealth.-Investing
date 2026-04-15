@@ -77,7 +77,7 @@ export function SessionHeatmap({ trades }: SessionHeatmapProps) {
         </h3>
       </div>
 
-      <div className="grid grid-cols-3 divide-x" style={{ borderColor: "hsl(var(--border))" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x" style={{ borderColor: "hsl(var(--border))" }}>
         {sessions.map((s) => {
           const winRate = s.trades > 0 ? (s.wins / s.trades) * 100 : 0;
           const isProfit = s.pnl > 0;

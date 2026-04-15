@@ -555,7 +555,7 @@ function AICoachPageInner() {
   }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType, dataMode, tradeAnalytics, saveMessage, activeConversationTitle, autoUpdateTitle]);
 
   return (
-    <main className="flex w-full h-full p-6 lg:p-8 gap-6 overflow-hidden">
+    <main className="flex w-full h-[calc(100dvh-4rem)] lg:h-full p-3 sm:p-6 lg:p-8 gap-6 overflow-hidden overflow-x-hidden">
       {/* LEFT PANE: Context & Data Insights (Hidden on small screens) */}
       <div className="hidden lg:flex flex-col w-[350px] xl:w-[400px] shrink-0 gap-6 overflow-y-auto custom-scrollbar pr-4">
         <div>
@@ -713,15 +713,15 @@ function AICoachPageInner() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
         
         {/* Chat Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-background/20 backdrop-blur-md shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border/30 bg-background/20 backdrop-blur-md shrink-0 gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
              <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse shrink-0" />
-             <span className="text-sm font-semibold tracking-wide text-foreground truncate max-w-[200px]">
+             <span className="text-sm font-semibold tracking-wide text-foreground truncate max-w-[140px] sm:max-w-[200px]">
                {activeConversationTitle}
              </span>
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <button
               onClick={handleNewChat}
               disabled={isStreaming}
@@ -731,7 +731,7 @@ function AICoachPageInner() {
             </button>
             {usageLoaded && (
               <div className="flex items-center gap-2">
-                <div className="h-1.5 w-16 rounded-full overflow-hidden bg-muted/50">
+                <div className="h-1.5 w-10 sm:w-16 rounded-full overflow-hidden bg-muted/50">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${usagePct >= 90 ? "bg-red-500" : usagePct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
                     style={{ width: `${usagePct}%` }}
@@ -757,7 +757,7 @@ function AICoachPageInner() {
 
           {activeAccountId && (
              <>
-               <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+               <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 custom-scrollbar">
                  {(!historyLoaded || !usageLoaded || !conversationsLoaded) && (
                    <div className="h-full flex items-center justify-center">
                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -825,7 +825,7 @@ function AICoachPageInner() {
                </div>
 
                {/* Input Area */}
-               <div className="p-4 bg-background/40 backdrop-blur-xl border-t border-border/30 shrink-0">
+               <div className="p-3 sm:p-4 bg-background/40 backdrop-blur-xl border-t border-border/30 shrink-0">
                  <ChatInput
                    onSubmit={(text) => sendMessage(text)}
                    disabled={quotaExhausted || isStreaming}

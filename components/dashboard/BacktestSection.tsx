@@ -572,7 +572,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
             )}
 
             {/* KPIs */}
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 pt-2 pb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5 pt-2 pb-3">
               {[
                 { label: "P&L", value: mask(`$${Math.abs(stats.totalPnl).toFixed(0)}`), color: pnlColor(stats.totalPnl), prefix: stats.totalPnl >= 0 ? "+" : "-" },
                 { label: "WIN RATE", value: stats.totalTrades > 0 ? formatPercent(stats.winRate) : "—", color: stats.winRate >= 50 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
