@@ -1,0 +1,267 @@
+/* ── wealth.Investing — Shared mockup tokens ── */
+/* Espelha app/globals.css (Lumina Slate, light theme) */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #F2F2F2;
+  --bg-elevated: #FFFFFF;
+  --bg-tertiary: #EDEDED;
+  --border: #D1D1D1;
+  --border-strong: #A6A6A6;
+  --text: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-muted: #999999;
+  --accent: #1A1A1A;
+  --accent-green: #00B37E;
+  --accent-green-light: #E6F9F3;
+  --accent-red: #E03E3E;
+  --accent-red-light: #FDECEC;
+  --accent-blue: #2563EB;
+  --accent-amber: #D97706;
+  --pnl-pos: #3A8A6B;
+  --pnl-neg: #C7584F;
+  --pnl-cell-win: rgba(58, 138, 107, 0.12);
+  --pnl-cell-loss: rgba(199, 88, 79, 0.10);
+  --radius-card: 22px;
+  --radius-input: 12px;
+  --radius-pill: 9999px;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.02), 0 4px 16px -4px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 2px 4px rgba(0,0,0,0.03), 0 8px 24px -4px rgba(0,0,0,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ── Sidebar (left nav) ── */
+.sidebar {
+  width: 240px;
+  background: #FAFAFA;
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-logo {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 28px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-logo .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent-green);
+}
+.nav-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 12px 12px 6px;
+  font-weight: 600;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+}
+.nav-item.active {
+  background: var(--text);
+  color: #fff;
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.account-card {
+  margin-top: auto;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 12px;
+}
+.account-card .name { font-weight: 600; }
+.account-card .balance { color: var(--accent-green); font-weight: 600; margin-top: 4px; }
+
+/* ── Main content ── */
+.main {
+  flex: 1;
+  padding: 36px 48px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 28px;
+}
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.page-actions { display: flex; gap: 10px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
+.btn-green {
+  background: var(--accent-green);
+  color: #fff;
+  border-color: var(--accent-green);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.card-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ── KPI ── */
+.kpi-grid {
+  display: grid;
+  gap: 16px;
+}
+.kpi-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
+}
+.kpi-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.kpi-value {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  margin-top: 8px;
+}
+.kpi-delta {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pnl-pos, .text-pos { color: var(--pnl-pos); }
+.pnl-neg, .text-neg { color: var(--pnl-neg); }
+
+/* ── Pills/badges ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+.pill-green { background: var(--accent-green-light); color: #05704E; border-color: transparent; }
+.pill-red { background: var(--accent-red-light); color: #A42828; border-color: transparent; }
+.pill-dark { background: var(--text); color: #fff; border-color: var(--text); }
+.pill-amber { background: #FEF3C7; color: #92400E; border-color: transparent; }
+
+/* ── Tables ── */
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.table tr:last-child td { border-bottom: 0; }
+
+/* ── Misc ── */
+.mono { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.dim { color: var(--text-secondary); }
+.tiny { font-size: 11px; }
+
+/* scrollbar hidden for mockups */
+::-webkit-scrollbar { display: none; }

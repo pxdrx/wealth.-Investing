@@ -4,37 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "927a9eedffeabff3",
+        "id": "d8e99df4ecf65043",
         "type": "tabs",
         "children": [
           {
-            "id": "c063cdb7cc726f89",
+            "id": "9a8739d735cc1766",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Ideia para o wealth.Investing..md",
+                "file": "Projeto/Apresentação Setup HSM 2026-04-14.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Ideia para o wealth.Investing."
-            }
-          }
-        ]
-      },
-      {
-        "id": "ecfca19b393ff893",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "f83d5f620a724f46",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Visualização em gráfico"
+              "title": "Apresentação Setup HSM 2026-04-14"
             }
           }
         ]
@@ -199,8 +183,42 @@
       "bases:Criar nova base": false
     }
   },
-  "active": "f83d5f620a724f46",
+  "active": "9a8739d735cc1766",
   "lastOpenFiles": [
+    "Sistema/Commits/d14643d-saudacao-dinamica-com-nome-e-horario.md",
+    "Sistema/Commits/4d0d480-infinite-load-on-student-select-backtest-leak-label-student-.md",
+    "Sistema/Commits/16154d4-theme-aware-colors-smart-auth-cta-redirect.md",
+    "Sistema/Commits/309be96-trigger-vercel-redeploy.md",
+    "Sistema/Commits/3e46ffd-merge-landing-redesign-v2-7-section-landing-interactive-hero.md",
+    "Sistema/Arquivos/supabase/migrations/20260414_profile_mentor_onboarded.sql.md",
+    "Sistema/Arquivos/components/mentor/MentorOnboardingModal.tsx.md",
+    "Sistema/Arquivos/components/mentor",
+    "Sistema/Arquivos/app/api/profile/mentor-onboarded/route.ts.md",
+    "Sistema/Arquivos/app/api/profile/mentor-onboarded",
+    "Sistema/Arquivos/app/api/profile",
+    "Sistema/Commits/d49e60a-3-step-onboarding-modal-on-first-visit-to-mentor-area.md",
+    "Sistema/Arquivos/supabase/migrations/20260414_smart_alert_dismissals.sql.md",
+    "Sistema/Arquivos/app/api/smart-alerts/dismissals/route.ts.md",
+    "Sistema/Arquivos/app/api/smart-alerts/dismissals",
+    "Sistema/Arquivos/app/api/smart-alerts",
+    "Sistema/Commits/a6e3456-persist-smart-alert-dismissals-server-side-with-reincidence-.md",
+    "Sistema/Commits/dc8a8d6-hide-mentor-link-section-for-users-who-are-already-mentors.md",
+    "Sistema/Commits/ff9b212-kill-infinite-spinner-accounts-timeout-resolves-not-rejects.md",
+    "Sistema/Commits/1635f55-unify-pricing-visual-across-pricing-public-and-app-pricing-r.md",
+    "Sistema/Arquivos/app/pricing/page.tsx.md",
+    "Sistema/Arquivos/app/pricing",
+    "Sistema/Commits/bd8e005-split-pills-screenshot-center-trustbar-enrich-journal-bento-.md",
+    "Sistema/Bugs/0cd27d1-align-desempenho-widget-with-calendar-rename-modes.md",
+    "Projeto/Apresentação Setup HSM 2026-04-14.md",
+    "Projeto/assets/apresentacao-setup-hsm/08-pricing.png",
+    "Projeto/assets/apresentacao-setup-hsm/07-alerts-mentor.png",
+    "Projeto/assets/apresentacao-setup-hsm/06-macro.png",
+    "Projeto/assets/apresentacao-setup-hsm/05-ai-coach.png",
+    "Projeto/assets/apresentacao-setup-hsm/04-prop.png",
+    "Projeto/assets/apresentacao-setup-hsm/03-dashboard.png",
+    "Projeto/assets/apresentacao-setup-hsm/02-journal.png",
+    "Projeto/assets/apresentacao-setup-hsm/01-hero.png",
+    "Sistema/Sessões/2026-03-06.md",
     "Ideia para o wealth.Investing..md",
     "Bem-vindo.md"
   ]

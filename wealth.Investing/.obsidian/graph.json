@@ -1,22 +1,156 @@
 {
   "collapse-filter": true,
   "search": "",
-  "showTags": false,
+  "showTags": true,
   "showAttachments": false,
   "hideUnresolved": false,
   "showOrphans": true,
-  "collapse-color-groups": true,
-  "colorGroups": [],
-  "collapse-display": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:Sistema/Commits",
+      "color": {
+        "a": 1,
+        "rgb": 12961221
+      }
+    },
+    {
+      "query": "path:\"Sistema/Sessões\"",
+      "color": {
+        "a": 1,
+        "rgb": 16763904
+      }
+    },
+    {
+      "query": "path:Sistema/Features",
+      "color": {
+        "a": 1,
+        "rgb": 4575262
+      }
+    },
+    {
+      "query": "path:Sistema/Bugs",
+      "color": {
+        "a": 1,
+        "rgb": 14824492
+      }
+    },
+    {
+      "query": "path:Sistema/Rotas",
+      "color": {
+        "a": 1,
+        "rgb": 3180726
+      }
+    },
+    {
+      "query": "path:Sistema/Endpoints",
+      "color": {
+        "a": 1,
+        "rgb": 2797055
+      }
+    },
+    {
+      "query": "path:Sistema/Tabelas",
+      "color": {
+        "a": 1,
+        "rgb": 10498160
+      }
+    },
+    {
+      "query": "path:Sistema/Agentes",
+      "color": {
+        "a": 1,
+        "rgb": 16746257
+      }
+    },
+    {
+      "query": "path:\"Sistema/Dependências\"",
+      "color": {
+        "a": 1,
+        "rgb": 10066329
+      }
+    },
+    {
+      "query": "path:Sistema/Arquivos",
+      "color": {
+        "a": 1,
+        "rgb": 13290186
+      }
+    },
+    {
+      "query": "path:Sistema/Deploys",
+      "color": {
+        "a": 1,
+        "rgb": 15973120
+      }
+    },
+    {
+      "query": "path:\"Decisões\"",
+      "color": {
+        "a": 1,
+        "rgb": 14521914
+      }
+    },
+    {
+      "query": "path:Funcionalidades",
+      "color": {
+        "a": 1,
+        "rgb": 2263842
+      }
+    },
+    {
+      "query": "path:Aprendizados",
+      "color": {
+        "a": 1,
+        "rgb": 16022942
+      }
+    },
+    {
+      "query": "path:Projeto",
+      "color": {
+        "a": 1,
+        "rgb": 8421631
+      }
+    },
+    {
+      "query": "path:Ideias",
+      "color": {
+        "a": 1,
+        "rgb": 14024703
+      }
+    },
+    {
+      "query": "path:Mercado",
+      "color": {
+        "a": 1,
+        "rgb": 8978312
+      }
+    },
+    {
+      "query": "path:Instagram",
+      "color": {
+        "a": 1,
+        "rgb": 15754884
+      }
+    },
+    {
+      "query": "path:\"Técnico\"",
+      "color": {
+        "a": 1,
+        "rgb": 6724095
+      }
+    }
+  ],
+  "collapse-display": false,
   "showArrow": false,
-  "textFadeMultiplier": 0,
-  "nodeSizeMultiplier": 1,
-  "lineSizeMultiplier": 1,
-  "collapse-forces": true,
-  "centerStrength": 0.518713248970312,
-  "repelStrength": 10,
+  "textFadeMultiplier": -0.5,
+  "nodeSizeMultiplier": 1.4,
+  "lineSizeMultiplier": 0.6,
+  "collapse-forces": false,
+  "centerStrength": 0.3,
+  "repelStrength": 20,
   "linkStrength": 1,
-  "linkDistance": 250,
-  "scale": 0.7132754626224415,
-  "close": true
+  "linkDistance": 80,
+  "scale": 0.1634837056722043,
+  "close": false
 }

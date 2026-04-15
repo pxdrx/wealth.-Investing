@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>wealth.Investing — Dashboard</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .dash-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; flex: 1; }
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  /* Calendar */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .cal-head {
+    font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+    font-weight: 600; text-align: center; padding: 4px 0; letter-spacing: 0.06em;
+  }
+  .cal-cell {
+    aspect-ratio: 1/0.7;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px 8px;
+    font-size: 10px;
+    display: flex; flex-direction: column;
+    background: #fff;
+  }
+  .cal-cell.empty { background: #FAFAFA; border-color: transparent; }
+  .cal-cell.win { background: var(--pnl-cell-win); border-color: rgba(58, 138, 107, 0.3); }
+  .cal-cell.loss { background: var(--pnl-cell-loss); border-color: rgba(199, 88, 79, 0.3); }
+  .cal-cell .d { color: var(--text-muted); font-weight: 600; }
+  .cal-cell.today .d { color: var(--accent-green); }
+  .cal-cell .v { margin-top: auto; font-weight: 700; font-size: 11px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .cal-cell.win .v { color: var(--pnl-pos); }
+  .cal-cell.loss .v { color: var(--pnl-neg); }
+  /* Heatmap */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: 60px repeat(5, 1fr);
+    gap: 4px;
+  }
+  .heatmap-row-label { font-size: 10px; color: var(--text-muted); padding: 6px 0; font-weight: 600; }
+  .heatmap-col-label { font-size: 10px; color: var(--text-muted); text-align: center; padding: 4px 0; font-weight: 600; }
+  .heat-cell { aspect-ratio: 1/0.5; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+  /* DD bar */
+  .dd-card { padding: 20px 22px; }
+  .dd-bar {
+    height: 14px;
+    background: #F2F2F2;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 14px 0 8px;
+    position: relative;
+  }
+  .dd-fill { height: 100%; background: linear-gradient(90deg, #3A8A6B, #D97706 60%, #E03E3E 85%); border-radius: 999px; }
+  .dd-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+  /* Alert */
+  .alert-strip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: #FFF7ED;
+    border: 1px solid #FED7AA;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+  .alert-strip .dot { width: 6px; height: 6px; background: #D97706; border-radius: 50%; }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="dot"></span>wealth.Investing</div>
+    <div class="nav-section-label">Operação</div>
+    <div class="nav-item active">■ Dashboard</div>
+    <div class="nav-item">▤ Journal</div>
+    <div class="nav-item">▣ Reports</div>
+    <div class="nav-item">◉ Prop</div>
+    <div class="nav-section-label">Inteligência</div>
+    <div class="nav-item">✦ AI Coach</div>
+    <div class="nav-item">◎ Macro</div>
+    <div class="nav-section-label">Conta</div>
+    <div class="nav-item">◈ Contas</div>
+    <div class="nav-item">⚙ Configurações</div>
+    <div class="account-card">
+      <div class="name">FTMO 100k — Phase 2</div>
+      <div class="balance">R$ 104.237,50</div>
+      <div class="tiny dim" style="margin-top:4px">Atualizado há 2min</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Bom dia, Pedro 👋</div>
+        <div class="page-subtitle">Segunda, 14 de abril · 3 trades hoje · equity +R$ 540</div>
+      </div>
+      <div class="page-actions">
+        <span class="pill"><span style="width:6px;height:6px;background:#00B37E;border-radius:50%;"></span>MT5 sincronizado</span>
+        <button class="btn">Trocar conta ▾</button>
+      </div>
+    </div>
+
+    <div class="alert-strip">
+      <span class="dot"></span>
+      <strong>Alerta:</strong> Você está em 62% do limite diário FTMO. Considere fazer uma pausa após o próximo trade.
+      <span style="margin-left:auto" class="dim tiny">há 4min</span>
+    </div>
+
+    <div class="kpi-row" style="margin-top:16px">
+      <div class="kpi-card">
+        <div class="kpi-label">Equity atual</div>
+        <div class="kpi-value mono">R$ 104.237</div>
+        <div class="kpi-delta pnl-pos">▲ +4.24% total</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">PnL do dia</div>
+        <div class="kpi-value pnl-pos mono">+R$ 540</div>
+        <div class="kpi-delta dim">3 trades · WR 67%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Drawdown diário</div>
+        <div class="kpi-value" style="color:var(--accent-amber)">−R$ 2.040</div>
+        <div class="kpi-delta dim">limite R$ −5.000</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Streak</div>
+        <div class="kpi-value" style="color:var(--pnl-pos)">5 dias</div>
+        <div class="kpi-delta dim">dias positivos consecutivos</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Calendário de PnL — Abril 2026</div>
+            <div class="card-subtitle">Desempenho diário · clique para detalhes</div>
+          </div>
+          <span class="pill">mês</span>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-head">Seg</div><div class="cal-head">Ter</div><div class="cal-head">Qua</div><div class="cal-head">Qui</div><div class="cal-head">Sex</div><div class="cal-head">Sáb</div><div class="cal-head">Dom</div>
+
+          <div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell win"><div class="d">1</div><div class="v">+320</div></div><div class="cal-cell win"><div class="d">2</div><div class="v">+180</div></div><div class="cal-cell loss"><div class="d">3</div><div class="v">−95</div></div><div class="cal-cell empty"><div class="d">4</div></div><div class="cal-cell empty"><div class="d">5</div></div>
+
+          <div class="cal-cell win"><div class="d">6</div><div class="v">+410</div></div><div class="cal-cell win"><div class="d">7</div><div class="v">+125</div></div><div class="cal-cell loss"><div class="d">8</div><div class="v">−210</div></div><div class="cal-cell win"><div class="d">9</div><div class="v">+87</div></div><div class="cal-cell win"><div class="d">10</div><div class="v">+525</div></div><div class="cal-cell empty"><div class="d">11</div></div><div class="cal-cell empty"><div class="d">12</div></div>
+
+          <div class="cal-cell win"><div class="d">13</div><div class="v">+290</div></div><div class="cal-cell win today"><div class="d">14</div><div class="v">+540</div></div><div class="cal-cell empty"><div class="d">15</div></div><div class="cal-cell empty"><div class="d">16</div></div><div class="cal-cell empty"><div class="d">17</div></div><div class="cal-cell empty"><div class="d">18</div></div><div class="cal-cell empty"><div class="d">19</div></div>
+
+          <div class="cal-cell empty"><div class="d">20</div></div><div class="cal-cell empty"><div class="d">21</div></div><div class="cal-cell empty"><div class="d">22</div></div><div class="cal-cell empty"><div class="d">23</div></div><div class="cal-cell empty"><div class="d">24</div></div><div class="cal-cell empty"><div class="d">25</div></div><div class="cal-cell empty"><div class="d">26</div></div>
+        </div>
+        <div style="display:flex; gap:16px; margin-top:14px; font-size:11px; color:var(--text-muted)">
+          <span>Mês: <strong class="pnl-pos">+R$ 2.172</strong></span>
+          <span>Dias positivos: <strong>7</strong></span>
+          <span>Dias negativos: <strong>3</strong></span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Drawdown — FTMO 100k</div>
+              <div class="card-subtitle">Daily -5% · Trailing -10%</div>
+            </div>
+            <span class="pill pill-amber">62% usado</span>
+          </div>
+          <div class="dd-bar"><div class="dd-fill" style="width:62%"></div></div>
+          <div class="dd-labels">
+            <span class="mono">−R$ 0</span>
+            <span class="mono">−R$ 3.100 (atual)</span>
+            <span class="mono">−R$ 5.000 (breach)</span>
+          </div>
+          <div style="margin-top:14px; padding:10px 12px; background:#FAFAFA; border-radius:10px; font-size:12px;">
+            <strong class="dim">Sugestão do sistema:</strong> reduza size em 30% no próximo trade.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Heatmap por sessão</div>
+              <div class="card-subtitle">Win rate × horário (últimos 60d)</div>
+            </div>
+          </div>
+          <div class="heatmap-grid">
+            <div></div>
+            <div class="heatmap-col-label">Seg</div><div class="heatmap-col-label">Ter</div><div class="heatmap-col-label">Qua</div><div class="heatmap-col-label">Qui</div><div class="heatmap-col-label">Sex</div>
+
+            <div class="heatmap-row-label">09-11h</div>
+            <div class="heat-cell" style="background:#00B37E">74%</div>
+            <div class="heat-cell" style="background:#22C38E">68%</div>
+            <div class="heat-cell" style="background:#00B37E">71%</div>
+            <div class="heat-cell" style="background:#5AD1A8">62%</div>
+            <div class="heat-cell" style="background:#22C38E">66%</div>
+
+            <div class="heatmap-row-label">11-14h</div>
+            <div class="heat-cell" style="background:#A3E4C9">52%</div>
+            <div class="heat-cell" style="background:#C7ECD9">48%</div>
+            <div class="heat-cell" style="background:#F8D4D0">39%</div>
+            <div class="heat-cell" style="background:#A3E4C9">51%</div>
+            <div class="heat-cell" style="background:#C7ECD9">47%</div>
+
+            <div class="heatmap-row-label">14-17h</div>
+            <div class="heat-cell" style="background:#F8D4D0">34%</div>
+            <div class="heat-cell" style="background:#EDA59F" title="">28%</div>
+            <div class="heat-cell" style="background:#C7ECD9">46%</div>
+            <div class="heat-cell" style="background:#A3E4C9">55%</div>
+            <div class="heat-cell" style="background:#F8D4D0">37%</div>
+
+            <div class="heatmap-row-label">17-19h</div>
+            <div class="heat-cell" style="background:#C7ECD9">45%</div>
+            <div class="heat-cell" style="background:#A3E4C9">53%</div>
+            <div class="heat-cell" style="background:#5AD1A8">64%</div>
+            <div class="heat-cell" style="background:#00B37E">72%</div>
+            <div class="heat-cell" style="background:#5AD1A8">61%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

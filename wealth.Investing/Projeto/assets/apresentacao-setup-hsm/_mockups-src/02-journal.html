@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>wealth.Investing — Journal</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .kpi-grid-5 { grid-template-columns: repeat(5, 1fr); }
+  .journal-body { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; margin-top: 20px; }
+  .equity-card { padding: 20px 24px; }
+  .equity-chart { height: 240px; }
+  .equity-chart svg { width: 100%; height: 100%; }
+  .trades-card { padding: 20px 0 8px; }
+  .trades-card .card-header { padding: 0 24px 12px; }
+  .table td.sym { font-weight: 600; }
+  .dir-pill { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; display: inline-block; }
+  .dir-buy { background: var(--accent-green-light); color: #05704E; }
+  .dir-sell { background: var(--accent-red-light); color: #A42828; }
+  .import-banner {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: var(--accent-green-light);
+    border: 1px solid rgba(0,179,126,0.2);
+    border-radius: 14px;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+  .import-banner .icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-green); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="dot"></span>wealth.Investing</div>
+    <div class="nav-section-label">Operação</div>
+    <div class="nav-item">■ Dashboard</div>
+    <div class="nav-item active">▤ Journal</div>
+    <div class="nav-item">▣ Reports</div>
+    <div class="nav-item">◉ Prop</div>
+    <div class="nav-section-label">Inteligência</div>
+    <div class="nav-item">✦ AI Coach</div>
+    <div class="nav-item">◎ Macro</div>
+    <div class="nav-section-label">Conta</div>
+    <div class="nav-item">◈ Contas</div>
+    <div class="nav-item">⚙ Configurações</div>
+    <div class="account-card">
+      <div class="name">FTMO 100k — Phase 2</div>
+      <div class="balance">R$ 104.237,50</div>
+      <div class="tiny dim" style="margin-top:4px">Atualizado há 2min</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Journal</div>
+        <div class="page-subtitle">138 trades registrados · últimos 90 dias · FTMO 100k</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn">Filtros</button>
+        <button class="btn">Exportar CSV</button>
+        <button class="btn btn-primary">+ Importar MT4/MT5</button>
+      </div>
+    </div>
+
+    <div class="import-banner">
+      <div class="icon">✓</div>
+      <div>
+        <div style="font-weight:600">Último import: 48 trades adicionados de <span class="mono">ReportHistory_100k.xlsx</span></div>
+        <div class="dim tiny">0 duplicados · processamento em 1.2s · deduplicação por external_id</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid kpi-grid-5">
+      <div class="kpi-card">
+        <div class="kpi-label">PnL total</div>
+        <div class="kpi-value pnl-pos">+R$ 4.237</div>
+        <div class="kpi-delta pnl-pos">▲ 4.24% do balance inicial</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Win rate</div>
+        <div class="kpi-value">63%</div>
+        <div class="kpi-delta dim">87 wins · 51 losses</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Profit factor</div>
+        <div class="kpi-value">2.1</div>
+        <div class="kpi-delta dim">média móvel 30d</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg win / loss</div>
+        <div class="kpi-value">+R$ 94 / −R$ 52</div>
+        <div class="kpi-delta dim">razão 1.8×</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Max drawdown</div>
+        <div class="kpi-value">−2.8%</div>
+        <div class="kpi-delta dim">em 12-03 · recuperado em 3 dias</div>
+      </div>
+    </div>
+
+    <div class="journal-body">
+      <div class="card equity-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Curva de equity</div>
+            <div class="card-subtitle">90 dias · PnL acumulado R$</div>
+          </div>
+          <span class="pill">90d</span>
+        </div>
+        <div class="equity-chart">
+          <svg viewBox="0 0 600 240" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="gradEq" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#00B37E" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="#00B37E" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- grid lines -->
+            <line x1="0" y1="60" x2="600" y2="60" stroke="#EDEDED"/>
+            <line x1="0" y1="120" x2="600" y2="120" stroke="#EDEDED"/>
+            <line x1="0" y1="180" x2="600" y2="180" stroke="#EDEDED"/>
+            <path d="M0,210 L30,205 L60,200 L90,195 L120,185 L150,175 L180,180 L210,170 L240,155 L270,150 L300,135 L330,140 L360,120 L390,110 L420,100 L450,105 L480,85 L510,75 L540,60 L570,65 L600,45 L600,240 L0,240 Z"
+                  fill="url(#gradEq)"/>
+            <path d="M0,210 L30,205 L60,200 L90,195 L120,185 L150,175 L180,180 L210,170 L240,155 L270,150 L300,135 L330,140 L360,120 L390,110 L420,100 L450,105 L480,85 L510,75 L540,60 L570,65 L600,45"
+                  fill="none" stroke="#00B37E" stroke-width="2"/>
+            <!-- axis labels -->
+            <text x="4" y="14" font-size="10" fill="#999" font-family="Inter">R$ 5.0k</text>
+            <text x="4" y="72" font-size="10" fill="#999" font-family="Inter">R$ 3.5k</text>
+            <text x="4" y="132" font-size="10" fill="#999" font-family="Inter">R$ 2.0k</text>
+            <text x="4" y="192" font-size="10" fill="#999" font-family="Inter">R$ 500</text>
+          </svg>
+        </div>
+        <div style="display:flex; justify-content:space-around; margin-top:12px; font-size:11px; color:var(--text-muted)">
+          <span>Jan</span><span>Fev</span><span>Mar</span><span>Abr (hoje)</span>
+        </div>
+      </div>
+
+      <div class="card trades-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Últimos trades</div>
+            <div class="card-subtitle">Importados automaticamente do MT5</div>
+          </div>
+          <span class="pill">paginação 25/pág</span>
+        </div>
+        <table class="table">
+          <thead>
+            <tr><th>Data</th><th>Símbolo</th><th>Dir</th><th>Volume</th><th>PnL</th><th>Setup</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono dim">14/04 15:42</td><td class="sym">WINM26</td><td><span class="dir-pill dir-buy">BUY</span></td><td class="mono">2</td><td class="mono pnl-pos">+R$ 180</td><td class="tiny">Romp. LTA</td></tr>
+            <tr><td class="mono dim">14/04 14:08</td><td class="sym">EURUSD</td><td><span class="dir-pill dir-sell">SELL</span></td><td class="mono">0.5</td><td class="mono pnl-neg">−R$ 47</td><td class="tiny">Pullback 21ema</td></tr>
+            <tr><td class="mono dim">14/04 10:31</td><td class="sym">WDOM26</td><td><span class="dir-pill dir-buy">BUY</span></td><td class="mono">1</td><td class="mono pnl-pos">+R$ 230</td><td class="tiny">Abertura NY</td></tr>
+            <tr><td class="mono dim">13/04 16:55</td><td class="sym">BTCUSD</td><td><span class="dir-pill dir-sell">SELL</span></td><td class="mono">0.02</td><td class="mono pnl-pos">+R$ 410</td><td class="tiny">Rejeição topo</td></tr>
+            <tr><td class="mono dim">13/04 11:14</td><td class="sym">WINM26</td><td><span class="dir-pill dir-buy">BUY</span></td><td class="mono">2</td><td class="mono pnl-neg">−R$ 120</td><td class="tiny">Teste fundo</td></tr>
+            <tr><td class="mono dim">13/04 09:42</td><td class="sym">GOLD</td><td><span class="dir-pill dir-buy">BUY</span></td><td class="mono">0.1</td><td class="mono pnl-pos">+R$ 87</td><td class="tiny">News CPI</td></tr>
+            <tr><td class="mono dim">12/04 17:03</td><td class="sym">WINM26</td><td><span class="dir-pill dir-sell">SELL</span></td><td class="mono">3</td><td class="mono pnl-pos">+R$ 315</td><td class="tiny">Fech. tend.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

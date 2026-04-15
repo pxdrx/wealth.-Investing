@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>wealth.Investing — Pricing & Cupom SETUPHSM</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { display: block; padding: 60px 80px; background: #F2F2F2; width: 1920px; height: 1080px; overflow: hidden; position: relative; }
+  .grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, #D1D1D1 1px, transparent 1px),
+      linear-gradient(to bottom, #D1D1D1 1px, transparent 1px);
+    background-size: 72px 72px;
+    opacity: 0.3;
+    mask-image: radial-gradient(ellipse at top, black 50%, transparent 80%);
+  }
+  .wrap { position: relative; max-width: 1440px; margin: 0 auto; }
+  .pricing-head {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 0 4px rgba(0,179,126,0.15); }
+  h1 {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+  h1 .accent { color: var(--accent-green); }
+  .sub {
+    font-size: 18px;
+    color: var(--text-secondary);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .toggle {
+    display: inline-flex;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 4px;
+    margin-top: 24px;
+  }
+  .toggle span {
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    font-size: 13px; font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .toggle span.active { background: var(--text); color: #fff; }
+  .toggle .save { color: var(--accent-green); margin-left: 4px; }
+
+  .tier-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .tier {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px 28px;
+    box-shadow: var(--shadow-card);
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .tier.featured {
+    border: 2px solid var(--text);
+    background: linear-gradient(180deg, #fff, #FAFAFA);
+    transform: scale(1.04);
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.18);
+  }
+  .tier-badge {
+    position: absolute;
+    top: -14px; left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 14px;
+    background: var(--accent-green);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .tier-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+  .tier-price { display: flex; align-items: baseline; gap: 6px; margin-top: 12px; }
+  .tier-price .val { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .tier-price .unit { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
+  .tier-price-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .tier-desc { font-size: 13px; color: var(--text-secondary); margin: 16px 0 20px; line-height: 1.5; min-height: 48px; }
+  .tier-cta {
+    padding: 14px 20px;
+    border-radius: var(--radius-pill);
+    font-size: 14px; font-weight: 600;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    margin-bottom: 20px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .tier.featured .tier-cta { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .tier-features { list-style: none; font-size: 13px; line-height: 1.5; }
+  .tier-features li { padding: 7px 0; display: flex; gap: 10px; align-items: flex-start; }
+  .check { flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-green-light); color: #05704E; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .check.x { background: #F5F5F5; color: var(--text-muted); }
+  .feat-primary { font-weight: 600; color: var(--text); }
+
+  /* Coupon box */
+  .coupon-wrap {
+    margin-top: 48px;
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
+    background: linear-gradient(135deg, #0A0A0A, #2C2C2C);
+    border-radius: 28px;
+    padding: 36px 48px;
+    color: #fff;
+    display: flex; align-items: center; gap: 32px;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .coupon-wrap::before {
+    content: "";
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(0,179,126,0.3), transparent 60%);
+    top: -180px; right: -120px;
+    pointer-events: none;
+  }
+  .coupon-left { flex: 1; position: relative; }
+  .coupon-eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-green);
+    margin-bottom: 10px;
+  }
+  .coupon-title { font-size: 32px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; margin-bottom: 8px; }
+  .coupon-sub { font-size: 15px; opacity: 0.7; line-height: 1.45; max-width: 440px; }
+  .coupon-code {
+    background: #fff;
+    color: var(--text);
+    padding: 20px 28px;
+    border-radius: 16px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 30px; font-weight: 800;
+    letter-spacing: 0.06em;
+    position: relative;
+    border: 2px dashed var(--accent-green);
+  }
+  .coupon-code .copy {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="wrap">
+    <div class="pricing-head">
+      <div class="eyebrow"><span class="dot"></span>Parceria oficial Setup HSM · ~130 alunos</div>
+      <h1>Escolha seu plano. <span class="accent">Primeiro mês grátis</span> com SETUPHSM.</h1>
+      <p class="sub">Sem letras miúdas. Cancele quando quiser. Cartão ou Pix. Acesso imediato a toda a plataforma.</p>
+      <div class="toggle">
+        <span>Mensal</span>
+        <span class="active">Anual <span class="save">−25%</span></span>
+      </div>
+    </div>
+
+    <div class="tier-grid">
+      <div class="tier">
+        <div class="tier-name">Free</div>
+        <div class="tier-price"><span class="val">R$ 0</span><span class="unit">/ mês</span></div>
+        <div class="tier-price-sub">Sempre grátis · sem cartão</div>
+        <div class="tier-desc">Experimente o journal e o calendário macro. Bom para começar a entender sua operação.</div>
+        <button class="tier-cta">Começar grátis</button>
+        <ul class="tier-features">
+          <li><span class="check">✓</span><span>10 trades/mês no journal</span></li>
+          <li><span class="check">✓</span><span>1 conta conectada</span></li>
+          <li><span class="check">✓</span><span>Calendário econômico (básico)</span></li>
+          <li><span class="check">✓</span><span>3 perguntas/mês ao AI Coach</span></li>
+          <li><span class="check x">—</span><span class="dim">Macro briefing IA</span></li>
+          <li><span class="check x">—</span><span class="dim">Alertas inteligentes</span></li>
+          <li><span class="check x">—</span><span class="dim">Painel Mentor</span></li>
+        </ul>
+      </div>
+
+      <div class="tier featured">
+        <div class="tier-badge">Mais popular · 1º mês grátis com SETUPHSM</div>
+        <div class="tier-name">Pro</div>
+        <div class="tier-price"><span class="val">R$ 22,90</span><span class="unit">/ mês</span></div>
+        <div class="tier-price-sub">R$ 274,80/ano · economia de R$ 84</div>
+        <div class="tier-desc">O plano feito para quem opera todo dia. Journal completo, AI Coach semanal, macro PRO, alertas inteligentes.</div>
+        <button class="tier-cta">Usar cupom SETUPHSM →</button>
+        <ul class="tier-features">
+          <li><span class="check">✓</span><span class="feat-primary">Trades ilimitados</span></li>
+          <li><span class="check">✓</span><span>5 contas simultâneas (prop + pessoal)</span></li>
+          <li><span class="check">✓</span><span>Macro Intelligence completo (taxas + headlines)</span></li>
+          <li><span class="check">✓</span><span class="feat-primary">AI Coach — 15 perguntas/semana</span></li>
+          <li><span class="check">✓</span><span>Alertas inteligentes (drawdown, tilt, macro)</span></li>
+          <li><span class="check">✓</span><span>Calendário de PnL + heatmap sessões</span></li>
+          <li><span class="check">✓</span><span>Export CSV + integração MT4/MT5/cTrader</span></li>
+          <li><span class="check x">—</span><span class="dim">Briefing IA regenerável</span></li>
+          <li><span class="check x">—</span><span class="dim">Painel Mentor + alunos ilimitados</span></li>
+        </ul>
+      </div>
+
+      <div class="tier">
+        <div class="tier-name">Ultra</div>
+        <div class="tier-price"><span class="val">R$ 39,90</span><span class="unit">/ mês</span></div>
+        <div class="tier-price-sub">R$ 478,80/ano · para mesas e mentores</div>
+        <div class="tier-desc">Para mesas profissionais, mentores e traders full-time. Tudo do Pro, sem limites, com IA sob demanda.</div>
+        <button class="tier-cta">Assinar Ultra</button>
+        <ul class="tier-features">
+          <li><span class="check">✓</span><span class="feat-primary">Tudo do Pro, sem limites</span></li>
+          <li><span class="check">✓</span><span>Contas ilimitadas</span></li>
+          <li><span class="check">✓</span><span class="feat-primary">AI Coach — 15 perguntas/dia</span></li>
+          <li><span class="check">✓</span><span>Briefing IA regenerável sob demanda</span></li>
+          <li><span class="check">✓</span><span>Painel Mentor + alunos ilimitados</span></li>
+          <li><span class="check">✓</span><span>Reports avançados (Sharpe, MFE/MAE, export PDF)</span></li>
+          <li><span class="check">✓</span><span>Alertas customizáveis ilimitados</span></li>
+          <li><span class="check">✓</span><span>Suporte prioritário</span></li>
+          <li><span class="check">✓</span><span>API (beta) para mesas</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="coupon-wrap">
+      <div class="coupon-left">
+        <div class="coupon-eyebrow">● Exclusivo Setup HSM</div>
+        <div class="coupon-title">1º mês PRO de graça.</div>
+        <div class="coupon-sub">Use o cupom no checkout. Sem compromisso, sem letras miúdas — cancele antes de 30 dias e não paga nada.</div>
+      </div>
+      <div class="coupon-code">
+        SETUPHSM
+        <span class="copy">clique para copiar</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

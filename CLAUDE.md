@@ -217,3 +217,20 @@ Available skills: `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/pla
 - Simplicity First: Make every change as simple as possible. Impact minimal code.
 - No Laziness: Find root causes. No temporary fixes. Senior developer standards.
 - Minimal Impact: Only touch what's necessary. No side effects with new bugs.
+
+## Permanent Memory — Obsidian Vault
+Antes de buscar contexto histórico do projeto, consulte `wealth.Investing/Sistema/` — é a **memória permanente auto-populada**. Estrutura:
+- `Sistema/Commits/<sha7>-<slug>.md` — 1 nota por commit (hook `post-commit` determinístico)
+- `Sistema/Sessões/YYYY-MM-DD.md` — batimento cardíaco diário (todos os commits do dia)
+- `Sistema/Features/` — clusters temáticos com narrativa (AI Coach, Billing, Macro, etc)
+- `Sistema/Bugs/` — root cause de cada `fix:` commit
+- `Sistema/Rotas/`, `Sistema/Endpoints/`, `Sistema/Tabelas/`, `Sistema/Agentes/`, `Sistema/Dependências/` — inventários determinísticos
+- `Sistema/Arquivos/` — arquivos hub (5+ commits), promovidos automaticamente
+
+Como usar:
+- Precisa saber o que rolou num dia? Leia `Sistema/Sessões/YYYY-MM-DD.md`.
+- Estado atual de uma feature? `Sistema/Features/<Nome>.md`.
+- Buscar bug similar? `Sistema/Bugs/`.
+- Comando de enrich: `/vault-enrich` (incremental), `/vault-enrich --backfill --batch N`, `/vault-enrich --deploy <vercel-id>`.
+- NÃO editar notas em `Sistema/Commits/`, `Sistema/Arquivos/`, `Sistema/Rotas/`, `Sistema/Endpoints/`, `Sistema/Agentes/`, `Sistema/Dependências/` — são regeneráveis pelo hook/backfill.
+- NÃO reescrever a camada Semântica (`Projeto/`, `Decisões/`, `Funcionalidades/`, `Aprendizados/`, `Técnico/`, `Ideias/`, `Mercado/`, `Instagram/`, `Diário/`, `Referências/`). Ler e linkar apenas.

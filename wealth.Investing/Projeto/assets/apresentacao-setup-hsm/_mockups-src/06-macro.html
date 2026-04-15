@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>wealth.Investing — Macro</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .macro-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; flex: 1; }
+  .col-left { display: flex; flex-direction: column; gap: 20px; }
+  .col-right { display: flex; flex-direction: column; gap: 20px; }
+  /* Calendar table */
+  .econ-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .econ-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: left; padding: 10px 8px; font-weight: 600; border-bottom: 1px solid var(--border); }
+  .econ-table td { padding: 11px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  .econ-table tr:last-child td { border-bottom: 0; }
+  .flag { width: 16px; height: 12px; border-radius: 2px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .flag.us { background: linear-gradient(#B91C1C 50%, #1E3A8A 50%); }
+  .flag.eu { background: #1E3A8A; }
+  .flag.br { background: #059669; }
+  .flag.uk { background: #1E3A8A; }
+  .flag.jp { background: #fff; border: 1px solid #D1D5DB; position: relative; }
+  .flag.jp::after { content:""; position:absolute; inset:2px; border-radius:50%; background:#DC2626; width:6px; height:6px; top:50%; left:50%; transform:translate(-50%,-50%); }
+  .impact {
+    display: inline-flex; gap: 2px;
+  }
+  .impact span { width: 6px; height: 10px; background: #E5E5E5; border-radius: 1px; }
+  .impact.hi span:nth-child(1),
+  .impact.hi span:nth-child(2),
+  .impact.hi span:nth-child(3) { background: var(--accent-red); }
+  .impact.med span:nth-child(1),
+  .impact.med span:nth-child(2) { background: var(--accent-amber); }
+  .impact.lo span:nth-child(1) { background: #3A8A6B; }
+  .event-name { font-weight: 600; }
+  .actual { font-weight: 700; }
+  .actual.beat { color: var(--pnl-pos); }
+  .actual.miss { color: var(--pnl-neg); }
+  .row-live { background: #FFFBEB; }
+  /* Rates */
+  .rates-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+  .rate-card {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #fff;
+  }
+  .rate-card .r1 { display:flex; justify-content:space-between; align-items:center; }
+  .rate-card .country { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .rate-card .val { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .rate-card .delta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  /* Briefing */
+  .briefing-card {
+    background: linear-gradient(180deg, #F8FAFC 0%, #fff 100%);
+  }
+  .briefing-body { font-size: 13px; line-height: 1.65; color: var(--text); }
+  .briefing-body strong { color: var(--text); }
+  .briefing-body .highlight { background: #FEF3C7; padding: 0 2px; }
+  .briefing-narr {
+    padding: 14px 16px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+    margin-top: 12px;
+  }
+  .asset-impact-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px;
+    background: #FAFAFA;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .asset-impact-row:last-child { margin-bottom: 0; }
+  .asset-impact-row .name { font-weight: 600; }
+  .bias-bull { color: var(--pnl-pos); font-weight: 700; }
+  .bias-bear { color: var(--pnl-neg); font-weight: 700; }
+  .bias-neutral { color: var(--text-muted); font-weight: 700; }
+  /* Headlines */
+  .headline-item { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; }
+  .headline-item:last-child { border-bottom: 0; }
+  .headline-item .time { font-size: 11px; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 48px; }
+  .headline-item .text { font-size: 13px; line-height: 1.4; }
+  .headline-item .tag { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
+  .tag-bull { background: var(--accent-green-light); color: #05704E; }
+  .tag-bear { background: var(--accent-red-light); color: #A42828; }
+  .tag-neutral { background: #F5F5F5; color: var(--text-muted); }
+  .live-dot { width:8px; height:8px; border-radius:50%; background:#DC2626; display:inline-block; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="dot"></span>wealth.Investing</div>
+    <div class="nav-section-label">Operação</div>
+    <div class="nav-item">■ Dashboard</div>
+    <div class="nav-item">▤ Journal</div>
+    <div class="nav-item">▣ Reports</div>
+    <div class="nav-item">◉ Prop</div>
+    <div class="nav-section-label">Inteligência</div>
+    <div class="nav-item">✦ AI Coach</div>
+    <div class="nav-item active">◎ Macro</div>
+    <div class="nav-section-label">Conta</div>
+    <div class="nav-item">◈ Contas</div>
+    <div class="nav-item">⚙ Configurações</div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Macro Intelligence</div>
+        <div class="page-subtitle">Terminal quantitativo · calendário · taxas · narrativa IA · headlines</div>
+      </div>
+      <div class="page-actions">
+        <span class="pill"><span class="live-dot"></span>ao vivo</span>
+        <button class="btn">Semana ← →</button>
+        <button class="btn btn-primary">Regenerar briefing (ULTRA)</button>
+      </div>
+    </div>
+
+    <div class="macro-layout">
+      <div class="col-left">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Calendário econômico — 14 a 18 abril</div>
+              <div class="card-subtitle">Eventos high-impact · sync ForexFactory / TradingEconomics</div>
+            </div>
+            <span class="pill">22 eventos</span>
+          </div>
+          <table class="econ-table">
+            <thead>
+              <tr><th>Hora</th><th>País</th><th>Evento</th><th>Impacto</th><th>Prev.</th><th>Forecast</th><th>Actual</th></tr>
+            </thead>
+            <tbody>
+              <tr class="row-live">
+                <td class="mono">08:30</td><td><span class="flag us"></span>US</td><td class="event-name">CPI MoM (mar)</td><td><span class="impact hi"><span></span><span></span><span></span></span></td><td class="mono dim">0.4%</td><td class="mono dim">0.3%</td><td class="mono actual miss">0.5%</td>
+              </tr>
+              <tr>
+                <td class="mono">09:00</td><td><span class="flag br"></span>BR</td><td class="event-name">IPCA (mar)</td><td><span class="impact med"><span></span><span></span><span></span></span></td><td class="mono dim">0.52%</td><td class="mono dim">0.45%</td><td class="mono actual beat">0.42%</td>
+              </tr>
+              <tr>
+                <td class="mono">11:00</td><td><span class="flag us"></span>US</td><td class="event-name">Core Retail Sales</td><td><span class="impact med"><span></span><span></span><span></span></span></td><td class="mono dim">0.3%</td><td class="mono dim">0.4%</td><td class="mono dim">—</td>
+              </tr>
+              <tr>
+                <td class="mono">15:00</td><td><span class="flag us"></span>US</td><td class="event-name">FOMC Minutes</td><td><span class="impact hi"><span></span><span></span><span></span></span></td><td class="mono dim">—</td><td class="mono dim">—</td><td class="mono dim">—</td>
+              </tr>
+              <tr>
+                <td class="mono">—</td><td><span class="flag eu"></span>EU</td><td class="event-name">ECB Interest Rate</td><td><span class="impact hi"><span></span><span></span><span></span></span></td><td class="mono dim">4.25%</td><td class="mono dim">4.25%</td><td class="mono dim">amanhã</td>
+              </tr>
+              <tr>
+                <td class="mono">—</td><td><span class="flag uk"></span>UK</td><td class="event-name">GDP QoQ</td><td><span class="impact med"><span></span><span></span><span></span></span></td><td class="mono dim">0.1%</td><td class="mono dim">0.2%</td><td class="mono dim">qui</td>
+              </tr>
+              <tr>
+                <td class="mono">—</td><td><span class="flag us"></span>US</td><td class="event-name">Jobless Claims</td><td><span class="impact med"><span></span><span></span><span></span></span></td><td class="mono dim">215k</td><td class="mono dim">220k</td><td class="mono dim">qui</td>
+              </tr>
+              <tr>
+                <td class="mono">—</td><td><span class="flag jp"></span>JP</td><td class="event-name">BoJ Rate Decision</td><td><span class="impact hi"><span></span><span></span><span></span></span></td><td class="mono dim">-0.10%</td><td class="mono dim">-0.10%</td><td class="mono dim">sex</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Taxas de juros — principais bancos centrais</div>
+              <div class="card-subtitle">Variação YTD · bias implícito</div>
+            </div>
+          </div>
+          <div class="rates-grid">
+            <div class="rate-card">
+              <div class="r1"><span class="country"><span class="flag us"></span>US · Fed Funds</span><span class="pill" style="font-size:10px">hawkish</span></div>
+              <div class="val">5.50%</div>
+              <div class="delta">mantido há 7 meses · próx. reunião 30/04</div>
+            </div>
+            <div class="rate-card">
+              <div class="r1"><span class="country"><span class="flag eu"></span>EU · ECB</span><span class="pill" style="font-size:10px">neutro</span></div>
+              <div class="val">4.25%</div>
+              <div class="delta">cortes precificados p/ junho</div>
+            </div>
+            <div class="rate-card">
+              <div class="r1"><span class="country"><span class="flag br"></span>BR · Selic</span><span class="pill" style="font-size:10px">dovish</span></div>
+              <div class="val">10.75%</div>
+              <div class="delta">−175bps no ciclo · próx. −25bps</div>
+            </div>
+            <div class="rate-card">
+              <div class="r1"><span class="country"><span class="flag jp"></span>JP · BoJ</span><span class="pill" style="font-size:10px">hawkish</span></div>
+              <div class="val">-0.10%</div>
+              <div class="delta">fim YCC esperado em julho</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-right">
+        <div class="card briefing-card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Briefing semanal IA · Claude Sonnet 4.6</div>
+              <div class="card-subtitle">Gerado há 12min · regenerável (ULTRA)</div>
+            </div>
+            <span class="pill pill-dark">ULTRA</span>
+          </div>
+          <div class="briefing-body">
+            <strong>Tema da semana:</strong> <span class="highlight">Inflação americana acima do esperado</span> pressiona narrativa de corte pelo Fed, fortalece dólar e pesa sobre ativos de risco. <br><br>
+            CPI core <strong>0.5%</strong> (vs. 0.3% esperado) — quinta surpresa hawkish consecutiva. Mercado reprecificou probabilidade de corte em junho de 65% para 38%. Ata do FOMC hoje à tarde é o próximo gatilho.
+          </div>
+
+          <div class="briefing-narr">
+            <div class="tiny dim" style="font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px">Impacto por ativo</div>
+            <div class="asset-impact-row"><span class="name">DXY (dólar)</span><span class="bias-bull">↑ bullish</span></div>
+            <div class="asset-impact-row"><span class="name">EURUSD</span><span class="bias-bear">↓ bearish</span></div>
+            <div class="asset-impact-row"><span class="name">GOLD</span><span class="bias-neutral">⟷ neutro</span></div>
+            <div class="asset-impact-row"><span class="name">IBOV / mini-índice</span><span class="bias-bear">↓ bearish</span></div>
+            <div class="asset-impact-row"><span class="name">BTCUSD</span><span class="bias-neutral">⟷ neutro</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Headlines ao vivo</div>
+              <div class="card-subtitle">Filtradas para seus ativos</div>
+            </div>
+            <span class="pill"><span class="live-dot"></span>auto 30s</span>
+          </div>
+          <div class="headline-item">
+            <span class="time">08:31</span>
+            <div class="text"><span class="tag tag-bear">USD↑</span>CPI americano sobe 0.5% em março, acima dos 0.3% esperados</div>
+          </div>
+          <div class="headline-item">
+            <span class="time">08:12</span>
+            <div class="text"><span class="tag tag-bull">BRL↑</span>IPCA vem abaixo do esperado, alivia pressão sobre Copom</div>
+          </div>
+          <div class="headline-item">
+            <span class="time">07:45</span>
+            <div class="text"><span class="tag tag-neutral">news</span>BCE sinaliza cautela antes da decisão de amanhã</div>
+          </div>
+          <div class="headline-item">
+            <span class="time">06:20</span>
+            <div class="text"><span class="tag tag-bear">EUR↓</span>PMI alemão cai e aumenta pressão por corte no BCE</div>
+          </div>
+          <div class="headline-item">
+            <span class="time">00:14</span>
+            <div class="text"><span class="tag tag-bull">JPY↑</span>Membro do BoJ sinaliza possível fim do YCC em julho</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

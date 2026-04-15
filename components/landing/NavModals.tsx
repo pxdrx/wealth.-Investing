@@ -181,7 +181,7 @@ export function NavModals({ open, onOpenChange }: NavModalsProps) {
       description: "Ferramentas específicas para prop traders que precisam de controle total.",
       content: <MesasContent />,
       ctaLabel: "Ver planos para mesas",
-      ctaHref: "/#precos",
+      ctaHref: "/pricing",
     },
   } as const;
 

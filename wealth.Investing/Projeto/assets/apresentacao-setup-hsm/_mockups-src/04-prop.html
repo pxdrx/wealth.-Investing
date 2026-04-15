@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>wealth.Investing — Prop</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .accounts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; flex: 1; }
+  .acct-card { padding: 22px 24px; position: relative; overflow: hidden; }
+  .acct-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .firm-logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--text); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: -0.01em;
+  }
+  .firm-logo.ftmo { background: #1E40AF; }
+  .firm-logo.fivers { background: #059669; }
+  .firm-logo.mff { background: #7C3AED; }
+  .firm-logo.funded { background: #DC2626; }
+  .acct-name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .acct-phase { font-size: 11px; color: var(--text-secondary); margin-top: 2px; font-weight: 500; }
+  .acct-balance { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .acct-delta { font-size: 12px; font-weight: 600; }
+  .dd-box {
+    margin-top: 18px;
+    padding: 14px 16px;
+    background: #FAFAFA;
+    border-radius: 14px;
+  }
+  .dd-line { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 8px; }
+  .dd-line:last-child { margin-bottom: 0; }
+  .dd-line .l { color: var(--text-secondary); font-weight: 500; }
+  .dd-line .v { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .dd-bar-mini { height: 6px; background: #E5E5E5; border-radius: 999px; overflow: hidden; margin-top: 4px; }
+  .dd-bar-mini .fill { height: 100%; border-radius: 999px; }
+  .fill-ok { background: #3A8A6B; }
+  .fill-warn { background: #D97706; }
+  .fill-danger { background: #E03E3E; }
+  .phase-progress {
+    margin-top: 16px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px;
+  }
+  .phase-steps { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .phase-step { flex: 1; height: 6px; background: #E5E5E5; border-radius: 999px; }
+  .phase-step.done { background: var(--accent-green); }
+  .phase-step.current { background: linear-gradient(90deg, var(--accent-green) 70%, #E5E5E5 70%); }
+  .stale-badge { background: #FEF3C7; color: #92400E; }
+  .danger-banner {
+    padding: 12px 16px;
+    background: var(--accent-red-light);
+    border: 1px solid rgba(224,62,62,0.3);
+    border-radius: 12px;
+    font-size: 12px;
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 14px;
+  }
+  .danger-banner .dot { width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="dot"></span>wealth.Investing</div>
+    <div class="nav-section-label">Operação</div>
+    <div class="nav-item">■ Dashboard</div>
+    <div class="nav-item">▤ Journal</div>
+    <div class="nav-item">▣ Reports</div>
+    <div class="nav-item active">◉ Prop</div>
+    <div class="nav-section-label">Inteligência</div>
+    <div class="nav-item">✦ AI Coach</div>
+    <div class="nav-item">◎ Macro</div>
+    <div class="nav-section-label">Conta</div>
+    <div class="nav-item">◈ Contas</div>
+    <div class="nav-item">⚙ Configurações</div>
+    <div class="account-card">
+      <div class="name">4 contas prop ativas</div>
+      <div class="balance">R$ 312.490 total</div>
+      <div class="tiny dim" style="margin-top:4px">sincronização MT4/MT5</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Prop Trading</div>
+        <div class="page-subtitle">Monitoramento de contas prop · drawdown · phases · payouts</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn">Histórico payouts</button>
+        <button class="btn btn-primary">+ Adicionar conta</button>
+      </div>
+    </div>
+
+    <div class="summary-strip">
+      <div class="kpi-card">
+        <div class="kpi-label">Equity total</div>
+        <div class="kpi-value mono">R$ 312.490</div>
+        <div class="kpi-delta pnl-pos">▲ +R$ 8.420 no mês</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Contas ativas</div>
+        <div class="kpi-value">4 de 4</div>
+        <div class="kpi-delta dim">2 funded · 1 phase 2 · 1 phase 1</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Payouts ano</div>
+        <div class="kpi-value pnl-pos mono">R$ 14.320</div>
+        <div class="kpi-delta dim">3 recebidos · próximo em 6d</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Alertas ativos</div>
+        <div class="kpi-value" style="color:var(--accent-amber)">2</div>
+        <div class="kpi-delta dim">1 warning · 1 stale</div>
+      </div>
+    </div>
+
+    <div class="accounts-grid">
+      <!-- FTMO -->
+      <div class="card acct-card">
+        <div class="acct-header">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="firm-logo ftmo">FT</div>
+            <div>
+              <div class="acct-name">FTMO 100k</div>
+              <div class="acct-phase">Phase 2 · dia 18/30</div>
+            </div>
+          </div>
+          <span class="pill pill-green">Em progresso</span>
+        </div>
+        <div class="acct-balance mono">R$ 104.237</div>
+        <div class="acct-delta pnl-pos">▲ +R$ 4.237 (+4.24%) · meta R$ 5.000</div>
+        <div class="phase-progress">
+          <span class="dim tiny">Progresso</span>
+          <div class="phase-steps">
+            <div class="phase-step done"></div>
+            <div class="phase-step current"></div>
+            <div class="phase-step"></div>
+          </div>
+          <span class="mono tiny">84%</span>
+        </div>
+        <div class="dd-box">
+          <div class="dd-line"><span class="l">Drawdown diário (5%)</span><span class="v" style="color:var(--accent-amber)">R$ 3.100 / 5.000</span></div>
+          <div class="dd-bar-mini"><div class="fill fill-warn" style="width:62%"></div></div>
+          <div class="dd-line" style="margin-top:14px"><span class="l">Drawdown total (10%)</span><span class="v pnl-pos">R$ 2.400 / 10.000</span></div>
+          <div class="dd-bar-mini"><div class="fill fill-ok" style="width:24%"></div></div>
+        </div>
+        <div class="danger-banner">
+          <span class="dot"></span>
+          <span><strong>Smart alert:</strong> DD diário em 62%. Reduzir size sugerido.</span>
+        </div>
+      </div>
+
+      <!-- The5ers -->
+      <div class="card acct-card">
+        <div class="acct-header">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="firm-logo fivers">5'</div>
+            <div>
+              <div class="acct-name">The5ers 110k</div>
+              <div class="acct-phase">Funded · desde 18/02</div>
+            </div>
+          </div>
+          <span class="pill pill-green">Funded</span>
+        </div>
+        <div class="acct-balance mono">R$ 115.840</div>
+        <div class="acct-delta pnl-pos">▲ +R$ 5.840 (+5.3%) · payout em 6 dias</div>
+        <div class="phase-progress">
+          <span class="dim tiny">Ciclo payout</span>
+          <div class="phase-steps">
+            <div class="phase-step done"></div>
+            <div class="phase-step done"></div>
+            <div class="phase-step current"></div>
+          </div>
+          <span class="mono tiny">próx. 20/04</span>
+        </div>
+        <div class="dd-box">
+          <div class="dd-line"><span class="l">Drawdown diário (4%)</span><span class="v pnl-pos">R$ 680 / 4.400</span></div>
+          <div class="dd-bar-mini"><div class="fill fill-ok" style="width:15%"></div></div>
+          <div class="dd-line" style="margin-top:14px"><span class="l">Drawdown total (6%)</span><span class="v pnl-pos">R$ 1.200 / 6.600</span></div>
+          <div class="dd-bar-mini"><div class="fill fill-ok" style="width:18%"></div></div>
+        </div>
+      </div>
+
+      <!-- MFF -->
+      <div class="card acct-card">
+        <div class="acct-header">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="firm-logo mff">MF</div>
+            <div>
+              <div class="acct-name">MyForexFunds 50k</div>
+              <div class="acct-phase">Phase 1 · dia 8/30</div>
+            </div>
+          </div>
+          <span class="pill stale-badge">⚠ dados 2h atrás</span>
+        </div>
+        <div class="acct-balance mono">R$ 51.120</div>
+        <div class="acct-delta pnl-pos">▲ +R$ 1.120 (+2.2%) · meta R$ 4.000</div>
+        <div class="phase-progress">
+          <span class="dim tiny">Progresso</span>
+          <div class="phase-steps">
+            <div class="phase-step current"></div>
+            <div class="phase-step"></div>
+            <div class="phase-step"></div>
+          </div>
+          <span class="mono tiny">28%</span>
+        </div>
+        <div class="dd-box">
+          <div class="dd-line"><span class="l">Drawdown diário (5%)</span><span class="v pnl-pos">R$ 420 / 2.500</span></div>
+          <div class="dd-bar-mini"><div class="fill fill-ok" style="width:17%"></div></div>
+          <div class="dd-line" style="margin-top:14px"><span class="l">Drawdown total (12%)</span><span class="v pnl-pos">R$ 800 / 6.000</span></div>
+          <div class="dd-bar-mini"><div class="fill fill-ok" style="width:13%"></div></div>
+        </div>
+      </div>
+
+      <!-- Funded -->
+      <div class="card acct-card">
+        <div class="acct-header">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="firm-logo funded">FN</div>
+            <div>
+              <div class="acct-name">FundedNext 200k</div>
+              <div class="acct-phase">Funded · desde 03/11</div>
+            </div>
+          </div>
+          <span class="pill pill-green">Funded</span>
+        </div>
+        <div class="acct-balance mono">R$ 41.293</div>
+        <div class="acct-delta pnl-pos">▲ ciclo atual +R$ 2.293</div>
+        <div class="phase-progress">
+          <span class="dim tiny">Ciclo payout</span>
+          <div class="phase-steps">
+            <div class="phase-step done"></div>
+            <div class="phase-step current"></div>
+            <div class="phase-step"></div>
+          </div>
+          <span class="mono tiny">57%</span>
+        </div>
+        <div class="dd-box">
+          <div class="dd-line"><span class="l">Drawdown diário (5%)</span><span class="v pnl-pos">R$ 200 / 10.000</span></div>
+          <div class="dd-bar-mini"><div class="fill fill-ok" style="width:2%"></div></div>
+          <div class="dd-line" style="margin-top:14px"><span class="l">Drawdown total (8%)</span><span class="v pnl-pos">R$ 1.850 / 16.000</span></div>
+          <div class="dd-bar-mini"><div class="fill fill-ok" style="width:12%"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

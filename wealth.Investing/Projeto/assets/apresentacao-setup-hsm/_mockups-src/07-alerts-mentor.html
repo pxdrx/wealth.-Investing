@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>wealth.Investing — Alerts & Mentor</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; }
+  .section-title { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; display: flex; align-items:center; gap:8px; }
+  .alert-card { padding: 18px 22px; position: relative; overflow: hidden; }
+  .alert-danger { border-left: 4px solid var(--accent-red); }
+  .alert-warn { border-left: 4px solid var(--accent-amber); }
+  .alert-info { border-left: 4px solid var(--accent-blue); }
+  .alert-ok { border-left: 4px solid var(--accent-green); }
+  .alert-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .alert-title { font-weight: 700; font-size: 14px; letter-spacing: -0.01em; }
+  .alert-time { font-size: 11px; color: var(--text-muted); }
+  .alert-desc { font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+  .alert-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .alert-btn { padding: 6px 12px; font-size: 11px; font-weight: 600; border-radius: 999px; border: 1px solid var(--border); background: #fff; }
+  .alert-btn.primary { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .mentor-head {
+    padding: 18px 22px;
+    background: linear-gradient(135deg, #1A1A1A, #333);
+    color: #fff;
+    border-radius: var(--radius-card);
+    margin-bottom: 16px;
+  }
+  .mentor-head .n { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .mentor-head .sub { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .mentor-stats { display: flex; gap: 24px; margin-top: 14px; }
+  .mentor-stat .v { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .mentor-stat .l { font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+  .student-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .student-row:last-child { border-bottom: 0; }
+  .student-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, #3A8A6B, #0EA5E9);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 12px;
+  }
+  .student-info { flex: 1; min-width: 0; }
+  .student-name { font-size: 13px; font-weight: 600; }
+  .student-meta { font-size: 11px; color: var(--text-muted); }
+  .student-metric { text-align: right; font-size: 12px; }
+  .student-metric .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .student-status {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-ok { background: var(--accent-green); }
+  .status-warn { background: var(--accent-amber); }
+  .status-danger { background: var(--accent-red); }
+
+  .rule-card {
+    padding: 14px 16px;
+    background: #FAFAFA;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .rule-card:last-child { margin-bottom: 0; }
+  .rule-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: #fff; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .rule-name { font-weight: 600; }
+  .rule-desc { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+  .rule-toggle {
+    width: 32px; height: 18px; border-radius: 999px;
+    background: var(--accent-green); position: relative; flex-shrink: 0;
+  }
+  .rule-toggle::after { content:""; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 2px; right: 2px; }
+  .rule-toggle.off { background: #D1D1D1; }
+  .rule-toggle.off::after { right: auto; left: 2px; }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="dot"></span>wealth.Investing</div>
+    <div class="nav-section-label">Operação</div>
+    <div class="nav-item">■ Dashboard</div>
+    <div class="nav-item">▤ Journal</div>
+    <div class="nav-item">▣ Reports</div>
+    <div class="nav-item">◉ Prop</div>
+    <div class="nav-section-label">Inteligência</div>
+    <div class="nav-item">✦ AI Coach</div>
+    <div class="nav-item">◎ Macro</div>
+    <div class="nav-section-label">Mentoria</div>
+    <div class="nav-item active">♦ Painel Mentor</div>
+    <div class="nav-section-label">Conta</div>
+    <div class="nav-item">⚙ Configurações</div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Smart Alerts & Painel Mentor</div>
+        <div class="page-subtitle">A plataforma avisa antes de você estourar limite — e o mentor acompanha seus alunos em tempo real.</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn">Configurar regras</button>
+        <button class="btn btn-primary">+ Convidar aluno</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div class="section-title">🚨 Alertas inteligentes</div>
+
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div class="card alert-card alert-danger">
+            <div class="alert-head">
+              <div class="alert-title">Drawdown diário crítico — FTMO 100k</div>
+              <div class="alert-time">há 4 min</div>
+            </div>
+            <div class="alert-desc">Você está em <strong>62% do limite diário</strong> (R$ 3.100 / 5.000). Mais 3 losses em size atual e a conta é reprovada.</div>
+            <div class="alert-actions">
+              <button class="alert-btn primary">Pausar por 1h</button>
+              <button class="alert-btn">Reduzir size</button>
+              <button class="alert-btn">Ignorar</button>
+            </div>
+          </div>
+
+          <div class="card alert-card alert-warn">
+            <div class="alert-head">
+              <div class="alert-title">Tilt detectado — 3 losses consecutivos</div>
+              <div class="alert-time">há 12 min</div>
+            </div>
+            <div class="alert-desc">Padrão histórico: após 3 losses, seu win rate cai 34%. Size aumentado em 40% no último trade. <strong>Revenge trading</strong>.</div>
+            <div class="alert-actions">
+              <button class="alert-btn primary">Conversar com AI Coach</button>
+              <button class="alert-btn">Ver histórico</button>
+            </div>
+          </div>
+
+          <div class="card alert-card alert-info">
+            <div class="alert-head">
+              <div class="alert-title">CPI americano em 8 minutos</div>
+              <div class="alert-time">08:22</div>
+            </div>
+            <div class="alert-desc">Evento <strong>high-impact</strong>. Você tem 1 posição aberta em EURUSD. Recomendação: fechar ou reduzir antes do release.</div>
+            <div class="alert-actions">
+              <button class="alert-btn">Ver no calendário</button>
+            </div>
+          </div>
+
+          <div class="card alert-card alert-ok">
+            <div class="alert-head">
+              <div class="alert-title">Payout The5ers liberado em 6 dias</div>
+              <div class="alert-time">hoje</div>
+            </div>
+            <div class="alert-desc">Ciclo atingiu <strong>R$ 5.840</strong>. Projeção de payout: <strong>R$ 1.460</strong> (profit split 25%).</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:22px">⚙ Regras ativas (5)</div>
+        <div>
+          <div class="rule-card">
+            <div class="rule-icon">🛡</div>
+            <div style="flex:1">
+              <div class="rule-name">Alerta de drawdown diário</div>
+              <div class="rule-desc">Trigger em 50% / 75% / 90% do limite</div>
+            </div>
+            <span class="rule-toggle"></span>
+          </div>
+          <div class="rule-card">
+            <div class="rule-icon">🧠</div>
+            <div style="flex:1">
+              <div class="rule-name">Detecção de tilt</div>
+              <div class="rule-desc">Após 3 losses consecutivos ou size +30%</div>
+            </div>
+            <span class="rule-toggle"></span>
+          </div>
+          <div class="rule-card">
+            <div class="rule-icon">📰</div>
+            <div style="flex:1">
+              <div class="rule-name">Eventos macro high-impact</div>
+              <div class="rule-desc">Aviso 10min antes · só pares com posição</div>
+            </div>
+            <span class="rule-toggle"></span>
+          </div>
+          <div class="rule-card">
+            <div class="rule-icon">⏸</div>
+            <div style="flex:1">
+              <div class="rule-name">Pausa pós-loss</div>
+              <div class="rule-desc">Sugere 15min após 2 losses</div>
+            </div>
+            <span class="rule-toggle off"></span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">👥 Painel Mentor · Setup HSM</div>
+
+        <div class="mentor-head">
+          <div class="n">Mentor: Pedro (você)</div>
+          <div class="sub">3 alunos vinculados · código <span class="mono">SETUPHSM</span></div>
+          <div class="mentor-stats">
+            <div class="mentor-stat">
+              <div class="v">3</div>
+              <div class="l">Alunos ativos</div>
+            </div>
+            <div class="mentor-stat">
+              <div class="v">R$ 248k</div>
+              <div class="l">Equity combinada</div>
+            </div>
+            <div class="mentor-stat">
+              <div class="v">62%</div>
+              <div class="l">WR médio</div>
+            </div>
+            <div class="mentor-stat">
+              <div class="v">1</div>
+              <div class="l">Requer atenção</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0">
+          <div class="card-header" style="padding:16px 22px">
+            <div>
+              <div class="card-title">Meus alunos</div>
+              <div class="card-subtitle">Acompanhe performance em tempo real</div>
+            </div>
+            <span class="pill">últimos 30d</span>
+          </div>
+
+          <div class="student-row">
+            <span class="student-status status-ok"></span>
+            <div class="student-avatar">LM</div>
+            <div class="student-info">
+              <div class="student-name">Lucas Medeiros</div>
+              <div class="student-meta">42 trades · WR 68% · FTMO 50k</div>
+            </div>
+            <div class="student-metric">
+              <div class="v pnl-pos">+R$ 2.140</div>
+              <div class="dim tiny">30d</div>
+            </div>
+          </div>
+
+          <div class="student-row">
+            <span class="student-status status-warn"></span>
+            <div class="student-avatar" style="background:linear-gradient(135deg,#D97706,#F59E0B)">JS</div>
+            <div class="student-info">
+              <div class="student-name">Juliana Santos</div>
+              <div class="student-meta">28 trades · WR 54% · The5ers 110k · <span style="color:var(--accent-amber)">DD 71%</span></div>
+            </div>
+            <div class="student-metric">
+              <div class="v pnl-pos">+R$ 480</div>
+              <div class="dim tiny">precisa atenção</div>
+            </div>
+          </div>
+
+          <div class="student-row">
+            <span class="student-status status-ok"></span>
+            <div class="student-avatar" style="background:linear-gradient(135deg,#7C3AED,#3B82F6)">RC</div>
+            <div class="student-info">
+              <div class="student-name">Rafael Costa</div>
+              <div class="student-meta">55 trades · WR 63% · MFF 50k</div>
+            </div>
+            <div class="student-metric">
+              <div class="v pnl-pos">+R$ 3.820</div>
+              <div class="dim tiny">30d</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Anotações rápidas</div>
+              <div class="card-subtitle">Visível para o aluno no app</div>
+            </div>
+          </div>
+          <div style="padding:12px 14px; background:#FEFBEB; border:1px solid #FDE68A; border-radius:12px; font-size:12px; line-height:1.5">
+            <strong>Juliana:</strong> Vi 3 trades fora do setup hoje. Conversamos amanhã 20h. Reduzir size até lá.
+            <div class="tiny dim mono" style="margin-top:6px">enviado · 14/04 15:08</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

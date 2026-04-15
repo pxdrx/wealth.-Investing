@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>wealth.Investing — AI Coach</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .coach-layout { display: grid; grid-template-columns: 260px 1fr 320px; gap: 20px; flex: 1; min-height: 0; }
+  .sessions-col { display: flex; flex-direction: column; gap: 10px; }
+  .session-item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 12px;
+  }
+  .session-item.active { border-color: var(--text); background: #FAFAFA; }
+  .session-item .t { font-weight: 600; font-size: 13px; letter-spacing: -0.01em; }
+  .session-item .d { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .chat-col {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .chat-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .chat-head .t { font-weight: 700; letter-spacing: -0.01em; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .chat-head .ai-icon { width: 22px; height: 22px; background: linear-gradient(135deg, #00B37E, #0EA5E9); border-radius: 6px; display:flex; align-items:center; justify-content:center; color: #fff; font-size:11px; font-weight: 800; }
+  .chat-body { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+  .msg { max-width: 85%; display: flex; gap: 10px; }
+  .msg .avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.user .bubble { background: var(--text); color: #fff; }
+  .msg.user .avatar { background: var(--text); color: #fff; }
+  .msg.ai .avatar { background: linear-gradient(135deg, #00B37E, #0EA5E9); color: #fff; }
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    background: #F5F5F5;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .bubble .sources {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text-secondary);
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .src-chip { padding: 2px 8px; background: #fff; border: 1px solid var(--border); border-radius: 999px; font-weight: 600; font-size: 10px; }
+  .bubble strong { color: var(--text); }
+  .bubble ul { margin: 6px 0 0 18px; padding: 0; }
+  .bubble ul li { margin: 4px 0; }
+  .bubble .streaming-dot { display:inline-block; width:8px; height:14px; background:var(--text); margin-left:2px; vertical-align:middle; animation: blink 0.8s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .chat-input {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px;
+  }
+  .chat-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    background: #FAFAFA;
+  }
+  .chat-input button { padding: 12px 20px; border-radius: 12px; background: var(--text); color: #fff; border: none; font-weight: 600; font-size: 13px; }
+
+  /* Right column */
+  .insight-col { display: flex; flex-direction: column; gap: 16px; }
+  .insight-card { padding: 18px 20px; }
+  .insight-card .ic-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .insight-card .ic-head .t { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+  .quick-action {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #FAFAFA;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .quick-action:last-child { margin-bottom: 0; }
+  .usage-bar { height: 6px; background: #E5E5E5; border-radius: 999px; overflow: hidden; margin: 8px 0 6px; }
+  .usage-bar .fill { height: 100%; background: var(--accent-green); border-radius: 999px; }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span class="dot"></span>wealth.Investing</div>
+    <div class="nav-section-label">Operação</div>
+    <div class="nav-item">■ Dashboard</div>
+    <div class="nav-item">▤ Journal</div>
+    <div class="nav-item">▣ Reports</div>
+    <div class="nav-item">◉ Prop</div>
+    <div class="nav-section-label">Inteligência</div>
+    <div class="nav-item active">✦ AI Coach</div>
+    <div class="nav-item">◎ Macro</div>
+    <div class="nav-section-label">Conta</div>
+    <div class="nav-item">◈ Contas</div>
+    <div class="nav-item">⚙ Configurações</div>
+    <div class="account-card">
+      <div class="name">FTMO 100k — Phase 2</div>
+      <div class="balance">R$ 104.237,50</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">AI Coach <span class="pill pill-dark" style="margin-left:10px">Claude Sonnet 4.6</span></div>
+        <div class="page-subtitle">Seu mentor privado que lê cada trade, cruza com macro e psicologia.</div>
+      </div>
+      <div class="page-actions">
+        <span class="pill"><span style="width:6px;height:6px;background:#00B37E;border-radius:50%"></span>12 perguntas restantes hoje</span>
+        <button class="btn">+ Nova sessão</button>
+      </div>
+    </div>
+
+    <div class="coach-layout">
+      <div class="sessions-col">
+        <div class="dim tiny" style="padding:0 4px 4px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em">Sessões recentes</div>
+        <div class="session-item active">
+          <div class="t">Revisão da semana</div>
+          <div class="d">hoje · 14 mensagens</div>
+        </div>
+        <div class="session-item">
+          <div class="t">Por que perdi em WINM26?</div>
+          <div class="d">ontem · 6 mensagens</div>
+        </div>
+        <div class="session-item">
+          <div class="t">Tilt após 2 losses</div>
+          <div class="d">12/04 · 9 mensagens</div>
+        </div>
+        <div class="session-item">
+          <div class="t">Plano para CPI</div>
+          <div class="d">10/04 · 4 mensagens</div>
+        </div>
+        <div class="session-item">
+          <div class="t">Análise mensal Mar/26</div>
+          <div class="d">01/04 · 22 mensagens</div>
+        </div>
+      </div>
+
+      <div class="chat-col">
+        <div class="chat-head">
+          <div class="t"><span class="ai-icon">✦</span>Revisão da semana</div>
+          <span class="pill">4 fontes cruzadas</span>
+        </div>
+        <div class="chat-body">
+          <div class="msg user">
+            <div class="avatar">P</div>
+            <div class="bubble">Como foi minha semana? O que eu deveria fazer diferente na próxima?</div>
+          </div>
+
+          <div class="msg ai">
+            <div class="avatar">✦</div>
+            <div class="bubble">
+              <strong>Resumo (08/04 a 14/04):</strong>
+              <ul>
+                <li>15 trades · win rate 67% · PF 2.3 · PnL <span class="pnl-pos">+R$ 1.872</span></li>
+                <li>Melhor ativo: <strong>WDO</strong> (4W-0L, +R$ 780)</li>
+                <li>Pior janela: <strong>14h-16h</strong> (WR 34%, 3 losses consecutivos dia 09)</li>
+              </ul>
+              <br>
+              <strong>Padrão preocupante detectado:</strong> após 2 losses seguidos, você aumenta size em 40% no trade seguinte — aconteceu 3 vezes esta semana, 2 terminaram em loss adicional. Isso caracteriza <strong>revenge trading</strong>.
+              <br><br>
+              <strong>Sugestão para a próxima semana:</strong>
+              <ul>
+                <li>Pausa obrigatória de 30min após 2 losses</li>
+                <li>Evitar operar WINM entre 14h-16h (baixa edge histórica)</li>
+                <li>Manter size fixo — nunca martingale</li>
+              </ul>
+              <div class="sources">
+                Fontes:
+                <span class="src-chip">15 trades journal</span>
+                <span class="src-chip">heatmap sessões 60d</span>
+                <span class="src-chip">macro headlines</span>
+                <span class="src-chip">psicologia tilt index</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="avatar">P</div>
+            <div class="bubble">O CPI de quarta afetou meus trades de EURUSD?</div>
+          </div>
+
+          <div class="msg ai">
+            <div class="avatar">✦</div>
+            <div class="bubble">
+              Sim — analisando os 3 trades de EURUSD na quarta: você entrou <strong>antes</strong> do release em 2 deles, e o CPI veio 0.2pp acima do esperado, gerando spike que bateu seu stop. Em trades de notícia cheia, a volatilidade do primeiro minuto costuma ser 3-5× a média. Recomendo <strong>fechar posições 5 minutos antes</strong> de releases high-impact, ou esperar 15min após.<span class="streaming-dot"></span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <input placeholder="Pergunte sobre seus trades, setups, psicologia ou macro…" />
+          <button>Enviar →</button>
+        </div>
+      </div>
+
+      <div class="insight-col">
+        <div class="card insight-card">
+          <div class="ic-head">
+            <div class="t">Ações rápidas</div>
+          </div>
+          <div class="quick-action">📊 Analisar meu último trade</div>
+          <div class="quick-action">📅 Como foi minha semana?</div>
+          <div class="quick-action">🧠 Detectar padrões de tilt</div>
+          <div class="quick-action">🎯 Revisar meu setup favorito</div>
+          <div class="quick-action">📰 Impacto do macro de hoje</div>
+        </div>
+
+        <div class="card insight-card">
+          <div class="ic-head">
+            <div class="t">Uso (plano PRO)</div>
+            <span class="tiny dim mono">12/15</span>
+          </div>
+          <div class="usage-bar"><div class="fill" style="width:80%"></div></div>
+          <div class="tiny dim">3 perguntas restantes esta semana. ULTRA libera 15/dia.</div>
+        </div>
+
+        <div class="card insight-card" style="background:linear-gradient(135deg, #F0FDF4, #fff)">
+          <div class="ic-head">
+            <div class="t">💡 Insight do dia</div>
+          </div>
+          <div style="font-size:12px; line-height:1.5">
+            Suas últimas 10 operações com <strong>stop &lt; 15 ticks</strong> têm WR de 78%. Considere deixar stops curtos no seu playbook.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
