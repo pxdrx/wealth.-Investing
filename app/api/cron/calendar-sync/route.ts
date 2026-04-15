@@ -5,6 +5,7 @@ import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
 import { fetchFaireconomyCalendar } from "@/lib/macro/faireconomy";
 import { FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL } from "@/lib/macro/constants";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
+import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
 import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
@@ -21,7 +22,9 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    if (!(await isAdminRequest(req))) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const supabase = getSupabaseAdmin();

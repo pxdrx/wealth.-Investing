@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
+import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { fetchCentralBankRates } from "@/lib/macro/rates-fetcher";
 import { fetchRatesViaApify } from "@/lib/macro/apify/rates-scraper";
 import { scrapeTradingEconomicsRates } from "@/lib/macro/scrapers/te-rates";
@@ -20,7 +21,9 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    if (!(await isAdminRequest(req))) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const supabase = getSupabaseAdmin();

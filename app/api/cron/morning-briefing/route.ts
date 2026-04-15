@@ -1,25 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
 import { verifyCronAuthDetailed } from "@/lib/macro/cron-auth";
-import { createSupabaseClientForUser } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/admin";
+import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { sendEmail } from "@/lib/email/send";
 import { renderMorningBriefing } from "@/lib/email/templates/morning-briefing";
-
-async function isAdminRequest(req: NextRequest): Promise<boolean> {
-  const authHeader = req.headers.get("authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  const cronSecret = process.env.CRON_SECRET ?? "";
-  if (!token || token === cronSecret) return false;
-  try {
-    const sb = createSupabaseClientForUser(token);
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return false;
-    return await isAdmin(sb, user.id);
-  } catch {
-    return false;
-  }
-}
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -121,10 +105,16 @@ export async function POST(req: NextRequest) {
     .order("published_at", { ascending: false })
     .limit(5);
 
-  // Get users: test mode = single user, production = all users
-  const { data: { users: allUsers }, error: usersErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-  if (usersErr || !allUsers) {
-    return NextResponse.json({ ok: false, error: "Failed to list users" }, { status: 500 });
+  // Get users: test mode = single user, production = all users.
+  // Paginate listUsers — a single page caps at 1000, so we loop until exhausted.
+  const allUsers: User[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000, page });
+    if (error || !data) {
+      return NextResponse.json({ ok: false, error: "Failed to list users" }, { status: 500 });
+    }
+    allUsers.push(...data.users);
+    if (data.users.length < 1000) break;
   }
 
   const users = testEmail
@@ -158,7 +148,13 @@ export async function POST(req: NextRequest) {
   }
 
   let sent = 0;
-  let skipped = 0;
+  const skipReasons: Record<string, number> = {
+    no_email: 0,
+    banned: 0,
+    send_failed: 0,
+  };
+  const dryRun = req.nextUrl.searchParams.get("dry_run") === "true";
+  const dryRunList: Array<{ email: string; plan: string; reason?: string }> = [];
 
   const formattedDate = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
@@ -169,8 +165,12 @@ export async function POST(req: NextRequest) {
   }).format(new Date());
 
   for (const user of users) {
-    if (!user.email || !user.email_confirmed_at) {
-      skipped++;
+    if (!user.email) {
+      skipReasons.no_email++;
+      continue;
+    }
+    if (user.banned_until && new Date(user.banned_until) > new Date()) {
+      skipReasons.banned++;
       continue;
     }
 
@@ -246,6 +246,12 @@ export async function POST(req: NextRequest) {
       isPro,
     });
 
+    if (dryRun) {
+      dryRunList.push({ email: user.email, plan });
+      sent++;
+      continue;
+    }
+
     const success = await sendEmail({
       to: user.email,
       subject: `☀️ Briefing ${formattedDate}`,
@@ -253,8 +259,21 @@ export async function POST(req: NextRequest) {
     });
 
     if (success) sent++;
-    else skipped++;
+    else skipReasons.send_failed++;
+
+    // Throttle sends to stay under Resend's 10 req/s ceiling as the base grows.
+    await new Promise((r) => setTimeout(r, 50));
   }
 
-  return NextResponse.json({ ok: true, sent, skipped });
+  return NextResponse.json({
+    ok: true,
+    totalUsers: allUsers.length,
+    matched: users.length,
+    sent,
+    skipped: skipReasons,
+    eventsDateLabel,
+    eventCount: events?.length ?? 0,
+    dryRun,
+    ...(dryRun ? { queue: dryRunList } : {}),
+  });
 }
