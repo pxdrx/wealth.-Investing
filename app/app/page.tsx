@@ -42,6 +42,7 @@ import { useNewsData, type NewsItem } from "@/hooks/useNewsData";
 import { useLiveMonitoringSafe } from "@/components/context/LiveMonitoringContext";
 import type { TradeInput } from "@/lib/smart-alerts";
 import { getMyProfile } from "@/lib/profile";
+import { getGreeting, getDashboardSubtitle } from "@/lib/greetings";
 
 // ── Dynamic imports for heavy components (perf: code-split) ──
 const CalendarPnl = dynamic(
@@ -119,26 +120,10 @@ const QUICK_ASSETS = [
 
 const LIVE_REFRESH_MS = 60_000; // Auto-refresh dashboard every 60s when live
 
-function getGreeting(date: Date): string {
-  const h = date.getHours();
-  if (h >= 5 && h < 12) return "Bom dia";
-  if (h >= 12 && h < 18) return "Boa tarde";
-  if (h >= 18 && h < 24) return "Boa noite";
-  return "Boa madrugada";
-}
-
 function getFirstName(displayName: string | null): string | null {
   if (!displayName) return null;
   const first = displayName.trim().split(/\s+/)[0];
   return first || null;
-}
-
-function getDashboardSubtitle(date: Date): string {
-  const h = date.getHours();
-  if (h >= 5 && h < 12) return "Aqui está o resumo das suas contas para abrir o dia.";
-  if (h >= 12 && h < 18) return "Sessão em andamento — aqui estão seus dados.";
-  if (h >= 18 && h < 24) return "Fechamento do dia. Hora de analisar os resultados.";
-  return "Mercado descansando — bom momento para revisar a estratégia.";
 }
 
 export default function DashboardPage() {
@@ -295,8 +280,10 @@ function DashboardContent({
   }, []);
 
   const firstName = getFirstName(displayName);
-  const greetingText = firstName ? `${getGreeting(now)}, ${firstName}` : getGreeting(now);
-  const subtitleText = getDashboardSubtitle(now);
+  const greetingText = firstName
+    ? `${getGreeting(now, userId)}, ${firstName}`
+    : getGreeting(now, userId);
+  const subtitleText = getDashboardSubtitle(now, userId);
 
   // Sync with prop changes
   useEffect(() => {
