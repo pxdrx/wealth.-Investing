@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: lib/email/send.ts
-hits: 1
+hits: 3
 hub: false
-last_seen: "2026-04-13T10:59:44-03:00"
+last_seen: "2026-04-15T16:06:44-03:00"
 tags: ["arquivo"]
 ---
 
 # `lib/email/send.ts`
 
-> 1 commit(s) tocaram este arquivo. 
+> 3 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/53d39ef-low-ticket-repricing-stickiness-email-engagement-churn-preve]]
+[[Sistema/Commits/36a34c6-one-click-unsubscribe-opt-out-registry]]

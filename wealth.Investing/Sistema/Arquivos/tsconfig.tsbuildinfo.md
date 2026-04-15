@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: tsconfig.tsbuildinfo
-hits: 3
+hits: 4
 hub: false
-last_seen: "2026-03-21T02:44:16-03:00"
+last_seen: "2026-04-14T21:55:36-03:00"
 tags: ["arquivo"]
 ---
 
 # `tsconfig.tsbuildinfo`
 
-> 3 commit(s) tocaram este arquivo. 
+> 4 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/8e093c1-security-audit-patch-10-vulnerabilities-1-critical-2-high-5-]]
+[[Sistema/Commits/67144ff-unifica-links-de-precos-para-pricing]]

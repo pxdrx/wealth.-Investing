@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: components/dashboard/AccountsOverview.tsx
-hits: 15
+hits: 17
 hub: true
-last_seen: "2026-03-17T23:51:30-03:00"
+last_seen: "2026-04-15T02:28:40-03:00"
 tags: ["arquivo", "hub"]
 ---
 
 # `components/dashboard/AccountsOverview.tsx`
 
-> 15 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 17 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/f17e33b-accountsoverview-component-with-risk-sorted-accounts-table]]
+[[Sistema/Commits/820600a-kpi-numbers-no-longer-overflow-card-on-mobile]]

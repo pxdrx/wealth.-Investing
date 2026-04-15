@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: CLAUDE.md
-hits: 3
+hits: 4
 hub: false
-last_seen: "2026-03-12T23:22:02-03:00"
+last_seen: "2026-04-14T21:55:36-03:00"
 tags: ["arquivo"]
 ---
 
 # `CLAUDE.md`
 
-> 3 commit(s) tocaram este arquivo. 
+> 4 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/4d5e266-landing-page-redesign-security-fixes-auth-improvements]]
+[[Sistema/Commits/67144ff-unifica-links-de-precos-para-pricing]]

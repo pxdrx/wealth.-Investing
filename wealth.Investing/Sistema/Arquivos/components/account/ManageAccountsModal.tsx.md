@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: components/account/ManageAccountsModal.tsx
-hits: 3
+hits: 4
 hub: false
-last_seen: "2026-03-14T15:05:35-03:00"
+last_seen: "2026-04-15T15:23:29-03:00"
 tags: ["arquivo"]
 ---
 
 # `components/account/ManageAccountsModal.tsx`
 
-> 3 commit(s) tocaram este arquivo. 
+> 4 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/045f574-account-management-modal-sql-fix-for-orphan-prop-accounts]]
+[[Sistema/Commits/9db65db-eod-drawdown-editable-rules-per-account-phase-rework]]

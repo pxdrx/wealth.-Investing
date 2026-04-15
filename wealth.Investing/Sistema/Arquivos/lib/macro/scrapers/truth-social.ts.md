@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: lib/macro/scrapers/truth-social.ts
-hits: 3
+hits: 4
 hub: false
-last_seen: "2026-03-24T18:04:49-03:00"
+last_seen: "2026-04-15T01:47:10-03:00"
 tags: ["arquivo"]
 ---
 
 # `lib/macro/scrapers/truth-social.ts`
 
-> 3 commit(s) tocaram este arquivo. 
+> 4 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/6d62084-major-update-fix-billing-headlines-refactor-journal-upgrade]]
+[[Sistema/Commits/e50d00a-limpa-ruido-de-headlines-trump-corrige-defasagem-do-ai-coach]]

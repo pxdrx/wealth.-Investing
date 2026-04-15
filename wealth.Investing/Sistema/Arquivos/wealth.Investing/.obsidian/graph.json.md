@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: wealth.Investing/.obsidian/graph.json
-hits: 1
+hits: 2
 hub: false
-last_seen: "2026-03-21T02:44:16-03:00"
+last_seen: "2026-04-14T21:55:36-03:00"
 tags: ["arquivo"]
 ---
 
 # `wealth.Investing/.obsidian/graph.json`
 
-> 1 commit(s) tocaram este arquivo. 
+> 2 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/8e093c1-security-audit-patch-10-vulnerabilities-1-critical-2-high-5-]]
+[[Sistema/Commits/67144ff-unifica-links-de-precos-para-pricing]]

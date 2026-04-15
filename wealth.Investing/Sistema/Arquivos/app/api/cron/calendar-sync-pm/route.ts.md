@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: app/api/cron/calendar-sync-pm/route.ts
-hits: 4
-hub: false
-last_seen: "2026-03-23T00:13:41-03:00"
-tags: ["arquivo"]
+hits: 5
+hub: true
+last_seen: "2026-04-15T02:56:50-03:00"
+tags: ["arquivo", "hub"]
 ---
 
 # `app/api/cron/calendar-sync-pm/route.ts`
 
-> 4 commit(s) tocaram este arquivo. 
+> 5 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/dbabb90-macro-pipeline-overhaul-te-actuals-enriched-narrative-regene]]
+[[Sistema/Commits/d42c668-supabase-pooler-url-support-distributed-cron-locks]]

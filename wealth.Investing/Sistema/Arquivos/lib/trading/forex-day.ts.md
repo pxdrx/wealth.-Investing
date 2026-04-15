@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: lib/trading/forex-day.ts
-hits: 2
+hits: 3
 hub: false
-last_seen: "2026-04-01T13:01:16-03:00"
+last_seen: "2026-04-15T02:07:14-03:00"
 tags: ["arquivo"]
 ---
 
 # `lib/trading/forex-day.ts`
 
-> 2 commit(s) tocaram este arquivo. 
+> 3 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/8abbcf4-dst-aware-forex-day-boundary-mobile-scale-reduction]]
+[[Sistema/Commits/1d00f75-billing-calendar-reports-ai-coach-hardening]]

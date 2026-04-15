@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: components/ai/ChatInput.tsx
-hits: 4
-hub: false
-last_seen: "2026-03-17T15:01:59-03:00"
-tags: ["arquivo"]
+hits: 5
+hub: true
+last_seen: "2026-04-15T02:01:10-03:00"
+tags: ["arquivo", "hub"]
 ---
 
 # `components/ai/ChatInput.tsx`
 
-> 4 commit(s) tocaram este arquivo. 
+> 5 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/5c9ce92-add-chat-input-component-with-auto-resize]]
+[[Sistema/Commits/8608546-destrava-modais-equity-chart-e-ai-coach-no-celular]]

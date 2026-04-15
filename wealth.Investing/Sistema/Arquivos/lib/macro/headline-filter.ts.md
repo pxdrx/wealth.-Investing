@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: lib/macro/headline-filter.ts
-hits: 3
+hits: 4
 hub: false
-last_seen: "2026-03-28T21:47:15-03:00"
+last_seen: "2026-04-15T01:47:10-03:00"
 tags: ["arquivo"]
 ---
 
 # `lib/macro/headline-filter.ts`
 
-> 3 commit(s) tocaram este arquivo. 
+> 4 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/750a2b0-major-bugfixes-data-audit-journal-restructure-macro-fixes-pr]]
+[[Sistema/Commits/e50d00a-limpa-ruido-de-headlines-trump-corrige-defasagem-do-ai-coach]]

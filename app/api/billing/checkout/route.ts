@@ -9,6 +9,8 @@ type PlanInterval = "pro_monthly" | "pro_annual" | "ultra_monthly" | "ultra_annu
 
 export async function POST(req: NextRequest) {
   const isDev = process.env.NODE_ENV !== "production";
+  let attemptedPlan: string | undefined;
+  let attemptedPriceId: string | undefined;
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json(
@@ -38,7 +40,9 @@ export async function POST(req: NextRequest) {
     } else {
       planInterval = body.plan as PlanInterval;
     }
+    attemptedPlan = planInterval;
     const priceId = PRICE_IDS[planInterval];
+    attemptedPriceId = priceId;
     if (!priceId) {
       console.error("[billing/checkout] Missing price ID for", planInterval, "— env not set in Vercel?");
       return NextResponse.json(
@@ -96,7 +100,7 @@ export async function POST(req: NextRequest) {
         {
           ok: false,
           error: "Preço inválido no Stripe. Verifique STRIPE_*_PRICE_ID no Vercel.",
-          ...(isDev ? { debug: { code, message } } : {}),
+          debug: { code, message, attemptedPlan, attemptedPriceId },
         },
         { status: 502 },
       );

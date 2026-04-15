@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: components/dashboard/SessionHeatmap.tsx
-hits: 3
+hits: 4
 hub: false
-last_seen: "2026-03-18T07:33:47-03:00"
+last_seen: "2026-04-15T02:01:10-03:00"
 tags: ["arquivo"]
 ---
 
 # `components/dashboard/SessionHeatmap.tsx`
 
-> 3 commit(s) tocaram este arquivo. 
+> 4 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/b3ea1c3-add-equitycurvemini-and-sessionheatmap-dashboard-widgets]]
+[[Sistema/Commits/8608546-destrava-modais-equity-chart-e-ai-coach-no-celular]]

@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: lib/rate-limit.ts
-hits: 2
+hits: 3
 hub: false
-last_seen: "2026-03-28T14:33:44-03:00"
+last_seen: "2026-04-15T02:56:32-03:00"
 tags: ["arquivo"]
 ---
 
 # `lib/rate-limit.ts`
 
-> 2 commit(s) tocaram este arquivo. 
+> 3 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/a7e38f5-upstash-redis-rate-limiting-macro-data-caching]]
+[[Sistema/Commits/786a7db-rate-limit-tier-quota-on-dd-analysis-and-psychology]]

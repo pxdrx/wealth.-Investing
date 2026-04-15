@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: app/api/cron/rates-sync/route.ts
-hits: 9
+hits: 11
 hub: true
-last_seen: "2026-03-19T00:08:43-03:00"
+last_seen: "2026-04-15T02:56:50-03:00"
 tags: ["arquivo", "hub"]
 ---
 
 # `app/api/cron/rates-sync/route.ts`
 
-> 9 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 11 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/d9250ab-implement-inteligencia-macro-platform]]
+[[Sistema/Commits/d42c668-supabase-pooler-url-support-distributed-cron-locks]]
