@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Star, MessageSquare, Loader2 } from "lucide-react";
+import { Star, MessageSquare, Loader2, GraduationCap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 
@@ -158,9 +158,15 @@ export function StudentFeedbackFeed() {
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {n.mentor_name ?? "Mentor"}
-                      </p>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {n.mentor_name ?? "Mentor"}
+                        </p>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                          <GraduationCap className="h-3 w-3" />
+                          Mentor
+                        </span>
+                      </div>
                       <p className="text-xs text-muted-foreground flex items-center gap-2">
                         <span>{formatTime(n.created_at)}</span>
                         {n.trade_id && (
