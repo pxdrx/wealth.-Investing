@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               
               {/* Scrollable Content Area */}
-              <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar scroll-smooth pb-20 md:pb-0">
+              <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar scroll-smooth pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
                 <ErrorBoundary>{children}</ErrorBoundary>
               </main>
             </div>

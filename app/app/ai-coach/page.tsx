@@ -562,7 +562,7 @@ function AICoachPageInner() {
   }, [activeAccountId, isStreaming, quotaExhausted, messages, analysisType, dataMode, tradeAnalytics, saveMessage, activeConversationTitle, autoUpdateTitle]);
 
   return (
-    <main className="flex w-full h-[calc(100dvh-4rem)] lg:h-full p-3 sm:p-6 lg:p-8 gap-6 overflow-hidden overflow-x-hidden">
+    <main className="flex w-full h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] lg:h-full p-3 sm:p-6 lg:p-8 gap-6 overflow-hidden overflow-x-hidden">
       {/* LEFT PANE: Context & Data Insights (Hidden on small screens) */}
       <div className="hidden lg:flex flex-col w-[350px] xl:w-[400px] shrink-0 gap-6 overflow-y-auto custom-scrollbar pr-4">
         <div>
