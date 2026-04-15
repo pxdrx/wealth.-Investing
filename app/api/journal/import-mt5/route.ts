@@ -101,12 +101,19 @@ export async function POST(request: Request) {
     // Parse file
     const buffer = await file.arrayBuffer();
 
-    let trades: Array<{ external_id: string; external_source?: string; symbol: string; direction: string; opened_at: string; closed_at: string; pnl_usd: number; fees_usd?: number; lots?: number; category?: string; commission?: number; swap?: number }>;
-    let balanceOps: Array<{ type: string; amount_usd: number; at?: string | null; external_id?: string | null }>;
+    let trades: Array<{ external_id: string; external_source?: string; symbol: string; direction: string; opened_at: string; closed_at: string; pnl_usd: number; fees_usd?: number; lots?: number; category?: string; commission?: number; swap?: number }> = [];
+    let balanceOps: Array<{ type: string; amount_usd: number; at?: string | null; external_id?: string | null }> = [];
+
+    // CSV-specific metadata surfaced when adaptive parser runs (optional)
+    let csvSource: string = isCsv ? "ctrader" : "mt5";
+    let adaptiveMapping: Record<string, { header: string; confidence: string }> | null = null;
+    let adaptiveWarnings: string[] = [];
+    let adaptiveSkippedOpen = 0;
 
     try {
       if (isCsv) {
-        // cTrader CSV parser — will be implemented in a later task
+        // Try cTrader fast-path; on failure fall back to adaptive parser.
+        let ctraderOk = false;
         try {
           const { parseCtraderCsv } = await import("@/lib/ctrader-parser");
           const result = parseCtraderCsv(Buffer.from(buffer));
@@ -120,12 +127,42 @@ export async function POST(request: Request) {
             at: p.paid_at,
             external_id: null,
           }));
-        } catch (importErr) {
-          const msg = importErr instanceof Error ? importErr.message : String(importErr);
+          parserChosen = "ctrader_csv";
+          csvSource = "ctrader";
+          ctraderOk = true;
+        } catch (ctraderErr) {
+          const msg = ctraderErr instanceof Error ? ctraderErr.message : String(ctraderErr);
           if (msg.includes("Cannot find module") || msg.includes("Module not found")) {
             return NextResponse.json({ ok: false, error: "Parser cTrader CSV não disponível ainda" }, { status: 400 });
           }
-          throw importErr;
+          // not a cTrader file — try adaptive
+        }
+
+        if (!ctraderOk) {
+          const { parseCsvAdaptive } = await import("@/lib/csv-adaptive-parser");
+          const adapt = parseCsvAdaptive(buffer);
+          trades = adapt.trades.map((t) => ({
+            external_id: t.external_id,
+            external_source: t.external_source,
+            symbol: t.symbol,
+            direction: t.direction,
+            opened_at: t.opened_at,
+            closed_at: t.closed_at,
+            pnl_usd: t.pnl_usd,
+            fees_usd: t.fees_usd,
+            lots: t.lots,
+          }));
+          balanceOps = [];
+          parserChosen = `csv_adaptive${adapt.broker_hint !== "generic" ? `_${adapt.broker_hint}` : ""}`;
+          csvSource = adapt.external_source;
+          adaptiveMapping = Object.fromEntries(
+            Object.entries(adapt.mapping).map(([k, v]) => [
+              k,
+              { header: v!.header, confidence: v!.confidence },
+            ])
+          );
+          adaptiveWarnings = adapt.warnings;
+          adaptiveSkippedOpen = adapt.rows_skipped_open_position;
         }
       } else {
         const result = isHtml ? parseMt5Html(buffer) : parseMt5Xlsx(buffer);
@@ -134,7 +171,7 @@ export async function POST(request: Request) {
       }
     } catch (parseErr) {
       const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-      if (msg.startsWith("MT5 HTML parse failed")) {
+      if (msg.startsWith("MT5 HTML parse failed") || msg.startsWith("CSV adaptativo:")) {
         return NextResponse.json({ error: msg }, { status: 400 });
       }
       throw parseErr;
@@ -153,9 +190,13 @@ export async function POST(request: Request) {
       return NextResponse.json({
         ok: true,
         preview: true,
+        parser_used: parserChosen,
         trades_found: trades.length,
         payouts: balanceOps.filter((op) => op.type === "WITHDRAWAL").length,
         sample,
+        mapping: adaptiveMapping,
+        warnings: adaptiveWarnings,
+        rows_skipped_open_position: adaptiveSkippedOpen,
       });
     }
 
@@ -232,7 +273,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const sourceLabel = isCsv ? "ctrader_csv" : isHtml ? "mt5_html" : "mt5_xlsx";
+    const sourceLabel = isCsv ? parserChosen : isHtml ? "mt5_html" : "mt5_xlsx";
 
     let imported = 0;
     let duplicates = 0;
@@ -249,7 +290,7 @@ export async function POST(request: Request) {
       .select("closed_at")
       .eq("user_id", userId)
       .eq("account_id", accountId)
-      .eq("external_source", isCsv ? "ctrader" : "mt5")
+      .eq("external_source", isCsv ? csvSource : "mt5")
       .order("closed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -269,7 +310,7 @@ export async function POST(request: Request) {
     // computes pnl_usd + fees_usd should any row come back NULL, so omitting
     // it here is safe either way.
     // Step 1: Check for duplicates in bulk by fetching existing external_ids
-    const defaultSource = isCsv ? "ctrader" : "mt5";
+    const defaultSource = isCsv ? csvSource : "mt5";
     const externalIds = newTrades.map((t) => t.external_id);
     const existingIdSet = new Set<string>();
 
@@ -402,7 +443,7 @@ export async function POST(request: Request) {
             .from("prop_payouts")
             .select("id")
             .eq("prop_account_id", propAccountRowId)
-            .eq("external_source", isCsv ? "ctrader" : "mt5")
+            .eq("external_source", isCsv ? csvSource : "mt5")
             .eq("external_id", op.external_id)
             .maybeSingle();
           existing = data;
@@ -424,7 +465,7 @@ export async function POST(request: Request) {
           prop_account_id: propAccountRowId,
           paid_at: paidAt,
           amount_usd: op.amount_usd,
-          external_source: isCsv ? "ctrader" : "mt5",
+          external_source: isCsv ? csvSource : "mt5",
           external_id: externalId,
         });
 
@@ -491,6 +532,9 @@ export async function POST(request: Request) {
       duration_ms: durationMs,
       skipped_details: skippedDetails,
       duplicate_details: duplicateDetails,
+      mapping: adaptiveMapping,
+      warnings: adaptiveWarnings,
+      rows_skipped_open_position: adaptiveSkippedOpen,
     });
   } catch (err) {
     const durationMs = Date.now() - start;

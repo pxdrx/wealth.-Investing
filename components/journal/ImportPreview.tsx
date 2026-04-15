@@ -1,6 +1,7 @@
 "use client";
 
-import { FileCheck } from "lucide-react";
+import { Fragment, useState } from "react";
+import { FileCheck, ChevronDown, ChevronRight, Info } from "lucide-react";
 
 interface PreviewTrade {
   symbol: string;
@@ -8,6 +9,11 @@ interface PreviewTrade {
   lots: number;
   pnl: number;
   date: string;
+}
+
+interface MappingEntry {
+  header: string;
+  confidence: string;
 }
 
 interface ImportPreviewProps {
@@ -19,11 +25,19 @@ interface ImportPreviewProps {
   onConfirm: () => void;
   onCancel: () => void;
   loading?: boolean;
+  parserUsed?: string;
+  mapping?: Record<string, MappingEntry> | null;
+  warnings?: string[];
+  skippedOpenPositions?: number;
 }
 
 export function ImportPreview({
   fileName, totalTrades, payouts, trades, compact = false, onConfirm, onCancel, loading = false,
+  parserUsed, mapping, warnings, skippedOpenPositions = 0,
 }: ImportPreviewProps) {
+  const [showMapping, setShowMapping] = useState(false);
+  const isAdaptive = !!parserUsed && parserUsed.startsWith("csv_adaptive");
+  const mappingEntries = mapping ? Object.entries(mapping) : [];
   const displayCount = compact ? 3 : 5;
   const displayed = trades.slice(0, displayCount);
 
@@ -63,6 +77,46 @@ export function ImportPreview({
         <p className="text-[11px] text-muted-foreground text-center mt-1.5">
           Mostrando {displayCount} de {totalTrades} trades
         </p>
+      )}
+
+      {isAdaptive && (mappingEntries.length > 0 || (warnings && warnings.length > 0) || skippedOpenPositions > 0) && (
+        <div className="mt-3 rounded-lg border border-border/60 bg-muted/30 p-2.5 text-[11px]">
+          <button
+            onClick={() => setShowMapping((s) => !s)}
+            className="flex items-center gap-1.5 w-full text-left text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showMapping ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            <Info size={12} />
+            <span>Mapeamento automático detectado</span>
+            {skippedOpenPositions > 0 && (
+              <span className="ml-auto px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                {skippedOpenPositions} posição{skippedOpenPositions > 1 ? "ões" : ""} aberta{skippedOpenPositions > 1 ? "s" : ""} ignorada{skippedOpenPositions > 1 ? "s" : ""}
+              </span>
+            )}
+          </button>
+          {showMapping && (
+            <div className="mt-2 space-y-1.5">
+              {mappingEntries.length > 0 && (
+                <div className="grid grid-cols-[auto_1fr_auto] gap-x-2 gap-y-0.5">
+                  {mappingEntries.map(([field, entry]) => (
+                    <Fragment key={field}>
+                      <span className="font-mono text-muted-foreground">{field}</span>
+                      <span className="truncate">{entry.header}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{entry.confidence}</span>
+                    </Fragment>
+                  ))}
+                </div>
+              )}
+              {warnings && warnings.length > 0 && (
+                <ul className="mt-2 pt-2 border-t border-border/40 list-disc list-inside text-muted-foreground space-y-0.5">
+                  {warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       <div className="flex gap-3 justify-end mt-4">

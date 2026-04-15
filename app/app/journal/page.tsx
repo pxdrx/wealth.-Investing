@@ -43,6 +43,10 @@ interface PreviewData {
   payouts: number;
   trades: PreviewTrade[];
   raw: Record<string, unknown>;
+  parserUsed?: string;
+  mapping?: Record<string, { header: string; confidence: string }> | null;
+  warnings?: string[];
+  skippedOpenPositions?: number;
 }
 
 interface ImportResultData {
@@ -334,6 +338,10 @@ export default function JournalPage() {
         payouts: data.payouts_detected ?? 0,
         trades: previewTrades,
         raw: data as Record<string, unknown>,
+        parserUsed: typeof data.parser_used === "string" ? data.parser_used : undefined,
+        mapping: (data.mapping as PreviewData["mapping"]) ?? null,
+        warnings: Array.isArray(data.warnings) ? (data.warnings as string[]) : undefined,
+        skippedOpenPositions: typeof data.rows_skipped_open_position === "number" ? data.rows_skipped_open_position : 0,
       };
       setPreviewData(preview);
       // Ensure loading is cleared AFTER preview data is set to avoid blank state
@@ -550,6 +558,10 @@ export default function JournalPage() {
                   onConfirm={handleConfirm}
                   onCancel={handleImportCancel}
                   loading={isImportLoading}
+                  parserUsed={previewData.parserUsed}
+                  mapping={previewData.mapping}
+                  warnings={previewData.warnings}
+                  skippedOpenPositions={previewData.skippedOpenPositions}
                 />
               )}
 
