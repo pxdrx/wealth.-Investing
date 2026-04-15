@@ -11,60 +11,36 @@ import { AppMobileNav } from "@/components/layout/AppMobileNav";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
 
 const TOUR_STORAGE_KEY = "onboarding_tour_completed";
-/** Only show tour if account was created within this window (ms) */
-const NEW_ACCOUNT_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+const TOUR_PENDING_KEY = "onboarding_tour_pending";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
-    // Only show tour on /app routes, and only if not yet completed
     if (!pathname?.startsWith("/app")) return;
+
+    let pending = false;
     try {
-      const completed = localStorage.getItem(TOUR_STORAGE_KEY);
-      if (completed) return; // Already completed, skip everything
+      if (localStorage.getItem(TOUR_STORAGE_KEY)) return;
+      pending = localStorage.getItem(TOUR_PENDING_KEY) === "1";
     } catch {
-      // localStorage unavailable, skip tour
       return;
     }
 
-    // Check if user account is new enough to warrant showing the tour
-    let cancelled = false;
+    if (!pending) return;
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (cancelled) return;
-      const createdAt = data?.user?.created_at;
-      if (!createdAt) return;
-
-      const accountAgeMs = Date.now() - new Date(createdAt).getTime();
-      if (accountAgeMs <= NEW_ACCOUNT_THRESHOLD_MS) {
-        // New user — show tour after a small delay for layout to render
-        setTimeout(() => {
-          if (!cancelled) setShowTour(true);
-        }, 600);
-      } else {
-        // Existing user — auto-dismiss tour forever
-        try {
-          localStorage.setItem(TOUR_STORAGE_KEY, new Date().toISOString());
-        } catch {
-          // localStorage unavailable
-        }
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const t = setTimeout(() => setShowTour(true), 600);
+    return () => clearTimeout(t);
+  }, [pathname]);
 
   function handleTourComplete() {
     setShowTour(false);
     try {
       localStorage.setItem(TOUR_STORAGE_KEY, new Date().toISOString());
+      localStorage.removeItem(TOUR_PENDING_KEY);
     } catch {
       // localStorage unavailable
     }

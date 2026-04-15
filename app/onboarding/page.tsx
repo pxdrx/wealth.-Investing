@@ -136,7 +136,17 @@ export default function OnboardingPage() {
     await handleSaveName();
   }
 
+  function markTourPending() {
+    try {
+      localStorage.setItem("onboarding_tour_pending", "1");
+      localStorage.removeItem("onboarding_tour_completed");
+    } catch {
+      // localStorage unavailable
+    }
+  }
+
   function handleFinish() {
+    markTourPending();
     window.location.href = "/app";
   }
 
@@ -204,6 +214,7 @@ export default function OnboardingPage() {
       if (!json.ok) throw new Error(json.error ?? "Falha ao importar");
 
       setImportState("success");
+      markTourPending();
       setTimeout(() => { window.location.href = "/app?imported=true"; }, 1500);
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "Erro ao importar");
@@ -539,7 +550,7 @@ export default function OnboardingPage() {
                     )}
                     <button
                       type="button"
-                      onClick={() => { window.location.href = "/app"; }}
+                      onClick={() => { markTourPending(); window.location.href = "/app"; }}
                       className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer py-1"
                     >
                       Pular por agora

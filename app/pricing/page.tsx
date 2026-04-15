@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { PricingCards } from "@/components/billing/PricingCards";
@@ -21,8 +23,17 @@ export default function PricingPage() {
       </a>
       <Navbar />
       <main id="main-content">
-        <section className="py-16 lg:py-24">
+        <section className="pt-8 lg:pt-12 pb-16 lg:pb-24">
           <div className="mx-auto max-w-6xl px-6">
+            <div className="mb-8">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft size={14} />
+                Voltar para a home
+              </Link>
+            </div>
             <div className="text-center mb-12 lg:mb-16">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">
                 Preços
