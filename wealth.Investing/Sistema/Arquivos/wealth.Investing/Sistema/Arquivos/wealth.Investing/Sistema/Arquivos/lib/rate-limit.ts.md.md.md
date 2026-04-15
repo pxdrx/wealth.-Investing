@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: wealth.Investing/Sistema/Arquivos/wealth.Investing/Sistema/Arquivos/lib/rate-limit.ts.md.md
-hits: 1
+hits: 2
 hub: false
-last_seen: "2026-04-15T16:15:16-03:00"
+last_seen: "2026-04-15T16:32:29-03:00"
 tags: ["arquivo"]
 ---
 
 # `wealth.Investing/Sistema/Arquivos/wealth.Investing/Sistema/Arquivos/lib/rate-limit.ts.md.md`
 
-> 1 commit(s) tocaram este arquivo. 
+> 2 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/47a8e7f-expose-attempted-priceid-in-checkout-error-for-diag]]
+[[Sistema/Commits/6c3e9b9-student-feedback-feed-notes-history-tab]]

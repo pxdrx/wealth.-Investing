@@ -832,6 +832,125 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
 
 // ─── Main Page ───────────────────────────────────────────────────────
 
+// ─── Unlinked Student View ───────────────────────────────────────────
+
+function UnlinkedStudentView({ onLinked }: { onLinked: () => void }) {
+  const [code, setCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiFetch("/api/mentor/link", {
+        method: "POST",
+        body: JSON.stringify({ code: trimmed }),
+      });
+      setSuccess(true);
+      setTimeout(() => onLinked(), 600);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Código inválido");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-10 overflow-x-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: easeApple }}
+        className="mb-8"
+      >
+        <div className="flex items-center gap-3">
+          <Users className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold tracking-tight">Mentoria</h1>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Nenhum mentor vinculado a esta conta ainda.
+        </p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05, ease: easeApple }}
+      >
+        <Card
+          className="rounded-[22px] p-6 sm:p-8"
+          style={{ backgroundColor: "hsl(var(--card))" }}
+        >
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold tracking-tight mb-1">
+              Vincular com código de convite
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Seu mentor gerou um código no painel dele. Insira aqui para receber feedback
+              nos seus trades e anotações diárias.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="mentor-code">Código do mentor</Label>
+              <Input
+                id="mentor-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="EX: ABCD-1234"
+                className="font-mono tracking-wider uppercase"
+                autoComplete="off"
+                autoCapitalize="characters"
+                disabled={submitting || success}
+                maxLength={32}
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            )}
+            {success && (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                Mentor vinculado! Carregando seu feed...
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              disabled={submitting || success || code.trim().length === 0}
+              className="w-full sm:w-auto"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Vinculando...
+                </>
+              ) : (
+                "Vincular mentor"
+              )}
+            </Button>
+          </form>
+
+          <div className="mt-6 pt-5 border-t border-border/60">
+            <p className="text-xs text-muted-foreground">
+              Ainda não tem mentor? O programa é por convite — peça o código para o seu mentor
+              responsável. Se você é mentor e quer criar convites, acesse{" "}
+              <span className="font-medium text-foreground">Configurações → Planos</span>{" "}
+              para ativar o painel.
+            </p>
+          </div>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function MentorPage() {
   const router = useRouter();
   const { isMentor, isLoading: subLoading } = useSubscription();
@@ -883,12 +1002,8 @@ export default function MentorPage() {
     };
   }, [subLoading, isMentor]);
 
-  useEffect(() => {
-    if (subLoading) return;
-    if (isMentor) return;
-    if (isStudent === null) return; // still checking
-    if (!isStudent) router.replace("/app");
-  }, [subLoading, isMentor, isStudent, router]);
+  // Non-mentor, non-student users now see an empty-state with invite-code input
+  // (no more silent redirect to /app)
 
   useEffect(() => {
     if (subLoading || !isMentor) return;
@@ -1018,6 +1133,10 @@ export default function MentorPage() {
         <StudentFeedbackFeed />
       </div>
     );
+  }
+
+  if (!isMentor && isStudent === false) {
+    return <UnlinkedStudentView onLinked={() => setIsStudent(true)} />;
   }
 
   if (!isMentor) {

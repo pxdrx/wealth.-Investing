@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: wealth.Investing/Sistema/Arquivos/app/api/billing/checkout/route.ts.md
-hits: 2
+hits: 3
 hub: false
-last_seen: "2026-04-15T16:15:16-03:00"
+last_seen: "2026-04-15T16:32:29-03:00"
 tags: ["arquivo"]
 ---
 
 # `wealth.Investing/Sistema/Arquivos/app/api/billing/checkout/route.ts.md`
 
-> 2 commit(s) tocaram este arquivo. 
+> 3 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/47a8e7f-expose-attempted-priceid-in-checkout-error-for-diag]]
+[[Sistema/Commits/6c3e9b9-student-feedback-feed-notes-history-tab]]
