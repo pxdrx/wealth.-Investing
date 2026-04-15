@@ -7,7 +7,7 @@ import type { Plan } from "@/lib/subscription-shared";
 import { getPersonalTradeStats } from "@/lib/ai-stats";
 import { getCommunityIntelligence } from "@/lib/ai-community-stats";
 import { buildSystemPrompt, formatPsychologyProfile } from "@/lib/ai-prompts";
-import type { MacroContext } from "@/lib/ai-prompts";
+import type { MacroContext, MacroEvent } from "@/lib/ai-prompts";
 import { getWeekStart } from "@/lib/macro/constants";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import type { JournalTradeRow } from "@/components/journal/types";
@@ -18,6 +18,21 @@ let _anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic {
   if (!_anthropic) _anthropic = new Anthropic();
   return _anthropic;
+}
+
+/**
+ * Converte (date, time) de um evento econômico em Date UTC.
+ * ForexFactory entrega time em ET — usamos -04:00 como aproximação (bom o bastante p/ "já passou ou não").
+ * Retorna null se os dados forem inválidos ou não houver time.
+ */
+function parseEventDateTime(date: string, time: string | null): Date | null {
+  if (!date) return null;
+  const t = time && /^\d{1,2}:\d{2}/.test(time) ? time : null;
+  // Sem hora: evento conta como "passou" apenas se a data inteira já foi.
+  // Usamos fim-do-dia ET (23:59 -04:00) para NÃO marcar eventos da data atual como released prematuramente.
+  const iso = t ? `${date}T${t}:00-04:00` : `${date}T23:59:00-04:00`;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 
@@ -210,15 +225,29 @@ export async function POST(req: NextRequest) {
     const assetImpacts = panoramaRes.data?.asset_impacts as { daily_update?: string } | null;
     const dailyUpdate = assetImpacts?.daily_update ?? null;
 
-    const highImpactEvents = (eventsRes.data ?? []).map((e: { title: string; date: string; time: string | null; country: string; forecast: string | null; previous: string | null; actual: string | null }) => ({
-      title: e.title,
-      date: e.date,
-      time: e.time,
-      country: e.country,
-      forecast: e.forecast,
-      previous: e.previous,
-      actual: e.actual,
-    }));
+    const now = new Date();
+    const nowMs = now.getTime();
+
+    const releasedEvents: MacroEvent[] = [];
+    const upcomingEvents: MacroEvent[] = [];
+
+    for (const e of (eventsRes.data ?? []) as { title: string; date: string; time: string | null; country: string; forecast: string | null; previous: string | null; actual: string | null }[]) {
+      const event: MacroEvent = {
+        title: e.title,
+        date: e.date,
+        time: e.time,
+        country: e.country,
+        forecast: e.forecast,
+        previous: e.previous,
+        actual: e.actual,
+      };
+
+      // "Released" se já tem 'actual' OU se datetime já passou.
+      // ForexFactory time é ET (fallback -04:00, bom o suficiente p/ comparar 'passou ou não').
+      const dt = parseEventDateTime(e.date, e.time);
+      const hasReleased = !!e.actual || (dt !== null && dt.getTime() < nowMs);
+      (hasReleased ? releasedEvents : upcomingEvents).push(event);
+    }
 
     const rates = (ratesRes.data ?? []).map((r: { bank_code: string; current_rate: number; last_action: string }) => ({
       bank_code: r.bank_code,
@@ -226,8 +255,16 @@ export async function POST(req: NextRequest) {
       last_action: r.last_action,
     }));
 
-    if (headlines.length > 0 || panorama || highImpactEvents.length > 0 || rates.length > 0) {
-      macroContext = { headlines, panorama, dailyUpdate, highImpactEvents, rates };
+    if (headlines.length > 0 || panorama || releasedEvents.length > 0 || upcomingEvents.length > 0 || rates.length > 0) {
+      macroContext = {
+        headlines,
+        panorama,
+        dailyUpdate,
+        releasedEvents,
+        upcomingEvents,
+        nowIso: now.toISOString(),
+        rates,
+      };
     }
   } catch (err) {
     console.warn("[ai-coach] macro context fetch error:", err);

@@ -4,11 +4,26 @@ import type { TradeAnalytics } from "./trade-analytics";
 import type { JournalTradeRow } from "@/components/journal/types";
 import { getNetPnl } from "@/components/journal/types";
 
+export interface MacroEvent {
+  title: string;
+  date: string;
+  time: string | null;
+  country: string;
+  forecast: string | null;
+  previous: string | null;
+  actual: string | null;
+}
+
 export interface MacroContext {
   headlines: { headline: string; source: string; impact: string }[];
   panorama: string | null;
   dailyUpdate: string | null;
-  highImpactEvents: { title: string; date: string; time: string | null; country: string; forecast: string | null; previous: string | null; actual: string | null }[];
+  /** Eventos high-impact da semana que já foram divulgados (actual preenchido OU datetime passou) */
+  releasedEvents: MacroEvent[];
+  /** Eventos high-impact da semana ainda por sair */
+  upcomingEvents: MacroEvent[];
+  /** ISO da hora atual do servidor — ground truth para o modelo */
+  nowIso: string;
   rates: { bank_code: string; current_rate: number; last_action: string }[];
 }
 
@@ -54,7 +69,13 @@ Quando relevante, responda objetivamente:
 - Nunca revele dados de outros traders.
 - Sentimento da plataforma = apenas traders lucrativos. Mencione isso ao citar.
 - Discorde com dados, nao com opiniao.
-- Nao invente estatisticas que nao estejam no contexto fornecido.`;
+- Nao invente estatisticas que nao estejam no contexto fornecido.
+
+## Tempo e eventos (CRITICO)
+- Use sempre "Data/Hora atual" do bloco INTELIGENCIA MACRO como ground truth. Nunca assuma data por conta propria.
+- Eventos listados em "Eventos Ja Divulgados Esta Semana" JA SAIRAM. Nunca diga que "sai amanha" ou "vai sair" para esses. Use o valor "Real" na analise.
+- Eventos listados em "Eventos Ainda por Sair Esta Semana" ainda nao foram divulgados. So esses podem ser referenciados como "sai hoje/amanha/nesta semana".
+- Se o usuario perguntar sobre um indicador que ja saiu, compare Real vs Prev (forecast) e explique a reacao do mercado. Nunca fale como se ainda nao tivesse saido.`;
 
 function formatPersonalStats(stats: PersonalTradeStats): string {
   const lines: string[] = [
@@ -123,8 +144,32 @@ function formatNews(headlines: string[]): string {
   return lines.join("\n");
 }
 
+function formatEventLine(e: MacroEvent, includeActual: boolean): string {
+  const time = e.time ? ` ${e.time} ET` : "";
+  const forecast = e.forecast ? ` | Prev: ${e.forecast}` : "";
+  const prev = e.previous ? ` | Ant: ${e.previous}` : "";
+  const actual = includeActual ? ` | Real: ${e.actual ?? "(aguardando)"}` : "";
+  return `- ${e.date}${time} ${e.country}: ${e.title}${forecast}${prev}${actual}`;
+}
+
+function formatPtBrDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      dateStyle: "full",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 function formatMacroContext(macro: MacroContext): string {
   const lines: string[] = ["## INTELIGÊNCIA MACRO (dados do site)", ""];
+
+  // Ground truth: data/hora atual do servidor (fuso BR)
+  lines.push(`### Data/Hora atual (America/Sao_Paulo): ${formatPtBrDateTime(macro.nowIso)}`);
+  lines.push("");
 
   // Panorama semanal
   if (macro.panorama) {
@@ -150,15 +195,20 @@ function formatMacroContext(macro: MacroContext): string {
     lines.push("");
   }
 
-  // Eventos econômicos de alto impacto
-  if (macro.highImpactEvents.length > 0) {
-    lines.push("### Eventos Econômicos de Alto Impacto (esta semana)");
-    for (const e of macro.highImpactEvents) {
-      const time = e.time ? ` ${e.time}` : "";
-      const actual = e.actual ? ` | Real: ${e.actual}` : "";
-      const forecast = e.forecast ? ` | Prev: ${e.forecast}` : "";
-      const prev = e.previous ? ` | Ant: ${e.previous}` : "";
-      lines.push(`- ${e.date}${time} ${e.country}: ${e.title}${forecast}${prev}${actual}`);
+  // Eventos JÁ DIVULGADOS (passado) — inclui o "Real"
+  if (macro.releasedEvents.length > 0) {
+    lines.push("### Eventos Já Divulgados Esta Semana (JÁ SAÍRAM — NÃO dizer que 'saem amanhã')");
+    for (const e of macro.releasedEvents) {
+      lines.push(formatEventLine(e, true));
+    }
+    lines.push("");
+  }
+
+  // Eventos AINDA POR SAIR (futuro) — só forecast/previous
+  if (macro.upcomingEvents.length > 0) {
+    lines.push("### Eventos Ainda por Sair Esta Semana");
+    for (const e of macro.upcomingEvents) {
+      lines.push(formatEventLine(e, false));
     }
     lines.push("");
   }

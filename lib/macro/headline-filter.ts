@@ -92,11 +92,9 @@ const FINANCIAL_TERMS = [
   "opec", "opec+", "g7", "g20", "brics",
   "nuclear", "enrichment", "enriquecimento",
 
-  // ── Politics ──
-  "trump", "biden", "president", "presidente",
-  "white house", "casa branca", "oval office",
-  "press conference", "coletiva de imprensa",
-  "national security", "segurança nacional",
+  // ── Politics (termos com contexto financeiro direto) ──
+  "trump", "biden", "president",
+  "oval office",
   "impeachment", "election", "eleição",
   "executive order", "decreto", "legislation", "legislação",
   "brexit",
@@ -133,13 +131,41 @@ const FINANCIAL_TERMS = [
 
 const TERMS_LOWER = FINANCIAL_TERMS.map((t) => t.toLowerCase());
 
+/**
+ * Blocklist: headlines contendo esses termos são descartadas mesmo que passem no whitelist.
+ * Trata ruído recorrente de Casa Branca/Trump (UFC, cerimônias, família, esporte, entretenimento).
+ */
+const NOISE_TERMS = [
+  // Esporte / entretenimento
+  "ufc", "nfl", "nba", "mlb", "nhl", "super bowl", "world cup", "olympics", "olímpiada",
+  "concert", "celebrity", "celebridade", "actor", "actress", "movie", "film premiere",
+  "hollywood", "grammy", "oscar", "emmy", "golden globe",
+  "tournament", "championship game", "playoff", "draft pick", "hall of fame",
+  // Cerimônias / eventos sociais
+  "ceremony", "cerimônia", "wedding", "casamento", "funeral", "birthday",
+  "thanksgiving", "easter", "christmas party", "halloween", "dinner with",
+  "rose garden event", "kennedy center", "medal of freedom", "correspondents dinner",
+  "state visit", "state dinner", "gala",
+  // Família / pessoal
+  "first lady", "melania", "barron trump", "ivanka", "tiffany trump", "eric trump",
+  "donald jr", "kushner wedding",
+  // Religião (pura)
+  "pope francis", "papa francisco", "vatican",
+];
+
 /** Returns true if the headline contains at least one financial term */
 export function isFinanciallyRelevant(headline: string): boolean {
   const lower = headline.toLowerCase();
   return TERMS_LOWER.some((term) => lower.includes(term));
 }
 
-/** Filter an array of items with a headline field */
+/** Returns true if the headline contains a noise term (sport, ceremony, entertainment, etc) */
+export function isNoise(headline: string): boolean {
+  const lower = headline.toLowerCase();
+  return NOISE_TERMS.some((term) => lower.includes(term));
+}
+
+/** Filter an array of items with a headline field: must be financial AND not noise */
 export function filterRelevantHeadlines<T extends { headline: string }>(items: T[]): T[] {
-  return items.filter((item) => isFinanciallyRelevant(item.headline));
+  return items.filter((item) => isFinanciallyRelevant(item.headline) && !isNoise(item.headline));
 }

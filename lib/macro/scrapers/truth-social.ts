@@ -1,5 +1,6 @@
 import type { MacroHeadline } from "../types";
 import { fetchWithTimeout, stripHtml, hashString } from "./utils";
+import { isNoise } from "../headline-filter";
 
 const TRUMP_ACCOUNT_ID = "107780257626128497";
 const API_BASE = "https://truthsocial.com/api/v1";
@@ -15,8 +16,13 @@ interface MastodonStatus {
 /**
  * Keywords to identify Trump-specific market-moving content from Google News.
  */
+/**
+ * Keywords usadas para filtrar o fallback do Google News.
+ * Foco estrito em termos de mercado — sem "White House"/"press conference"/"military" genéricos
+ * (eles deixam passar UFC, cerimônias, eventos sociais).
+ */
 const TRUMP_KEYWORDS =
-  /\b(Trump|POTUS|White House|Truth Social|tariff|tariffs|trade war|executive order|President said|President announces|military|Iran|national security|Pentagon|defense|invasion|troops|press conference|oval office|sanctions)\b/i;
+  /\b(tariff|tariffs|trade war|trade deal|sanctions|embargo|executive order|ceasefire|cessar-fogo|Iran|Ukraine|Russia|China trade|North Korea|Federal Reserve|Fed rate|oil|crude|OPEC|Israel|Hamas|Hezbollah|nuclear|dollar|treasury|recession|inflation)\b/i;
 
 /**
  * Fetch Trump's Truth Social posts via public Mastodon API.
@@ -82,7 +88,7 @@ async function fetchFromMastodonApi(): Promise<MacroHeadline[] | null> {
           external_id: post.id,
         };
       })
-      .filter((h) => h.headline.length > 0);
+      .filter((h) => h.headline.length > 0 && !isNoise(h.headline));
   } catch (err) {
     console.error("[truth-social] API error:", err);
     return null;
@@ -96,7 +102,7 @@ async function fetchFromMastodonApi(): Promise<MacroHeadline[] | null> {
 async function fetchTrumpFromGoogleNews(): Promise<MacroHeadline[] | null> {
   try {
     const query = encodeURIComponent(
-      '"Trump said" OR "Trump announces" OR "Trump tariff" OR "Trump Iran" OR "Trump military" OR "Trump sanctions" OR "White House" OR "Truth Social" OR "national security"'
+      '("Trump tariff" OR "Trump tariffs" OR "Trump sanctions" OR "Trump trade deal" OR "Trump trade war" OR "Trump Iran" OR "Trump Russia" OR "Trump Ukraine" OR "Trump China trade" OR "Trump Federal Reserve" OR "Trump oil" OR "Trump ceasefire" OR "executive order economy" OR "White House economic" OR "Trump OPEC" OR "Trump Israel")'
     );
     const url = `https://news.google.com/rss/search?q=${query}+when:1d&hl=en`;
 
@@ -137,6 +143,8 @@ async function fetchTrumpFromGoogleNews(): Promise<MacroHeadline[] | null> {
       if (!title || title.length < 15) return;
       // Only include Trump-specific headlines
       if (!TRUMP_KEYWORDS.test(title)) return;
+      // Drop noise (UFC, ceremonies, celebrities, family, etc)
+      if (isNoise(title)) return;
       if (items.some((h) => h.headline === title)) return;
 
       items.push({
