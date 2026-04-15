@@ -6,6 +6,7 @@ import { sendEmail } from "@/lib/email/send";
 import { renderMorningBriefing } from "@/lib/email/templates/morning-briefing";
 import { acquireCronLock } from "@/lib/cron-lock";
 import { logCronRun } from "@/lib/cron-log";
+import { buildUnsubscribeUrl } from "@/lib/email/unsubscribe-token";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -142,6 +143,14 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ ok: false, error: `User not found: ${testEmail}` }, { status: 404 });
   }
 
+  // Emails that opted out via RFC 8058 one-click or footer link — never retarget.
+  const { data: optOuts } = await supabase
+    .from("email_opt_outs")
+    .select("email");
+  const optOutSet = new Set<string>(
+    (optOuts ?? []).map((o: { email: string }) => o.email.toLowerCase()),
+  );
+
   // Get subscriptions for plan checks
   const { data: subs } = await supabase
     .from("subscriptions")
@@ -168,6 +177,7 @@ async function handle(req: NextRequest) {
   const skipReasons: Record<string, number> = {
     no_email: 0,
     banned: 0,
+    opted_out: 0,
     send_failed: 0,
   };
   const dryRun = req.nextUrl.searchParams.get("dry_run") === "true";
@@ -188,6 +198,10 @@ async function handle(req: NextRequest) {
     }
     if (user.banned_until && new Date(user.banned_until) > new Date()) {
       skipReasons.banned++;
+      continue;
+    }
+    if (optOutSet.has(user.email.toLowerCase())) {
+      skipReasons.opted_out++;
       continue;
     }
 
@@ -252,6 +266,8 @@ async function handle(req: NextRequest) {
       source: h.source,
     }));
 
+    const unsubscribeUrl = buildUnsubscribeUrl(user.email);
+
     const html = renderMorningBriefing({
       displayName,
       date: formattedDate,
@@ -261,6 +277,7 @@ async function handle(req: NextRequest) {
       yesterdaySummary,
       streak,
       isPro,
+      unsubscribeUrl,
     });
 
     if (dryRun) {
@@ -274,6 +291,7 @@ async function handle(req: NextRequest) {
       subject: `Briefing — ${formattedDate}`,
       html,
       listId: "morning-briefing.owealthinvesting.com",
+      unsubscribeUrl,
     });
 
     if (success) sent++;

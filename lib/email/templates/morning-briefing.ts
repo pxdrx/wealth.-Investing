@@ -11,10 +11,11 @@ interface MorningBriefingData {
   };
   streak: number;
   isPro: boolean;
+  unsubscribeUrl?: string;
 }
 
 export function renderMorningBriefing(data: MorningBriefingData): string {
-  const { displayName, date, events, eventsDateLabel = "hoje", headlines = [], yesterdaySummary, streak, isPro } = data;
+  const { displayName, date, events, eventsDateLabel = "hoje", headlines = [], yesterdaySummary, streak, isPro, unsubscribeUrl } = data;
 
   const highImpactEvents = events.filter((e) => e.impact === "high");
   const mediumImpactEvents = events.filter((e) => e.impact === "medium");
@@ -106,7 +107,7 @@ export function renderMorningBriefing(data: MorningBriefingData): string {
     </div>
   </div>
   <p style="text-align:center;margin:16px 0 0;font-size:11px;color:#999">
-    wealth.Investing · <a href="https://owealthinvesting.com/app/settings" style="color:#999">Configurações</a>
+    wealth.Investing · <a href="https://owealthinvesting.com/app/settings" style="color:#999">Configurações</a>${unsubscribeUrl ? ` · <a href="${unsubscribeUrl}" style="color:#999">Cancelar inscrição</a>` : ""}
   </p>
 </div>
 </body></html>`;

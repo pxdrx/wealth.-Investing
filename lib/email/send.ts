@@ -22,6 +22,7 @@ interface SendEmailParams {
   headers?: Record<string, string>;
   replyTo?: string;
   listId?: string;
+  unsubscribeUrl?: string;
 }
 
 // Fallback plain-text when caller doesn't supply one. Gmail/Outlook penalize
@@ -54,15 +55,19 @@ export async function sendEmail({
   headers,
   replyTo,
   listId,
+  unsubscribeUrl,
 }: SendEmailParams): Promise<boolean> {
   const resend = getResend();
   if (!resend) return false;
 
   // RFC 8058 one-click unsubscribe (Gmail bulk-sender guidelines 2024+):
   // List-Unsubscribe must be present; List-Unsubscribe-Post opts into one-click.
-  // Until we ship /api/unsubscribe, mailto fallback keeps reputation healthy.
+  // Prefer the per-recipient POST URL; fall back to the mailto inbox.
+  const unsubValue = unsubscribeUrl
+    ? `<${unsubscribeUrl}>, <${DEFAULT_UNSUB_MAILTO}>`
+    : `<${DEFAULT_UNSUB_MAILTO}>`;
   const finalHeaders: Record<string, string> = {
-    "List-Unsubscribe": `<${DEFAULT_UNSUB_MAILTO}>`,
+    "List-Unsubscribe": unsubValue,
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     ...(listId ? { "List-Id": listId } : {}),
     ...(headers ?? {}),
