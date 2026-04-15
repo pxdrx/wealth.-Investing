@@ -14,6 +14,10 @@ import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import type { JournalTradeRow } from "@/components/journal/types";
 import { aiCoachRateLimit } from "@/lib/rate-limit";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 // Lazy-init to prevent build-time crash if ANTHROPIC_API_KEY is missing
 let _anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic {

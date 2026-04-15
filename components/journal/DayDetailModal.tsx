@@ -129,13 +129,15 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       const startOfDay = new Date(new Date(startUtc).getTime() - 18 * 60 * 60 * 1000).toISOString();
       const endOfDay = new Date(new Date(endUtc).getTime() + 18 * 60 * 60 * 1000).toISOString();
 
-      // Query by closed_at (P&L realized on close day), with opened_at fallback range
+      // Canonical key: opened_at (matches PnlCalendar aggregation). Buffer ±18h
+      // around forex-day bounds ensures we capture trades whose opened_at forex-day
+      // equals `date` even near the 17:00 ET boundary.
       let tradesQuery = supabase
         .from("journal_trades")
         .select("id, account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction, opened_at, closed_at")
         .eq("user_id", userId)
-        .or(`closed_at.gte.${startOfDay},opened_at.gte.${startOfDay}`)
-        .or(`closed_at.lte.${endOfDay},opened_at.lte.${endOfDay}`);
+        .gte("opened_at", startOfDay)
+        .lte("opened_at", endOfDay);
       if (accountId) {
         tradesQuery = tradesQuery.eq("account_id", accountId);
       } else if (accountIds && accountIds.length > 0) {
@@ -172,13 +174,11 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
 
       const byAccount = new Map<string, AccountTradesSummary>();
       const tradesList: IndividualTrade[] = [];
-      // Client-side filter: match trades using broker day (UTC+2 / MT5 server time)
-      // Same logic as toLocalDateKey in calendar/utils.ts
+      // Client-side filter by opened_at forex-day (canonical key — matches calendar aggregation).
       const allRows = (tradesRes.data ?? []).filter((row) => {
-        const r = row as { opened_at: string; closed_at?: string | null };
-        const ts = r.closed_at || r.opened_at;
-        if (!ts) return false;
-        return toForexDateKey(ts) === date;
+        const r = row as { opened_at: string };
+        if (!r.opened_at) return false;
+        return toForexDateKey(r.opened_at) === date;
       });
       for (const row of allRows) {
         const r = row as {
