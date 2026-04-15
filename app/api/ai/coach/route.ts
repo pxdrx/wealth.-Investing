@@ -9,6 +9,7 @@ import { getCommunityIntelligence } from "@/lib/ai-community-stats";
 import { buildSystemPrompt, formatPsychologyProfile } from "@/lib/ai-prompts";
 import type { MacroContext, MacroEvent } from "@/lib/ai-prompts";
 import { getWeekStart } from "@/lib/macro/constants";
+import { refreshActualsFromFF } from "@/lib/macro/ff-on-demand";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import type { JournalTradeRow } from "@/components/journal/types";
 import { aiCoachRateLimit } from "@/lib/rate-limit";
@@ -227,27 +228,63 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
     const nowMs = now.getTime();
+    const STALE_WINDOW_MS = 4 * 60 * 60 * 1000; // 4h
 
-    const releasedEvents: MacroEvent[] = [];
-    const upcomingEvents: MacroEvent[] = [];
+    type EventRow = { title: string; date: string; time: string | null; country: string; forecast: string | null; previous: string | null; actual: string | null };
 
-    for (const e of (eventsRes.data ?? []) as { title: string; date: string; time: string | null; country: string; forecast: string | null; previous: string | null; actual: string | null }[]) {
-      const event: MacroEvent = {
-        title: e.title,
-        date: e.date,
-        time: e.time,
-        country: e.country,
-        forecast: e.forecast,
-        previous: e.previous,
-        actual: e.actual,
-      };
+    const classify = (rows: EventRow[]) => {
+      const released: MacroEvent[] = [];
+      const upcoming: MacroEvent[] = [];
+      let hasStaleActual = false;
 
-      // "Released" se já tem 'actual' OU se datetime já passou.
-      // ForexFactory time é ET (fallback -04:00, bom o suficiente p/ comparar 'passou ou não').
-      const dt = parseEventDateTime(e.date, e.time);
-      const hasReleased = !!e.actual || (dt !== null && dt.getTime() < nowMs);
-      (hasReleased ? releasedEvents : upcomingEvents).push(event);
+      for (const e of rows) {
+        const event: MacroEvent = {
+          title: e.title,
+          date: e.date,
+          time: e.time,
+          country: e.country,
+          forecast: e.forecast,
+          previous: e.previous,
+          actual: e.actual,
+        };
+        const dt = parseEventDateTime(e.date, e.time);
+        const dtMs = dt ? dt.getTime() : null;
+        const hasReleased = !!e.actual || (dtMs !== null && dtMs < nowMs);
+        if (hasReleased) {
+          released.push(event);
+          // Evento já saiu mas ainda sem actual, e release foi há <4h → vale refresh on-demand
+          if (!e.actual && dtMs !== null && nowMs - dtMs < STALE_WINDOW_MS) {
+            hasStaleActual = true;
+          }
+        } else {
+          upcoming.push(event);
+        }
+      }
+      return { released, upcoming, hasStaleActual };
+    };
+
+    let classification = classify((eventsRes.data ?? []) as EventRow[]);
+
+    // On-demand refresh: se o usuário está perguntando e tem evento recém-divulgado
+    // com actual=null, raspar ForexFactory agora pra preencher.
+    if (classification.hasStaleActual) {
+      const refresh = await refreshActualsFromFF(supabase);
+      if (refresh.ok && refresh.updated > 0) {
+        console.log(`[ai-coach] FF on-demand refresh: ${refresh.updated} actuals updated`);
+        // Re-fetch eventos da semana e re-classificar
+        const { data: refreshed } = await supabase
+          .from("economic_events")
+          .select("title, date, time, country, forecast, previous, actual")
+          .eq("week_start", weekStart)
+          .eq("impact", "high")
+          .order("date", { ascending: true })
+          .order("time", { ascending: true });
+        if (refreshed) classification = classify(refreshed as EventRow[]);
+      }
     }
+
+    const releasedEvents = classification.released;
+    const upcomingEvents = classification.upcoming;
 
     const rates = (ratesRes.data ?? []).map((r: { bank_code: string; current_rate: number; last_action: string }) => ({
       bank_code: r.bank_code,
