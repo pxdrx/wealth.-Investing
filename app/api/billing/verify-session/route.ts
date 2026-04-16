@@ -28,10 +28,12 @@ export async function GET(req: NextRequest) {
     }
 
     const paid = session.payment_status === "paid";
+    const plan = session.metadata?.plan ?? null;
 
     return NextResponse.json({
       ok: true,
       verified: paid,
+      plan,
       status: session.status,
       payment_status: session.payment_status,
     });

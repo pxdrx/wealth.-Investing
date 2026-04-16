@@ -377,6 +377,14 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       clearTimeout(safetyTimer);
       onAccountCreated?.(accountId);
 
+      // Re-trigger the onboarding tour for this new account
+      try {
+        localStorage.setItem("onboarding_tour_pending", "1");
+        localStorage.removeItem("onboarding_tour_completed");
+      } catch {
+        // localStorage unavailable
+      }
+
       if (defaultKind) {
         // For inline creation (e.g., backtest), close modal and auto-select new account
         handleClose(false);
