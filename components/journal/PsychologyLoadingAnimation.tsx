@@ -5,12 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CpuArchitecture } from "@/components/ui/cpu-architecture";
 
 const STEPS = [
-  "Observando trades",
-  "Analisando comportamento",
-  "Mapeando padrões de tilt",
-  "Detectando revenge trading",
-  "Analisando perfil psicológico",
-  "Gerando insights",
+  "Decifrando seu comportamento",
+  "Mapeando padrões emocionais",
+  "Identificando vieses cognitivos",
+  "Analisando disciplina operacional",
+  "Detectando sinais de tilt",
+  "Traçando perfil psicológico",
 ];
 
 const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -47,9 +47,9 @@ export function PsychologyLoadingAnimation() {
     >
       <div className="text-indigo-500 dark:text-indigo-400">
         <CpuArchitecture
-          width="180"
-          height="120"
-          text="ANALISANDO"
+          width="260"
+          height="180"
+          text="PSICOLOGIA"
           animateMarkers
           animateLines
           animateText
