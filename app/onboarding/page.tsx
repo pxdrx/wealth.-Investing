@@ -84,7 +84,22 @@ export default function OnboardingPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { window.location.href = "/login?from=" + encodeURIComponent("/onboarding"); return; }
         const profile = await getMyProfile();
-        if (profile?.display_name?.trim()) { window.location.href = "/app"; return; }
+        if (profile?.display_name?.trim()) {
+          // Only redirect if user already completed or started the tour
+          // Otherwise, let them continue the onboarding steps (2-4)
+          try {
+            const tourDone = localStorage.getItem("onboarding_tour_completed");
+            const tourPending = localStorage.getItem("onboarding_tour_pending");
+            if (tourDone || tourPending) {
+              window.location.href = "/app";
+              return;
+            }
+          } catch {
+            // localStorage unavailable — redirect to be safe
+            window.location.href = "/app";
+            return;
+          }
+        }
       } catch (err) {
         setError(toFriendlyMessage(err));
       } finally {
@@ -123,6 +138,7 @@ export default function OnboardingPage() {
     try {
       const result = await upsertMyProfileDisplayName(trimmed);
       if (result.error) { setError(result.error.message); return; }
+      markTourPending();
       goNext();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao salvar. Tente novamente.");

@@ -9,11 +9,14 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppMobileNav } from "@/components/layout/AppMobileNav";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { ProOnboardingGuard } from "@/components/onboarding/ProOnboardingGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
 
 const TOUR_STORAGE_KEY = "onboarding_tour_completed";
 const TOUR_PENDING_KEY = "onboarding_tour_pending";
+const NEW_USER_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,18 +25,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!pathname?.startsWith("/app")) return;
 
+    let tourCompleted = false;
     let pending = false;
     try {
-      if (localStorage.getItem(TOUR_STORAGE_KEY)) return;
+      tourCompleted = !!localStorage.getItem(TOUR_STORAGE_KEY);
       pending = localStorage.getItem(TOUR_PENDING_KEY) === "1";
     } catch {
       return;
     }
 
-    if (!pending) return;
+    // Already completed tour — nothing to do
+    if (tourCompleted) return;
 
-    const t = setTimeout(() => setShowTour(true), 600);
-    return () => clearTimeout(t);
+    // Pending flag is set — show tour
+    if (pending) {
+      const t = setTimeout(() => setShowTour(true), 600);
+      return () => clearTimeout(t);
+    }
+
+    // Fallback: no flags at all — check if new user (account < 24h)
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user || cancelled) return;
+        const createdAt = new Date(session.user.created_at).getTime();
+        const isNewUser = Date.now() - createdAt < NEW_USER_WINDOW_MS;
+        if (isNewUser && !cancelled) {
+          localStorage.setItem(TOUR_PENDING_KEY, "1");
+          setShowTour(true);
+        }
+      } catch {
+        // Silently fail — don't block the app
+      }
+    })();
+    return () => { cancelled = true; };
   }, [pathname]);
 
   function handleTourComplete() {
@@ -86,6 +112,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             {/* Onboarding Tour */}
             {showTour && <OnboardingTour onComplete={handleTourComplete} />}
+
+            {/* Pro/Ultra onboarding fallback (only when tour is not active) */}
+            {!showTour && <ProOnboardingGuard />}
           </div>
         ) : (
           <main className="flex-1"><ErrorBoundary>{children}</ErrorBoundary></main>
