@@ -17,6 +17,8 @@ import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { supabase } from "@/lib/supabase/client";
 import { X, Trash2, Star, MessageSquare } from "lucide-react";
+import { TradeScreenshotUpload } from "./TradeScreenshotUpload";
+import { deleteTradeScreenshot } from "@/lib/supabase/screenshot";
 import { validateCustomTags } from "@/lib/psychology-tags";
 
 interface MentorNoteForTrade {
@@ -46,10 +48,13 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
 
   const MAX_TAGS = 4;
 
+  const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
+
   useEffect(() => {
     if (trade) {
       setContext(trade.context ?? "");
       setCustomTags(Array.isArray(trade.custom_tags) ? [...trade.custom_tags] : []);
+      setScreenshotPath(trade.screenshot_path ?? null);
       setNewTag("");
       setToast(null);
       setMentorNotes([]);
@@ -137,6 +142,15 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
       if (!session?.user?.id) {
         setToast({ type: "error", message: "Sessao expirada. Faca login novamente." });
         return;
+      }
+
+      // Clean up screenshot from storage before deleting trade
+      if (screenshotPath) {
+        try {
+          await deleteTradeScreenshot(session.user.id, trade.id, screenshotPath);
+        } catch {
+          // Non-blocking — proceed with trade deletion
+        }
       }
 
       const { error } = await supabase
@@ -229,6 +243,20 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
               </p>
             </div>
           </div>
+
+          {/* Screenshot */}
+          <TradeScreenshotUpload
+            tradeId={trade.id}
+            existingPath={screenshotPath}
+            onUploaded={(path) => {
+              setScreenshotPath(path);
+              onSaved?.();
+            }}
+            onDeleted={() => {
+              setScreenshotPath(null);
+              onSaved?.();
+            }}
+          />
 
           {mentorNotes.length > 0 && (
             <div className="space-y-2">

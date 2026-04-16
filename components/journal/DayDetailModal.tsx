@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
-import { X, Save, Tag, FileText, Pencil, Trash2 } from "lucide-react";
+import { X, Save, Tag, FileText, Pencil, Trash2, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toForexDateKey, forexDayBoundsUtc } from "@/lib/trading/forex-day";
+import { deleteTradeScreenshot } from "@/lib/supabase/screenshot";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -51,6 +52,7 @@ interface IndividualTrade {
   opened_at: string;
   account_id: string;
   accountName: string;
+  screenshot_path?: string | null;
 }
 
 interface DayNote {
@@ -134,7 +136,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       // equals `date` even near the 17:00 ET boundary.
       let tradesQuery = supabase
         .from("journal_trades")
-        .select("id, account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction, opened_at, closed_at")
+        .select("id, account_id, net_pnl_usd, pnl_usd, fees_usd, symbol, direction, opened_at, closed_at, screenshot_path")
         .eq("user_id", userId)
         .gte("opened_at", startOfDay)
         .lte("opened_at", endOfDay);
@@ -191,6 +193,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
           symbol: string | null;
           direction: string | null;
           opened_at: string;
+          screenshot_path?: string | null;
         };
         if (!r.account_id) continue;
         const net = typeof r.net_pnl_usd === "number" && !Number.isNaN(r.net_pnl_usd)
@@ -219,6 +222,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
           opened_at: r.opened_at,
           account_id: r.account_id,
           accountName: accountNames.get(r.account_id) ?? "Conta",
+          screenshot_path: r.screenshot_path,
         });
       }
 
@@ -319,6 +323,16 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     setConfirmingTradeId(null);
     setDeletingTradeId(tradeId);
     try {
+      // Clean up screenshot from storage before deleting trade
+      const tradeToDelete = individualTrades.find((t) => t.id === tradeId);
+      if (tradeToDelete?.screenshot_path) {
+        try {
+          await deleteTradeScreenshot(userId, tradeId, tradeToDelete.screenshot_path);
+        } catch {
+          // Non-blocking — proceed with trade deletion
+        }
+      }
+
       const { error } = await supabase
         .from("journal_trades")
         .delete()
@@ -545,6 +559,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                               <div className="flex flex-col">
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-sm font-medium text-foreground">{t.symbol}</span>
+                                  {t.screenshot_path && <Camera className="h-3 w-3 text-muted-foreground/60" />}
                                   <span className={cn(
                                     "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
                                     isBuy ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"

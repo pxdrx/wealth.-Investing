@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { supabase } from "@/lib/supabase/client";
 import { AddAccountModal } from "@/components/account/AddAccountModal";
+import { TradeScreenshotUpload } from "@/components/journal/TradeScreenshotUpload";
+import { uploadTradeScreenshot } from "@/lib/supabase/screenshot";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
 
@@ -77,6 +79,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedSymbols, setSavedSymbols] = useState<string[]>([]);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
 
   // Load saved symbols on mount
   useEffect(() => {
@@ -136,7 +139,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
       const openedAt = `${date}T${time}:00`;
       const sym = symbol.toUpperCase().trim();
 
-      const { error: dbErr } = await supabase.from("journal_trades").insert({
+      const { data: insertedTrade, error: dbErr } = await supabase.from("journal_trades").insert({
         user_id: session.user.id,
         account_id: accountId,
         symbol: sym,
@@ -148,9 +151,18 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
         closed_at: openedAt,
         notes: observation.trim() || null,
         mistakes: [],
-      });
+      }).select("id").maybeSingle();
 
       if (dbErr) { setError(dbErr.message); return; }
+
+      // Upload screenshot if attached (non-blocking — trade already saved)
+      if (screenshotFile && insertedTrade?.id) {
+        try {
+          await uploadTradeScreenshot(session.user.id, insertedTrade.id, screenshotFile);
+        } catch (err) {
+          console.warn("[backtest] Screenshot upload failed:", err);
+        }
+      }
 
       // Save symbol for quick access
       saveSymbol(sym);
@@ -160,6 +172,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
       setPnl("");
       setObservation("");
       setShowObs(false);
+      setScreenshotFile(null);
       setDate(todayStr());
       setTime(nowTimeStr());
       setSuccess(true);
@@ -284,6 +297,9 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
       {showObs && (
         <textarea value={observation} onChange={(e) => setObservation(e.target.value)} placeholder="Contexto, motivo da entrada..." aria-label="Observações" rows={2} className="w-full rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-[10px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 resize-none" />
       )}
+
+      {/* Screenshot */}
+      <TradeScreenshotUpload value={screenshotFile} onChange={setScreenshotFile} compact />
 
       {/* Submit */}
       <button

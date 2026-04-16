@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase/client";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { inferCategory } from "@/lib/trading/category";
 import { cn } from "@/lib/utils";
+import { TradeScreenshotUpload } from "./TradeScreenshotUpload";
+import { uploadTradeScreenshot } from "@/lib/supabase/screenshot";
 
 const QUICK_SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NAS100", "US30", "BTCUSD", "USOIL"];
 
@@ -33,6 +35,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedSymbols, setSavedSymbols] = useState<string[]>([]);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
 
   // Load user's saved symbols from user_symbols table
   useEffect(() => {
@@ -109,10 +112,10 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         notes: isQuick ? null : (notes.trim() || null),
         external_source: "manual",
         external_id: `manual_${Date.now()}`,
-      });
+      }).select("id").maybeSingle();
 
       // Timeout: abort after 10s to prevent infinite "Salvando..."
-      const { error: dbError } = await Promise.race([
+      const { data: insertedTrade, error: dbError } = await Promise.race([
         insertPromise,
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Timeout: o servidor demorou mais de 10s. Tente novamente.")), 10_000)
@@ -123,6 +126,15 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         console.error("[add-trade] DB error:", dbError.code, dbError.message);
         setError(`Erro ao salvar: ${dbError.message}`);
         return;
+      }
+
+      // Upload screenshot if attached (non-blocking — trade already saved)
+      if (screenshotFile && insertedTrade?.id) {
+        try {
+          await uploadTradeScreenshot(userId, insertedTrade.id, screenshotFile);
+        } catch (err) {
+          console.warn("[add-trade] Screenshot upload failed:", err);
+        }
       }
 
       // Save symbol for quick access (only custom symbols, not preset ones)
@@ -136,6 +148,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       setPnlUsd("");
       setContext("");
       setNotes("");
+      setScreenshotFile(null);
       setError(null);
 
       onSaved();
@@ -323,6 +336,9 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
               className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
+
+          {/* Screenshot */}
+          <TradeScreenshotUpload value={screenshotFile} onChange={setScreenshotFile} compact />
 
           {/* Context — complete mode only */}
           {mode === "complete" && (

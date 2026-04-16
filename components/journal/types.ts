@@ -27,6 +27,7 @@ export interface JournalTradeRow {
   // MFE/MAE (Phase 3)
   mfe_usd?: number | null;
   mae_usd?: number | null;
+  screenshot_path?: string | null;
 }
 
 export function getNetPnl(row: JournalTradeRow): number {

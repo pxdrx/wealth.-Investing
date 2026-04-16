@@ -1,0 +1,43 @@
+-- Add screenshot_path to journal_trades
+ALTER TABLE journal_trades ADD COLUMN IF NOT EXISTS screenshot_path text DEFAULT NULL;
+
+-- Storage bucket: "trade-screenshots" (private, 5MB limit, image/png + image/jpeg)
+-- Create via Supabase Dashboard > Storage > New Bucket:
+--   Name: trade-screenshots
+--   Public: OFF
+--   File size limit: 5MB
+--   Allowed MIME types: image/png, image/jpeg
+--
+-- RLS policies (run in SQL Editor after bucket creation):
+--
+-- INSERT policy:
+--   CREATE POLICY "Users can upload their own screenshots"
+--   ON storage.objects FOR INSERT
+--   WITH CHECK (
+--     bucket_id = 'trade-screenshots'
+--     AND (storage.foldername(name))[1] = auth.uid()::text
+--   );
+--
+-- SELECT policy:
+--   CREATE POLICY "Users can view their own screenshots"
+--   ON storage.objects FOR SELECT
+--   USING (
+--     bucket_id = 'trade-screenshots'
+--     AND (storage.foldername(name))[1] = auth.uid()::text
+--   );
+--
+-- UPDATE policy:
+--   CREATE POLICY "Users can update their own screenshots"
+--   ON storage.objects FOR UPDATE
+--   USING (
+--     bucket_id = 'trade-screenshots'
+--     AND (storage.foldername(name))[1] = auth.uid()::text
+--   );
+--
+-- DELETE policy:
+--   CREATE POLICY "Users can delete their own screenshots"
+--   ON storage.objects FOR DELETE
+--   USING (
+--     bucket_id = 'trade-screenshots'
+--     AND (storage.foldername(name))[1] = auth.uid()::text
+--   );
