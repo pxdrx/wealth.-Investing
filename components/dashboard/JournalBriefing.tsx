@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -45,6 +45,16 @@ function timeAgo(dateStr: string): string {
 export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
   const { mask } = usePrivacy();
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+
+  // Default to first account once the list arrives
+  useEffect(() => {
+    if (!selectedAccountId && accounts && accounts.length > 0) {
+      setSelectedAccountId(accounts[0].id);
+    }
+    if (selectedAccountId && accounts && !accounts.some((a) => a.id === selectedAccountId)) {
+      setSelectedAccountId(accounts[0]?.id ?? null);
+    }
+  }, [accounts, selectedAccountId]);
 
   const filteredTrades = useMemo(() => {
     if (!selectedAccountId) return trades;
@@ -148,7 +158,7 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
 
   const selectedAccountName = selectedAccountId
     ? accounts?.find((a) => a.id === selectedAccountId)?.name ?? "Conta"
-    : "Todas as contas";
+    : "Conta";
 
   const v = (val: string) => mask(val);
 
@@ -163,18 +173,6 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
           Resumo de Performance
         </h3>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setSelectedAccountId(null)}
-            className={cn(
-              "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border",
-              !selectedAccountId
-                ? "bg-foreground text-background border-foreground"
-                : "border-border/60 text-muted-foreground hover:border-foreground/30 hover:text-foreground"
-            )}
-          >
-            Todas
-          </button>
           {accounts?.map((acc) => (
             <button
               key={acc.id}

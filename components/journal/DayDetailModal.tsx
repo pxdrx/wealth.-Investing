@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabase/client";
 import { X, Save, Tag, FileText, Pencil, Trash2, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toForexDateKey, forexDayBoundsUtc } from "@/lib/trading/forex-day";
-import { deleteTradeScreenshot } from "@/lib/supabase/screenshot";
+import { deleteTradeScreenshot, getScreenshotUrl } from "@/lib/supabase/screenshot";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -32,6 +32,8 @@ interface DayDetailModalProps {
   onNoteSaved?: () => void;
   /** Called after a trade is deleted so parent can refresh */
   onTradeDeleted?: () => void;
+  /** Called when user clicks edit on a trade — parent opens TradeDetailModal */
+  onTradeEdit?: (tradeId: string) => void;
 }
 
 interface AccountTradesSummary {
@@ -61,7 +63,7 @@ interface DayNote {
   tags: string[];
 }
 
-export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, filterSymbol, open, onOpenChange, onNoteSaved, onTradeDeleted }: DayDetailModalProps) {
+export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, filterSymbol, open, onOpenChange, onNoteSaved, onTradeDeleted, onTradeEdit }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [individualTrades, setIndividualTrades] = useState<IndividualTrade[]>([]);
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
   const [userSavedTags, setUserSavedTags] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
 
   // Track original note state for auto-save on close
   const originalNote = useRef<{ observation: string; tags: string[] }>({ observation: "", tags: [] });
@@ -283,6 +286,27 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     if (open && date && userId) loadDayData();
   }, [open, date, userId, loadDayData]);
 
+  // Fetch signed URLs for trades with screenshots
+  useEffect(() => {
+    const tradesWithScreenshots = individualTrades.filter((t) => t.screenshot_path);
+    if (tradesWithScreenshots.length === 0) {
+      setScreenshotUrls({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const urls: Record<string, string> = {};
+      await Promise.all(
+        tradesWithScreenshots.map(async (t) => {
+          const url = await getScreenshotUrl(t.screenshot_path!);
+          if (url && !cancelled) urls[t.id] = url;
+        })
+      );
+      if (!cancelled) setScreenshotUrls(urls);
+    })();
+    return () => { cancelled = true; };
+  }, [individualTrades]);
+
   const handleSaveNote = async () => {
     if (!date || !userId) return;
     setSaving(true);
@@ -423,7 +447,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
           <DialogTitle className="capitalize">{formattedDate}</DialogTitle>
           <DialogDescription>
             {totalTrades > 0
-              ? `${totalTrades} ${totalTrades !== 1 ? "operações" : "operação"} em ${accountSummaries.length} conta${accountSummaries.length !== 1 ? "s" : ""}`
+              ? `${totalTrades} ${totalTrades !== 1 ? "operações" : "operação"}`
               : "Nenhuma operação neste dia"}
           </DialogDescription>
         </DialogHeader>
@@ -468,8 +492,8 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
               </div>
             )}
 
-            {/* Per-account breakdown */}
-            {accountSummaries.length > 0 && (
+            {/* Per-account breakdown — only shown when multiple accounts (e.g. backtest "Todas" mode) */}
+            {accountSummaries.length > 1 && (
               <div className="space-y-1.5">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Por conta</h4>
                 {accountSummaries.map((acc) => (
@@ -554,43 +578,68 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                           </div>
                         ) : (
                           /* ── Normal trade row ── */
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2.5">
-                              <div className="flex flex-col">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-medium text-foreground">{t.symbol}</span>
-                                  {t.screenshot_path && <Camera className="h-3 w-3 text-muted-foreground/60" />}
-                                  <span className={cn(
-                                    "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
-                                    isBuy ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
-                                  )}>
-                                    {t.direction}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-medium text-foreground">{t.symbol}</span>
+                                    {t.screenshot_path && <Camera className="h-3 w-3 text-muted-foreground/60" />}
+                                    <span className={cn(
+                                      "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                                      isBuy ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
+                                    )}>
+                                      {t.direction}
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {time} · {dayMonth}{accountSummaries.length > 1 ? ` · ${t.accountName}` : ""}
                                   </span>
                                 </div>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {time} · {dayMonth}{accountSummaries.length > 1 ? ` · ${t.accountName}` : ""}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className={cn(
+                                  "text-sm font-bold tabular-nums",
+                                  t.net_pnl_usd > 0 ? "text-emerald-700 dark:text-emerald-400"
+                                  : t.net_pnl_usd < 0 ? "text-red-700 dark:text-red-400"
+                                  : "text-muted-foreground"
+                                )}>
+                                  {t.net_pnl_usd > 0 ? "+" : ""}{t.net_pnl_usd < 0 ? "-" : ""}${Math.abs(t.net_pnl_usd).toFixed(2)}
                                 </span>
+                                {onTradeEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onTradeEdit(t.id)}
+                                    className="rounded-md p-1 text-muted-foreground/50 hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+                                    title="Editar trade"
+                                    aria-label={`Editar trade ${t.symbol}`}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmingTradeId(t.id)}
+                                  className="rounded-md p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                  title="Excluir trade"
+                                  aria-label={`Excluir trade ${t.symbol}`}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className={cn(
-                                "text-sm font-bold tabular-nums",
-                                t.net_pnl_usd > 0 ? "text-emerald-700 dark:text-emerald-400"
-                                : t.net_pnl_usd < 0 ? "text-red-700 dark:text-red-400"
-                                : "text-muted-foreground"
-                              )}>
-                                {t.net_pnl_usd > 0 ? "+" : ""}{t.net_pnl_usd < 0 ? "-" : ""}${Math.abs(t.net_pnl_usd).toFixed(2)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setConfirmingTradeId(t.id)}
-                                className="rounded-md p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                                title="Excluir trade"
-                                aria-label={`Excluir trade ${t.symbol}`}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
+                            {/* Inline screenshot preview */}
+                            {screenshotUrls[t.id] && (
+                              <div className="rounded-lg overflow-hidden border border-border/30">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={screenshotUrls[t.id]}
+                                  alt={`Screenshot ${t.symbol}`}
+                                  className="w-full max-h-40 sm:max-h-52 object-contain"
+                                  style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
                       </motion.div>
