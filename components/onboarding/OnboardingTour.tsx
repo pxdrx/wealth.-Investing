@@ -47,6 +47,14 @@ const TOUR_STEPS: TourStep[] = [
     mobileTarget: "mobile-journal",
   },
   {
+    id: "mentor",
+    title: "Mentoria",
+    description:
+      "Aproximacao entre mentor e aluno. Se voce tem um mentor, acompanhe drawdown, contas e evolucao de forma simplificada — tudo conectado.",
+    sidebarTarget: "sidebar-mentor",
+    mobileTarget: "mobile-mentor",
+  },
+  {
     id: "macro",
     title: "Inteligencia Macro",
     description:
