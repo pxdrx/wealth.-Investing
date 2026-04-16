@@ -15,7 +15,8 @@ import { supabase } from "@/lib/supabase/client";
 import { X, Save, Tag, FileText, Pencil, Trash2, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toForexDateKey, forexDayBoundsUtc } from "@/lib/trading/forex-day";
-import { deleteTradeScreenshot, getScreenshotUrl } from "@/lib/supabase/screenshot";
+import { deleteTradeScreenshot } from "@/lib/supabase/screenshot";
+import { TradeScreenshotUpload } from "./TradeScreenshotUpload";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -77,7 +78,6 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
   const [userSavedTags, setUserSavedTags] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
 
   // Track original note state for auto-save on close
   const originalNote = useRef<{ observation: string; tags: string[] }>({ observation: "", tags: [] });
@@ -285,27 +285,6 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
   useEffect(() => {
     if (open && date && userId) loadDayData();
   }, [open, date, userId, loadDayData]);
-
-  // Fetch signed URLs for trades with screenshots
-  useEffect(() => {
-    const tradesWithScreenshots = individualTrades.filter((t) => t.screenshot_path);
-    if (tradesWithScreenshots.length === 0) {
-      setScreenshotUrls({});
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const urls: Record<string, string> = {};
-      await Promise.all(
-        tradesWithScreenshots.map(async (t) => {
-          const url = await getScreenshotUrl(t.screenshot_path!);
-          if (url && !cancelled) urls[t.id] = url;
-        })
-      );
-      if (!cancelled) setScreenshotUrls(urls);
-    })();
-    return () => { cancelled = true; };
-  }, [individualTrades]);
 
   const handleSaveNote = async () => {
     if (!date || !userId) return;
@@ -628,18 +607,24 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                                 </button>
                               </div>
                             </div>
-                            {/* Inline screenshot preview */}
-                            {screenshotUrls[t.id] && (
-                              <div className="rounded-lg overflow-hidden border border-border/30">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={screenshotUrls[t.id]}
-                                  alt={`Screenshot ${t.symbol}`}
-                                  className="w-full max-h-40 sm:max-h-52 object-contain"
-                                  style={{ backgroundColor: "hsl(var(--muted) / 0.1)" }}
-                                />
-                              </div>
-                            )}
+                            {/* Screenshot upload/display — immediate mode */}
+                            <TradeScreenshotUpload
+                              tradeId={t.id}
+                              existingPath={t.screenshot_path}
+                              onUploaded={(path) => {
+                                setIndividualTrades((prev) =>
+                                  prev.map((tr) => tr.id === t.id ? { ...tr, screenshot_path: path } : tr)
+                                );
+                                pendingRefresh.current = true;
+                              }}
+                              onDeleted={() => {
+                                setIndividualTrades((prev) =>
+                                  prev.map((tr) => tr.id === t.id ? { ...tr, screenshot_path: null } : tr)
+                                );
+                                pendingRefresh.current = true;
+                              }}
+                              compact
+                            />
                           </div>
                         )}
                       </motion.div>
