@@ -58,12 +58,17 @@ export function AppHeader() {
   useEffect(() => {
     async function load() {
       const { data: { session } } = await safeGetSession();
-      setHasSession(!!session);
-      if (!session) { setDisplayName(null); setProfileLoading(false); return; }
-      try {
-        const profile = await getMyProfile();
-        setDisplayName(profile?.display_name?.trim() ?? null);
-      } catch {} finally {
+      if (session) {
+        setHasSession(true);
+        try {
+          const profile = await getMyProfile();
+          setDisplayName(profile?.display_name?.trim() ?? null);
+        } catch {} finally {
+          setProfileLoading(false);
+        }
+      } else if (!hasSession) {
+        // Only clear on initial load — don't wipe user card on transient null
+        setDisplayName(null);
         setProfileLoading(false);
       }
     }
