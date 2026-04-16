@@ -409,7 +409,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
           <DialogTitle className="capitalize">{formattedDate}</DialogTitle>
           <DialogDescription>
             {totalTrades > 0
-              ? `${totalTrades} operação${totalTrades !== 1 ? "ões" : ""} em ${accountSummaries.length} conta${accountSummaries.length !== 1 ? "s" : ""}`
+              ? `${totalTrades} ${totalTrades !== 1 ? "operações" : "operação"} em ${accountSummaries.length} conta${accountSummaries.length !== 1 ? "s" : ""}`
               : "Nenhuma operação neste dia"}
           </DialogDescription>
         </DialogHeader>
