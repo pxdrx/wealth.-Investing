@@ -31,7 +31,7 @@ interface NotesHistoryProps {
 }
 
 type NoteType = "trade" | "day";
-type TypeFilter = "all" | "trades" | "days";
+type ResultFilter = "all" | "win" | "loss";
 
 interface UnifiedNote {
   type: NoteType;
@@ -142,16 +142,16 @@ export function NotesHistory({
   const [toast, setToast] = useState<string | null>(null);
 
   // Filters
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [symbolFilter, setSymbolFilter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
 
   /* ---- data fetching ---- */
 
   const load = useCallback(async () => {
-    if (!userId) {
+    if (!userId || !accountId) {
       setTradeNotes([]);
       setDayNotes([]);
       setLoading(false);
@@ -159,25 +159,24 @@ export function NotesHistory({
     }
     setLoading(true);
 
-    // Day notes — user-level (no account_id in schema)
+    // Day notes — filtered by account
     const dayPromise = supabase
       .from("day_notes")
       .select("id, date, observation, tags")
       .eq("user_id", userId)
+      .eq("account_id", accountId)
       .order("date", { ascending: false })
       .limit(500);
 
     // Trade notes — scoped to active account
-    const tradePromise = accountId
-      ? supabase
-          .from("journal_trades")
-          .select(
-            "id, symbol, direction, opened_at, closed_at, context, custom_tags, pnl_usd, fees_usd, net_pnl_usd"
-          )
-          .eq("user_id", userId)
-          .eq("account_id", accountId)
-          .order("closed_at", { ascending: false })
-      : Promise.resolve({ data: [] as TradeNoteRow[], error: null });
+    const tradePromise = supabase
+      .from("journal_trades")
+      .select(
+        "id, symbol, direction, opened_at, closed_at, context, custom_tags, pnl_usd, fees_usd, net_pnl_usd"
+      )
+      .eq("user_id", userId)
+      .eq("account_id", accountId)
+      .order("closed_at", { ascending: false });
 
     const [dayRes, tradeRes] = await Promise.all([dayPromise, tradePromise]);
 
@@ -262,10 +261,6 @@ export function NotesHistory({
   const filtered = useMemo(() => {
     let items = allItems;
 
-    // Type filter
-    if (typeFilter === "trades") items = items.filter((i) => i.type === "trade");
-    if (typeFilter === "days") items = items.filter((i) => i.type === "day");
-
     // Date range
     if (dateFrom) {
       items = items.filter((i) => toComparable(i.date) >= dateFrom);
@@ -282,18 +277,26 @@ export function NotesHistory({
       );
     }
 
+    // Result filter (trade notes only; day notes always pass)
+    if (resultFilter === "win") {
+      items = items.filter((i) => i.type === "day" || (i.netPnl ?? 0) > 0);
+    } else if (resultFilter === "loss") {
+      items = items.filter((i) => i.type === "day" || (i.netPnl ?? 0) < 0);
+    }
+
     // Text search
     if (searchText) {
       const lower = searchText.toLowerCase();
       items = items.filter(
         (i) =>
           i.text.toLowerCase().includes(lower) ||
-          i.tags.some((t) => t.toLowerCase().includes(lower))
+          i.tags.some((t) => t.toLowerCase().includes(lower)) ||
+          (i.symbol ?? "").toLowerCase().includes(lower)
       );
     }
 
     return items;
-  }, [allItems, typeFilter, dateFrom, dateTo, symbolFilter, searchText]);
+  }, [allItems, dateFrom, dateTo, symbolFilter, resultFilter, searchText]);
 
   /* ---- delete ---- */
 
@@ -348,7 +351,7 @@ export function NotesHistory({
   }
 
   const hasAnyFilters =
-    typeFilter !== "all" || symbolFilter || searchText || dateFrom || dateTo;
+    resultFilter !== "all" || symbolFilter || searchText || dateFrom || dateTo;
 
   return (
     <motion.div
@@ -364,24 +367,24 @@ export function NotesHistory({
           Filtros
         </div>
 
-        {/* Type pills */}
+        {/* Result pills */}
         <div
           className="flex rounded-lg border border-border/40 overflow-hidden isolate shadow-sm"
           style={{ backgroundColor: "hsl(var(--card))" }}
         >
-          {(["all", "trades", "days"] as const).map((t) => (
+          {(["all", "win", "loss"] as const).map((r) => (
             <button
-              key={t}
+              key={r}
               type="button"
-              onClick={() => setTypeFilter(t)}
+              onClick={() => setResultFilter(r)}
               className={cn(
                 "px-3 py-1.5 text-xs font-medium transition-colors",
-                typeFilter === t
+                resultFilter === r
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
             >
-              {t === "all" ? "Todos" : t === "trades" ? "Trades" : "Diário"}
+              {r === "all" ? "Todos" : r === "win" ? "Win" : "Loss"}
             </button>
           ))}
         </div>

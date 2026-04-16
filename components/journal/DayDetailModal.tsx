@@ -155,12 +155,13 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       // Try loading day notes — table may not exist yet
       let noteResult: { id: string; observation: string; tags: string[] } | null = null;
       {
-        const noteRes = await supabase
+        let noteQuery = supabase
           .from("day_notes")
           .select("id, observation, tags")
           .eq("user_id", userId)
-          .eq("date", date)
-          .maybeSingle();
+          .eq("date", date);
+        if (accountId) noteQuery = noteQuery.eq("account_id", accountId);
+        const noteRes = await noteQuery.maybeSingle();
         if (!noteRes.error && noteRes.data) {
           noteResult = noteRes.data as { id: string; observation: string; tags: string[] };
         }
@@ -290,9 +291,11 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
           .update({ observation: dayNote.observation, tags: dayNote.tags, updated_at: new Date().toISOString() })
           .eq("id", dayNote.id);
       } else {
+        const insertPayload: Record<string, unknown> = { user_id: userId, date, observation: dayNote.observation, tags: dayNote.tags };
+        if (accountId) insertPayload.account_id = accountId;
         const { data } = await supabase
           .from("day_notes")
-          .insert({ user_id: userId, date, observation: dayNote.observation, tags: dayNote.tags })
+          .insert(insertPayload)
           .select("id")
           .maybeSingle();
         if (data) setDayNote((prev) => ({ ...prev, id: (data as { id: string }).id }));

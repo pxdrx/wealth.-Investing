@@ -103,12 +103,14 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
 
     (async () => {
       try {
-        const { data } = await supabase
+        let q = supabase
           .from("day_notes")
           .select("date")
           .eq("user_id", uid)
           .gte("date", startDate)
           .lt("date", endDate);
+        if (accountId) q = q.eq("account_id", accountId);
+        const { data } = await q;
 
         if (cancelled) return;
         const dates = new Set<string>();

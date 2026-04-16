@@ -106,12 +106,13 @@ export function DayDetailPanel({
       };
 
       // Upsert: try update first, then insert
-      const { data: existing } = await supabase
+      let existingQuery = supabase
         .from("day_notes")
         .select("id")
         .eq("user_id", userId)
-        .eq("date", selectedDate)
-        .maybeSingle();
+        .eq("date", selectedDate);
+      if (accountId) existingQuery = existingQuery.eq("account_id", accountId);
+      const { data: existing } = await existingQuery.maybeSingle();
 
       if (existing) {
         await supabase
@@ -124,9 +125,10 @@ export function DayDetailPanel({
           .eq("id", existing.id);
         setNoteId(existing.id);
       } else if (notePayload.observation || (notePayload.tags && notePayload.tags.length > 0)) {
+        const insertPayload = { ...notePayload, ...(accountId ? { account_id: accountId } : {}) };
         const { data: inserted } = await supabase
           .from("day_notes")
-          .insert(notePayload)
+          .insert(insertPayload)
           .select("id")
           .maybeSingle();
         if (inserted) setNoteId(inserted.id);

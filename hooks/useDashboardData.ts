@@ -47,7 +47,7 @@ interface DashboardData {
 }
 
 export function useDashboardData(): DashboardData {
-  const { accounts: ctxAccounts } = useActiveAccount();
+  const { accounts: ctxAccounts, activeAccountId } = useActiveAccount();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -243,10 +243,12 @@ export function useDashboardData(): DashboardData {
         }
 
         // Fetch day notes for calendar
-        const { data: notesData } = await supabase
+        let notesQ = supabase
           .from("day_notes")
           .select("date, observation, tags")
           .eq("user_id", userId);
+        if (activeAccountId) notesQ = notesQ.eq("account_id", activeAccountId);
+        const { data: notesData } = await notesQ;
         if (!cancelled && notesData) {
           const notesMap: Record<string, DayNote> = {};
           for (const n of notesData) {
@@ -274,7 +276,7 @@ export function useDashboardData(): DashboardData {
       cancelled = true;
       clearTimeout(dataTimeout);
     };
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, activeAccountId]);
 
   return {
     userId,
