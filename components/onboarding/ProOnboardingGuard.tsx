@@ -16,35 +16,37 @@ import {
  *
  * Rendered inside AppShell, within SubscriptionProvider.
  */
+function resolvePlan(plan: string | null | undefined): "pro" | "ultra" {
+  return plan === "ultra" ? "ultra" : "pro";
+}
+
 export function ProOnboardingGuard() {
   const { plan, isLoading } = useSubscription();
   const pathname = usePathname();
   const [show, setShow] = useState(false);
-
-  const resolvedPlan: "pro" | "ultra" =
-    plan === "ultra" ? "ultra" : "pro";
+  const [onboardingPlan, setOnboardingPlan] = useState<"pro" | "ultra">("pro");
 
   useEffect(() => {
     if (isLoading) return;
     if (plan !== "pro" && plan !== "ultra") return;
     if (!pathname?.startsWith("/app")) return;
-    // Don't show on the success page — that has its own trigger
     if (pathname === "/app/subscription/success") return;
-    if (hasSeenProOnboarding(resolvedPlan)) return;
+    const resolved = resolvePlan(plan);
+    if (hasSeenProOnboarding(resolved)) return;
 
-    // Delay to avoid competing with the platform tour
+    setOnboardingPlan(resolved);
     const t = setTimeout(() => setShow(true), 1500);
     return () => clearTimeout(t);
-  }, [plan, isLoading, pathname, resolvedPlan]);
+  }, [plan, isLoading, pathname]);
 
   if (!show) return null;
 
   return (
     <ProOnboardingModal
       open={show}
-      plan={resolvedPlan}
+      plan={onboardingPlan}
       onClose={() => {
-        markProOnboardingSeen(resolvedPlan);
+        markProOnboardingSeen(onboardingPlan);
         setShow(false);
       }}
     />
