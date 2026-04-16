@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -145,6 +145,7 @@ const ACCOUNT_SIZES = [5000, 10000, 25000, 50000, 100000, 200000];
 
 export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefreshAccounts, defaultKind }: AddAccountModalProps) {
   const { limits, plan } = useSubscription();
+  const [cachedUserId, setCachedUserId] = useState<string | null>(null);
   const [step, setStep] = useState<Step>(defaultKind ? "details" : "type");
   const [accountKind, setAccountKind] = useState<AccountKind | null>(defaultKind ?? null);
   const [accountLimitReached, setAccountLimitReached] = useState(false);
@@ -164,6 +165,16 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
   const [suggestedName, setSuggestedName] = useState("");
   const [editableName, setEditableName] = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
+
+  // Pre-fetch userId when modal opens so handleSave never calls getSession()
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled) setCachedUserId(session?.user?.id ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [open]);
 
   const reset = () => {
     setStep(defaultKind ? "details" : "type");
@@ -253,22 +264,16 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
     }, 10000);
 
     try {
-      // getSession with its own timeout to prevent deadlock
-      const sessionResult = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("getSession timeout")), 5000)
-        ),
-      ]);
-      const session = sessionResult.data?.session;
-      if (!session?.user?.id) throw new Error("Sessão inválida");
+      // Use pre-cached userId (resolved on modal open) to avoid getSession() deadlock
+      const userId = cachedUserId;
+      if (!userId) throw new Error("Sessão inválida. Feche e abra o modal novamente.");
 
       // Check account limit per plan
       if (limits.maxAccounts !== null) {
         const { count, error: countError } = await supabase
           .from("accounts")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", session.user.id);
+          .eq("user_id", userId);
         if (countError) throw countError;
         if ((count ?? 0) >= limits.maxAccounts) {
           setAccountLimitReached(true);
@@ -290,7 +295,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       const { data: existing } = await supabase
         .from("accounts")
         .select("name")
-        .eq("user_id", session.user.id)
+        .eq("user_id", userId)
         .like("name", `${baseName}%`);
       if (existing && existing.length > 0) {
         const existingNames = new Set(existing.map((r: { name: string }) => r.name));
@@ -308,7 +313,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       const { data: accountData, error: accountError } = await supabase
         .from("accounts")
         .insert({
-          user_id: session.user.id,
+          user_id: userId,
           name,
           kind: effectiveKind,
           is_active: true,
@@ -340,7 +345,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
         const { error: propError } = await supabase
           .from("prop_accounts")
           .insert({
-            user_id: session.user.id,
+            user_id: userId,
             account_id: accountId,
             firm_name: firmName,
             phase: initialPhase,
@@ -358,7 +363,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
 
         if (propError) {
           // Rollback: remove the account we just created
-          await supabase.from("accounts").delete().eq("id", accountId).eq("user_id", session.user.id);
+          await supabase.from("accounts").delete().eq("id", accountId).eq("user_id", userId);
           throw propError;
         }
       }
