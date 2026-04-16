@@ -11,7 +11,7 @@ interface PaywallGateProps {
   blurContent?: boolean;
 }
 
-function DefaultFallback({ requiredPlan }: { requiredPlan: "pro" | "ultra" }) {
+function DefaultFallback({ requiredPlan, compact = false }: { requiredPlan: "pro" | "ultra"; compact?: boolean }) {
   const isPro = requiredPlan === "pro";
   const label = isPro ? "Pro" : "Ultra";
   const priceHint = isPro ? "R$29,90" : "R$49,90";
@@ -24,6 +24,29 @@ function DefaultFallback({ requiredPlan }: { requiredPlan: "pro" | "ultra" }) {
   const btnBg = isPro
     ? "bg-blue-600 hover:bg-blue-700"
     : "bg-purple-600 hover:bg-purple-700";
+
+  if (compact) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 px-4 py-3 text-center">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-full ${iconBg}`}>
+          <Crown className={`h-4 w-4 ${iconColor}`} />
+        </div>
+        <p className="text-sm font-semibold tracking-tight">
+          Recurso {label}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          A partir de <span className="font-semibold text-foreground">{priceHint}/mês</span>
+        </p>
+        <Link
+          href="/app/pricing"
+          className={`rounded-full px-5 py-1.5 text-xs font-medium text-white transition-colors ${btnBg}`}
+        >
+          Ver planos
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex flex-col items-center justify-center gap-4 rounded-[22px] border border-border/60 px-8 py-10 text-center shadow-soft dark:shadow-soft-dark"
@@ -73,7 +96,7 @@ export function PaywallGate({ requiredPlan, children, fallback, blurContent = fa
           {children}
         </div>
         <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
-          {fallback ?? <DefaultFallback requiredPlan={requiredPlan} />}
+          {fallback ?? <DefaultFallback requiredPlan={requiredPlan} compact />}
         </div>
       </div>
     );

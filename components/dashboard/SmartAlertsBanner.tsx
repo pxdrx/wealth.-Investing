@@ -10,7 +10,7 @@ import {
   Bell,
   X,
 } from "lucide-react";
-import { PaywallGate } from "@/components/billing/PaywallGate";
+import { useSubscription } from "@/components/context/SubscriptionContext";
 import { analyzeSmartAlerts, type TradeInput, type SmartAlert } from "@/lib/smart-alerts";
 import { supabase } from "@/lib/supabase/client";
 
@@ -213,9 +213,13 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
       ? "bg-red-100 dark:bg-red-900/30"
       : "bg-amber-100 dark:bg-amber-900/30";
 
+  // Subscription check: hide entirely for non-ultra (expensive feature, no teaser)
+  const { plan: subPlan, isLoading: subLoading } = useSubscription();
+  const isUltraOrAbove = subPlan === "ultra" || subPlan === "mentor";
+  if (!isUltraOrAbove && !subLoading) return null;
+
   return (
-    <PaywallGate requiredPlan="ultra" blurContent>
-      <AnimatePresence>
+    <AnimatePresence>
         {visible && (
           <motion.div
             key="smart-alerts-banner"
@@ -261,7 +265,6 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
           </motion.div>
         )}
       </AnimatePresence>
-    </PaywallGate>
   );
 }
 

@@ -19,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { PaywallGate } from "@/components/billing/PaywallGate";
+import { useSubscription } from "@/components/context/SubscriptionContext";
 import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -143,13 +144,26 @@ interface WidgetRendererProps {
   onReorder?: (newWidgets: DashboardLayout["widgets"]) => void;
 }
 
+// Widgets that should be completely hidden (not shown even as locked) for non-qualified users.
+// live-monitoring is expensive (MetaAPI) — hide entirely instead of teasing with blur.
+const HIDDEN_UNLESS_ULTRA = new Set(["live-monitoring"]);
+
 export function WidgetRenderer({ layout, registry, onReorder }: WidgetRendererProps) {
+  const { plan, isLoading: subLoading } = useSubscription();
+
+  const isUltraOrAbove = plan === "ultra" || plan === "mentor";
+
   const visible = useMemo(
     () =>
       layout.widgets
-        .filter((w) => w.visible && registry[w.id] !== undefined)
+        .filter((w) => {
+          if (!w.visible || registry[w.id] === undefined) return false;
+          // Hide specific expensive widgets entirely for non-ultra users
+          if (HIDDEN_UNLESS_ULTRA.has(w.id) && !isUltraOrAbove && !subLoading) return false;
+          return true;
+        })
         .sort((a, b) => a.order - b.order),
-    [layout.widgets, registry]
+    [layout.widgets, registry, isUltraOrAbove, subLoading]
   );
 
   const visibleIds = useMemo(() => visible.map((w) => w.id), [visible]);
