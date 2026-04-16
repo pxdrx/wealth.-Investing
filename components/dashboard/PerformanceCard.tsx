@@ -188,7 +188,13 @@ export function PerformanceCard({
 
       {/* Content */}
       <div className="px-4 pb-4">
-        {perfView === "mensal" && (
+        {perfView === "mensal" && filteredTrades.length === 0 && (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            Nenhum trade encontrado.
+          </div>
+        )}
+
+        {perfView === "mensal" && filteredTrades.length > 0 && (
           <>
             {/* Calendar (full mode with KPI strip) */}
             <CalendarPnl

@@ -268,8 +268,9 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       const userId = cachedUserId;
       if (!userId) throw new Error("Sessão inválida. Feche e abra o modal novamente.");
 
-      // Check account limit per plan
-      if (limits.maxAccounts !== null) {
+      // Backtest accounts are always free — skip limit check
+      const isBacktest = accountKind === "backtest";
+      if (!isBacktest && limits.maxAccounts !== null) {
         const { count, error: countError } = await supabase
           .from("accounts")
           .select("id", { count: "exact", head: true })
