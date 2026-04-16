@@ -40,25 +40,11 @@ export function PsychologyLoadingAnimation() {
 
   return (
     <div
-      className="relative rounded-[22px] border border-border/40 p-8 flex flex-col items-center justify-center gap-5 isolate overflow-hidden"
-      style={{ backgroundColor: "hsl(var(--card))", minHeight: "320px" }}
+      className="relative rounded-[22px] border border-border/40 p-8 flex flex-col items-center justify-center isolate overflow-hidden bg-card min-h-[360px]"
     >
-      {/* CPU animation as full background — subtle, behind content */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none">
-        <CpuArchitecture
-          width="100%"
-          height="100%"
-          text="PSICOLOGIA"
-          animateMarkers
-          animateLines
-          animateText
-        />
-      </div>
-
-      {/* Foreground content */}
-      <div className="relative z-10 flex flex-col items-center gap-5">
-        {/* Smaller focused CPU element */}
-        <div className="text-indigo-500 dark:text-indigo-400">
+      <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-md mx-auto">
+        {/* Focused CPU element */}
+        <div className="text-indigo-500 dark:text-indigo-400 drop-shadow-sm">
           <CpuArchitecture
             width="320"
             height="220"
@@ -69,31 +55,34 @@ export function PsychologyLoadingAnimation() {
           />
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={stepIdx}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.4, ease: easeApple }}
-            className="text-sm font-medium text-foreground"
-          >
-            {STEPS[stepIdx]}…
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex flex-col items-center gap-4 w-full">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={stepIdx}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.3, ease: easeApple }}
+              className="text-sm font-medium text-foreground tracking-wide"
+            >
+              {STEPS[stepIdx]}…
+            </motion.div>
+          </AnimatePresence>
 
-        <div className="w-full max-w-sm h-1.5 rounded-full bg-muted overflow-hidden">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500"
-            initial={{ width: "5%" }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.5, ease: easeApple }}
-          />
+          {/* Loading bar */}
+          <div className="relative w-full max-w-[280px] h-1.5 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500"
+              initial={{ width: "5%" }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.5, ease: easeApple }}
+            />
+          </div>
+
+          <p className="text-[11px] text-muted-foreground text-center">
+            Primeira análise do dia — a próxima visita hoje mostra esta mesma instantaneamente.
+          </p>
         </div>
-
-        <p className="text-[11px] text-muted-foreground text-center max-w-xs">
-          Primeira análise do dia — a próxima visita hoje mostra esta mesma instantaneamente.
-        </p>
       </div>
     </div>
   );
