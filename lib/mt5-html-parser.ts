@@ -369,7 +369,7 @@ export function parseMt5Html(buffer: ArrayBuffer): Mt5HtmlParseResult {
       const external_id = isNumeric(trimmedPosition)
         ? trimmedPosition
         : `hash-${createHash("sha1")
-            .update(`${symbol}|${tipo}|${openedAt}|${closedAt}|${pnl_usd}`)
+            .update(`${symbol}|${tipo}|${openedAt}|${closedAt}|${pnl_usd}|${comissao}|${swap}|${r}`)
             .digest("hex")
             .slice(0, 16)}`;
 

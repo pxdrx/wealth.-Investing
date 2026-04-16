@@ -215,10 +215,12 @@ export default function JournalPage() {
     if (!userId) return;
     let aborted = false;
     (async () => {
-      const { data: notesData } = await supabase
+      let notesQuery = supabase
         .from("day_notes")
         .select("date, observation, tags")
         .eq("user_id", userId);
+      if (activeAccountId) notesQuery = notesQuery.eq("account_id", activeAccountId);
+      const { data: notesData } = await notesQuery;
       if (aborted) return;
       const notesMap: Record<string, DayNote> = {};
       notesData?.forEach((n: { date: string; observation: string | null; tags: string[] | null }) => {
@@ -227,7 +229,7 @@ export default function JournalPage() {
       setDayNotes(notesMap);
     })();
     return () => { aborted = true; };
-  }, [userId]);
+  }, [userId, activeAccountId]);
 
   // PERF-008: AbortController to prevent stale setState on account switch
   useEffect(() => {
@@ -274,6 +276,10 @@ export default function JournalPage() {
 
   async function handleFileSelected(file: File) {
     if (!activeAccountId) return;
+    if (!file || file.size === 0) {
+      setImportError("Arquivo inválido ou vazio.");
+      return;
+    }
     setImportError(null);
     setPreviewData(null);
     setIsImportLoading(true);
@@ -288,6 +294,7 @@ export default function JournalPage() {
       if (!session?.access_token) {
         setImportError("Sessão inválida. Faça login novamente.");
         setImportFlowState("idle");
+        setIsImportLoading(false);
         return;
       }
       const formData = new FormData();
@@ -306,6 +313,7 @@ export default function JournalPage() {
         if (fetchErr instanceof DOMException && fetchErr.name === "AbortError") {
           setImportError("Preview excedeu o tempo limite (30s). Tente com um arquivo menor.");
           setImportFlowState("idle");
+          setIsImportLoading(false);
           return;
         }
         throw fetchErr;
@@ -315,6 +323,7 @@ export default function JournalPage() {
       if (!res.ok) {
         setImportError(data.error || `Erro ${res.status}`);
         setImportFlowState("idle");
+        setIsImportLoading(false);
         return;
       }
       // Map API preview response to PreviewData shape
@@ -322,6 +331,7 @@ export default function JournalPage() {
       if (rawTrades.length === 0 && !data.trades_found) {
         setImportError("Nenhum trade encontrado no arquivo. Verifique se é um relatório MT5 válido.");
         setImportFlowState("idle");
+        setIsImportLoading(false);
         return;
       }
       const previewTrades: PreviewTrade[] = rawTrades.map((t) => ({
@@ -347,14 +357,11 @@ export default function JournalPage() {
         skippedOpenPositions: typeof data.rows_skipped_open_position === "number" ? data.rows_skipped_open_position : 0,
       };
       setPreviewData(preview);
-      // Ensure loading is cleared AFTER preview data is set to avoid blank state
       setIsImportLoading(false);
-      return; // skip the finally setIsImportLoading since we already set it
     } catch (e) {
       clearTimeout(timeoutId);
       setImportError(e instanceof Error ? e.message : "Falha ao fazer preview");
       setImportFlowState("idle");
-    } finally {
       setIsImportLoading(false);
     }
   }

@@ -347,11 +347,13 @@ export async function POST(request: Request) {
       external_id: string;
     }> = [];
 
+    const batchIds = new Set<string>();
+
     for (let i = 0; i < newTrades.length; i++) {
       const t = newTrades[i];
       const tradeSource = t.external_source ?? defaultSource;
 
-      if (existingIdSet.has(t.external_id)) {
+      if (existingIdSet.has(t.external_id) || batchIds.has(t.external_id)) {
         duplicates += 1;
         duplicateDetails.push({
           symbol: t.symbol,
@@ -360,6 +362,7 @@ export async function POST(request: Request) {
         });
         continue;
       }
+      batchIds.add(t.external_id);
 
       const category = t.category ?? inferCategory(t.symbol);
       toInsert.push({

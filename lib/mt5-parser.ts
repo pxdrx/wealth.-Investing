@@ -210,7 +210,7 @@ function parseTradeRow(
   const externalId = position
     ? position
     : `hash-${createHash("sha1")
-        .update(`${ativo}|${tipoRaw}|${openedAt}|${closedAt}|${lucro}`)
+        .update(`${ativo}|${tipoRaw}|${openedAt}|${closedAt}|${lucro}|${comissao}|${swap}|${row}`)
         .digest("hex")
         .slice(0, 16)}`;
 
