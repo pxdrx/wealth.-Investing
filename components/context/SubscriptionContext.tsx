@@ -83,6 +83,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [authEvent, load]);
 
+  // Listen for AuthGate's session recovery broadcast → silent reload
+  useEffect(() => {
+    function handleRecovery() {
+      load(true);
+    }
+    window.addEventListener("session-recovered", handleRecovery);
+    return () => window.removeEventListener("session-recovered", handleRecovery);
+  }, [load]);
+
   // Poll every 15 min — silent to avoid flashing free
   useEffect(() => {
     const interval = setInterval(() => load(true), 15 * 60 * 1000);

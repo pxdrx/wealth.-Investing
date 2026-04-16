@@ -100,6 +100,16 @@ export function useDashboardData(): DashboardData {
     };
   }, []);
 
+  // Listen for AuthGate's session recovery broadcast → force immediate refetch
+  useEffect(() => {
+    function handleRecovery() {
+      lastRefetch.current = Date.now();
+      setRefreshKey((k) => k + 1);
+    }
+    window.addEventListener("session-recovered", handleRecovery);
+    return () => window.removeEventListener("session-recovered", handleRecovery);
+  }, []);
+
   // Session + layout fetch
   useEffect(() => {
     let cancelled = false;

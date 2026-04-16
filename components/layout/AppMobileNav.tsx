@@ -14,6 +14,7 @@ import {
   Shield,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -44,7 +45,7 @@ export function AppMobileNav() {
     const safety = setTimeout(() => { /* noop */ }, 8000);
     async function checkAdmin() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await safeGetSession();
         if (!session || cancelled) return;
         const res = await fetch("/api/admin/me", {
           headers: { Authorization: `Bearer ${session.access_token}` },

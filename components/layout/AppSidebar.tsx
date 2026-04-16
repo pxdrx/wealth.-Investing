@@ -23,6 +23,7 @@ import {
   Shield,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { getMyProfile } from "@/lib/profile";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
@@ -75,7 +76,7 @@ function AppSidebarInner() {
     const safety = setTimeout(() => { /* noop — just prevents hanging */ }, 8000);
     async function checkAdmin() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await safeGetSession();
         if (!session || cancelled) return;
         const res = await fetch("/api/admin/me", {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -96,7 +97,7 @@ function AppSidebarInner() {
     let cancelled = false;
     (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await safeGetSession();
         if (!session || cancelled) return;
         const res = await fetch("/api/mentor/my-mentor", {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -137,7 +138,7 @@ function AppSidebarInner() {
   useEffect(() => {
     if (!isOnCoachPage) { setCoachConversations([]); return; }
     async function loadConversations() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       if (!session?.access_token) return;
       try {
         const res = await fetch("/api/ai/conversations", {
@@ -166,7 +167,7 @@ function AppSidebarInner() {
   useEffect(() => {
     const safety = setTimeout(() => setProfileLoading(false), 8000);
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       setHasSession(!!session);
       if (!session) { setDisplayName(null); setProfileLoading(false); return; }
       try {

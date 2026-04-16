@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 
 export type AccountKind = "prop" | "personal" | "crypto" | "backtest";
 
@@ -57,7 +58,7 @@ function sortAccounts(a: Account, b: Account): number {
  * Lista contas do usuário atual (id, name, kind), ordenadas: prop → personal → crypto.
  */
 export async function listMyAccounts(): Promise<Account[]> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await safeGetSession();
   if (!session?.user?.id) return [];
 
   const { data, error } = await supabase
@@ -79,7 +80,7 @@ export async function listMyAccounts(): Promise<Account[]> {
  * Ordenação: is_active desc, kind (prop primeiro), created_at.
  */
 export async function listMyAccountsWithProp(): Promise<AccountWithProp[]> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await safeGetSession();
   if (!session?.user?.id) return [];
 
   const { data: rows, error } = await supabase

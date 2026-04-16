@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { calculateFullDd, evaluateAlerts } from "@/lib/metaapi/monitor";
 import type { LiveDdResult, AlertConfig, AlertAction } from "@/lib/metaapi/monitor";
 
@@ -123,7 +124,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
     if (!accountId || disconnectedRef.current) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       if (!session?.access_token) {
         setState((prev) => ({ ...prev, isLoading: false }));
         return;
@@ -336,7 +337,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
       disconnectedRef.current = false;
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await safeGetSession();
         if (!session?.access_token) return { ok: false, error: "Sessão expirada" };
 
         // Step 1: Provision account (fast, returns "connecting")
@@ -401,7 +402,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
     if (!accountId) return { ok: false, error: "Conta não selecionada" };
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       if (!session?.access_token) return { ok: false, error: "Sessão expirada" };
 
       const res = await fetch("/api/metaapi/sync-trades", {
@@ -447,7 +448,7 @@ export function useLiveMonitoring(accountId: string | null): LiveMonitoringState
     if (!accountId) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await safeGetSession();
       if (!session?.access_token) return;
 
       // Stop all polling immediately

@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 
 // ── Drawdown Stats (RPC-based) ──────────────────────────────
 
@@ -156,7 +157,7 @@ const EMPTY_STATS: PropCycleStats = {
  * Ciclo = soma de net_pnl_usd com closed_at > lastPayoutAt; sem payout, ciclo = total histórico.
  */
 export async function getPropCycleStats(accountId: string): Promise<PropCycleStats> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await safeGetSession();
   if (!session?.user?.id) {
     return EMPTY_STATS;
   }

@@ -142,6 +142,15 @@ export function ActiveAccountProvider({ children }: { children: React.ReactNode 
     }
   }, [authEvent, applyAccounts]);
 
+  // Listen for AuthGate's session recovery broadcast → re-fetch accounts
+  useEffect(() => {
+    function handleRecovery() {
+      refreshAccounts();
+    }
+    window.addEventListener("session-recovered", handleRecovery);
+    return () => window.removeEventListener("session-recovered", handleRecovery);
+  }, [refreshAccounts]);
+
   const value = useMemo<ActiveAccountContextValue>(
     () => ({ accounts, activeAccountId, setActiveAccountId, refreshAccounts, isLoading }),
     [accounts, activeAccountId, setActiveAccountId, refreshAccounts, isLoading]

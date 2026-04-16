@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/lib/supabase/client";
+import { safeGetSession } from "@/lib/supabase/safe-session";
 import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 import { useAuthEvent } from "@/components/context/AuthEventContext";
 
@@ -131,7 +132,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
 
         // Step 1: Check local session first (fast, no network)
-        const { data: { session: localSession } } = await supabase.auth.getSession();
+        const { data: { session: localSession } } = await safeGetSession();
 
         if (!mounted) return;
 
@@ -245,7 +246,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         if (ready) {
           // We're already showing the page — try a lighter check
           try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await safeGetSession();
             if (!session) {
               clearSessionAndRedirect();
             } else {
@@ -296,7 +297,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
       // Check if session expired while tab was hidden (overnight scenario)
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await safeGetSession();
         const now = Date.now();
         const expiresAt = session?.expires_at;
 
@@ -315,6 +316,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 expires_at: data.session.expires_at,
                 user_id: data.session.user.id,
               };
+              // Broadcast recovery so downstream contexts re-fetch with fresh tokens
+              window.dispatchEvent(new Event("session-recovered"));
             } else if (!session) {
               // Refresh failed AND no local session — truly logged out
               clearSessionAndRedirect();
@@ -348,7 +351,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
       try {
         // Check local session first — if expired, refresh before hitting server
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await safeGetSession();
         const now = Date.now();
         const expiresAt = session?.expires_at;
         const isExpiredOrExpiring = !expiresAt || expiresAt * 1000 - now < REFRESH_THRESHOLD_MS;
