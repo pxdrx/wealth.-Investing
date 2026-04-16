@@ -14,11 +14,18 @@ import {
 
 type VerifyState = "loading" | "verified" | "failed";
 
+function resolveOnboardingPlan(plan: string | null | undefined): "pro" | "ultra" {
+  return plan === "ultra" ? "ultra" : "pro";
+}
+
 function SubscriptionSuccessInner() {
   const { refreshSubscription, plan } = useSubscription();
   const searchParams = useSearchParams();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [verifyState, setVerifyState] = useState<VerifyState>("loading");
+  const [verifiedPlanState, setVerifiedPlanState] = useState<"pro" | "ultra" | null>(null);
+  // Use verified plan from Stripe response; fall back to context plan only after verification
+  const onboardingPlan = verifiedPlanState ?? resolveOnboardingPlan(plan);
 
   useEffect(() => {
     async function verifySession() {
@@ -44,7 +51,11 @@ function SubscriptionSuccessInner() {
         if (json.ok && json.verified) {
           setVerifyState("verified");
           refreshSubscription();
-          if (!hasSeenProOnboarding()) {
+          // Mentor plan has its own onboarding (MentorOnboardingModal on /app/mentor)
+          const verifiedPlan = json.plan ?? plan;
+          const resolved = resolveOnboardingPlan(verifiedPlan);
+          setVerifiedPlanState(verifiedPlan === "mentor" ? null : resolved);
+          if (verifiedPlan !== "mentor" && !hasSeenProOnboarding(resolved)) {
             setShowOnboarding(true);
           }
         } else {
@@ -109,9 +120,9 @@ function SubscriptionSuccessInner() {
 
       <ProOnboardingModal
         open={showOnboarding}
-        plan={plan === "ultra" ? "ultra" : "pro"}
+        plan={onboardingPlan}
         onClose={() => {
-          markProOnboardingSeen();
+          markProOnboardingSeen(onboardingPlan);
           setShowOnboarding(false);
         }}
       />

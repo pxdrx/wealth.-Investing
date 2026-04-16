@@ -16,7 +16,14 @@ import { Button } from "@/components/ui/button";
 
 import { Scan } from "lucide-react";
 
-const STORAGE_KEY = "wealth-pro-onboarding-seen";
+const STORAGE_KEY_PREFIX = "wealth-onboarding-seen";
+
+/** Legacy key from before plan-aware storage */
+const LEGACY_STORAGE_KEY = "wealth-pro-onboarding-seen";
+
+function storageKey(plan: "pro" | "ultra"): string {
+  return `${STORAGE_KEY_PREFIX}-${plan}`;
+}
 
 interface OnboardingStep {
   icon: React.ReactNode;
@@ -169,14 +176,28 @@ function getSteps(plan: "pro" | "ultra"): OnboardingStep[] {
   return steps;
 }
 
-export function hasSeenProOnboarding(): boolean {
+export function hasSeenProOnboarding(plan?: "pro" | "ultra"): boolean {
   if (typeof window === "undefined") return true;
-  return localStorage.getItem(STORAGE_KEY) === "true";
+  if (!plan) {
+    // Fallback: check both plan keys + legacy key
+    return (
+      localStorage.getItem(storageKey("pro")) === "true" ||
+      localStorage.getItem(storageKey("ultra")) === "true" ||
+      localStorage.getItem(LEGACY_STORAGE_KEY) === "true"
+    );
+  }
+  // Check the specific plan key
+  if (localStorage.getItem(storageKey(plan)) === "true") return true;
+  // If checking "pro" and legacy key exists, honor it (existing users who already saw Pro onboarding)
+  if (plan === "pro" && localStorage.getItem(LEGACY_STORAGE_KEY) === "true") return true;
+  return false;
 }
 
-export function markProOnboardingSeen(): void {
+export function markProOnboardingSeen(plan: "pro" | "ultra" = "pro"): void {
   try {
-    localStorage.setItem(STORAGE_KEY, "true");
+    localStorage.setItem(storageKey(plan), "true");
+    // Also set legacy key for backwards compat
+    localStorage.setItem(LEGACY_STORAGE_KEY, "true");
   } catch {}
 }
 
@@ -197,18 +218,18 @@ export function ProOnboardingModal({ open, onClose, plan = "pro" }: ProOnboardin
 
   const handleNext = useCallback(() => {
     if (isLast) {
-      markProOnboardingSeen();
+      markProOnboardingSeen(plan);
       onClose();
       return;
     }
     setDirection(1);
     setStep((s) => s + 1);
-  }, [isLast, onClose]);
+  }, [isLast, onClose, plan]);
 
   const handleSkip = useCallback(() => {
-    markProOnboardingSeen();
+    markProOnboardingSeen(plan);
     onClose();
-  }, [onClose]);
+  }, [onClose, plan]);
 
   if (!open) return null;
 

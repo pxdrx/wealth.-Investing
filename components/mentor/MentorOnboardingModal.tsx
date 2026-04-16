@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Ticket, LineChart, Loader2 } from "lucide-react";
+import { Users, Ticket, LineChart, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
 
@@ -92,6 +92,17 @@ export function MentorOnboardingModal({ open, onComplete }: MentorOnboardingModa
         className="relative w-full max-w-md rounded-[22px] border border-border/40 shadow-lg overflow-hidden"
         style={{ backgroundColor: "hsl(var(--card))" }}
       >
+        {/* Dismiss button */}
+        <button
+          type="button"
+          onClick={onComplete}
+          disabled={submitting}
+          className="absolute top-4 right-4 z-10 rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/60 disabled:opacity-40"
+          aria-label="Fechar"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-1.5 pt-6">
           {SLIDES.map((_, idx) => (
