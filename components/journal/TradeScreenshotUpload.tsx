@@ -174,13 +174,38 @@ export function TradeScreenshotUpload({
     }
   }, [handleFile]);
 
+  const hasPreview = !!previewUrl;
+
+  // Global paste listener so Ctrl+V works even without focusing the drop zone
+  const handleFileRef = useRef(handleFile);
+  handleFileRef.current = handleFile;
+
+  useEffect(() => {
+    // Only listen when no preview exists (upload zone is visible)
+    if (hasPreview) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            handleFileRef.current(file);
+            return;
+          }
+        }
+      }
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [hasPreview]);
+
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleFile(file);
     if (inputRef.current) inputRef.current.value = "";
   }, [handleFile]);
-
-  const hasPreview = !!previewUrl;
 
   if (hasPreview) {
     return (

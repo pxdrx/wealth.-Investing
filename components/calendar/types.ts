@@ -45,4 +45,6 @@ export interface CalendarPnlProps {
   compact?: boolean;
   /** Called after a trade is deleted from the day detail modal */
   onTradeDeleted?: () => void;
+  /** Called when user clicks edit on a trade in the day detail modal */
+  onTradeEdit?: (tradeId: string) => void;
 }
