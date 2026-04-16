@@ -569,6 +569,7 @@ function DashboardContent({
               opened_at: t.opened_at!,
               symbol: t.symbol ?? "",
               direction: t.direction ?? "long",
+              rr_realized: t.rr_realized ?? null,
             }))}
           userId={userId}
           onTradeAdded={onRefreshData}

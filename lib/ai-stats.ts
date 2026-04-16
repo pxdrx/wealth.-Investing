@@ -10,6 +10,7 @@ export interface TradeRow {
   fees_usd: number;
   opened_at: string;
   closed_at: string;
+  rr_realized: number | null;
 }
 
 export interface SymbolStats {
@@ -64,7 +65,7 @@ export async function getPersonalTradeStats(
 
   const { data: trades, error } = await client
     .from("journal_trades")
-    .select("symbol, direction, pnl_usd, net_pnl_usd, fees_usd, opened_at, closed_at")
+    .select("symbol, direction, pnl_usd, net_pnl_usd, fees_usd, opened_at, closed_at, rr_realized")
     .eq("account_id", accountId)
     .eq("user_id", userId)
     .gte("closed_at", ninetyDaysAgo.toISOString())
@@ -82,9 +83,16 @@ export async function getPersonalTradeStats(
   const grossLoss = Math.abs(losses.reduce((s, t) => s + t.net_pnl_usd, 0));
   const profitFactor = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : 0;
 
-  const avgWin = wins.length > 0 ? grossWin / wins.length : 0;
-  const avgLoss = losses.length > 0 ? grossLoss / losses.length : 0;
-  const avgRR = avgLoss > 0 ? avgWin / avgLoss : 0;
+  // Real per-trade R/R — only trades with a stop-loss contribute.
+  // Matches lib/trade-analytics.ts so the AI prompt and the UI agree.
+  const tradesWithRR = typedTrades.filter(
+    (t) => t.rr_realized != null && Number.isFinite(t.rr_realized)
+  );
+  const avgRR =
+    tradesWithRR.length > 0
+      ? tradesWithRR.reduce((s, t) => s + (t.rr_realized as number), 0) /
+        tradesWithRR.length
+      : 0;
 
   // Average duration
   const durations = typedTrades.map((t) => {
@@ -181,6 +189,7 @@ export async function getPersonalTradeStats(
     fees_usd: t.fees_usd,
     net_pnl_usd: t.net_pnl_usd,
     category: null,
+    rr_realized: t.rr_realized,
   }));
   const streaks = calcStreaks(journalTrades);
 

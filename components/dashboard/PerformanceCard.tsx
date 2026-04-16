@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
+import { computeTradeAnalytics } from "@/lib/trade-analytics";
+import type { JournalTradeRow } from "@/components/journal/types";
 
 interface PropAccountRef {
   account_id: string;
@@ -97,6 +99,21 @@ export function PerformanceCard({
     const worstTrade = Math.min(...filteredTrades.map((t) => t.net_pnl_usd ?? 0));
     const avgTrade = totalPnl / filteredTrades.length;
 
+    // True per-trade RR (payoff removed). Adapt TradeRow → JournalTradeRow.
+    const adapted: JournalTradeRow[] = filteredTrades.map((t) => ({
+      id: t.id,
+      symbol: t.symbol,
+      direction: t.direction,
+      opened_at: t.opened_at,
+      closed_at: t.closed_at ?? t.opened_at,
+      pnl_usd: t.net_pnl_usd ?? 0,
+      fees_usd: 0,
+      net_pnl_usd: t.net_pnl_usd ?? 0,
+      category: null,
+      rr_realized: t.rr_realized ?? null,
+    }));
+    const analytics = computeTradeAnalytics(adapted);
+
     return {
       totalTrades: filteredTrades.length,
       totalPnl,
@@ -109,6 +126,8 @@ export function PerformanceCard({
       bestTrade,
       worstTrade,
       avgTrade,
+      avgRR: analytics.avgRR,
+      tradesWithoutRR: analytics.tradesWithoutRR,
     };
   }, [filteredTrades]);
 
@@ -268,8 +287,19 @@ export function PerformanceCard({
                   value: formatCurrency(allTimeStats.worstTrade),
                 },
                 {
-                  label: "M\u00E9dia Win",
-                  value: formatCurrency(allTimeStats.avgWin),
+                  label: "RR m\u00E9dio",
+                  value:
+                    allTimeStats.totalTrades > 0 &&
+                    allTimeStats.tradesWithoutRR === allTimeStats.totalTrades
+                      ? "\u2014"
+                      : allTimeStats.avgRR > 0
+                        ? allTimeStats.avgRR.toFixed(2)
+                        : "\u2014",
+                  sub:
+                    allTimeStats.tradesWithoutRR > 0 &&
+                    allTimeStats.tradesWithoutRR < allTimeStats.totalTrades
+                      ? `${allTimeStats.tradesWithoutRR} sem SL`
+                      : undefined,
                 },
               ].map((kpi) => (
                 <div

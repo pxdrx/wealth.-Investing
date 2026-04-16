@@ -20,6 +20,7 @@ type JournalTradeKpiRow = {
   account_id: string | null;
   symbol: string | null;
   direction: string | null;
+  rr_realized: number | null;
 };
 
 type PropAccountRow = {
@@ -199,7 +200,7 @@ export function useDashboardData(): DashboardData {
         const [{ data, error }, accountsRes] = await Promise.all([
           supabase
             .from("journal_trades")
-            .select("id, net_pnl_usd, opened_at, closed_at, account_id, symbol, direction")
+            .select("id, net_pnl_usd, opened_at, closed_at, account_id, symbol, direction, rr_realized")
             .eq("user_id", userId)
             .order("opened_at", { ascending: false }),
           supabase

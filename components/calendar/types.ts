@@ -28,6 +28,9 @@ export interface TradeRow {
   symbol: string;
   direction: string;
   notes?: string | null;
+  /** Realized per-trade R/R. Populated by the MT5 parser when SL/entry are
+   *  present; null for historical trades or manual entries without SL. */
+  rr_realized?: number | null;
 }
 
 export interface CalendarPnlProps {

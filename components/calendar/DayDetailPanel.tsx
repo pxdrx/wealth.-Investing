@@ -6,6 +6,8 @@ import type { DayData, DayNote } from "./types";
 import { formatPnl } from "./utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { supabase } from "@/lib/supabase/client";
+import { computeTradeAnalytics } from "@/lib/trade-analytics";
+import type { JournalTradeRow } from "@/components/journal/types";
 
 interface DayDetailPanelProps {
   selectedDate: string | null;
@@ -50,7 +52,9 @@ export function DayDetailPanel({
     pnl_usd: number;
     net_pnl_usd: number;
     opened_at: string;
+    closed_at: string | null;
     notes: string | null;
+    rr_realized: number | null;
   }>>([]);
 
   // Sync local state when selectedDate or dayNote changes
@@ -67,7 +71,7 @@ export function DayDetailPanel({
       (async () => {
         let query = supabase
           .from("journal_trades")
-          .select("id, symbol, direction, pnl_usd, net_pnl_usd, opened_at, notes")
+          .select("id, symbol, direction, pnl_usd, net_pnl_usd, opened_at, closed_at, notes, rr_realized")
           .eq("user_id", userId)
           .gte("opened_at", `${selectedDate}T00:00:00`)
           .lt("opened_at", `${selectedDate}T23:59:59.999`);
@@ -152,15 +156,29 @@ export function DayDetailPanel({
     return observation !== origObs || JSON.stringify(tags) !== JSON.stringify(origTags);
   }, [observation, tags, dayNote]);
 
-  const avgRR = useMemo(() => {
-    if (!dayData || dayData.wins === 0 || dayData.losses === 0) {
-      if (dayData && dayData.wins > 0 && dayData.losses === 0) return Infinity;
-      return 0;
-    }
-    const avgWin = dayData.totalWinAmount / dayData.wins;
-    const avgLoss = dayData.totalLossAmount / dayData.losses;
-    return avgLoss > 0 ? avgWin / avgLoss : 0;
-  }, [dayData]);
+  const rrStats = useMemo(() => {
+    // True per-trade RR — adapt the fetched day trades into the shape the
+    // analytics helper expects. Trades without `rr_realized` are excluded
+    // from the average and counted under `tradesWithoutRR`.
+    const adapted: JournalTradeRow[] = dayTrades.map((t) => ({
+      id: t.id,
+      symbol: t.symbol,
+      direction: t.direction,
+      opened_at: t.opened_at,
+      closed_at: t.closed_at ?? t.opened_at,
+      pnl_usd: t.pnl_usd,
+      fees_usd: 0,
+      net_pnl_usd: t.net_pnl_usd,
+      category: null,
+      rr_realized: t.rr_realized,
+    }));
+    const analytics = computeTradeAnalytics(adapted);
+    return {
+      avgRR: analytics.avgRR,
+      tradesWithoutRR: analytics.tradesWithoutRR,
+      totalTrades: analytics.totalTrades,
+    };
+  }, [dayTrades]);
 
   const pnlColor = (value: number) =>
     value > 0
@@ -212,7 +230,12 @@ export function DayDetailPanel({
           },
           {
             label: "RR Médio",
-            value: avgRR === Infinity ? "∞" : avgRR > 0 ? avgRR.toFixed(2) : "0",
+            value:
+              rrStats.totalTrades > 0 && rrStats.tradesWithoutRR === rrStats.totalTrades
+                ? "—"
+                : rrStats.avgRR > 0
+                  ? rrStats.avgRR.toFixed(2)
+                  : "—",
             color: "hsl(var(--landing-text))",
           },
           {

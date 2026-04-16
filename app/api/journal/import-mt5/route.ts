@@ -101,7 +101,27 @@ export async function POST(request: Request) {
     // Parse file
     const buffer = await file.arrayBuffer();
 
-    let trades: Array<{ external_id: string; external_source?: string; symbol: string; direction: string; opened_at: string; closed_at: string; pnl_usd: number; fees_usd?: number; lots?: number; category?: string; commission?: number; swap?: number }> = [];
+    let trades: Array<{
+      external_id: string;
+      external_source?: string;
+      symbol: string;
+      direction: string;
+      opened_at: string;
+      closed_at: string;
+      pnl_usd: number;
+      fees_usd?: number;
+      lots?: number;
+      category?: string;
+      commission?: number;
+      swap?: number;
+      entry_price?: number | null;
+      exit_price?: number | null;
+      stop_loss?: number | null;
+      take_profit?: number | null;
+      volume?: number | null;
+      risk_usd?: number | null;
+      rr_realized?: number | null;
+    }> = [];
     let balanceOps: Array<{ type: string; amount_usd: number; at?: string | null; external_id?: string | null }> = [];
 
     // CSV-specific metadata surfaced when adaptive parser runs (optional)
@@ -345,6 +365,13 @@ export async function POST(request: Request) {
       fees_usd: number;
       external_source: string;
       external_id: string;
+      entry_price: number | null;
+      exit_price: number | null;
+      stop_loss: number | null;
+      take_profit: number | null;
+      volume: number | null;
+      risk_usd: number | null;
+      rr_realized: number | null;
     }> = [];
 
     const batchIds = new Set<string>();
@@ -377,6 +404,13 @@ export async function POST(request: Request) {
         fees_usd: t.fees_usd ?? 0,
         external_source: tradeSource,
         external_id: t.external_id,
+        entry_price: t.entry_price ?? null,
+        exit_price: t.exit_price ?? null,
+        stop_loss: t.stop_loss ?? null,
+        take_profit: t.take_profit ?? null,
+        volume: t.volume ?? null,
+        risk_usd: t.risk_usd ?? null,
+        rr_realized: t.rr_realized ?? null,
       });
     }
 

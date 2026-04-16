@@ -90,6 +90,8 @@ export interface TradeAnalytics {
   avgWin: number;
   avgLoss: number;
   payoffRatio: number;
+  avgRR: number;
+  tradesWithoutRR: number;
   maxDrawdown: number;
   sharpeRatio: number | null;
   sortinoRatio: number | null;
@@ -206,6 +208,20 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
   const avgWin = wins.length > 0 ? grossWin / wins.length : 0;
   const avgLoss = losses.length > 0 ? grossLoss / losses.length : 0;
   const payoffRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
+
+  // Real per-trade R/R — only trades with a stop-loss (and therefore a
+  // computed risk_usd) contribute. Historical trades imported before the
+  // migration and trades opened without an SL are excluded; we expose a
+  // counter so the UI can explain gaps to the user.
+  const tradesWithRR = sorted.filter(
+    (t) => t.rr_realized != null && Number.isFinite(t.rr_realized)
+  );
+  const avgRR =
+    tradesWithRR.length > 0
+      ? tradesWithRR.reduce((s, t) => s + (t.rr_realized as number), 0) /
+        tradesWithRR.length
+      : 0;
+  const tradesWithoutRR = totalTrades - tradesWithRR.length;
 
   const expectancy = totalTrades > 0 ? netPnl / totalTrades : 0;
 
@@ -437,6 +453,8 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
     avgWin,
     avgLoss,
     payoffRatio,
+    avgRR,
+    tradesWithoutRR,
     maxDrawdown,
     sharpeRatio,
     sortinoRatio,

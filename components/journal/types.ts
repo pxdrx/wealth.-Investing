@@ -28,6 +28,15 @@ export interface JournalTradeRow {
   mfe_usd?: number | null;
   mae_usd?: number | null;
   screenshot_path?: string | null;
+  // Risk / reward — populated by MT5 parser when the report has
+  // price/SL/TP/volume columns. Historical trades keep these as null.
+  entry_price?: number | null;
+  exit_price?: number | null;
+  stop_loss?: number | null;
+  take_profit?: number | null;
+  volume?: number | null;
+  risk_usd?: number | null;
+  rr_realized?: number | null;
 }
 
 export function getNetPnl(row: JournalTradeRow): number {

@@ -19,6 +19,8 @@ import {
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { toForexDateKey, toForexMonthKey } from "@/lib/trading/forex-day";
 import { cn } from "@/lib/utils";
+import { computeTradeAnalytics } from "@/lib/trade-analytics";
+import type { JournalTradeRow } from "@/components/journal/types";
 
 interface JournalBriefingProps {
   trades: TradeRow[];
@@ -93,11 +95,13 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
       daysOp += 1;
     });
 
+    const forexMonthTrades: TradeRow[] = [];
     for (const t of filteredTrades) {
       const dateKey = toForexDateKey(t.opened_at);
       if (!dateKey.startsWith(prefix)) continue;
       if (t.net_pnl_usd > 0) winSum += t.net_pnl_usd;
       if (t.net_pnl_usd < 0) lossSum += Math.abs(t.net_pnl_usd);
+      forexMonthTrades.push(t);
     }
 
     // Civil-calendar cardinality for "day N of M" — not a PnL grouping.
@@ -105,8 +109,22 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
     const winRate = totalTrades > 0 ? wins / totalTrades : 0;
     const avgWin = wins > 0 ? winSum / wins : 0;
     const avgLoss = losses > 0 ? lossSum / losses : 0;
-    const payoff = avgLoss > 0 ? avgWin / avgLoss : 0;
     const expectativa = (winRate * avgWin) - ((1 - winRate) * avgLoss);
+
+    // True per-trade RR for the current forex-month (payoff removed).
+    const adapted: JournalTradeRow[] = forexMonthTrades.map((t) => ({
+      id: t.id,
+      symbol: t.symbol,
+      direction: t.direction,
+      opened_at: t.opened_at,
+      closed_at: t.closed_at ?? t.opened_at,
+      pnl_usd: t.net_pnl_usd,
+      fees_usd: 0,
+      net_pnl_usd: t.net_pnl_usd,
+      category: null,
+      rr_realized: t.rr_realized ?? null,
+    }));
+    const analytics = computeTradeAnalytics(adapted);
 
     if (bestTrade === -Infinity) bestTrade = 0;
     if (worstTrade === Infinity) worstTrade = 0;
@@ -114,7 +132,8 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
     return {
       totalPnl,
       winRate,
-      payoff: payoff === 0 ? "0" : payoff.toFixed(2),
+      avgRR: analytics.avgRR,
+      tradesWithoutRR: analytics.tradesWithoutRR,
       expectativa: formatPnl(expectativa),
       expectativaRaw: expectativa,
       bestTrade,
@@ -227,9 +246,18 @@ export function JournalBriefing({ trades, accounts }: JournalBriefingProps) {
               </div>
             </KpiRow>
 
-            <KpiRow label="Payoff">
-              <span className="metric-value text-sm text-foreground">
-                {v(kpis.payoff)}
+            <KpiRow label="RR médio">
+              <span
+                className="metric-value text-sm text-foreground"
+                title={kpis.tradesWithoutRR > 0 ? `${kpis.tradesWithoutRR} trades sem SL` : undefined}
+              >
+                {v(
+                  kpis.totalTrades > 0 && kpis.tradesWithoutRR === kpis.totalTrades
+                    ? "—"
+                    : kpis.avgRR > 0
+                      ? kpis.avgRR.toFixed(2)
+                      : "—"
+                )}
               </span>
             </KpiRow>
 

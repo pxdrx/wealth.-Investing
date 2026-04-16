@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CalendarPnlProps, DayData } from "./types";
+import type { CalendarPnlProps, DayData, TradeRow } from "./types";
 import { aggregateByDay, formatPnl, toLocalDateKey } from "./utils";
 import { CalendarGrid } from "./CalendarGrid";
 import { DayDetailModal } from "@/components/journal/DayDetailModal";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { cn } from "@/lib/utils";
+import { computeTradeAnalytics } from "@/lib/trade-analytics";
+import type { JournalTradeRow } from "@/components/journal/types";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -62,9 +64,19 @@ export function CalendarPnl({
     return set;
   }, [filteredTrades]);
 
+  // Raw trades that fall within the currently displayed month.
+  // Uses `closed_at` when available (true per-trade RR uses close time),
+  // falls back to `opened_at` for rows that don't carry a close timestamp.
+  const monthTrades = useMemo<TradeRow[]>(() => {
+    const prefix = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}`;
+    return filteredTrades.filter((t) => {
+      const ref = t.closed_at ?? t.opened_at;
+      return typeof ref === "string" && ref.startsWith(prefix);
+    });
+  }, [filteredTrades, displayYear, displayMonth]);
+
   // Compute month stats filtered to displayMonth
   const monthStats = useMemo(() => {
-    const prefix = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}`;
     let totalPnl = 0;
     let totalTrades = 0;
     let totalWins = 0;
@@ -73,6 +85,7 @@ export function CalendarPnl({
     let totalLosses = 0;
     let daysOperated = 0;
 
+    const prefix = `${displayYear}-${String(displayMonth + 1).padStart(2, "0")}`;
     dailyData.forEach((day: DayData) => {
       if (day.date.startsWith(prefix)) {
         totalPnl += day.totalPnl;
@@ -85,13 +98,40 @@ export function CalendarPnl({
       }
     });
 
-    const avgWin = totalWins > 0 ? totalWinAmount / totalWins : 0;
-    const avgLoss = totalLosses > 0 ? totalLossAmount / totalLosses : 0;
-    const avgRR = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? Infinity : 0);
+    // True per-trade RR from computeTradeAnalytics (payoff removed).
+    // Adapt TradeRow → JournalTradeRow shape for the analytics helper —
+    // only `rr_realized`, `closed_at`, `opened_at`, `pnl_usd`, `net_pnl_usd`,
+    // `symbol` and `direction` are needed; missing fields get safe defaults.
+    const adapted: JournalTradeRow[] = monthTrades.map((t) => ({
+      id: t.id,
+      symbol: t.symbol,
+      direction: t.direction,
+      opened_at: t.opened_at,
+      closed_at: t.closed_at ?? t.opened_at,
+      pnl_usd: t.net_pnl_usd,
+      fees_usd: 0,
+      net_pnl_usd: t.net_pnl_usd,
+      category: null,
+      rr_realized: t.rr_realized ?? null,
+    }));
+    const analytics = computeTradeAnalytics(adapted);
+    const avgRR = analytics.avgRR;
+    const tradesWithoutRR = analytics.tradesWithoutRR;
+
     const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
     const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : (totalWinAmount > 0 ? Infinity : 0);
-    return { totalPnl, totalTrades, avgRR, daysOperated, totalWins, totalLosses, winRate, profitFactor };
-  }, [dailyData, displayYear, displayMonth]);
+    return {
+      totalPnl,
+      totalTrades,
+      avgRR,
+      tradesWithoutRR,
+      daysOperated,
+      totalWins,
+      totalLosses,
+      winRate,
+      profitFactor,
+    };
+  }, [dailyData, displayYear, displayMonth, monthTrades]);
 
   const handlePrevMonth = () => {
     setSelectedDate(null);
@@ -154,7 +194,12 @@ export function CalendarPnl({
     },
     {
       label: "RR MÉDIO",
-      value: monthStats.avgRR === Infinity ? "∞" : monthStats.avgRR > 0 ? monthStats.avgRR.toFixed(2) : "0",
+      value:
+        monthStats.totalTrades > 0 && monthStats.tradesWithoutRR === monthStats.totalTrades
+          ? "—"
+          : monthStats.avgRR > 0
+            ? monthStats.avgRR.toFixed(2)
+            : "—",
       color: "hsl(var(--landing-text))",
     },
     {

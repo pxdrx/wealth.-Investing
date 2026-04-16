@@ -7,6 +7,7 @@ import { usePrivacy } from "@/components/context/PrivacyContext";
 import type { PeriodFilter } from "./types";
 import { filterTradesByPeriod, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
+import { computeTradeAnalytics } from "@/lib/trade-analytics";
 
 interface JournalKpiCardsProps {
   trades: JournalTradeRow[];
@@ -43,15 +44,18 @@ export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanc
     const winrate = filtered.length > 0 ? (wins.length / filtered.length) * 100 : 0;
     const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
     const avgLoss = losses.length ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0;
-    const payoff = avgLoss > 0 ? avgWin / avgLoss : wins.length ? 1 : 0;
     const expectation = winrate / 100 * avgWin + (1 - winrate / 100) * (avgLoss > 0 ? -avgLoss : 0);
     const best = filtered.length ? Math.max(...nets) : 0;
     const worst = filtered.length ? Math.min(...nets) : 0;
 
+    // True per-trade RR — excludes trades without a stop-loss.
+    const analytics = computeTradeAnalytics(filtered);
+
     return {
       pnlTotal: total,
       winrate,
-      payoff,
+      avgRR: analytics.avgRR,
+      tradesWithoutRR: analytics.tradesWithoutRR,
       expectation,
       bestTrade: best,
       worstTrade: worst,
@@ -102,8 +106,24 @@ export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanc
             <p className="kpi-value text-lg whitespace-nowrap">{kpis.winrate.toFixed(1)}%</p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Payoff</p>
-            <p className="kpi-value text-lg whitespace-nowrap">{kpis.payoff.toFixed(2)}</p>
+            <p
+              className="text-xs font-medium text-muted-foreground"
+              title={kpis.tradesWithoutRR > 0 ? `${kpis.tradesWithoutRR} trades sem SL` : undefined}
+            >
+              RR médio
+            </p>
+            <p className="kpi-value text-lg whitespace-nowrap">
+              {kpis.totalTrades > 0 && kpis.tradesWithoutRR === kpis.totalTrades
+                ? "—"
+                : kpis.avgRR > 0
+                  ? kpis.avgRR.toFixed(2)
+                  : "—"}
+            </p>
+            {kpis.tradesWithoutRR > 0 && kpis.tradesWithoutRR < kpis.totalTrades && (
+              <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                {kpis.tradesWithoutRR} trades sem SL
+              </p>
+            )}
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Expectativa</p>

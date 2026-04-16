@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { createHash } from "node:crypto";
 import { mt5WallTimeToUtc } from "@/lib/trading/timezone";
+import { calcRiskUsd } from "@/lib/trading/instrument-specs";
 
 export interface Mt5TradeRow {
   external_id: string;
@@ -10,6 +11,13 @@ export interface Mt5TradeRow {
   closed_at: string;
   pnl_usd: number;
   fees_usd: number;
+  entry_price: number | null;
+  exit_price: number | null;
+  stop_loss: number | null;
+  take_profit: number | null;
+  volume: number | null;
+  risk_usd: number | null;
+  rr_realized: number | null;
 }
 
 export type BalanceOperationType = "INITIAL_DEPOSIT" | "WITHDRAWAL";
@@ -137,7 +145,15 @@ function buildHeaderMap(
     if (key.includes("comentario") || key.includes("comment")) keysToAdd.push("comentario");
     if (key.includes("saldo") || key.includes("balance")) keysToAdd.push("saldo");
     if (key.includes("oferta")) keysToAdd.push("oferta");
-    for (const k of keysToAdd) {
+    // Price column appears twice in MT5 Posições: occurrence 0 = open, 1 = close.
+    // Header is "Preço" (PT) or "Price" (EN).
+    if (key === "preco" || key === "price") keysToAdd.push("preco");
+    // Stop-loss header: "S / L" (original) → "sl" after slash-normalization.
+    if (key === "sl" || base === "sl") keysToAdd.push("sl");
+    // Take-profit header: "T / P" → "tp".
+    if (key === "tp" || base === "tp") keysToAdd.push("tp");
+    if (key === "volume" || key === "size") keysToAdd.push("volume");
+    for (const k of Array.from(new Set(keysToAdd))) {
       const list = map.get(k) ?? [];
       list.push(c);
       map.set(k, list);
@@ -205,6 +221,43 @@ function parseTradeRow(
   const comissao = comissaoCol >= 0 ? parseNumber(get(comissaoCol)) : 0;
   const swap = swapCol >= 0 ? parseNumber(get(swapCol)) : 0;
 
+  // Risk/Reward columns — MT5 report has "Preço" twice (open/close) and
+  // dedicated S/L, T/P, Volume columns. Any missing value → null so the
+  // downstream analytics can exclude it from averages.
+  const entryCol = getCol(headerMap, "preco", 0);
+  const exitCol = getCol(headerMap, "preco", 1);
+  const slCol = getCol(headerMap, "sl");
+  const tpCol = getCol(headerMap, "tp");
+  const volumeCol = getCol(headerMap, "volume");
+
+  const entry_price = entryCol >= 0 ? parseNumber(get(entryCol)) : 0;
+  const exit_price = exitCol >= 0 ? parseNumber(get(exitCol)) : 0;
+  const stop_loss = slCol >= 0 ? parseNumber(get(slCol)) : 0;
+  const take_profit = tpCol >= 0 ? parseNumber(get(tpCol)) : 0;
+  const volume = volumeCol >= 0 ? parseNumber(get(volumeCol)) : 0;
+
+  const entryPriceOut = entry_price > 0 ? entry_price : null;
+  const exitPriceOut = exit_price > 0 ? exit_price : null;
+  const stopLossOut = stop_loss > 0 ? stop_loss : null;
+  const takeProfitOut = take_profit > 0 ? take_profit : null;
+  const volumeOut = volume > 0 ? volume : null;
+
+  const risk_usd =
+    stopLossOut != null && entryPriceOut != null && volumeOut != null
+      ? calcRiskUsd({
+          symbol: ativo,
+          entry: entryPriceOut,
+          sl: stopLossOut,
+          volume: volumeOut,
+        })
+      : null;
+
+  // Match the rest of the codebase: getNetPnl = pnl_usd + fees_usd.
+  // MT5 commissions/swap arrive as negative values, so adding gives net.
+  const net_pnl = lucro + (comissao + swap);
+  const rr_realized =
+    risk_usd != null && risk_usd > 0 ? net_pnl / risk_usd : null;
+
   // When the broker didn't number the position, fall back to a deterministic
   // hash so re-uploading the same report doesn't insert duplicates.
   const externalId = position
@@ -222,6 +275,13 @@ function parseTradeRow(
     closed_at: closedAt,
     pnl_usd: lucro,
     fees_usd: comissao + swap,
+    entry_price: entryPriceOut,
+    exit_price: exitPriceOut,
+    stop_loss: stopLossOut,
+    take_profit: takeProfitOut,
+    volume: volumeOut,
+    risk_usd,
+    rr_realized,
   };
 }
 

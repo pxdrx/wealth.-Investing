@@ -12,6 +12,8 @@ import { TradeScreenshotUpload } from "@/components/journal/TradeScreenshotUploa
 import { uploadTradeScreenshot } from "@/lib/supabase/screenshot";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
+import { computeTradeAnalytics } from "@/lib/trade-analytics";
+import type { JournalTradeRow } from "@/components/journal/types";
 
 const CalendarPnl = dynamic(
   () => import("@/components/calendar/CalendarPnl").then((m) => ({ default: m.CalendarPnl })),
@@ -33,6 +35,9 @@ interface BacktestTrade {
   opened_at: string;
   symbol?: string;
   direction?: string;
+  /** Only present when the trade was imported with SL/entry/volume. Manual
+   *  backtest entries from the QuickTradeForm never have it. */
+  rr_realized?: number | null;
 }
 
 interface BacktestSectionProps {
@@ -454,7 +459,35 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
       if (dd > maxDD) maxDD = dd;
     }
 
-    return { totalPnl, wins, losses: total - wins, totalTrades: total, winRate, profitFactor, maxDD };
+    // True per-trade RR. Manual backtest entries from the inline form don't
+    // carry SL/entry/volume, so `rr_realized` will usually be null and the
+    // UI shows the "adicione SL" empty state. Imported backtests that do
+    // include RR are honored here.
+    const adapted: JournalTradeRow[] = filteredTrades.map((t) => ({
+      id: t.id ?? `bt-${t.opened_at}-${t.account_id}`,
+      symbol: t.symbol ?? "",
+      direction: t.direction ?? "long",
+      opened_at: t.opened_at,
+      closed_at: t.opened_at,
+      pnl_usd: t.pnl_usd,
+      fees_usd: 0,
+      net_pnl_usd: t.net_pnl_usd,
+      category: null,
+      rr_realized: t.rr_realized ?? null,
+    }));
+    const analytics = computeTradeAnalytics(adapted);
+
+    return {
+      totalPnl,
+      wins,
+      losses: total - wins,
+      totalTrades: total,
+      winRate,
+      profitFactor,
+      maxDD,
+      avgRR: analytics.avgRR,
+      tradesWithoutRR: analytics.tradesWithoutRR,
+    };
   }, [filteredTrades]);
 
   const pnlColor = (v: number) =>
@@ -595,7 +628,16 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
                 { label: "PF", value: stats.profitFactor === Infinity ? "∞" : stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : "—", color: stats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
                 { label: "TRADES", value: `${stats.wins}W / ${stats.losses}L`, color: "hsl(var(--landing-text))" },
                 { label: "MAX DD", value: stats.maxDD > 0 ? mask(`-$${stats.maxDD.toFixed(0)}`) : "—", color: stats.maxDD > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
-                { label: "TOTAL", value: stats.totalTrades.toString(), color: "hsl(var(--landing-text))" },
+                {
+                  label: "RR MÉDIO",
+                  value:
+                    stats.totalTrades > 0 && stats.tradesWithoutRR === stats.totalTrades
+                      ? "— adicione SL para ver RR"
+                      : stats.avgRR > 0
+                        ? stats.avgRR.toFixed(2)
+                        : "—",
+                  color: "hsl(var(--landing-text))",
+                },
               ].map((kpi) => (
                 <div key={kpi.label} className="rounded-lg px-2.5 py-2" style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}>
                   <p className="text-[8px] uppercase tracking-wider mb-0.5 text-muted-foreground">{kpi.label}</p>
@@ -612,9 +654,11 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
                 id: t.id ?? `bt-${t.opened_at}-${t.account_id}`,
                 net_pnl_usd: t.net_pnl_usd,
                 opened_at: t.opened_at,
+                closed_at: t.opened_at,
                 account_id: t.account_id,
                 symbol: t.symbol ?? "",
                 direction: t.direction ?? "long",
+                rr_realized: t.rr_realized ?? null,
               }))}
               accounts={selectedAccountId ? undefined : activeAccounts.map((a) => ({ id: a.id, name: a.name }))}
               userId={userId}
