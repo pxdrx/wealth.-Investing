@@ -172,8 +172,31 @@ function AppSidebarInner() {
         setHasSession(true);
         try {
           const profile = await getMyProfile();
-          setDisplayName(profile?.display_name?.trim() ?? null);
-        } catch {} finally {
+          const name = profile?.display_name?.trim();
+          if (name) {
+            setDisplayName(name);
+          } else {
+            // Fallback: use auth metadata or email prefix
+            const meta = session.user.user_metadata;
+            const fallback =
+              meta?.full_name?.trim() ||
+              meta?.name?.trim() ||
+              session.user.email?.split("@")[0] ||
+              null;
+            setDisplayName(fallback);
+          }
+        } catch {
+          // Profile fetch failed — use auth metadata as fallback
+          if (!displayName) {
+            const meta = session.user.user_metadata;
+            const fallback =
+              meta?.full_name?.trim() ||
+              meta?.name?.trim() ||
+              session.user.email?.split("@")[0] ||
+              null;
+            setDisplayName(fallback);
+          }
+        } finally {
           setProfileLoading(false);
         }
       } else if (!hasSession) {
