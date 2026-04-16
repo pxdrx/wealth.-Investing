@@ -33,8 +33,6 @@ interface DayDetailModalProps {
   onNoteSaved?: () => void;
   /** Called after a trade is deleted so parent can refresh */
   onTradeDeleted?: () => void;
-  /** Called when user clicks edit on a trade — parent opens TradeDetailModal */
-  onTradeEdit?: (tradeId: string) => void;
 }
 
 interface AccountTradesSummary {
@@ -64,11 +62,12 @@ interface DayNote {
   tags: string[];
 }
 
-export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, filterSymbol, open, onOpenChange, onNoteSaved, onTradeDeleted, onTradeEdit }: DayDetailModalProps) {
+export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, filterSymbol, open, onOpenChange, onNoteSaved, onTradeDeleted }: DayDetailModalProps) {
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [individualTrades, setIndividualTrades] = useState<IndividualTrade[]>([]);
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
   const [confirmingTradeId, setConfirmingTradeId] = useState<string | null>(null);
+  const [editingTradeId, setEditingTradeId] = useState<string | null>(null);
   const pendingRefresh = useRef(false);
   const [loading, setLoading] = useState(false);
   const [dayNote, setDayNote] = useState<DayNote>({ observation: "", tags: [] });
@@ -125,6 +124,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
     setLoading(true);
     setSaved(false);
     setConfirmingTradeId(null);
+    setEditingTradeId(null);
 
     try {
       // Use forex-day UTC bounds + generous buffer to ensure trades near the
@@ -585,17 +585,20 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                                 )}>
                                   {t.net_pnl_usd > 0 ? "+" : ""}{t.net_pnl_usd < 0 ? "-" : ""}${Math.abs(t.net_pnl_usd).toFixed(2)}
                                 </span>
-                                {onTradeEdit && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onTradeEdit(t.id)}
-                                    className="rounded-md p-1 text-muted-foreground/50 hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-                                    title="Editar trade"
-                                    aria-label={`Editar trade ${t.symbol}`}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </button>
-                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingTradeId(editingTradeId === t.id ? null : t.id)}
+                                  className={cn(
+                                    "rounded-md p-1 transition-colors",
+                                    editingTradeId === t.id
+                                      ? "text-blue-500 bg-blue-500/10"
+                                      : "text-muted-foreground/50 hover:text-blue-500 hover:bg-blue-500/10"
+                                  )}
+                                  title="Editar trade"
+                                  aria-label={`Editar trade ${t.symbol}`}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => setConfirmingTradeId(t.id)}
@@ -607,24 +610,32 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                                 </button>
                               </div>
                             </div>
-                            {/* Screenshot upload/display — immediate mode */}
-                            <TradeScreenshotUpload
-                              tradeId={t.id}
-                              existingPath={t.screenshot_path}
-                              onUploaded={(path) => {
-                                setIndividualTrades((prev) =>
-                                  prev.map((tr) => tr.id === t.id ? { ...tr, screenshot_path: path } : tr)
-                                );
-                                pendingRefresh.current = true;
-                              }}
-                              onDeleted={() => {
-                                setIndividualTrades((prev) =>
-                                  prev.map((tr) => tr.id === t.id ? { ...tr, screenshot_path: null } : tr)
-                                );
-                                pendingRefresh.current = true;
-                              }}
-                              compact
-                            />
+                            {/* Screenshot: read-only preview OR full upload when editing */}
+                            {editingTradeId === t.id ? (
+                              <TradeScreenshotUpload
+                                tradeId={t.id}
+                                existingPath={t.screenshot_path}
+                                onUploaded={(path) => {
+                                  setIndividualTrades((prev) =>
+                                    prev.map((tr) => tr.id === t.id ? { ...tr, screenshot_path: path } : tr)
+                                  );
+                                  pendingRefresh.current = true;
+                                }}
+                                onDeleted={() => {
+                                  setIndividualTrades((prev) =>
+                                    prev.map((tr) => tr.id === t.id ? { ...tr, screenshot_path: null } : tr)
+                                  );
+                                  pendingRefresh.current = true;
+                                }}
+                                compact
+                              />
+                            ) : t.screenshot_path ? (
+                              <TradeScreenshotUpload
+                                tradeId={t.id}
+                                existingPath={t.screenshot_path}
+                                compact
+                              />
+                            ) : null}
                           </div>
                         )}
                       </motion.div>
@@ -634,7 +645,9 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
               </div>
             )}
 
-            {/* Notes section — View or Edit mode */}
+            {/* Notes section — hidden until a trade is being edited or a note already exists */}
+            {(editingTradeId || dayNote.id) && (
+            <>
             {!editMode && (dayNote.id || defaultReadOnly) ? (
               /* ---- VIEW MODE ---- */
               <div className="space-y-3">
@@ -786,6 +799,8 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                   </Button>
                 </div>
               </div>
+            )}
+            </>
             )}
           </div>
         )}

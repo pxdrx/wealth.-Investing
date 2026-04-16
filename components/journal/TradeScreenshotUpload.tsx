@@ -40,6 +40,7 @@ export function TradeScreenshotUpload({
   compact,
 }: TradeScreenshotUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -184,6 +185,15 @@ export function TradeScreenshotUpload({
     // Only listen when no preview exists (upload zone is visible)
     if (hasPreview) return;
     const onPaste = (e: ClipboardEvent) => {
+      // Scope paste to topmost dialog: if a dialog is open and this
+      // component is NOT inside it, skip so the dialog's own upload
+      // zone receives the paste instead.
+      const dialogs = document.querySelectorAll("[role='dialog']");
+      if (dialogs.length > 0 && containerRef.current) {
+        const topmostDialog = dialogs[dialogs.length - 1];
+        if (!topmostDialog.contains(containerRef.current)) return;
+      }
+
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of Array.from(items)) {
@@ -209,7 +219,7 @@ export function TradeScreenshotUpload({
 
   if (hasPreview) {
     return (
-      <div className="space-y-1.5">
+      <div ref={containerRef} className="space-y-1.5">
         <label className="text-sm font-medium text-muted-foreground block">Screenshot</label>
         <div className="relative group rounded-xl overflow-hidden border border-border/40">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -257,7 +267,7 @@ export function TradeScreenshotUpload({
   }
 
   return (
-    <div className="space-y-1.5">
+    <div ref={containerRef} className="space-y-1.5">
       <label className="text-sm font-medium text-muted-foreground block">Screenshot</label>
       <div
         onDragEnter={handleDragIn}

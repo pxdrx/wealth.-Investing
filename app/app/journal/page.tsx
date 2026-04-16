@@ -721,7 +721,6 @@ export default function JournalPage() {
                     setDayNotes((prev) => ({ ...prev, [date]: note }));
                   }}
                   onTradeDeleted={() => loadTrades(true)}
-                  onTradeEdit={handleOpenTradeById}
                 />
                 <MonthlyPerformanceGrid
                   trades={allTradesSummary}

@@ -11,8 +11,6 @@ import { AddAccountModal } from "@/components/account/AddAccountModal";
 import { TradeScreenshotUpload } from "@/components/journal/TradeScreenshotUpload";
 import { uploadTradeScreenshot } from "@/lib/supabase/screenshot";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
-import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
-import type { JournalTradeRow } from "@/components/journal/types";
 import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
 
 const CalendarPnl = dynamic(
@@ -326,8 +324,6 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
   const [localBalanceOverride, setLocalBalanceOverride] = useState<Record<string, number | null>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [editTrade, setEditTrade] = useState<JournalTradeRow | null>(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
   const { mask } = usePrivacy();
   const { refreshAccounts } = useActiveAccount();
 
@@ -463,18 +459,6 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
 
   const pnlColor = (v: number) =>
     v > 0 ? "hsl(var(--pnl-positive))" : v < 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))";
-
-  const handleTradeEdit = useCallback(async (tradeId: string) => {
-    const { data, error } = await supabase
-      .from("journal_trades")
-      .select("*")
-      .eq("id", tradeId)
-      .maybeSingle();
-    if (!error && data) {
-      setEditTrade(data as JournalTradeRow);
-      setEditModalOpen(true);
-    }
-  }, []);
 
   const selectedAccount = selectedAccountId ? activeAccounts.find((a) => a.id === selectedAccountId) : null;
   const currentAccountId = selectedAccountId ?? activeAccounts[0]?.id ?? "";
@@ -640,7 +624,6 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
               title={selectedAccount ? selectedAccount.name : "Calendário Backtest"}
               compact
               onTradeDeleted={onTradeAdded}
-              onTradeEdit={handleTradeEdit}
             />
 
             {/* Monthly Performance Grid */}
@@ -659,20 +642,6 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
         </div>
       )}
     </div>
-
-    <TradeDetailModal
-      trade={editTrade}
-      open={editModalOpen}
-      onOpenChange={setEditModalOpen}
-      onSaved={() => {
-        setEditTrade(null);
-        onTradeAdded?.();
-      }}
-      onDeleted={() => {
-        setEditTrade(null);
-        onTradeAdded?.();
-      }}
-    />
 
     <AddAccountModal
       open={addModalOpen}
