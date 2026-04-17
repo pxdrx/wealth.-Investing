@@ -13,14 +13,44 @@ import { ProOnboardingGuard } from "@/components/onboarding/ProOnboardingGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import {
+  CURRENT_ONBOARDING_VERSION,
+  ONBOARDING_VERSION_KEY,
+  isOnboardingStale,
+} from "@/lib/onboarding/version";
 
 const TOUR_STORAGE_KEY = "onboarding_tour_completed";
 const TOUR_PENDING_KEY = "onboarding_tour_pending";
+const PRO_SEEN_KEY = "wealth-onboarding-seen-pro";
+const ULTRA_SEEN_KEY = "wealth-onboarding-seen-ultra";
+const LEGACY_PRO_SEEN_KEY = "wealth-pro-onboarding-seen";
 const NEW_USER_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [showTour, setShowTour] = useState(false);
+
+  // One-shot re-dispatch: when the onboarding version bumps, clear all
+  // client-side completion flags so the existing tour/modal gating fires
+  // again naturally. Runs before the tour-pending check below.
+  useEffect(() => {
+    if (!pathname?.startsWith("/app")) return;
+    if (typeof window === "undefined") return;
+    if (!isOnboardingStale()) return;
+    try {
+      window.localStorage.removeItem(TOUR_STORAGE_KEY);
+      window.localStorage.setItem(TOUR_PENDING_KEY, "1");
+      window.localStorage.removeItem(PRO_SEEN_KEY);
+      window.localStorage.removeItem(ULTRA_SEEN_KEY);
+      window.localStorage.removeItem(LEGACY_PRO_SEEN_KEY);
+      window.localStorage.setItem(
+        ONBOARDING_VERSION_KEY,
+        CURRENT_ONBOARDING_VERSION,
+      );
+    } catch {
+      // localStorage unavailable — silently skip, tour/modal won't redispatch
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (!pathname?.startsWith("/app")) return;
