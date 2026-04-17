@@ -10,6 +10,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/te-breaking",
+      "schedule": "*/3 * * * *"
+    },
+    {
       "path": "/api/cron/morning-briefing",
       "schedule": "0 10 * * *"
     },

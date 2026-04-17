@@ -1,11 +1,14 @@
 // components/macro/HeadlinesFeed.tsx
 "use client";
 
-import { useState } from "react";
-import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp, Activity, Globe } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp, Activity, Globe, Siren } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
+import { sortHeadlinesByTier, getHeadlineTier } from "@/lib/macro/headline-filter";
 import type { MacroHeadline } from "@/lib/macro/types";
+
+const BREAKING_STICKY_MS = 30 * 60 * 1000; // 30 minutes
 
 interface HeadlinesFeedProps {
   headlines: MacroHeadline[];
@@ -13,7 +16,7 @@ interface HeadlinesFeedProps {
   refreshing?: boolean;
 }
 
-type SourceFilter = "all" | "forexlive" | "reuters" | "truth_social" | "trading_economics";
+type SourceFilter = "all" | "forexlive" | "reuters" | "truth_social" | "trading_economics" | "te_breaking";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -60,6 +63,14 @@ function SourceBadge({ source }: { source: string }) {
       </span>
     );
   }
+  if (source === "te_breaking") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-white bg-red-600 px-1.5 py-0.5 rounded-full">
+        <Siren className="w-2.5 h-2.5" />
+        TE BREAKING
+      </span>
+    );
+  }
   // Fallback
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
@@ -80,6 +91,7 @@ function BreakingDot() {
 
 const FILTER_OPTIONS: { key: SourceFilter; label: string }[] = [
   { key: "all", label: "Todos" },
+  { key: "te_breaking", label: "Breaking" },
   { key: "truth_social", label: "Trump" },
   { key: "trading_economics", label: "Trading Economics" },
   { key: "reuters", label: "Reuters" },
@@ -87,7 +99,7 @@ const FILTER_OPTIONS: { key: SourceFilter; label: string }[] = [
 ];
 
 function getBorderClass(source: string, isBreaking: boolean): string {
-  if (isBreaking) return "border-l-4 border-red-500 pl-3";
+  if (isBreaking || source === "te_breaking") return "border-l-4 border-red-500 pl-3";
   switch (source) {
     case "forexlive": return "border-l-4 border-orange-500 pl-3";
     case "reuters": return "border-l-4 border-blue-500 pl-3";
@@ -97,17 +109,32 @@ function getBorderClass(source: string, isBreaking: boolean): string {
   }
 }
 
+function isFreshBreaking(h: MacroHeadline): boolean {
+  if (getHeadlineTier(h) !== "breaking" && h.impact !== "breaking") return false;
+  const ts = new Date(h.published_at || h.fetched_at).getTime();
+  return Number.isFinite(ts) && Date.now() - ts <= BREAKING_STICKY_MS;
+}
+
 export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFeedProps) {
   const [filter, setFilter] = useState<SourceFilter>("all");
   const [expanded, setExpanded] = useState(false);
 
-  const filtered = filter === "all"
-    ? headlines
-    : headlines.filter((h) => h.source === filter);
+  // Sort by tier (breaking > high > medium > low), then timestamp.
+  // Fresh breaking headlines (≤30min) get pinned to the very top regardless
+  // of where they fall in the natural ordering.
+  const ordered = useMemo(() => {
+    const base = filter === "all" ? headlines : headlines.filter((h) => h.source === filter);
+    const sorted = sortHeadlinesByTier(base);
+    const fresh = sorted.filter(isFreshBreaking);
+    if (fresh.length === 0) return sorted;
+    const freshIds = new Set(fresh.map((h) => h.id));
+    const rest = sorted.filter((h) => !freshIds.has(h.id));
+    return [...fresh, ...rest];
+  }, [headlines, filter]);
 
   const COMPACT_LIMIT = 5;
-  const displayItems = expanded ? filtered : filtered.slice(0, COMPACT_LIMIT);
-  const hasMore = filtered.length > COMPACT_LIMIT;
+  const displayItems = expanded ? ordered : ordered.slice(0, COMPACT_LIMIT);
+  const hasMore = ordered.length > COMPACT_LIMIT;
 
   return (
     <div
@@ -155,7 +182,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
       </div>
 
       {/* Headlines list */}
-      {filtered.length === 0 ? (
+      {ordered.length === 0 ? (
         <p className="text-sm text-muted-foreground py-6 text-center">
           Nenhuma headline recente
         </p>
@@ -163,11 +190,15 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
         <div className={expanded ? "max-h-[400px] overflow-y-auto" : ""}>
           <div className="space-y-3">
             {displayItems.map((h) => {
-              const isBreaking = h.impact === "breaking";
+              const isBreaking = h.impact === "breaking" || h.source === "te_breaking";
+              const fresh = isFreshBreaking(h);
               const borderClass = getBorderClass(h.source, isBreaking);
 
               return (
-                <div key={h.id} className={`${borderClass} py-1.5`}>
+                <div
+                  key={h.id}
+                  className={`${borderClass} py-1.5 ${fresh ? "bg-red-500/5 rounded-r-md" : ""}`}
+                >
                   <div className="flex items-center gap-2 mb-0.5">
                     <SourceBadge source={h.source} />
                     {isBreaking && <BreakingDot />}
@@ -202,7 +233,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
           onClick={() => setExpanded(true)}
           className="mt-3 text-xs font-medium text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
         >
-          Ver todas ({filtered.length})
+          Ver todas ({ordered.length})
         </button>
       )}
       {expanded && hasMore && (

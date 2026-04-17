@@ -3,6 +3,8 @@
  * A headline passes if it contains at least one term (case-insensitive).
  */
 
+import type { HeadlineSource, HeadlineTier, MacroHeadline } from "./types";
+
 const FINANCIAL_TERMS = [
   // ── Central banks & monetary policy ──
   "federal reserve", "fed", "fomc", "fed minutes", "fed funds rate",
@@ -168,4 +170,52 @@ export function isNoise(headline: string): boolean {
 /** Filter an array of items with a headline field: must be financial AND not noise */
 export function filterRelevantHeadlines<T extends { headline: string }>(items: T[]): T[] {
   return items.filter((item) => isFinanciallyRelevant(item.headline) && !isNoise(item.headline));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Source weighting / tiering
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Source → tier mapping. TE featured (te_breaking) is the highest priority
+ * (used for the homepage urgent/breaking card), then TE api, then ForexLive
+ * and Reuters proxies for general news, then Truth Social as low-signal
+ * commentary. Used to rank headlines in the UI feed.
+ */
+export const SOURCE_TIER: Record<HeadlineSource, HeadlineTier> = {
+  te_breaking: "breaking",
+  trading_economics: "high",
+  te_headlines: "high",
+  forexlive: "medium",
+  reuters: "medium",
+  truth_social: "low",
+};
+
+const TIER_RANK: Record<HeadlineTier, number> = {
+  breaking: 4,
+  high: 3,
+  medium: 2,
+  low: 1,
+};
+
+/** Resolve the tier for a headline — prefer explicit tier, fall back to source map. */
+export function getHeadlineTier(h: Pick<MacroHeadline, "source" | "tier">): HeadlineTier {
+  return h.tier ?? SOURCE_TIER[h.source] ?? "medium";
+}
+
+/**
+ * Sort headlines by tier first (breaking > high > medium > low), then by
+ * published_at (or fetched_at fallback) descending. Returns a new array.
+ */
+export function sortHeadlinesByTier<T extends Pick<MacroHeadline, "source" | "tier" | "published_at" | "fetched_at">>(
+  headlines: T[]
+): T[] {
+  return [...headlines].sort((a, b) => {
+    const ra = TIER_RANK[getHeadlineTier(a)];
+    const rb = TIER_RANK[getHeadlineTier(b)];
+    if (ra !== rb) return rb - ra;
+    const ta = new Date(a.published_at || a.fetched_at).getTime();
+    const tb = new Date(b.published_at || b.fetched_at).getTime();
+    return tb - ta;
+  });
 }

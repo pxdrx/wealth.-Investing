@@ -8,7 +8,8 @@ import {
 } from "@/lib/macro/scrapers/rss-headlines";
 import { fetchTruthSocialPosts } from "@/lib/macro/scrapers/truth-social";
 import { fetchTradingEconomicsHeadlines } from "@/lib/macro/scrapers/trading-economics";
-import { filterRelevantHeadlines } from "@/lib/macro/headline-filter";
+import { fetchTradingEconomicsBreaking } from "@/lib/macro/scrapers/te-breaking";
+import { filterRelevantHeadlines, getHeadlineTier } from "@/lib/macro/headline-filter";
 import { translateHeadlines } from "@/lib/macro/translate";
 import { getWeekStart } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
@@ -38,7 +39,16 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
 
   try {
-    // 1. Fetch headlines from all sources in parallel
+    // 1a. TE breaking has top priority — fetch first so it lands even if
+    //     the broader sync times out.
+    const teBreakingResult = await Promise.allSettled([fetchTradingEconomicsBreaking()]);
+    const teBreakingHeadlines =
+      teBreakingResult[0].status === "fulfilled" ? (teBreakingResult[0].value ?? []) : [];
+    if (teBreakingResult[0].status === "rejected") {
+      console.error("[headlines-sync] TE breaking fetch failed:", teBreakingResult[0].reason);
+    }
+
+    // 1b. Remaining sources in parallel
     const [flResult, reutersResult, tsResult, teResult] = await Promise.allSettled([
       fetchForexLiveHeadlines(),
       fetchReutersHeadlines(),
@@ -64,7 +74,7 @@ export async function POST(req: NextRequest) {
       console.error("[headlines-sync] Trading Economics fetch failed:", teResult.reason);
     }
 
-    // Helper: strip DB-managed fields before upsert
+    // Helper: strip DB-managed fields before upsert + persist tier
     const stripDbFields = (h: MacroHeadline) => ({
       source: h.source,
       headline: h.headline,
@@ -75,17 +85,20 @@ export async function POST(req: NextRequest) {
       published_at: h.published_at,
       fetched_at: h.fetched_at,
       external_id: h.external_id,
+      tier: getHeadlineTier(h),
     });
 
     // Filter valid headlines (must have external_id)
+    const teBreakingValid = teBreakingHeadlines.filter((h) => h.external_id);
     const flValid = flHeadlines.filter((h) => h.external_id);
     const reutersValid = reutersHeadlines.filter((h) => h.external_id);
     const tsValid = tsHeadlines.filter((h) => h.external_id);
     const teValid = teHeadlines.filter((h) => h.external_id);
 
     // Translate all sources to PT-BR in parallel
-    const [flTranslated, reutersTranslated, tsTranslated, teTranslated] =
+    const [teBreakingTranslated, flTranslated, reutersTranslated, tsTranslated, teTranslated] =
       await Promise.all([
+        teBreakingValid.length > 0 ? translateHeadlines(teBreakingValid) : Promise.resolve([]),
         flValid.length > 0 ? translateHeadlines(flValid) : Promise.resolve([]),
         reutersValid.length > 0 ? translateHeadlines(reutersValid) : Promise.resolve([]),
         tsValid.length > 0 ? translateHeadlines(tsValid) : Promise.resolve([]),
@@ -106,7 +119,9 @@ export async function POST(req: NextRequest) {
       return count ?? headlines.length;
     };
 
-    // 2. Upsert all sources
+    // 2. Upsert all sources — TE breaking first (no relevance filter; it is
+    //    already curated by TE editorial as featured news).
+    const teBreakingCount = await upsertBatch("TE-Breaking", teBreakingTranslated);
     const flCount = await upsertBatch("ForexLive", filterRelevantHeadlines(flTranslated));
     const reutersCount = await upsertBatch("Reuters", filterRelevantHeadlines(reutersTranslated));
     const tsCount = await upsertBatch("TruthSocial", tsTranslated);
@@ -120,6 +135,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Create adaptive alerts for breaking headlines
     const allHeadlines = [
+      ...teBreakingTranslated,
       ...flTranslated,
       ...reutersTranslated,
       ...tsTranslated,
@@ -131,6 +147,7 @@ export async function POST(req: NextRequest) {
         switch (s) {
           case "truth_social": return "Truth Social";
           case "trading_economics": return "Trading Economics";
+          case "te_breaking": return "Trading Economics (Breaking)";
           case "forexlive": return "ForexLive";
           case "reuters": return "Reuters";
           default: return s;
@@ -253,6 +270,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 6. Cascade daily adjustment — internal cooldown (1h) guards against spam.
+    //    Runs every cycle: returns early if no red lines backfilled or no panorama.
+    let dailyAdjustmentTriggered = false;
+    try {
+      const { runDailyAdjustment } = await import("@/lib/macro/daily-adjustment");
+      const adjResult = await runDailyAdjustment(supabase, { source: "cascade" });
+      dailyAdjustmentTriggered = adjResult.ok;
+    } catch (err) {
+      console.error("[headlines-sync] Daily adjustment cascade failed:", err);
+    }
+
     // Invalidate Redis cache after successful sync
     await invalidateCache("macro:headlines");
     if (cascadeTriggered) {
@@ -261,12 +289,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      te_breaking: teBreakingCount,
       forexlive: flCount,
       reuters: reutersCount,
       truth_social: tsCount,
       trading_economics: teCount,
       pruned: pruned ?? 0,
       cascade_triggered: cascadeTriggered,
+      daily_adjustment_triggered: dailyAdjustmentTriggered,
     });
   } catch (error) {
     console.error("[headlines-sync] Error:", error);
