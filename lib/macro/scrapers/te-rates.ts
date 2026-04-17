@@ -10,6 +10,9 @@ interface ScrapedRate {
   bank_name: string;
   country: string;
   current_rate: number;
+  previous_rate: number | null;
+  last_change_bps: number | null;
+  last_action: "hold" | "cut" | "hike" | null;
 }
 
 /** Map TE country names to our bank codes */
@@ -26,9 +29,22 @@ const COUNTRY_NAME_TO_BANK: Record<string, string> = {
   "mexico": "BANXICO",
 };
 
+/** Derive hike/cut/hold + bps delta from current and previous scraped rates. */
+function deriveChange(
+  current: number,
+  previous: number | null
+): { last_change_bps: number | null; last_action: "hold" | "cut" | "hike" | null } {
+  if (previous === null || !Number.isFinite(previous)) {
+    return { last_change_bps: null, last_action: null };
+  }
+  const bps = Math.round((current - previous) * 100);
+  const action: "hold" | "cut" | "hike" = bps > 0 ? "hike" : bps < 0 ? "cut" : "hold";
+  return { last_change_bps: bps, last_action: action };
+}
+
 /**
  * Scrape TradingEconomics country-list/interest-rate page via Cheerio.
- * Returns partial rate objects (current_rate only) or null on failure.
+ * Returns partial rate objects (current_rate + derived last_action/bps) or null on failure.
  */
 export async function scrapeTradingEconomicsRates(): Promise<Omit<CentralBankRate, "id">[] | null> {
   try {
@@ -60,7 +76,7 @@ export async function scrapeTradingEconomicsRates(): Promise<Omit<CentralBankRat
     const scraped: ScrapedRate[] = [];
 
     // TE renders a table with country data rows.
-    // Each row: country name | last (rate) | previous | range high | range low | date
+    // Columns: Country | Last (current) | Previous | Reference | Unit
     $("table#calendar tbody tr, table.table tbody tr, #aspnetForm table tbody tr").each(
       (_, row) => {
         const cells = $(row).find("td");
@@ -78,16 +94,32 @@ export async function scrapeTradingEconomicsRates(): Promise<Omit<CentralBankRat
         const cb = CENTRAL_BANKS.find((b) => b.code === bankCode);
         if (!cb) return;
 
+        // Try to pull Previous (column index 2). Some TE layouts have it in col 2,
+        // others shift the columns — guard with sane bounds.
+        let previous: number | null = null;
+        if (cells.length >= 3) {
+          const prevText = $(cells[2]).text().trim();
+          const prev = parseFloat(prevText.replace(",", "."));
+          if (!isNaN(prev) && prev <= 100 && prev >= -5) {
+            previous = Math.round(prev * 100) / 100;
+          }
+        }
+
+        const change = deriveChange(Math.round(rate * 100) / 100, previous);
+
         scraped.push({
           bank_code: bankCode,
           bank_name: cb.name,
           country: cb.country,
           current_rate: Math.round(rate * 100) / 100,
+          previous_rate: previous,
+          last_change_bps: change.last_change_bps,
+          last_action: change.last_action,
         });
       }
     );
 
-    // Fallback: scan raw text for country names near numbers
+    // Fallback: scan raw text for country names near numbers (no Previous available here).
     if (scraped.length === 0) {
       console.warn("[te-rates] Table selector found 0 rates, trying text fallback");
       const text = $("body").text();
@@ -112,6 +144,9 @@ export async function scrapeTradingEconomicsRates(): Promise<Omit<CentralBankRat
           bank_name: cb.name,
           country: cb.country,
           current_rate: Math.round(rate * 100) / 100,
+          previous_rate: null,
+          last_change_bps: null,
+          last_action: null,
         });
       }
     }
@@ -120,14 +155,14 @@ export async function scrapeTradingEconomicsRates(): Promise<Omit<CentralBankRat
     if (scraped.length === 0) return null;
 
     // Convert to full CentralBankRate shape (without id).
-    // last_action, last_change_bps, etc. are null -- callers merge with DB.
+    // last_change_date deliberately left null — cron handler stamps detection moment.
     return scraped.map((s) => ({
       bank_code: s.bank_code,
       bank_name: s.bank_name,
       country: s.country,
       current_rate: s.current_rate,
-      last_action: null,
-      last_change_bps: null,
+      last_action: s.last_action,
+      last_change_bps: s.last_change_bps,
       last_change_date: null,
       next_meeting: null,
       updated_at: new Date().toISOString(),

@@ -4,15 +4,20 @@ import { CENTRAL_BANKS } from "./constants";
 import type { CentralBankRate } from "./types";
 
 /**
- * EMERGENCY FALLBACK ONLY — used when both Apify and DB fail.
+ * EMERGENCY_FALLBACK_RATES — LAST-RESORT SNAPSHOT ONLY.
  *
- * Primary source: Apify RAG browser → TradingEconomics (updated by cron).
- * Secondary: Supabase `central_bank_rates` table.
- * Last resort: this hardcoded object (manually maintained).
+ * This hardcoded object is a manually maintained snapshot of central-bank policy
+ * state. It is intentionally stale and MUST NOT be served as "current" data to
+ * callers. The only legitimate use is: both Apify and Cheerio scrapers failed
+ * AND the DB has no row at all — in that case we surface it flagged with
+ * `source_confidence = 'fallback'` so the UI can degrade honestly.
  *
- * Last updated: 2026-03-23
+ * Do NOT copy these `last_action` / `last_change_bps` values into the DB as
+ * if they were freshly scraped.
+ *
+ * Last manually updated: 2026-03-23
  */
-const POLICY_RATES: Record<string, {
+export const EMERGENCY_FALLBACK_RATES: Record<string, {
   current_rate: number;
   last_action: "hold" | "cut" | "hike";
   last_change_bps: number;
@@ -31,6 +36,17 @@ const POLICY_RATES: Record<string, {
   BANXICO: { current_rate: 7.000, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-12-18", next_meeting: "2026-03-26" },
 };
 
+/** Rate rows enriched with source confidence for the DB. */
+export type SourceConfidence = "scraped" | "fallback" | "manual";
+
+export interface RatesFetchResult {
+  ok: boolean;
+  error?: string;
+  rates?: Omit<CentralBankRate, "id">[];
+  /** Present only when scrapers failed — caller decides whether to write it. */
+  fallback?: Omit<CentralBankRate, "id">[];
+}
+
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -38,9 +54,9 @@ function getSupabaseAdmin() {
   return createClient(url, key);
 }
 
-function mapHardcodedToRate(code: string): Omit<CentralBankRate, "id"> {
+function mapFallbackToRate(code: string): Omit<CentralBankRate, "id"> {
   const cb = CENTRAL_BANKS.find((b) => b.code === code);
-  const data = POLICY_RATES[code];
+  const data = EMERGENCY_FALLBACK_RATES[code];
   if (!cb || !data) {
     return {
       bank_code: code,
@@ -67,8 +83,20 @@ function mapHardcodedToRate(code: string): Omit<CentralBankRate, "id"> {
   };
 }
 
+/**
+ * Build the fallback snapshot (exported for the cron handler to write flagged rows).
+ * NEVER represents live data — always flag with source_confidence='fallback' on write.
+ */
+export function buildEmergencyFallback(): Omit<CentralBankRate, "id">[] {
+  return CENTRAL_BANKS.map((cb) => mapFallbackToRate(cb.code));
+}
+
+/**
+ * Read-through for UI/page consumers.
+ * Reads DB first (which the cron keeps fresh). If DB is completely empty
+ * AND we have no other source, we surface the emergency fallback but log loudly.
+ */
 export async function fetchCentralBankRates(): Promise<Omit<CentralBankRate, "id">[]> {
-  // Try DB first
   const supabase = getSupabaseAdmin();
   if (supabase) {
     try {
@@ -91,12 +119,15 @@ export async function fetchCentralBankRates(): Promise<Omit<CentralBankRate, "id
         }));
       }
     } catch (err) {
-      console.warn("[rates-fetcher] DB read failed, falling back to hardcoded:", err);
+      console.warn("[rates-fetcher] DB read failed, falling back to emergency snapshot:", err);
     }
   }
 
-  // Fallback to hardcoded rates
-  return CENTRAL_BANKS.map((cb) => mapHardcodedToRate(cb.code));
+  console.warn(
+    "[rates-fetcher] DB empty or unreachable — returning EMERGENCY_FALLBACK_RATES. " +
+    "This is a stale snapshot; the cron must populate central_bank_rates."
+  );
+  return buildEmergencyFallback();
 }
 
 /**

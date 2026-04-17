@@ -105,6 +105,8 @@ export interface CentralBankRate {
   last_change_date: string | null;
   next_meeting: string | null;
   updated_at: string;
+  /** 'scraped' = fresh from TE; 'fallback' = emergency hardcoded; 'manual' = human override. */
+  source_confidence?: "scraped" | "fallback" | "manual" | null;
 }
 
 export interface AdaptiveAlert {
@@ -163,15 +165,52 @@ export interface TeEnrichedBriefing {
   raw_text: string;
 }
 
+export type HeadlineSource =
+  | "forexlive"
+  | "reuters"
+  | "truth_social"
+  | "te_headlines"
+  | "trading_economics"
+  | "te_breaking";
+
+export type HeadlineTier = "breaking" | "high" | "medium" | "low";
+
+export interface DailyAdjustmentEvent {
+  event_uid: string;
+  country: string;
+  title: string;
+  actual: string | null;
+  forecast: string | null;
+  previous: string | null;
+  released_at: string | null;
+}
+
+export interface DailyAdjustmentAssetUpdate {
+  direction: "bullish" | "bearish" | "neutral";
+  delta_note: string;
+}
+
+export interface DailyAdjustment {
+  id: string;
+  week_start: string;
+  generated_at: string;
+  narrative: string;
+  based_on_events: DailyAdjustmentEvent[];
+  asset_updates: Partial<Record<"indices" | "gold" | "btc" | "dollar", DailyAdjustmentAssetUpdate>>;
+  source: "manual" | "cascade" | "cron";
+  model: string;
+}
+
 export interface MacroHeadline {
   id: string;
-  source: "forexlive" | "reuters" | "truth_social" | "te_headlines" | "trading_economics";
+  source: HeadlineSource;
   headline: string;
   summary: string | null;
   author: string | null;
   url: string | null;
-  impact: "breaking" | "high" | "medium" | "low";
+  impact: HeadlineTier;
   published_at: string | null;
   fetched_at: string;
   external_id: string | null;
+  tier?: HeadlineTier;
 }

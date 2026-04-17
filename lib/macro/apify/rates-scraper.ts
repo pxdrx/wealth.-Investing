@@ -114,16 +114,17 @@ function parseRatesFromMarkdown(markdown: string): Omit<CentralBankRate, "id">[]
   const lines = markdown.split("\n");
 
   for (const line of lines) {
-    // Match lines like "| [Brazil](/brazil/interest-rate) | 14.75 | ..."
-    // or "| Brazil | 14.75 | ..."
-    // Note: [-\d.,]+ handles both "14.75" and "14,75" (comma decimal)
+    // Match lines like "| [Brazil](/brazil/interest-rate) | 14.75 | 14.25 | ..."
+    // or "| Brazil | 14.75 | 14.25 | ..."
+    // Capture BOTH current (col 1) and previous (col 2) when present.
     const match = line.match(
-      /\|\s*(?:\[([^\]]+)\](?:\([^)]*\))?|([^|]+?))\s*\|\s*([-\d.,]+)\s*\|/
+      /\|\s*(?:\[([^\]]+)\](?:\([^)]*\))?|([^|]+?))\s*\|\s*([-\d.,]+)\s*\|\s*([-\d.,]+)?\s*\|/
     );
     if (!match) continue;
 
     const countryName = (match[1] || match[2] || "").trim();
     const rateStr = match[3]?.trim();
+    const prevStr = match[4]?.trim();
     if (!countryName || !rateStr) continue;
 
     const rate = parseFloat(rateStr.replace(",", "."));
@@ -135,14 +136,29 @@ function parseRatesFromMarkdown(markdown: string): Omit<CentralBankRate, "id">[]
     const cb = CENTRAL_BANKS.find((b) => b.code === bankCode);
     if (!cb) continue;
 
+    let previous: number | null = null;
+    if (prevStr) {
+      const p = parseFloat(prevStr.replace(",", "."));
+      if (!isNaN(p) && p <= 100 && p >= -5) {
+        previous = Math.round(p * 100) / 100;
+      }
+    }
+
+    let lastChangeBps: number | null = null;
+    let lastAction: "hold" | "cut" | "hike" | null = null;
+    if (previous !== null) {
+      lastChangeBps = Math.round((rate - previous) * 100);
+      lastAction = lastChangeBps > 0 ? "hike" : lastChangeBps < 0 ? "cut" : "hold";
+    }
+
     rates.push({
       bank_code: bankCode,
       bank_name: cb.name,
       country: cb.country,
       current_rate: rate,
-      last_action: null,       // Not available from list page
-      last_change_bps: null,
-      last_change_date: null,
+      last_action: lastAction,
+      last_change_bps: lastChangeBps,
+      last_change_date: null,   // stamped by cron handler on detection
       next_meeting: null,
       updated_at: new Date().toISOString(),
     });
