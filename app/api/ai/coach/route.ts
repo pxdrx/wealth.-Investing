@@ -408,7 +408,9 @@ Use esses dados para personalizar profundamente suas respostas.`;
 
   // 8. Stream from Anthropic — model varies by tier
   const aiModel = isUltraTier ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
-  const maxTokens = isUltraTier ? 4096 : 2048;
+  // Cap deliberadamente baixo — prompt system ja obriga respostas curtas e diretas.
+  // Haiku: 700 tokens (~3 paragrafos). Sonnet: 1200 tokens (~5 paragrafos).
+  const maxTokens = isUltraTier ? 1200 : 700;
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
