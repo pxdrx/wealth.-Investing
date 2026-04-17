@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ChevronDown, Calendar, RefreshCw as RefreshCwIcon } from "lucide-react";
 import { LiveIndicator } from "./LiveIndicator";
 import { AssetImpactCards } from "./AssetImpactCards";
+import { DailyAdjustmentCard } from "./DailyAdjustmentCard";
 import { cn } from "@/lib/utils";
 import type { WeeklyPanorama } from "@/lib/macro/types";
 
@@ -260,33 +261,9 @@ export function WeeklyBriefing({ panorama, onRegenerate, isRegenerating: externa
                 {/* Divider */}
                 <div className="border-t border-border/30 my-6" />
 
-                {/* Section 2: Atualização Diária */}
+                {/* Section 2: Ajuste Diário — red lines vs tese semanal */}
                 <div className="mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                      <RefreshCwIcon className="h-4 w-4" />
-                      Atualização Diária
-                    </h3>
-                    {panorama.asset_impacts?.daily_update_at && (
-                      <span className="text-[10px] text-muted-foreground">
-                        Atualizado {new Date(panorama.asset_impacts.daily_update_at).toLocaleString("pt-BR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <div className="space-y-4 break-words">
-                    {panorama.asset_impacts?.daily_update ? (
-                      renderMarkdown(panorama.asset_impacts.daily_update)
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        Atualização diária ainda não disponível. Clique em &quot;Regenerar&quot; para gerar.
-                      </p>
-                    )}
-                  </div>
+                  <DailyAdjustmentCard weekStart={panorama.week_start} />
                 </div>
               </>
             )}

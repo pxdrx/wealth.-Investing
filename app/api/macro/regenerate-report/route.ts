@@ -7,6 +7,12 @@ import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
 import type { EconomicEvent, MacroHeadline } from "@/lib/macro/types";
 
+function previousWeekStartISO(weekStart: string): string {
+  const d = new Date(weekStart + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() - 7);
+  return d.toISOString().slice(0, 10);
+}
+
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
@@ -63,13 +69,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1. Get events for this week
-    const { data: events } = await supabase
-      .from("economic_events")
-      .select("*")
-      .filter("week_start", "eq", weekStart)
-      .order("date", { ascending: true })
-      .order("time", { ascending: true });
+    // 1. Get events for this week + last week (for recap in Sonnet prompt)
+    const prevWeekStart = previousWeekStartISO(weekStart);
+    const [{ data: events }, { data: prevEvents }] = await Promise.all([
+      supabase
+        .from("economic_events")
+        .select("*")
+        .filter("week_start", "eq", weekStart)
+        .order("date", { ascending: true })
+        .order("time", { ascending: true }),
+      supabase
+        .from("economic_events")
+        .select("*")
+        .filter("week_start", "eq", prevWeekStart)
+        .eq("impact", "high")
+        .not("actual", "is", null)
+        .order("date", { ascending: true })
+        .order("time", { ascending: true }),
+    ]);
 
     // 2. Reuse existing TE data from DB if available (skip live scrape to stay under 60s)
     let teBriefingRaw: string | null = null;
@@ -116,9 +133,10 @@ export async function POST(req: NextRequest) {
       console.warn("[regenerate-report] Headlines fetch failed:", err);
     }
 
-    // 3. Generate narrative via Claude
+    // 3. Generate narrative via Claude (Sonnet weekly)
     const narrative = await generateWeeklyNarrative({
       events: (events || []) as EconomicEvent[],
+      previousWeekEvents: (prevEvents || []) as EconomicEvent[],
       teBriefing: teBriefingRaw,
       teHeadlines,
       weekAheadEditorial,
