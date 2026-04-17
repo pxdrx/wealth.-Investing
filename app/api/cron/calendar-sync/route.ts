@@ -7,6 +7,7 @@ import { FAIRECONOMY_URL, FAIRECONOMY_NEXT_WEEK_URL } from "@/lib/macro/constant
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { RATE_DECISION_PATTERNS, parseRateValue } from "@/lib/macro/rates-fetcher";
+import { LATEST_DECISIONS } from "@/lib/macro/latest-decisions";
 import { getWeekStart, getWeekEnd, getWeekStartOffset } from "@/lib/macro/constants";
 import { requireEnv } from "@/lib/env";
 import { invalidateCachePattern, invalidateCache } from "@/lib/cache";
@@ -195,6 +196,14 @@ export async function POST(req: NextRequest) {
       const rateValue = parseRateValue(event.actual);
       if (rateValue === null) continue;
 
+      // Our curated LATEST_DECISIONS table is the source of truth for any
+      // decision whose date is >= the event's date. Skip to avoid overwriting
+      // a human-verified value with calendar-derived noise.
+      const override = LATEST_DECISIONS[bankCode];
+      if (override && override.last_change_date >= event.date) {
+        continue;
+      }
+
       // Determine action by comparing with previous
       let lastAction: "hold" | "cut" | "hike" = "hold";
       let changeBps = 0;
@@ -207,10 +216,13 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Apply current_rate_override even on calendar path (e.g. ECB DFR vs MRO).
+      const currentRate = override?.current_rate_override ?? rateValue;
+
       const { error: rateErr } = await supabase
         .from("central_bank_rates")
         .update({
-          current_rate: rateValue,
+          current_rate: currentRate,
           last_action: lastAction,
           last_change_bps: changeBps,
           last_change_date: event.date,

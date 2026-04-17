@@ -1,6 +1,7 @@
 // lib/macro/rates-fetcher.ts
 import { createClient } from "@supabase/supabase-js";
 import { CENTRAL_BANKS } from "./constants";
+import { getNextMeeting } from "./central-bank-schedule";
 import type { CentralBankRate } from "./types";
 
 /**
@@ -15,7 +16,7 @@ import type { CentralBankRate } from "./types";
  * Do NOT copy these `last_action` / `last_change_bps` values into the DB as
  * if they were freshly scraped.
  *
- * Last manually updated: 2026-03-23
+ * Last manually updated: 2026-04-17
  */
 export const EMERGENCY_FALLBACK_RATES: Record<string, {
   current_rate: number;
@@ -24,12 +25,12 @@ export const EMERGENCY_FALLBACK_RATES: Record<string, {
   last_change_date: string;
   next_meeting: string | null;
 }> = {
-  FED:     { current_rate: 4.250, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-01-29", next_meeting: "2026-04-29" },
-  ECB:     { current_rate: 2.500, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-03-06", next_meeting: "2026-04-17" },
-  BOE:     { current_rate: 4.500, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-02-06", next_meeting: "2026-04-30" },
-  BOJ:     { current_rate: 0.500, last_action: "hike",  last_change_bps: 25,   last_change_date: "2025-01-24", next_meeting: "2026-04-28" },
-  BCB:     { current_rate: 14.250, last_action: "hike", last_change_bps: 100,  last_change_date: "2025-03-19", next_meeting: "2026-04-29" },
-  BOC:     { current_rate: 2.250, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-10-29", next_meeting: "2026-04-16" },
+  FED:     { current_rate: 3.750, last_action: "hold",  last_change_bps: 0,    last_change_date: "2026-03-18", next_meeting: "2026-04-29" },
+  ECB:     { current_rate: 2.000, last_action: "hold",  last_change_bps: 0,    last_change_date: "2026-03-12", next_meeting: "2026-04-30" },
+  BOE:     { current_rate: 3.750, last_action: "hold",  last_change_bps: 0,    last_change_date: "2026-03-18", next_meeting: "2026-04-30" },
+  BOJ:     { current_rate: 0.750, last_action: "hold",  last_change_bps: 0,    last_change_date: "2026-03-19", next_meeting: "2026-04-28" },
+  BCB:     { current_rate: 14.750, last_action: "cut",  last_change_bps: -25,  last_change_date: "2026-03-18", next_meeting: "2026-04-29" },
+  BOC:     { current_rate: 2.250, last_action: "hold",  last_change_bps: 0,    last_change_date: "2026-03-18", next_meeting: "2026-04-29" },
   RBA:     { current_rate: 4.100, last_action: "hike",  last_change_bps: 25,   last_change_date: "2026-03-18", next_meeting: "2026-05-05" },
   PBOC:    { current_rate: 3.000, last_action: "hold",  last_change_bps: -10,  last_change_date: "2025-05-20", next_meeting: "2026-04-20" },
   SNB:     { current_rate: 0.000, last_action: "hold",  last_change_bps: -25,  last_change_date: "2025-06-19", next_meeting: "2026-06-19" },
@@ -78,7 +79,9 @@ function mapFallbackToRate(code: string): Omit<CentralBankRate, "id"> {
     last_action: data.last_action,
     last_change_bps: data.last_change_bps,
     last_change_date: data.last_change_date,
-    next_meeting: data.next_meeting,
+    // Prefer the authoritative 2026 calendar over the hardcoded snapshot so
+    // next_meeting rolls forward automatically after each decision.
+    next_meeting: getNextMeeting(cb.code) ?? data.next_meeting,
     updated_at: new Date().toISOString(),
   };
 }

@@ -6,6 +6,8 @@ import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { buildEmergencyFallback } from "@/lib/macro/rates-fetcher";
 import { fetchRatesViaApify } from "@/lib/macro/apify/rates-scraper";
 import { scrapeTradingEconomicsRates } from "@/lib/macro/scrapers/te-rates";
+import { LATEST_DECISIONS } from "@/lib/macro/latest-decisions";
+import { getNextMeeting } from "@/lib/macro/central-bank-schedule";
 import { requireEnv } from "@/lib/env";
 import { invalidateCache } from "@/lib/cache";
 import { acquireCronLock } from "@/lib/cron-lock";
@@ -90,8 +92,13 @@ export async function POST(req: NextRequest) {
       // Write the emergency snapshot but flag every row as 'fallback' so the UI
       // knows it is stale. Never stamp last_change_date from this path.
       const fallback = buildEmergencyFallback();
+      const nowDate = new Date();
       let upsertedFallback = 0;
       for (const r of fallback) {
+        const override = LATEST_DECISIONS[r.bank_code];
+        const currentRate = override?.current_rate_override ?? r.current_rate;
+        const nextMeeting = getNextMeeting(r.bank_code, nowDate) ?? r.next_meeting ?? null;
+
         const { error } = await supabase
           .from("central_bank_rates")
           .upsert(
@@ -99,11 +106,18 @@ export async function POST(req: NextRequest) {
               bank_code: r.bank_code,
               bank_name: r.bank_name,
               country: r.country,
-              current_rate: r.current_rate,
-              // last_action/bps/date come from the emergency snapshot as-is, but
-              // flagged so the UI can hide/warn. We do NOT overwrite existing
-              // good DB data with this — upsert will replace, so be careful:
-              // only write rows that don't already exist.
+              current_rate: currentRate,
+              // last_action/bps/date come from LATEST_DECISIONS when available,
+              // otherwise from the emergency snapshot. Flagged so the UI can
+              // hide/warn.
+              ...(override
+                ? {
+                    last_action: override.last_action,
+                    last_change_bps: override.last_change_bps,
+                    last_change_date: override.last_change_date,
+                  }
+                : {}),
+              next_meeting: nextMeeting,
               source_confidence: "fallback",
               updated_at: new Date().toISOString(),
             },
@@ -133,7 +147,8 @@ export async function POST(req: NextRequest) {
       (dbRates ?? []).map((r: DbRateRow) => [r.bank_code, r])
     );
 
-    const nowIso = new Date().toISOString();
+    const nowDate = new Date();
+    const nowIso = nowDate.toISOString();
     let upserted = 0;
     let changedCount = 0;
 
@@ -163,13 +178,33 @@ export async function POST(req: NextRequest) {
         last_change_date = existing?.last_change_date ?? null;
       }
 
-      const next_meeting = scraped.next_meeting ?? existing?.next_meeting ?? null;
+      // LATEST_DECISIONS override: curated table is the source of truth for
+      // last_action / last_change_bps / last_change_date (including holds,
+      // which the scraper cannot detect because TE's "Previous" column equals
+      // "current" between decisions). Also allows current_rate override
+      // (ECB → DFR instead of MRO).
+      const override = LATEST_DECISIONS[scraped.bank_code];
+      if (override) {
+        last_action = override.last_action;
+        last_change_bps = override.last_change_bps;
+        last_change_date = override.last_change_date;
+      }
+
+      const current_rate = override?.current_rate_override ?? scraped.current_rate;
+
+      // Authoritative 2026 calendar takes precedence — scrapers never populate
+      // next_meeting reliably.
+      const next_meeting =
+        getNextMeeting(scraped.bank_code, nowDate) ??
+        scraped.next_meeting ??
+        existing?.next_meeting ??
+        null;
 
       const row = {
         bank_code: scraped.bank_code,
         bank_name: scraped.bank_name,
         country: scraped.country,
-        current_rate: scraped.current_rate,
+        current_rate,
         last_action,
         last_change_bps,
         last_change_date,
