@@ -13,7 +13,14 @@ interface ImportResultProps {
   importedAt: string;
   duration: string;
   duplicateDetails?: Array<{ symbol: string; direction: string; date: string }>;
-  skippedDetails?: Array<{ line: number; reason: string; data?: string }>;
+  skippedDetails?: Array<{
+    line: number;
+    reason: string;
+    code?: string;
+    hint?: string;
+    details?: string;
+    data?: string;
+  }>;
   showAiCoach?: boolean;
   onReset: () => void;
 }

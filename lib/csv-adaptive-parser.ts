@@ -57,6 +57,24 @@ export interface CsvAdaptiveResult {
   rows_total: number;
   rows_skipped_open_position: number;
   rows_skipped_invalid: number;
+  /** Raw header row detected in the file (post-noise filter, pre-normalize). */
+  headers: string[];
+  /** Detected cell separator (",", ";", "\t", "|"). */
+  separator: string;
+  /** Detected source encoding (best-effort: "utf-8" for now). */
+  encoding: string;
+}
+
+export interface ParseCsvAdaptiveOptions {
+  /**
+   * Additional aliases merged on top of the static ALIASES dictionary before
+   * running the column-matching pipeline. Keys are canonical field names;
+   * values are raw header strings (will be normalized internally).
+   *
+   * Typical source: rows from the `import_alias_vocabulary` DB table so the
+   * parser slowly learns broker-specific header variants without code changes.
+   */
+  extraAliases?: Record<string, string[]>;
 }
 
 // ─── normalização ───────────────────────────────────────────────────────────
@@ -284,6 +302,35 @@ const NORMALIZED_ALIASES: Record<CanonicalField, string[]> = Object.fromEntries(
   ])
 ) as Record<CanonicalField, string[]>;
 
+/**
+ * Merges caller-supplied aliases on top of the static NORMALIZED_ALIASES.
+ * Only canonical fields known to the parser are honored; unknown keys are
+ * ignored silently.
+ */
+function buildNormalizedAliases(
+  extra: Record<string, string[]> | undefined
+): Record<CanonicalField, string[]> {
+  if (!extra) return NORMALIZED_ALIASES;
+  const merged: Record<CanonicalField, string[]> = Object.fromEntries(
+    (Object.entries(NORMALIZED_ALIASES) as Array<[CanonicalField, string[]]>).map(([k, v]) => [
+      k,
+      v.slice(),
+    ])
+  ) as Record<CanonicalField, string[]>;
+  for (const [k, vals] of Object.entries(extra)) {
+    if (!(k in merged)) continue;
+    const key = k as CanonicalField;
+    const seen = new Set(merged[key]);
+    for (const raw of vals ?? []) {
+      const norm = normalizeHeader(raw);
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      merged[key].push(norm);
+    }
+  }
+  return merged;
+}
+
 // ─── fuzzy helpers ──────────────────────────────────────────────────────────
 
 function levenshtein(a: string, b: string): number {
@@ -322,7 +369,10 @@ function tokenOverlap(a: string, b: string): number {
 
 // ─── header row detection ───────────────────────────────────────────────────
 
-function detectHeaderRow(rows: string[][]): number {
+function detectHeaderRow(
+  rows: string[][],
+  aliasMap: Record<CanonicalField, string[]> = NORMALIZED_ALIASES
+): number {
   let best = 0;
   let bestScore = -1;
   const checkUpTo = Math.min(10, rows.length);
@@ -334,7 +384,7 @@ function detectHeaderRow(rows: string[][]): number {
     let aliasHits = 0;
     for (const cell of row) {
       const n = normalizeHeader(cell);
-      for (const aliases of Object.values(NORMALIZED_ALIASES)) {
+      for (const aliases of Object.values(aliasMap)) {
         if (aliases.includes(n)) {
           aliasHits++;
           break;
@@ -484,10 +534,11 @@ function resolveField(
   field: CanonicalField,
   headers: string[],
   profiles: ColumnProfile[],
-  used: Set<number>
+  used: Set<number>,
+  aliasMap: Record<CanonicalField, string[]> = NORMALIZED_ALIASES
 ): Candidate | null {
   const candidates: Candidate[] = [];
-  const aliases = NORMALIZED_ALIASES[field];
+  const aliases = aliasMap[field];
   const normalizedHeaders = headers.map((h) => normalizeHeader(h));
 
   // Camada 1 — alias exato
@@ -647,11 +698,18 @@ function parseFlexDate(v: string, format: ColumnProfile["dateFormat"]): string {
 
 // ─── entry point ────────────────────────────────────────────────────────────
 
-export function parseCsvAdaptive(input: ArrayBuffer | Buffer): CsvAdaptiveResult {
+export function parseCsvAdaptive(
+  input: ArrayBuffer | Buffer,
+  opts?: ParseCsvAdaptiveOptions
+): CsvAdaptiveResult {
   const buf = Buffer.isBuffer(input) ? input : Buffer.from(input);
   const text = buf.toString("utf-8").replace(/^\ufeff/, "");
+  const encoding = "utf-8";
   const rawLines = text.split(/\r?\n/);
   const warnings: string[] = [];
+
+  // Aliases (static + DB-backed vocabulary injected by the caller).
+  const aliasMap = buildNormalizedAliases(opts?.extraAliases);
 
   const nonEmptyLines = rawLines.filter((l) => l.trim());
   if (nonEmptyLines.length < 2) {
@@ -662,7 +720,7 @@ export function parseCsvAdaptive(input: ArrayBuffer | Buffer): CsvAdaptiveResult
   const allRows = nonEmptyLines.map((l) => splitCsvLine(l, delim));
 
   // header row detection
-  const headerIdx = detectHeaderRow(allRows);
+  const headerIdx = detectHeaderRow(allRows, aliasMap);
   const headers = allRows[headerIdx] ?? [];
   if (headers.length < 3) {
     throw new Error(
@@ -717,7 +775,7 @@ export function parseCsvAdaptive(input: ArrayBuffer | Buffer): CsvAdaptiveResult
     "price_close",
   ];
   for (const field of order) {
-    const picked = resolveField(field, headers, profiles, used);
+    const picked = resolveField(field, headers, profiles, used, aliasMap);
     if (!picked || picked.score < 2) continue;
     // Quando bought_ts + sold_ts ambos vieram por alias (ex: Tradovate futures),
     // opened_at/closed_at serão derivados — só aceitar se for ALIAS direto também
@@ -944,5 +1002,8 @@ export function parseCsvAdaptive(input: ArrayBuffer | Buffer): CsvAdaptiveResult
     rows_total: dataRows.length,
     rows_skipped_open_position: skippedOpen,
     rows_skipped_invalid: skippedInvalid,
+    headers,
+    separator: delim,
+    encoding,
   };
 }

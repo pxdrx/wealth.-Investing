@@ -5,6 +5,16 @@ import { parseMt5Html } from "@/lib/mt5-html-parser";
 import { inferCategory } from "@/lib/trading/category";
 import { checkAndDeactivateIfDdBreached } from "@/lib/dd-check";
 import { validateAccountOwnership } from "@/lib/account-validation";
+import { computeFingerprint } from "@/lib/csv-fingerprint";
+import {
+  getProfileByFingerprint,
+  upsertProfile,
+  markProfileValidated,
+  recordProfileUsage,
+  type ImportProfile,
+} from "@/lib/journal/import-profiles";
+import { getCachedVocabulary, recordAliases } from "@/lib/journal/alias-vocabulary";
+import { suggestColumnMapping, type AiMappingSuggestion } from "@/lib/journal/ai-column-mapper";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -13,6 +23,9 @@ interface SkippedDetail {
   line: number;
   reason: string;
   data: string;
+  code?: string;
+  hint?: string;
+  details?: string;
 }
 
 interface DuplicateDetail {
@@ -23,10 +36,105 @@ interface DuplicateDetail {
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
 
+/** Splits a CSV line using the same quote-aware rules as the adaptive parser. */
+function splitCsvLineLocal(line: string, delim: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === delim) {
+        out.push(cur);
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+  }
+  out.push(cur);
+  return out.map((c) => c.trim());
+}
+
+/**
+ * Extracts up to 5 data rows from the CSV buffer AFTER the header row, using
+ * the already-detected separator. Used to feed Claude Haiku when the adaptive
+ * parser couldn't resolve required fields. Best-effort — returns [] on failure.
+ */
+function extractSampleRowsFromBuffer(
+  buffer: ArrayBuffer | Buffer,
+  separator: string,
+  headers: string[]
+): string[][] {
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  const text = buf.toString("utf-8").replace(/^\ufeff/, "");
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (!separator || lines.length < 2 || headers.length === 0) return [];
+
+  // Find header row: first line that splits into >= headers.length cells and
+  // has a first cell matching headers[0].
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const cells = splitCsvLineLocal(lines[i], separator);
+    if (cells.length >= headers.length && cells[0] === headers[0]) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx < 0) return [];
+
+  const out: string[][] = [];
+  for (let i = headerIdx + 1; i < lines.length && out.length < 5; i++) {
+    const cells = splitCsvLineLocal(lines[i], separator);
+    if (cells.filter((c) => c).length < Math.max(1, Math.floor(headers.length * 0.5))) continue;
+    out.push(cells);
+  }
+  return out;
+}
+
+/** Flattens `{ canonical: { header, confidence } }` to `{ canonical: header }`. */
+function toSimpleMapping(
+  m: Record<string, { header: string; confidence: string }> | null
+): Record<string, string> {
+  if (!m) return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(m)) {
+    if (v?.header) out[k] = v.header;
+  }
+  return out;
+}
+
+/** Parses the optional `columnMapping` form field — accepts JSON string or null. */
+function parseColumnMappingParam(raw: FormDataEntryValue | null): Record<string, string> | null {
+  if (typeof raw !== "string" || raw.length === 0) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        if (typeof v === "string") out[k] = v;
+      }
+      return Object.keys(out).length > 0 ? out : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
   const start = Date.now();
   const url = new URL(request.url);
-  const isPreview = url.searchParams.get("preview") === "true";
 
   // H2: Reject oversized uploads before processing
   const contentLength = request.headers.get("content-length");
@@ -53,6 +161,16 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const accountIdParam = formData.get("accountId") as string | null;
+    const previewFlag = formData.get("preview");
+    const isPreview =
+      url.searchParams.get("preview") === "true" ||
+      previewFlag === "true" ||
+      previewFlag === "1";
+    const columnMappingParam = formData.get("columnMapping");
+    const profileIdParam = formData.get("profileId");
+    const columnMappingOverride = parseColumnMappingParam(columnMappingParam);
+    const profileIdOverride =
+      typeof profileIdParam === "string" && profileIdParam.length > 0 ? profileIdParam : null;
 
     if (!file) {
       return NextResponse.json({ error: "Missing file" }, { status: 400 });
@@ -130,6 +248,19 @@ export async function POST(request: Request) {
     let adaptiveWarnings: string[] = [];
     let adaptiveSkippedOpen = 0;
 
+    // Fingerprint/profile state (populated only for CSV flow)
+    let fingerprint: string | null = null;
+    let matchedProfile: ImportProfile | null = null;
+    let rawHeaders: string[] = [];
+    let rawSeparator = "";
+    let rawEncoding = "";
+    let adaptiveMissing: string[] = [];
+    let adaptiveSampleRows: string[][] = [];
+    let claudeSuggestion: AiMappingSuggestion | null = null;
+    let aiSuggested = false;
+    let suggestedBy: "parser" | "claude_haiku" | "user" = "parser";
+    let profileRecord: ImportProfile | null = null;
+
     try {
       if (isCsv) {
         // Try cTrader fast-path; on failure fall back to adaptive parser.
@@ -160,7 +291,12 @@ export async function POST(request: Request) {
 
         if (!ctraderOk) {
           const { parseCsvAdaptive } = await import("@/lib/csv-adaptive-parser");
-          const adapt = parseCsvAdaptive(buffer);
+
+          // Load DB-backed alias vocabulary so broker-specific learned headers
+          // are merged on top of the static dictionary before parsing.
+          const extraAliases = await getCachedVocabulary(supabase);
+
+          const adapt = parseCsvAdaptive(buffer, { extraAliases });
           trades = adapt.trades.map((t) => ({
             external_id: t.external_id,
             external_source: t.external_source,
@@ -183,6 +319,61 @@ export async function POST(request: Request) {
           );
           adaptiveWarnings = adapt.warnings;
           adaptiveSkippedOpen = adapt.rows_skipped_open_position;
+          rawHeaders = adapt.headers ?? [];
+          rawSeparator = adapt.separator ?? "";
+          rawEncoding = adapt.encoding ?? "utf-8";
+
+          // Required canonical fields that the parser could not resolve.
+          const REQUIRED: Array<keyof typeof adapt.mapping> = [
+            "symbol",
+            "pnl_usd",
+            "opened_at",
+            "closed_at",
+          ] as Array<keyof typeof adapt.mapping>;
+          adaptiveMissing = REQUIRED.filter((k) => !adapt.mapping[k]).map(String);
+
+          // Fingerprint + profile lookup (best-effort — failures don't block import).
+          try {
+            fingerprint = computeFingerprint({
+              separator: rawSeparator,
+              encoding: rawEncoding,
+              headers: rawHeaders,
+            });
+            matchedProfile = await getProfileByFingerprint(supabase, userId, fingerprint);
+          } catch (fpErr) {
+            console.warn("[import-mt5] fingerprint lookup failed:", fpErr);
+          }
+
+          // Capture a handful of sample data rows (post-header) to feed Claude if we need it.
+          // We reuse the raw split produced by the parser isn't exposed — reparse cheaply here.
+          if (adaptiveMissing.length > 0 && rawHeaders.length > 0 && !matchedProfile?.validated_by_user) {
+            try {
+              adaptiveSampleRows = extractSampleRowsFromBuffer(buffer, rawSeparator, rawHeaders);
+            } catch (sErr) {
+              console.warn("[import-mt5] sample row extract failed:", sErr);
+            }
+
+            // AI fallback only when parser left required fields unresolved AND
+            // we don't already have a validated profile for this fingerprint.
+            const suggestion = await suggestColumnMapping({
+              headers: rawHeaders,
+              sampleRows: adaptiveSampleRows,
+            });
+            if (suggestion) {
+              claudeSuggestion = suggestion;
+              aiSuggested = true;
+              suggestedBy = "claude_haiku";
+              // Merge Claude's suggestions into adaptiveMapping for UI display
+              // (only for fields the parser didn't already resolve).
+              const merged = { ...(adaptiveMapping ?? {}) };
+              for (const [canonical, header] of Object.entries(suggestion.mapping)) {
+                if (!merged[canonical]) {
+                  merged[canonical] = { header, confidence: "ai" };
+                }
+              }
+              adaptiveMapping = merged;
+            }
+          }
         }
       } else {
         const result = isHtml ? parseMt5Html(buffer) : parseMt5Xlsx(buffer);
@@ -199,12 +390,16 @@ export async function POST(request: Request) {
 
     // ── PREVIEW MODE ──
     if (isPreview) {
-      const sample = trades.slice(0, 5).map((t) => ({
+      // Return up to 10 already-parsed trade objects.
+      const sampleRows = trades.slice(0, 10).map((t) => ({
         symbol: t.symbol,
         direction: t.direction,
+        opened_at: t.opened_at,
+        closed_at: t.closed_at,
+        pnl_usd: t.pnl_usd,
+        fees_usd: t.fees_usd ?? 0,
         lots: (t as { lots?: number }).lots ?? 0,
-        pnl: t.pnl_usd,
-        date: new Date(t.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        external_id: t.external_id,
       }));
 
       return NextResponse.json({
@@ -213,11 +408,62 @@ export async function POST(request: Request) {
         parser_used: parserChosen,
         trades_found: trades.length,
         payouts: balanceOps.filter((op) => op.type === "WITHDRAWAL").length,
-        sample,
+        // New adaptive-learning surface
+        fingerprint,
+        matchedProfile: matchedProfile
+          ? {
+              id: matchedProfile.id,
+              validated_by_user: matchedProfile.validated_by_user,
+              suggested_by: matchedProfile.suggested_by ?? null,
+            }
+          : null,
+        parsed: {
+          headers: rawHeaders,
+          mapping: adaptiveMapping ?? {},
+          missing: adaptiveMissing,
+          warnings: adaptiveWarnings,
+          sampleRows,
+          totalRows: trades.length,
+        },
+        aiSuggested,
+        claudeSuggestion,
+        // Back-compat fields consumed by existing UI
+        sample: trades.slice(0, 5).map((t) => ({
+          symbol: t.symbol,
+          direction: t.direction,
+          lots: (t as { lots?: number }).lots ?? 0,
+          pnl: t.pnl_usd,
+          date: new Date(t.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        })),
         mapping: adaptiveMapping,
         warnings: adaptiveWarnings,
         rows_skipped_open_position: adaptiveSkippedOpen,
       });
+    }
+
+    // ── NON-PREVIEW FLOW: upsert profile before inserting rows ──
+    if (isCsv && fingerprint && rawHeaders.length > 0) {
+      try {
+        const profilePayload = {
+          user_id: userId,
+          format_fingerprint: fingerprint,
+          broker_guess: parserChosen,
+          separator: rawSeparator,
+          encoding: rawEncoding,
+          headers: rawHeaders,
+          column_mapping: (columnMappingOverride ??
+            adaptiveMapping ??
+            {}) as Record<string, unknown>,
+          suggested_by: profileIdOverride ? "user" : suggestedBy,
+          validated_by_user: Boolean(profileIdOverride) || Boolean(columnMappingOverride),
+        };
+        profileRecord = await upsertProfile(supabase, profilePayload);
+        if (profileIdOverride || columnMappingOverride) {
+          await markProfileValidated(supabase, profileRecord.id);
+        }
+      } catch (pErr) {
+        console.warn("[import-mt5] profile upsert failed (non-blocking):", pErr);
+      }
     }
 
     // Account already validated in early ownership check above
@@ -424,39 +670,54 @@ export async function POST(request: Request) {
         .select("id");
 
       if (error) {
-        // If batch fails due to a duplicate constraint, fall back to one-by-one for this batch
-        if (error.code === "23505") {
-          for (let j = 0; j < batch.length; j++) {
-            const row = batch[j];
-            const { error: singleErr } = await supabase
-              .from("journal_trades")
-              .insert(row);
-            if (singleErr) {
-              if (singleErr.code === "23505") {
-                duplicates += 1;
-                duplicateDetails.push({
-                  symbol: row.symbol,
-                  direction: row.direction,
-                  date: new Date(row.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-                });
-              } else {
-                failed += 1;
-                const lineNum = i + j + 1;
-                skippedDetails.push({ line: lineNum, reason: singleErr.message ?? "Insert error", data: row.symbol });
-                console.warn("[import-mt5] trade insert error:", singleErr.message);
-              }
+        // Surface the real PG error once for the whole batch — helps diagnose
+        // constraint/RLS issues in Vercel logs.
+        console.warn(
+          "[import-mt5] batch insert error:",
+          error.code ?? "(no code)",
+          "—",
+          error.message ?? "",
+          error.details ? `| details=${error.details}` : "",
+          error.hint ? `| hint=${error.hint}` : ""
+        );
+
+        // Fall back to per-row inserts regardless of error code so each row
+        // records its own real PG error (replaces previous "Batch insert error").
+        for (let j = 0; j < batch.length; j++) {
+          const row = batch[j];
+          const { error: singleErr } = await supabase
+            .from("journal_trades")
+            .insert(row);
+          if (singleErr) {
+            if (singleErr.code === "23505") {
+              duplicates += 1;
+              duplicateDetails.push({
+                symbol: row.symbol,
+                direction: row.direction,
+                date: new Date(row.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+              });
             } else {
-              imported += 1;
+              failed += 1;
+              const lineNum = i + j + 1;
+              skippedDetails.push({
+                line: lineNum,
+                reason: singleErr.message ?? "Insert error",
+                code: singleErr.code,
+                hint: singleErr.hint ?? undefined,
+                details: singleErr.details ?? undefined,
+                data: row.symbol,
+              });
+              console.warn(
+                "[import-mt5] trade insert error:",
+                singleErr.code ?? "(no code)",
+                singleErr.message,
+                singleErr.details ? `| details=${singleErr.details}` : "",
+                singleErr.hint ? `| hint=${singleErr.hint}` : ""
+              );
             }
+          } else {
+            imported += 1;
           }
-        } else {
-          // Non-duplicate batch error — count all as failed
-          for (let j = 0; j < batch.length; j++) {
-            failed += 1;
-            const lineNum = i + j + 1;
-            skippedDetails.push({ line: lineNum, reason: "Batch insert error", data: batch[j].symbol });
-          }
-          console.warn("[import-mt5] batch insert error:", error.message);
         }
       } else {
         imported += (insertedRows?.length ?? batch.length);
@@ -527,6 +788,10 @@ export async function POST(request: Request) {
       duplicates,
       failed,
       payouts_detected: payoutsDetected,
+      profile_id: profileRecord?.id ?? null,
+      suggested_by: profileRecord?.suggested_by ?? (isCsv ? suggestedBy : null),
+      fingerprint,
+      ai_suggested: aiSuggested,
     };
     if (payoutsWithoutWalletDeposit > 0) {
       meta.no_personal_account_for_wallet_deposit = payoutsWithoutWalletDeposit;
@@ -541,6 +806,29 @@ export async function POST(request: Request) {
       message: `Imported ${imported} trades, ${duplicates} duplicates, ${failed} failed, ${payoutsDetected} payouts`,
       meta,
     });
+
+    // Record vocabulary + profile usage on successful import (best-effort).
+    if (isCsv && imported > 0) {
+      try {
+        if (profileRecord?.id) {
+          await recordProfileUsage(supabase, profileRecord.id);
+        }
+        const mappingForVocab = columnMappingOverride ?? toSimpleMapping(adaptiveMapping);
+        if (mappingForVocab && Object.keys(mappingForVocab).length > 0) {
+          const source = profileIdOverride || columnMappingOverride ? "user_confirmed" : suggestedBy;
+          await recordAliases(
+            supabase,
+            Object.entries(mappingForVocab).map(([canonical, header]) => ({
+              canonical_field: canonical,
+              alias: header,
+              source,
+            }))
+          );
+        }
+      } catch (vErr) {
+        console.warn("[import-mt5] vocabulary/profile-usage update failed:", vErr);
+      }
+    }
 
     // Check daily drawdown breach after import (prop accounts only)
     let ddBreach: { breached: boolean; accountName: string; ddPercent: number; ddLimit: number; date: string } | null = null;
@@ -572,6 +860,11 @@ export async function POST(request: Request) {
       mapping: adaptiveMapping,
       warnings: adaptiveWarnings,
       rows_skipped_open_position: adaptiveSkippedOpen,
+      // Adaptive-learning surface (null for non-CSV paths)
+      profile_id: profileRecord?.id ?? null,
+      suggested_by: profileRecord?.suggested_by ?? (isCsv ? suggestedBy : null),
+      ai_suggested: aiSuggested,
+      fingerprint,
     });
   } catch (err) {
     const durationMs = Date.now() - start;

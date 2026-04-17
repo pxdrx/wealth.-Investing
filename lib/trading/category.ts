@@ -20,10 +20,25 @@ const INDICES = new Set([
 const CRYPTO = new Set([
   "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "BTCUSDT", "ETHUSDT",
 ]);
+const FUTURES = new Set([
+  // CME Micros
+  "MNQ", "MES", "MYM", "M2K", "MGC", "MCL", "MBT", "MET",
+  "M6A", "M6B", "M6E", "M6J", "MCHF", "MSF", "MJY", "MNG", "MHG", "MSI",
+  // E-minis / standard futures
+  "ES", "NQ", "YM", "RTY", "GC", "SI", "CL", "NG", "HG",
+  "ZB", "ZN", "ZC", "ZS", "ZW", "ZL", "ZM", "ZO", "ZF", "ZT",
+  "ETH",
+  // CME currency futures
+  "6A", "6B", "6E", "6J", "6C", "6S", "6M", "6N",
+]);
+const STOCKS = new Set([
+  "AAPL", "MSFT", "TSLA", "NVDA", "AMZN", "META", "GOOG", "GOOGL",
+  "SPY", "QQQ", "IWM", "DIA", "NFLX", "AMD", "INTC", "BABA", "PYPL",
+]);
 
 /**
  * Retorna category para um símbolo. Nunca retorna null.
- * Valores: "forex" | "commodities" | "indices" | "crypto" | "other"
+ * Valores: "forex" | "commodities" | "indices" | "crypto" | "futures" | "stocks" | "other"
  */
 export function inferCategory(symbol: string): string {
   const raw = (symbol ?? "").toString().replace(/\s/g, "").toUpperCase();
@@ -34,10 +49,14 @@ export function inferCategory(symbol: string): string {
   if (COMMODITIES.has(s)) return "commodities";
   if (INDICES.has(s)) return "indices";
   if (CRYPTO.has(s)) return "crypto";
+  if (FUTURES.has(s)) return "futures";
+  if (STOCKS.has(s)) return "stocks";
   // Try partial matching for common patterns
   if (/^(EUR|GBP|USD|JPY|CHF|AUD|NZD|CAD)/.test(s) && s.length >= 6) return "forex";
   if (/^(XAU|XAG|OIL|BRENT|WTI|GOLD|SILVER|COPPER|NATGAS)/.test(s)) return "commodities";
   if (/^(US30|NAS|SPX|SP500|US500|GER|UK100|JP225|DAX|DOW|STOXX|USTEC|DE40|FR40|EU50|VIX)/.test(s)) return "indices";
   if (/^(BTC|ETH|SOL|XRP|ADA|DOGE|BNB|DOT|LINK|AVAX)/.test(s)) return "crypto";
+  if (/^M(NQ|ES|YM|2K|GC|CL|BT|ET|6[ABEJCSMN])$/.test(s)) return "futures";
+  if (/^(ES|NQ|YM|RTY|GC|SI|CL|NG|HG|Z[BNCSWLMOFT])$/.test(s)) return "futures";
   return "forex"; // safe default - avoids constraint violations
 }

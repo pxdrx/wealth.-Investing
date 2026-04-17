@@ -20,6 +20,7 @@ import { DdBreachModal } from "@/components/account/DdBreachModal";
 import { ImportDropZone } from "@/components/journal/ImportDropZone";
 import { ImportPreview } from "@/components/journal/ImportPreview";
 import { ImportResult } from "@/components/journal/ImportResult";
+import { AdaptiveImportModal } from "@/components/journal/AdaptiveImportModal";
 import type { TradeRow, DayNote } from "@/components/calendar/types";
 import type { JournalTradeRow, PeriodFilter } from "@/components/journal/types";
 import { usePrivacy } from "@/components/context/PrivacyContext";
@@ -57,7 +58,14 @@ interface ImportResultData {
   importedAt: string;
   duration: string;
   duplicateDetails?: Array<{ symbol: string; direction: string; date: string }>;
-  skippedDetails?: Array<{ line: number; reason: string; data?: string }>;
+  skippedDetails?: Array<{
+    line: number;
+    reason: string;
+    code?: string;
+    hint?: string;
+    details?: string;
+    data?: string;
+  }>;
 }
 
 const tabs = [
@@ -98,6 +106,8 @@ export default function JournalPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [dayNotes, setDayNotes] = useState<Record<string, DayNote>>({});
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [adaptiveCsvFile, setAdaptiveCsvFile] = useState<File | null>(null);
+  const [adaptiveAccessToken, setAdaptiveAccessToken] = useState<string | null>(null);
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [tradesPage, setTradesPage] = useState(0);
   const [hasMoreTrades, setHasMoreTrades] = useState(true);
@@ -278,6 +288,27 @@ export default function JournalPage() {
       return;
     }
     setImportError(null);
+
+    // CSV files use the adaptive preview/mapping flow.
+    if (file.name.toLowerCase().endsWith(".csv")) {
+      setPreviewData(null);
+      setImportResultData(null);
+      setPendingFile(file);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          setImportError("Sessão inválida. Faça login novamente.");
+          return;
+        }
+        setAdaptiveAccessToken(session.access_token);
+        setAdaptiveCsvFile(file);
+        setImportFlowState("previewing");
+      } catch (e) {
+        setImportError(e instanceof Error ? e.message : "Falha ao iniciar preview.");
+      }
+      return;
+    }
+
     setPreviewData(null);
     setIsImportLoading(true);
     setImportFlowState("previewing");
@@ -460,6 +491,8 @@ export default function JournalPage() {
     setPreviewData(null);
     setImportResultData(null);
     setPendingFile(null);
+    setAdaptiveCsvFile(null);
+    setAdaptiveAccessToken(null);
     setImportError(null);
   }
 
@@ -467,6 +500,8 @@ export default function JournalPage() {
     setImportFlowState("idle");
     setPreviewData(null);
     setPendingFile(null);
+    setAdaptiveCsvFile(null);
+    setAdaptiveAccessToken(null);
     setImportError(null);
   }
 
@@ -574,7 +609,34 @@ export default function JournalPage() {
                 />
               )}
 
-              {importFlowState === "previewing" && previewData && (
+              {importFlowState === "previewing" && adaptiveCsvFile && adaptiveAccessToken && activeAccountId && (
+                <AdaptiveImportModal
+                  file={adaptiveCsvFile}
+                  accountId={activeAccountId}
+                  accessToken={adaptiveAccessToken}
+                  onCancel={handleImportCancel}
+                  onDone={async (result) => {
+                    const importedAt = new Date().toLocaleString("pt-BR");
+                    const duration = result.durationMs >= 1000
+                      ? `${(result.durationMs / 1000).toFixed(1)}s`
+                      : `${result.durationMs}ms`;
+                    setImportResultData({
+                      fileName: adaptiveCsvFile.name,
+                      imported: result.imported,
+                      duplicates: result.duplicates,
+                      failed: result.failed,
+                      importedAt,
+                      duration,
+                      duplicateDetails: result.duplicateDetails,
+                      skippedDetails: result.skippedDetails,
+                    });
+                    setImportFlowState("done");
+                    await loadTrades();
+                  }}
+                />
+              )}
+
+              {importFlowState === "previewing" && !adaptiveCsvFile && previewData && (
                 <ImportPreview
                   fileName={previewData.fileName}
                   totalTrades={previewData.totalTrades}
@@ -591,7 +653,7 @@ export default function JournalPage() {
                 />
               )}
 
-              {importFlowState === "previewing" && !previewData && (
+              {importFlowState === "previewing" && !adaptiveCsvFile && !previewData && (
                 <div className="space-y-2 py-4">
                   {isImportLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
