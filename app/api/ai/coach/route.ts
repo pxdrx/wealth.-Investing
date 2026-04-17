@@ -40,6 +40,36 @@ function parseEventDateTime(date: string, time: string | null): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+/**
+ * Detecta se a pergunta do usuario menciona um indicador macro especifico.
+ * Usado pra forcar refresh de actuals mesmo quando a heuristica de "stale" nao disparou.
+ * Case-insensitive com word-boundary onde faz sentido.
+ */
+const MACRO_KEYWORD_PATTERNS: RegExp[] = [
+  /\bPPI\b/i,
+  /\bCPI\b/i,
+  /\bNFP\b/i,
+  /\bFOMC\b/i,
+  /\bISM\b/i,
+  /\bPCE\b/i,
+  /\bPMI\b/i,
+  /\bGDP\b/i,
+  /\bpayroll/i,
+  /\bnon[-\s]?farm/i,
+  /\bunemployment/i,
+  /\bdesemprego/i,
+  /\binflation|inflacao/i,
+  /\bselic/i,
+  /\bcopom/i,
+  /\bfed\b/i,
+  /\bbce\b|\becb\b/i,
+];
+
+function mentionsMacroIndicator(message: string): boolean {
+  if (!message) return false;
+  return MACRO_KEYWORD_PATTERNS.some((re) => re.test(message));
+}
+
 
 interface CoachRequestBody {
   type: "session" | "weekly" | "chat";
@@ -269,12 +299,19 @@ export async function POST(req: NextRequest) {
 
     let classification = classify((eventsRes.data ?? []) as EventRow[]);
 
-    // On-demand refresh: se o usuário está perguntando e tem evento recém-divulgado
-    // com actual=null, raspar ForexFactory agora pra preencher.
-    if (classification.hasStaleActual) {
+    // On-demand refresh trigger: (a) heuristica stale OU (b) usuario pergunta de
+    // um indicador especifico E existe evento released com actual=null.
+    const lastUserMsg = [...body.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+    const hasReleasedNullActual = classification.released.some((e) => !e.actual);
+    const forceByKeyword = hasReleasedNullActual && mentionsMacroIndicator(lastUserMsg);
+
+    if (classification.hasStaleActual || forceByKeyword) {
+      if (forceByKeyword && !classification.hasStaleActual) {
+        console.log("[ai-coach] Forcing refresh: user mentioned macro indicator with null actual");
+      }
       const refresh = await refreshActualsFromFF(supabase);
       if (refresh.ok && refresh.updated > 0) {
-        console.log(`[ai-coach] FF on-demand refresh: ${refresh.updated} actuals updated`);
+        console.log(`[ai-coach] on-demand refresh (${refresh.source}): ${refresh.updated} actuals updated`);
         // Re-fetch eventos da semana e re-classificar
         const { data: refreshed } = await supabase
           .from("economic_events")

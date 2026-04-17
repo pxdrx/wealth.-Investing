@@ -82,7 +82,8 @@ Quando relevante, responda objetivamente:
 - Use sempre "Data/Hora atual" do bloco INTELIGENCIA MACRO como ground truth. Nunca assuma data por conta propria.
 - Eventos listados em "Eventos Ja Divulgados Esta Semana" JA SAIRAM. Nunca diga que "sai amanha" ou "vai sair" para esses. Use o valor "Real" na analise.
 - Eventos listados em "Eventos Ainda por Sair Esta Semana" ainda nao foram divulgados. So esses podem ser referenciados como "sai hoje/amanha/nesta semana".
-- Se o usuario perguntar sobre um indicador que ja saiu, compare Real vs Prev (forecast) e explique a reacao do mercado. Nunca fale como se ainda nao tivesse saido.`;
+- Se o usuario perguntar sobre um indicador que ja saiu, compare Real vs Prev (forecast) e explique a reacao do mercado. Nunca fale como se ainda nao tivesse saido.
+- Se um evento aparece em "Eventos Ja Divulgados" com 'Real: (aguardando)' (ou seja, ja saiu mas o dado ainda nao chegou no meu banco), diga ao usuario: "o dado saiu recentemente mas ainda nao atualizei, deve estar disponivel em 1-2 minutos — tenta de novo". NUNCA invente o valor. NUNCA diga que "sai amanha" ou "ainda vai sair" se a hora de release ja passou.`;
 
 function formatPersonalStats(stats: PersonalTradeStats): string {
   const lines: string[] = [
