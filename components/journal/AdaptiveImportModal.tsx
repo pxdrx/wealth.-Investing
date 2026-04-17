@@ -64,6 +64,14 @@ interface MatchedProfile {
 interface PreviewResponse {
   ok: boolean;
   preview: true;
+  /**
+   * Whether this preview requires the user to confirm a column mapping.
+   * Only true for adaptive-CSV parses where columns were guessed. Rigid
+   * parsers (cTrader/XLSX/HTML) ship a canonical schema and set this false.
+   * Older server versions omit the field — treat missing as false so the
+   * Importar button is enabled as soon as trades are parsed.
+   */
+  needsMapping?: boolean;
   fingerprint: string;
   matchedProfile: MatchedProfile | null;
   parsed: {
@@ -388,7 +396,13 @@ export function AdaptiveImportModal({
 
   /* ------------------------------ preview_ready ----------------------------- */
   const { parsed, matchedProfile, aiSuggested } = preview;
-  const canImport = missingRequired.length === 0 && parsed.totalRows > 0;
+  const needsMapping = Boolean(preview.needsMapping);
+  // Rigid parsers (cTrader/XLSX/HTML) do not require user-confirmed mapping:
+  // the schema is canonical and trades[] is proof the parse succeeded. Only
+  // gate the button on mapping completion when the adaptive parser guessed
+  // columns (`needsMapping === true`).
+  const canImport =
+    parsed.totalRows > 0 && (!needsMapping || missingRequired.length === 0);
 
   const badge = matchedProfile?.validated_by_user
     ? {
@@ -402,11 +416,17 @@ export function AdaptiveImportModal({
           icon: <Sparkles className="h-3.5 w-3.5" />,
           label: "Mapeamento sugerido por IA",
         }
-      : {
-          tone: "blue" as const,
-          icon: <Wand2 className="h-3.5 w-3.5" />,
-          label: "Mapeamento automático",
-        };
+      : !needsMapping
+        ? {
+            tone: "green" as const,
+            icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+            label: "Formato reconhecido",
+          }
+        : {
+            tone: "blue" as const,
+            icon: <Wand2 className="h-3.5 w-3.5" />,
+            label: "Mapeamento automático",
+          };
 
   return (
     <Shell>
@@ -454,7 +474,10 @@ export function AdaptiveImportModal({
             </div>
           )}
 
-          {/* Mapping table */}
+          {/* Mapping table — only render when the parser needed to guess columns.
+              Rigid parsers ship a canonical schema so showing the dropdowns
+              would be noise (and, worse, block the Importar button). */}
+          {needsMapping && (
           <div className="rounded-[22px] border border-border/60 overflow-hidden">
             <div className="grid grid-cols-[1fr_1.4fr_auto] gap-0 text-[11px] font-medium text-muted-foreground uppercase tracking-wider bg-muted/30 px-3 py-2">
               <span>Campo</span>
@@ -508,6 +531,7 @@ export function AdaptiveImportModal({
               })}
             </div>
           </div>
+          )}
 
           {/* Warnings */}
           {parsed.warnings && parsed.warnings.length > 0 && (

@@ -166,47 +166,75 @@ function AppSidebarInner() {
 
   useEffect(() => {
     const safety = setTimeout(() => setProfileLoading(false), 8000);
+    let loaded = false;
+
     async function load() {
       const { data: { session } } = await safeGetSession();
-      if (session) {
-        setHasSession(true);
-        try {
-          const profile = await getMyProfile();
-          const name = profile?.display_name?.trim();
-          if (name) {
-            setDisplayName(name);
-          } else {
-            // Fallback: use auth metadata or email prefix
-            const meta = session.user.user_metadata;
-            const fallback =
-              meta?.full_name?.trim() ||
-              meta?.name?.trim() ||
-              session.user.email?.split("@")[0] ||
-              null;
-            setDisplayName(fallback);
-          }
-        } catch {
-          // Profile fetch failed — use auth metadata as fallback
-          if (!displayName) {
-            const meta = session.user.user_metadata;
-            const fallback =
-              meta?.full_name?.trim() ||
-              meta?.name?.trim() ||
-              session.user.email?.split("@")[0] ||
-              null;
-            setDisplayName(fallback);
-          }
-        } finally {
+      if (!session) {
+        // Initial load with no session — show the bare fallback. After the
+        // first successful load, never wipe the name on transient nulls
+        // (happens during token refresh when the tab returns from idle).
+        if (!loaded) {
+          setDisplayName(null);
           setProfileLoading(false);
         }
-      } else if (!hasSession) {
-        // Only clear on initial load — don't wipe user card on transient null
-        setDisplayName(null);
+        return;
+      }
+      setHasSession(true);
+      try {
+        const profile = await getMyProfile();
+        const name = profile?.display_name?.trim();
+        if (name) {
+          setDisplayName(name);
+          loaded = true;
+          return;
+        }
+        const meta = session.user.user_metadata;
+        const fallback =
+          meta?.full_name?.trim() ||
+          meta?.name?.trim() ||
+          session.user.email?.split("@")[0] ||
+          null;
+        if (fallback) {
+          setDisplayName(fallback);
+          loaded = true;
+        } else if (!loaded) {
+          setDisplayName(null);
+        }
+        // else: keep the previously-loaded name (profile fetch returned
+        // empty on re-entry — don't regress to "Operador").
+      } catch {
+        // Profile fetch failed — only seed the fallback if we never loaded.
+        if (!loaded) {
+          const meta = session.user.user_metadata;
+          const fallback =
+            meta?.full_name?.trim() ||
+            meta?.name?.trim() ||
+            session.user.email?.split("@")[0] ||
+            null;
+          setDisplayName(fallback);
+        }
+      } finally {
         setProfileLoading(false);
       }
     }
+
     load();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => load());
+
+    // Only react to events that could genuinely change the display name.
+    // TOKEN_REFRESHED / INITIAL_SESSION fire after idle and are pure-auth
+    // events — re-running load() during a refresh window may briefly return
+    // an empty profile, which historically wiped the name to "Operador".
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        load();
+      } else if (event === "SIGNED_OUT") {
+        setDisplayName(null);
+        setHasSession(false);
+        loaded = false;
+      }
+    });
+
     return () => { subscription.unsubscribe(); clearTimeout(safety); };
   }, []);
 

@@ -289,7 +289,66 @@ export async function POST(request: Request) {
           // not a cTrader file — try adaptive
         }
 
-        if (!ctraderOk) {
+        if (ctraderOk) {
+          // Rigid cTrader schema: populate headers + identity mapping so the
+          // preview UI can skip the column-mapping step. Re-parse the buffer
+          // just for the header row (cheap — splits at most 10 lines).
+          try {
+            const text = Buffer.from(buffer).toString("utf-8").replace(/^\ufeff/, "");
+            const lines = text.split(/\r?\n/).filter((l) => l.trim()).slice(0, 10);
+            const firstDataLine = lines[1] ?? "";
+            const delim = firstDataLine.split(";").length > firstDataLine.split(",").length ? ";" : ",";
+            let hdrLine = "";
+            for (const l of lines) {
+              const cols = l.split(delim).map((c) => c.trim().toLowerCase());
+              if (cols.some((c) => c.includes("position") || c === "symbol")) {
+                hdrLine = l;
+                break;
+              }
+            }
+            rawHeaders = hdrLine
+              ? splitCsvLineLocal(hdrLine, delim).filter((h) => h.length > 0)
+              : [];
+            rawSeparator = delim;
+            rawEncoding = "utf-8";
+
+            // Identity mapping — cTrader headers are the canonical source.
+            const findHeader = (match: (n: string) => boolean): string | undefined =>
+              rawHeaders.find((h) => match(h.toLowerCase()));
+            const ctMap: Record<string, { header: string; confidence: string }> = {};
+            const symHdr = findHeader((h) => h === "symbol");
+            if (symHdr) ctMap.symbol = { header: symHdr, confidence: "alias" };
+            const dirHdr = findHeader((h) => h === "type" || h === "direction" || h === "side");
+            if (dirHdr) ctMap.direction = { header: dirHdr, confidence: "alias" };
+            const pnlHdr = findHeader((h) => h === "profit" || h === "p/l" || h === "pnl");
+            if (pnlHdr) ctMap.pnl_usd = { header: pnlHdr, confidence: "alias" };
+            const openHdr = findHeader((h) => h.includes("open") && h.includes("time"));
+            if (openHdr) ctMap.opened_at = { header: openHdr, confidence: "alias" };
+            const closeHdr = findHeader((h) => h.includes("close") && h.includes("time"));
+            if (closeHdr) ctMap.closed_at = { header: closeHdr, confidence: "alias" };
+            const volHdr = findHeader((h) => h === "volume" || h === "quantity");
+            if (volHdr) ctMap.volume = { header: volHdr, confidence: "alias" };
+            const commHdr = findHeader((h) => h === "commission" || h === "comm");
+            if (commHdr) ctMap.commission = { header: commHdr, confidence: "alias" };
+            const swapHdr = findHeader((h) => h === "swap");
+            if (swapHdr) ctMap.swap = { header: swapHdr, confidence: "alias" };
+            adaptiveMapping = ctMap;
+
+            // Fingerprint for profile caching (best-effort).
+            try {
+              fingerprint = computeFingerprint({
+                separator: rawSeparator,
+                encoding: rawEncoding,
+                headers: rawHeaders,
+              });
+              matchedProfile = await getProfileByFingerprint(supabase, userId, fingerprint);
+            } catch {
+              /* non-blocking */
+            }
+          } catch (hdrErr) {
+            console.warn("[import-mt5] cTrader header extraction failed (non-blocking):", hdrErr);
+          }
+        } else {
           const { parseCsvAdaptive } = await import("@/lib/csv-adaptive-parser");
 
           // Load DB-backed alias vocabulary so broker-specific learned headers
@@ -402,10 +461,18 @@ export async function POST(request: Request) {
         external_id: t.external_id,
       }));
 
+      // needsMapping: only the adaptive parser produces ambiguous mappings that
+      // the user may need to confirm. Rigid parsers (cTrader/XLSX/HTML) ship a
+      // canonical schema and must not block the Importar button behind empty
+      // dropdowns. Keep as boolean so the client can conditionally render.
+      const needsMapping =
+        parserChosen === "csv_adaptive" || parserChosen.startsWith("csv_adaptive_");
+
       return NextResponse.json({
         ok: true,
         preview: true,
         parser_used: parserChosen,
+        needsMapping,
         trades_found: trades.length,
         payouts: balanceOps.filter((op) => op.type === "WITHDRAWAL").length,
         // New adaptive-learning surface
