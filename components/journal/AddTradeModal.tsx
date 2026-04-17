@@ -8,6 +8,8 @@ import { inferCategory } from "@/lib/trading/category";
 import { cn } from "@/lib/utils";
 import { TradeScreenshotUpload } from "./TradeScreenshotUpload";
 import { uploadTradeScreenshot } from "@/lib/supabase/screenshot";
+import { TagPicker } from "./TagPicker";
+import { validateCustomTags } from "@/lib/psychology-tags";
 
 const QUICK_SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NAS100", "US30", "BTCUSD", "USOIL"];
 
@@ -36,6 +38,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
   const [error, setError] = useState<string | null>(null);
   const [savedSymbols, setSavedSymbols] = useState<string[]>([]);
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [customTags, setCustomTags] = useState<string[]>([]);
 
   // Load user's saved symbols from user_symbols table
   useEffect(() => {
@@ -97,6 +100,8 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       const effectiveOpenedAt = isQuick ? now.toISOString() : new Date(openedAt).toISOString();
       const effectiveClosedAt = isQuick ? now.toISOString() : (closedAt ? new Date(closedAt).toISOString() : now.toISOString());
 
+      const validatedTags = isQuick ? [] : validateCustomTags(customTags, 10);
+
       // net_pnl_usd is a GENERATED column (pnl_usd - fees_usd) — do NOT send
       const insertPromise = supabase.from("journal_trades").insert({
         user_id: userId,
@@ -110,6 +115,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         fees_usd: 0,
         context: isQuick ? null : (context.trim() || null),
         notes: isQuick ? null : (notes.trim() || null),
+        custom_tags: validatedTags.length ? validatedTags : null,
         external_source: "manual",
         external_id: `manual_${Date.now()}`,
       }).select("id").maybeSingle();
@@ -149,6 +155,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       setContext("");
       setNotes("");
       setScreenshotFile(null);
+      setCustomTags([]);
       setError(null);
 
       onSaved();
@@ -365,6 +372,14 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
                 rows={2}
                 className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
+            </div>
+          )}
+
+          {/* Tags — complete mode only */}
+          {mode === "complete" && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Tags</label>
+              <TagPicker value={customTags} onChange={setCustomTags} allowFreeform maxTags={10} />
             </div>
           )}
 

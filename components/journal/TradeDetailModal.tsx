@@ -16,10 +16,11 @@ import { cn } from "@/lib/utils";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import { supabase } from "@/lib/supabase/client";
-import { X, Trash2, Star, MessageSquare } from "lucide-react";
+import { Trash2, Star, MessageSquare } from "lucide-react";
 import { TradeScreenshotUpload } from "./TradeScreenshotUpload";
 import { deleteTradeScreenshot } from "@/lib/supabase/screenshot";
 import { validateCustomTags } from "@/lib/psychology-tags";
+import { TagPicker } from "./TagPicker";
 
 interface MentorNoteForTrade {
   id: string;
@@ -40,13 +41,12 @@ interface TradeDetailModalProps {
 export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted }: TradeDetailModalProps) {
   const [context, setContext] = useState("");
   const [customTags, setCustomTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [mentorNotes, setMentorNotes] = useState<MentorNoteForTrade[]>([]);
 
-  const MAX_TAGS = 4;
+  const MAX_TAGS = 10;
 
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
 
@@ -55,7 +55,6 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
       setContext(trade.context ?? "");
       setCustomTags(Array.isArray(trade.custom_tags) ? [...trade.custom_tags] : []);
       setScreenshotPath(trade.screenshot_path ?? null);
-      setNewTag("");
       setToast(null);
       setMentorNotes([]);
     }
@@ -86,30 +85,12 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
     return () => { cancelled = true; };
   }, [trade?.id, open]);
 
-  const handleAddTag = () => {
-    const t = newTag.trim();
-    if (!t) return;
-    if (customTags.length >= MAX_TAGS) {
-      setToast({ type: "error", message: `Máximo de ${MAX_TAGS} tags por trade.` });
-      return;
-    }
-    if (!customTags.includes(t)) {
-      setCustomTags((prev) => [...prev, t]);
-      setNewTag("");
-      setToast(null);
-    }
-  };
-
-  const handleRemoveTag = (index: number) => {
-    setCustomTags((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const handleSave = async () => {
     if (!trade) return;
     setSaving(true);
     setToast(null);
     try {
-      const validatedTags = validateCustomTags(customTags);
+      const validatedTags = validateCustomTags(customTags, MAX_TAGS);
 
       const { error } = await supabase
         .from("journal_trades")
@@ -304,40 +285,10 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
             />
           </div>
 
-          {/* Tags (max 4) */}
+          {/* Tags — taxonomia + freeform */}
           <div className="space-y-2">
             <Label>Tags <span className="text-muted-foreground text-xs">({customTags.length}/{MAX_TAGS})</span></Label>
-            <div className="flex flex-wrap gap-2">
-              {customTags.map((tag, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-0.5 text-xs"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(i)}
-                    className="rounded-full p-0.5 hover:bg-muted"
-                    aria-label="Remover"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-                placeholder={customTags.length >= MAX_TAGS ? "Limite atingido" : "Adicionar tag..."}
-                className="flex-1"
-                disabled={customTags.length >= MAX_TAGS}
-              />
-              <Button type="button" variant="outline" size="sm" onClick={handleAddTag} disabled={customTags.length >= MAX_TAGS}>
-                Adicionar
-              </Button>
-            </div>
+            <TagPicker value={customTags} onChange={setCustomTags} allowFreeform maxTags={MAX_TAGS} />
           </div>
 
           {toast && (
