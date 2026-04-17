@@ -197,7 +197,7 @@ export interface DailyAdjustment {
   narrative: string;
   based_on_events: DailyAdjustmentEvent[];
   asset_updates: Partial<Record<"indices" | "gold" | "btc" | "dollar", DailyAdjustmentAssetUpdate>>;
-  source: "manual" | "cascade" | "cron";
+  source: "manual" | "cascade" | "cron" | "weekly_fallback";
   model: string;
 }
 

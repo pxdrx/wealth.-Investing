@@ -11,6 +11,26 @@ import type {
 
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
+/**
+ * Build a tight daily-style summary from the current weekly panorama narrative.
+ * Used as last-resort fallback when there are no red lines AND no previous
+ * daily adjustment exists. Keeps the card non-empty while making it obvious
+ * the thesis is coming from the weekly briefing.
+ */
+export function buildWeeklyOnlyNarrative(weekly: string): string {
+  const normalized = (weekly || "").trim().replace(/\r\n/g, "\n");
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  const firstTwo = paragraphs.slice(0, 2).join("\n\n");
+  const MAX = 600;
+  const excerpt = firstTwo.length > MAX ? `${firstTwo.slice(0, MAX).trimEnd()}…` : firstTwo;
+  const framing =
+    "Sem eventos de alto impacto nas últimas 24h. Mantendo o panorama semanal vigente:\n\n";
+  return `${framing}${excerpt}`;
+}
+
 function eventReleasedAt(e: EconomicEvent): string | null {
   if (!e.date) return null;
   return e.time ? `${e.date}T${e.time}:00` : `${e.date}T00:00:00`;
@@ -32,6 +52,13 @@ export interface RunDailyAdjustmentOptions {
   source: "manual" | "cascade" | "cron";
   /** When true, skip the cooldown check (used by manual regenerate). */
   ignoreCooldown?: boolean;
+  /**
+   * When true (default), run the fallback chain if no red lines are found:
+   *   1. return the most recent existing daily adjustment (any week), OR
+   *   2. synthesize a weekly-only adjustment from the current panorama narrative.
+   * Cron cascades pass `false` to avoid spamming weekly_fallback rows hourly.
+   */
+  allowFallback?: boolean;
 }
 
 export interface RunDailyAdjustmentResult {
@@ -39,6 +66,10 @@ export interface RunDailyAdjustmentResult {
   reason?: "no_red_lines" | "no_weekly_panorama" | "cooldown" | "error";
   adjustment?: DailyAdjustment;
   error?: string;
+  /** Short PT-BR notice explaining the fallback (only set when fallback was used). */
+  notice?: string;
+  /** Which fallback branch returned the adjustment (undefined for fresh generations). */
+  fallbackReason?: "previous" | "weekly_only";
 }
 
 /**
@@ -99,7 +130,53 @@ export async function runDailyAdjustment(
     .map(toAdjustmentEvent);
 
   if (redLines.length === 0) {
-    return { ok: false, reason: "no_red_lines" };
+    // Cron cascades opt out of fallback to avoid hourly weekly_fallback churn.
+    if (opts.allowFallback === false) {
+      return { ok: false, reason: "no_red_lines" };
+    }
+
+    // Fallback A: reuse the most recent existing daily adjustment (any week).
+    const { data: lastAdj } = await supabase
+      .from("daily_adjustments")
+      .select("*")
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastAdj) {
+      return {
+        ok: true,
+        adjustment: lastAdj as DailyAdjustment,
+        notice: "Sem red lines novas nas últimas 24h — mantendo o ajuste anterior.",
+        fallbackReason: "previous",
+      };
+    }
+
+    // Fallback B: synthesize a weekly-only adjustment from the panorama narrative.
+    const weeklyOnlyNarrative = buildWeeklyOnlyNarrative(panorama.narrative);
+    const row = {
+      week_start: weekStart,
+      narrative: weeklyOnlyNarrative,
+      based_on_events: [],
+      asset_updates: {},
+      source: "weekly_fallback",
+      model: "none",
+    };
+    const { data: inserted, error: insertErr } = await supabase
+      .from("daily_adjustments")
+      .insert(row)
+      .select()
+      .maybeSingle();
+    if (insertErr || !inserted) {
+      console.error("[daily-adjustment] weekly_fallback insert failed:", insertErr);
+      return { ok: false, reason: "error", error: insertErr?.message || "insert failed" };
+    }
+    return {
+      ok: true,
+      adjustment: inserted as DailyAdjustment,
+      notice: "Sem red lines novas nas últimas 24h — baseado no panorama semanal vigente.",
+      fallbackReason: "weekly_only",
+    };
   }
 
   // 4) Parse current asset bias (panorama.asset_impacts can be stringified JSONB).

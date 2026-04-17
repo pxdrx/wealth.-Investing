@@ -45,7 +45,12 @@ export function DailyAdjustmentCard({ weekStart, onRegenerated }: DailyAdjustmen
   const [adjustment, setAdjustment] = useState<DailyAdjustment | null>(null);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  /** Error banner (amber box). Only used for hard errors, not for fallback notices. */
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /** Soft notice chip under the header (fallback explanations). */
+  const [notice, setNotice] = useState<string | null>(null);
+  /** True when the initial fetch + a regenerate both indicate no weekly panorama exists. */
+  const [noWeeklyPanorama, setNoWeeklyPanorama] = useState(false);
 
   const fetchLatest = useCallback(async () => {
     try {
@@ -63,14 +68,32 @@ export function DailyAdjustmentCard({ weekStart, onRegenerated }: DailyAdjustmen
     fetchLatest();
   }, [fetchLatest]);
 
+  // When the fetched (non-fallback) adjustment is itself a weekly_fallback row, surface
+  // the same notice chip even without a manual regenerate — the user still needs to know
+  // why there are no red lines attached.
+  useEffect(() => {
+    if (!adjustment) return;
+    const isWeeklyFallback =
+      adjustment.source === "weekly_fallback" ||
+      (Array.isArray(adjustment.based_on_events) && adjustment.based_on_events.length === 0);
+    if (isWeeklyFallback && !notice) {
+      setNotice(
+        adjustment.source === "weekly_fallback"
+          ? "Sem red lines novas nas últimas 24h — baseado no panorama semanal vigente."
+          : "Sem red lines novas nas últimas 24h — mantendo o ajuste anterior.",
+      );
+    }
+  }, [adjustment, notice]);
+
   const handleRegenerate = useCallback(async () => {
     if (regenerating) return;
-    setMessage(null);
+    setErrorMessage(null);
+    setNotice(null);
     setRegenerating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setMessage("Sessão expirada. Faça login novamente.");
+        setErrorMessage("Sessão expirada. Faça login novamente.");
         return;
       }
       const res = await fetch("/api/macro/daily-adjustment/regenerate", {
@@ -82,14 +105,18 @@ export function DailyAdjustmentCard({ weekStart, onRegenerated }: DailyAdjustmen
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        setMessage(json.error || "Erro ao regenerar ajuste diário.");
+        if (json.reason === "no_weekly_panorama") {
+          setNoWeeklyPanorama(true);
+        }
+        setErrorMessage(json.error || "Erro ao regenerar ajuste diário.");
         return;
       }
       setAdjustment(json.adjustment);
+      if (json.notice) setNotice(json.notice);
       onRegenerated?.(json.adjustment);
     } catch (err) {
       console.error("[daily-adjustment] regenerate failed:", err);
-      setMessage("Erro de conexão ao regenerar.");
+      setErrorMessage("Erro de conexão ao regenerar.");
     } finally {
       setRegenerating(false);
     }
@@ -142,10 +169,18 @@ export function DailyAdjustmentCard({ weekStart, onRegenerated }: DailyAdjustmen
         </div>
       </div>
 
-      {message && (
+      {notice && (
+        <div className="mb-3">
+          <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-medium text-amber-600">
+            {notice}
+          </span>
+        </div>
+      )}
+
+      {errorMessage && (
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
           <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-700 dark:text-amber-400">{message}</p>
+          <p className="text-xs text-amber-700 dark:text-amber-400">{errorMessage}</p>
         </div>
       )}
 
@@ -198,7 +233,9 @@ export function DailyAdjustmentCard({ weekStart, onRegenerated }: DailyAdjustmen
         </>
       ) : (
         <p className="text-sm text-muted-foreground italic">
-          Nenhum ajuste diário ainda. Clique em &quot;Regenerar&quot; para gerar com base nas red lines recentes.
+          {noWeeklyPanorama
+            ? "Gere o briefing semanal primeiro para habilitar o ajuste diário."
+            : "Carregando ajuste diário…"}
         </p>
       )}
     </div>

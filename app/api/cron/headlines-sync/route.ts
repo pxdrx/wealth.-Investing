@@ -275,7 +275,8 @@ export async function POST(req: NextRequest) {
     let dailyAdjustmentTriggered = false;
     try {
       const { runDailyAdjustment } = await import("@/lib/macro/daily-adjustment");
-      const adjResult = await runDailyAdjustment(supabase, { source: "cascade" });
+      // Cascade opts out of fallback so the cron never auto-inserts weekly_fallback rows.
+      const adjResult = await runDailyAdjustment(supabase, { source: "cascade", allowFallback: false });
       dailyAdjustmentTriggered = adjResult.ok;
     } catch (err) {
       console.error("[headlines-sync] Daily adjustment cascade failed:", err);

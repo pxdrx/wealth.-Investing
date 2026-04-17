@@ -35,15 +35,18 @@ export async function POST(req: NextRequest) {
   const result = await runDailyAdjustment(supabase, { source: "manual", ignoreCooldown: true });
 
   if (!result.ok) {
-    const status = result.reason === "no_red_lines" ? 200 : result.reason === "no_weekly_panorama" ? 409 : 500;
+    const status = result.reason === "no_weekly_panorama" ? 409 : 500;
     const message =
-      result.reason === "no_red_lines"
-        ? "Sem red lines novas nas últimas 24h."
-        : result.reason === "no_weekly_panorama"
+      result.reason === "no_weekly_panorama"
         ? "Sem panorama semanal vigente — gere o briefing semanal primeiro."
         : result.error || "Erro ao gerar ajuste diário.";
     return NextResponse.json({ ok: false, reason: result.reason, error: message }, { status });
   }
 
-  return NextResponse.json({ ok: true, adjustment: result.adjustment });
+  return NextResponse.json({
+    ok: true,
+    adjustment: result.adjustment,
+    notice: result.notice ?? null,
+    fallbackReason: result.fallbackReason ?? null,
+  });
 }
