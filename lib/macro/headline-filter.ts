@@ -184,6 +184,11 @@ export function filterRelevantHeadlines<T extends { headline: string }>(items: T
  */
 export const SOURCE_TIER: Record<HeadlineSource, HeadlineTier> = {
   te_breaking: "breaking",
+  // FJ items carry their own per-item tier (breaking for Market Moving,
+  // high otherwise). The source default is "high" — any FJ item reaches
+  // the UI at least at that level, and Market Moving ones override to
+  // breaking via the explicit `tier` field.
+  financial_juice: "high",
   trading_economics: "high",
   te_headlines: "high",
   forexlive: "medium",

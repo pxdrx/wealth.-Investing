@@ -9,6 +9,7 @@ import {
 import { fetchTruthSocialPosts } from "@/lib/macro/scrapers/truth-social";
 import { fetchTradingEconomicsHeadlines } from "@/lib/macro/scrapers/trading-economics";
 import { fetchTradingEconomicsBreaking } from "@/lib/macro/scrapers/te-breaking";
+import { fetchFinancialJuiceHeadlines } from "@/lib/macro/scrapers/financial-juice";
 import { filterRelevantHeadlines, getHeadlineTier } from "@/lib/macro/headline-filter";
 import { translateHeadlines } from "@/lib/macro/translate";
 import { getWeekStart } from "@/lib/macro/constants";
@@ -48,18 +49,22 @@ export async function POST(req: NextRequest) {
       console.error("[headlines-sync] TE breaking fetch failed:", teBreakingResult[0].reason);
     }
 
-    // 1b. Remaining sources in parallel
-    const [flResult, reutersResult, tsResult, teResult] = await Promise.allSettled([
+    // 1b. Remaining sources in parallel (FJ is curated — no relevance filter
+    //     needed, and its scraper assigns per-item tier, so Market Moving
+    //     items surface at the breaking tier alongside TE breaking).
+    const [flResult, reutersResult, tsResult, teResult, fjResult] = await Promise.allSettled([
       fetchForexLiveHeadlines(),
       fetchReutersHeadlines(),
       fetchTruthSocialPosts(),
       fetchTradingEconomicsHeadlines(),
+      fetchFinancialJuiceHeadlines(),
     ]);
 
     const flHeadlines = flResult.status === "fulfilled" ? (flResult.value ?? []) : [];
     const reutersHeadlines = reutersResult.status === "fulfilled" ? (reutersResult.value ?? []) : [];
     const tsHeadlines = tsResult.status === "fulfilled" ? (tsResult.value ?? []) : [];
     const teHeadlines = teResult.status === "fulfilled" ? (teResult.value ?? []) : [];
+    const fjHeadlines = fjResult.status === "fulfilled" ? (fjResult.value ?? []) : [];
 
     if (flResult.status === "rejected") {
       console.error("[headlines-sync] ForexLive fetch failed:", flResult.reason);
@@ -72,6 +77,9 @@ export async function POST(req: NextRequest) {
     }
     if (teResult.status === "rejected") {
       console.error("[headlines-sync] Trading Economics fetch failed:", teResult.reason);
+    }
+    if (fjResult.status === "rejected") {
+      console.error("[headlines-sync] FinancialJuice fetch failed:", fjResult.reason);
     }
 
     // Helper: strip DB-managed fields before upsert + persist tier
@@ -94,16 +102,24 @@ export async function POST(req: NextRequest) {
     const reutersValid = reutersHeadlines.filter((h) => h.external_id);
     const tsValid = tsHeadlines.filter((h) => h.external_id);
     const teValid = teHeadlines.filter((h) => h.external_id);
+    const fjValid = fjHeadlines.filter((h) => h.external_id);
 
     // Translate all sources to PT-BR in parallel
-    const [teBreakingTranslated, flTranslated, reutersTranslated, tsTranslated, teTranslated] =
-      await Promise.all([
-        teBreakingValid.length > 0 ? translateHeadlines(teBreakingValid) : Promise.resolve([]),
-        flValid.length > 0 ? translateHeadlines(flValid) : Promise.resolve([]),
-        reutersValid.length > 0 ? translateHeadlines(reutersValid) : Promise.resolve([]),
-        tsValid.length > 0 ? translateHeadlines(tsValid) : Promise.resolve([]),
-        teValid.length > 0 ? translateHeadlines(teValid) : Promise.resolve([]),
-      ]);
+    const [
+      teBreakingTranslated,
+      flTranslated,
+      reutersTranslated,
+      tsTranslated,
+      teTranslated,
+      fjTranslated,
+    ] = await Promise.all([
+      teBreakingValid.length > 0 ? translateHeadlines(teBreakingValid) : Promise.resolve([]),
+      flValid.length > 0 ? translateHeadlines(flValid) : Promise.resolve([]),
+      reutersValid.length > 0 ? translateHeadlines(reutersValid) : Promise.resolve([]),
+      tsValid.length > 0 ? translateHeadlines(tsValid) : Promise.resolve([]),
+      teValid.length > 0 ? translateHeadlines(teValid) : Promise.resolve([]),
+      fjValid.length > 0 ? translateHeadlines(fjValid) : Promise.resolve([]),
+    ]);
 
     // Helper: upsert a batch and return count
     const upsertBatch = async (label: string, headlines: MacroHeadline[]): Promise<number> => {
@@ -119,9 +135,11 @@ export async function POST(req: NextRequest) {
       return count ?? headlines.length;
     };
 
-    // 2. Upsert all sources — TE breaking first (no relevance filter; it is
-    //    already curated by TE editorial as featured news).
+    // 2. Upsert all sources — TE breaking + FinancialJuice first (both are
+    //    editorially curated: no relevance filter, and their per-item tier
+    //    already reflects Market Moving priority).
     const teBreakingCount = await upsertBatch("TE-Breaking", teBreakingTranslated);
+    const fjCount = await upsertBatch("FinancialJuice", fjTranslated);
     const flCount = await upsertBatch("ForexLive", filterRelevantHeadlines(flTranslated));
     const reutersCount = await upsertBatch("Reuters", filterRelevantHeadlines(reutersTranslated));
     const tsCount = await upsertBatch("TruthSocial", tsTranslated);
@@ -136,6 +154,7 @@ export async function POST(req: NextRequest) {
     // 4. Create adaptive alerts for breaking headlines
     const allHeadlines = [
       ...teBreakingTranslated,
+      ...fjTranslated,
       ...flTranslated,
       ...reutersTranslated,
       ...tsTranslated,
@@ -148,6 +167,7 @@ export async function POST(req: NextRequest) {
           case "truth_social": return "Truth Social";
           case "trading_economics": return "Trading Economics";
           case "te_breaking": return "Trading Economics (Breaking)";
+          case "financial_juice": return "FinancialJuice (Market Moving)";
           case "forexlive": return "ForexLive";
           case "reuters": return "Reuters";
           default: return s;
@@ -291,6 +311,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       te_breaking: teBreakingCount,
+      financial_juice: fjCount,
       forexlive: flCount,
       reuters: reutersCount,
       truth_social: tsCount,

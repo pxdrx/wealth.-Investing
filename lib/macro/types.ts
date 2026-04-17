@@ -171,7 +171,8 @@ export type HeadlineSource =
   | "truth_social"
   | "te_headlines"
   | "trading_economics"
-  | "te_breaking";
+  | "te_breaking"
+  | "financial_juice";
 
 export type HeadlineTier = "breaking" | "high" | "medium" | "low";
 
