@@ -36,27 +36,21 @@ export function JournalKpiCards({ trades, period, onPeriodChange, startingBalanc
   const currentBalance = baseBalance + allTimePnl;
 
   const kpis = useMemo(() => {
-    // Win/Loss por net_pnl_usd: Win = net_pnl_usd > 0, Loss = net_pnl_usd <= 0
+    // Audit 2026-04-17 F2: single source of truth for all metrics.
+    // Expectancy must match `trade-analytics.ts` exactly — the old local
+    // calculation produced divergent values when breakeven trades diluted
+    // avgLoss.
+    const analytics = computeTradeAnalytics(filtered);
     const nets = filtered.map((t) => getNetPnl(t));
-    const total = nets.reduce((a, b) => a + b, 0);
-    const wins = nets.filter((n) => n > 0);
-    const losses = nets.filter((n) => n <= 0);
-    const winrate = filtered.length > 0 ? (wins.length / filtered.length) * 100 : 0;
-    const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
-    const avgLoss = losses.length ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0;
-    const expectation = winrate / 100 * avgWin + (1 - winrate / 100) * (avgLoss > 0 ? -avgLoss : 0);
     const best = filtered.length ? Math.max(...nets) : 0;
     const worst = filtered.length ? Math.min(...nets) : 0;
 
-    // True per-trade RR — excludes trades without a stop-loss.
-    const analytics = computeTradeAnalytics(filtered);
-
     return {
-      pnlTotal: total,
-      winrate,
+      pnlTotal: analytics.netPnl,
+      winrate: analytics.winRate,
       avgRR: analytics.avgRR,
       tradesWithoutRR: analytics.tradesWithoutRR,
-      expectation,
+      expectation: analytics.expectancy,
       bestTrade: best,
       worstTrade: worst,
       totalTrades: filtered.length,

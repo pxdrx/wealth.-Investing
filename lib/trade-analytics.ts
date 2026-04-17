@@ -93,6 +93,8 @@ export interface TradeAnalytics {
   avgRR: number;
   tradesWithoutRR: number;
   maxDrawdown: number;
+  /** Peak-to-trough absolute drawdown in USD (always computable, even on all-negative curves). */
+  maxDrawdownUsd: number;
   sharpeRatio: number | null;
   sortinoRatio: number | null;
   calmarRatio: number | null;
@@ -205,8 +207,12 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
   const grossLoss = Math.abs(losses.reduce((s, t) => s + getNetPnl(t), 0));
   const profitFactor = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : 0;
 
+  // Audit 2026-04-17 F1: avgLoss must divide by STRICT losses (< 0) only.
+  // Breakeven trades (net_pnl = 0) are counted as non-wins (see winRate) but
+  // should NOT dilute the average loss amount.
+  const strictLosses = sorted.filter((t) => getNetPnl(t) < 0);
   const avgWin = wins.length > 0 ? grossWin / wins.length : 0;
-  const avgLoss = losses.length > 0 ? grossLoss / losses.length : 0;
+  const avgLoss = strictLosses.length > 0 ? grossLoss / strictLosses.length : 0;
   const payoffRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
 
   // Real per-trade R/R — only trades with a stop-loss (and therefore a
@@ -260,23 +266,23 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
   });
 
   // ── Max Drawdown & Drawdown Curve ──
-  // FIX TECH-001: Equity curve starts from 0 cumulative P&L, so if early trades
-  // are losses, peak stays at 0 and drawdown shows 0%. Instead, we track the
-  // peak from the first equity value and handle all-negative curves properly.
-  let peak = equityCurve.length > 0 ? equityCurve[0].equity : 0;
+  // Audit 2026-04-17 F3: baseline peak = 0 (starting balance baseline, since
+  // equityCurve is cumulative P&L starting from 0). We ONLY report MDD% once
+  // the curve crosses into profit (peak > 0). Before that the trader is simply
+  // in initial drawdown — previous implementation artificially forced −100%
+  // on all-negative curves, which was misleading.
+  // We also expose an absolute USD MDD (peak-to-trough distance) that is
+  // always computable and is the canonical base for Recovery Factor.
+  let peak = 0;
+  let peakUsd = 0;
   let maxDrawdown = 0;
+  let maxDrawdownUsd = 0;
   const drawdownCurve: DrawdownPoint[] = equityCurve.map((pt) => {
     if (pt.equity > peak) peak = pt.equity;
-    // Calculate drawdown as percentage decline from peak
-    // If peak is positive, use it as the base. If peak <= 0 (all losses from start),
-    // drawdown is 100% since we've never been above the starting point.
-    let dd = 0;
-    if (peak > 0) {
-      dd = ((pt.equity - peak) / peak) * 100;
-    } else if (pt.equity < 0) {
-      // All values negative from start — drawdown relative to zero (starting point)
-      dd = -100;
-    }
+    if (pt.equity > peakUsd) peakUsd = pt.equity;
+    const ddUsd = peakUsd - pt.equity; // always >= 0
+    if (ddUsd > maxDrawdownUsd) maxDrawdownUsd = ddUsd;
+    const dd = peak > 0 ? ((pt.equity - peak) / peak) * 100 : 0;
     if (Math.abs(dd) > Math.abs(maxDrawdown)) maxDrawdown = dd;
     return { date: pt.date, drawdown: dd };
   });
@@ -335,9 +341,9 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
   const kellyCriterion = Math.min(Math.max(rawKelly * 0.5, 0), 0.5);
 
   // ── Recovery Factor ──
-  // FIX TECH-005: Recovery Factor = net profit / max drawdown, both in same unit (USD).
-  // maxDrawdown is in %, so convert to USD using average equity as base.
-  const maxDrawdownUsd = avgEquity > 0 ? (maxDrawdown / 100) * avgEquity : 0;
+  // Audit 2026-04-17 F4: Recovery Factor = net profit / max drawdown (USD).
+  // Uses maxDrawdownUsd computed directly from the equity curve (peak-to-trough
+  // absolute distance), eliminating the previous circular dependency on avgEquity.
   const recoveryFactor = maxDrawdownUsd > 0 ? netPnl / maxDrawdownUsd : 0;
 
   // ── Streaks ──
@@ -456,6 +462,7 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
     avgRR,
     tradesWithoutRR,
     maxDrawdown,
+    maxDrawdownUsd,
     sharpeRatio,
     sortinoRatio,
     calmarRatio,
