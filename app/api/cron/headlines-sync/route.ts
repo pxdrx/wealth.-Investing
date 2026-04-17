@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Cascade daily adjustment — internal cooldown (1h) guards against spam.
-    //    Runs every cycle: returns early if no red lines backfilled or no panorama.
+    //    Returns early if no red lines backfilled or no weekly panorama.
     let dailyAdjustmentTriggered = false;
     try {
       const { runDailyAdjustment } = await import("@/lib/macro/daily-adjustment");
