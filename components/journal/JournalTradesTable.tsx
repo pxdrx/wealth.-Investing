@@ -18,14 +18,52 @@ import { cn } from "@/lib/utils";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { formatDateTime, formatDuration, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
-import { ListFilter, TrendingUp } from "lucide-react";
+import { ListFilter, TrendingUp, Tag as TagIcon, X } from "lucide-react";
 import { SETUP_TAGS, MISTAKE_TAGS } from "@/lib/psychology-tags";
 import { StickyNote } from "lucide-react";
+import {
+  PREDEFINED_TAGS,
+  TAG_CATEGORY_LABELS,
+  TAG_CATEGORY_ORDER,
+  getSlugsByCategory,
+  getTagBySlug,
+  type TagCategory,
+} from "@/lib/journal/tag-taxonomy";
 
 const PAGE_SIZE = 15;
 
 type DirectionFilter = "all" | "buy" | "sell";
 type ResultFilter = "all" | "win" | "loss";
+
+const CATEGORY_BTN_STYLES: Record<TagCategory, { on: string; off: string }> = {
+  positive: {
+    on: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/50",
+    off: "border-emerald-500/25 text-emerald-700/70 dark:text-emerald-300/70 hover:border-emerald-500/50",
+  },
+  negative: {
+    on: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/50",
+    off: "border-red-500/25 text-red-700/70 dark:text-red-300/70 hover:border-red-500/50",
+  },
+  neutral: {
+    on: "bg-muted text-foreground border-border",
+    off: "border-border/50 text-muted-foreground hover:border-border",
+  },
+};
+
+const TAG_PILL_STYLES: Record<TagCategory, { selected: string; idle: string }> = {
+  positive: {
+    selected: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/50",
+    idle: "border-emerald-500/25 text-emerald-700/70 dark:text-emerald-300/70 hover:border-emerald-500/50 hover:bg-emerald-500/5",
+  },
+  negative: {
+    selected: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/50",
+    idle: "border-red-500/25 text-red-700/70 dark:text-red-300/70 hover:border-red-500/50 hover:bg-red-500/5",
+  },
+  neutral: {
+    selected: "bg-muted text-foreground border-border",
+    idle: "border-border/50 text-muted-foreground hover:border-border hover:bg-muted/50",
+  },
+};
 
 interface JournalTradesTableProps {
   trades: JournalTradeRow[];
@@ -39,6 +77,8 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
   const [direction, setDirection] = useState<DirectionFilter>("all");
   const [result, setResult] = useState<ResultFilter>("all");
   const [symbolFilter, setSymbolFilter] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagPanelOpen, setTagPanelOpen] = useState(false);
   const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
@@ -67,8 +107,46 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
     if (symbolFilter) {
       list = list.filter((t) => t.symbol.toUpperCase().includes(symbolFilter));
     }
+    if (selectedTags.length > 0) {
+      list = list.filter((t) =>
+        selectedTags.every((tag) => Array.isArray(t.custom_tags) && t.custom_tags.includes(tag))
+      );
+    }
     return list;
-  }, [trades, dateFrom, dateTo, direction, result, symbolFilter]);
+  }, [trades, dateFrom, dateTo, direction, result, symbolFilter, selectedTags]);
+
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const tag of selectedTags) {
+      counts[tag] = trades.reduce(
+        (acc, t) => acc + (Array.isArray(t.custom_tags) && t.custom_tags.includes(tag) ? 1 : 0),
+        0
+      );
+    }
+    return counts;
+  }, [trades, selectedTags]);
+
+  const toggleTag = (slug: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(slug) ? prev.filter((t) => t !== slug) : [...prev, slug]
+    );
+    setPage(0);
+  };
+
+  const toggleCategory = (cat: TagCategory) => {
+    const slugs = getSlugsByCategory(cat);
+    const allSelected = slugs.every((s) => selectedTags.includes(s));
+    setSelectedTags((prev) => {
+      const without = prev.filter((t) => !slugs.includes(t));
+      return allSelected ? without : [...without, ...slugs];
+    });
+    setPage(0);
+  };
+
+  const clearTags = () => {
+    setSelectedTags([]);
+    setPage(0);
+  };
 
   // Summary stats
   const summary = useMemo(() => {
@@ -167,6 +245,115 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
             </div>
           </div>
         </div>
+
+        {/* Tag filters */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/20">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+            <TagIcon className="h-3.5 w-3.5" /> Tags
+          </div>
+
+          {TAG_CATEGORY_ORDER.map((cat) => {
+            const slugs = getSlugsByCategory(cat);
+            const allSel = slugs.length > 0 && slugs.every((s) => selectedTags.includes(s));
+            const styles = CATEGORY_BTN_STYLES[cat];
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => toggleCategory(cat)}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  allSel ? styles.on : styles.off
+                )}
+              >
+                {TAG_CATEGORY_LABELS[cat]}
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setTagPanelOpen((v) => !v)}
+            className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:border-foreground/40 hover:text-foreground transition-colors"
+          >
+            {tagPanelOpen ? "Fechar tags" : "Todas as tags"}
+          </button>
+
+          {selectedTags.length > 0 && (
+            <button
+              type="button"
+              onClick={clearTags}
+              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
+
+        {tagPanelOpen && (
+          <div
+            className="rounded-[22px] border border-border/40 p-3 space-y-3 isolate"
+            style={{ backgroundColor: "hsl(var(--card))" }}
+          >
+            {TAG_CATEGORY_ORDER.map((cat) => {
+              const tags = PREDEFINED_TAGS.filter((t) => t.category === cat);
+              const styles = TAG_PILL_STYLES[cat];
+              return (
+                <div key={cat} className="space-y-1.5">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-semibold">
+                    {TAG_CATEGORY_LABELS[cat]}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag) => {
+                      const isSel = selectedTags.includes(tag.slug);
+                      return (
+                        <button
+                          key={tag.slug}
+                          type="button"
+                          onClick={() => toggleTag(tag.slug)}
+                          title={tag.description}
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                            isSel ? styles.selected : styles.idle
+                          )}
+                        >
+                          {tag.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {selectedTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {selectedTags.map((slug) => {
+              const meta = getTagBySlug(slug);
+              const label = meta?.label ?? slug;
+              const count = tagCounts[slug] ?? 0;
+              return (
+                <span
+                  key={slug}
+                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px]"
+                >
+                  <span className="font-medium">{label}</span>
+                  <span className="text-muted-foreground">· {count} trade{count !== 1 ? "s" : ""}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleTag(slug)}
+                    className="rounded-full p-0.5 hover:bg-muted"
+                    aria-label={`Remover filtro ${label}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         {/* Table */}
         <div className="rounded-input border border-border/40 shadow-sm overflow-x-auto">
