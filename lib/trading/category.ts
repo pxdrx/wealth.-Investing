@@ -41,10 +41,18 @@ const STOCKS = new Set([
  * Valores: "forex" | "commodities" | "indices" | "crypto" | "futures" | "stocks" | "other"
  */
 export function inferCategory(symbol: string): string {
-  const raw = (symbol ?? "").toString().replace(/\s/g, "").toUpperCase();
+  // NinjaTrader-style futures ship the contract month code after a space —
+  // e.g., "MGC 06-26", "MNQ 09-26", "ES 12-26". Take the first whitespace
+  // token so the root symbol reaches the FUTURES set. Without this, "MGC
+  // 06-26" becomes "MGC06-26" after the space-strip below and falls through
+  // to the "forex" default, corrupting futures trades.
+  const firstToken = (symbol ?? "").toString().trim().split(/\s+/)[0] ?? "";
+  const raw = firstToken.replace(/\s/g, "").toUpperCase();
   if (!raw) return "forex"; // safe default
   // Strip common MT5 suffixes: US30.cash → US30, XAUUSD.raw → XAUUSD, NAS100.mini → NAS100
-  const s = raw.replace(/\.(CASH|RAW|MINI|STD|ECN|PRO|STP|M|I|C|Z|F|H|U|X|_SB|_CFD)$/i, "");
+  let s = raw.replace(/\.(CASH|RAW|MINI|STD|ECN|PRO|STP|M|I|C|Z|F|H|U|X|_SB|_CFD)$/i, "");
+  // Strip trailing contract-month codes like "MGC06-26", "ES12-2026".
+  s = s.replace(/\d{2}[-\/]\d{2,4}$/, "");
   if (FOREX.has(s)) return "forex";
   if (COMMODITIES.has(s)) return "commodities";
   if (INDICES.has(s)) return "indices";

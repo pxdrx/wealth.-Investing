@@ -52,7 +52,7 @@ export interface CsvAdaptiveResult {
   balanceOps: [];
   mapping: Partial<Record<CanonicalField, MappingEntry>>;
   warnings: string[];
-  broker_hint: "tradovate" | "generic";
+  broker_hint: "tradovate" | "ninjatrader" | "generic";
   external_source: string;
   rows_total: number;
   rows_skipped_open_position: number;
@@ -86,7 +86,10 @@ function normalizeHeader(h: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[()[\]{}_\-\\]/g, " ")
+    // Strip periods and commas so headers like "Pos mercado.", "Núm. Neg.",
+    // and "P.L." normalize into matchable tokens ("pos mercado", "num neg",
+    // "p l"). NinjaTrader PT-BR exports rely on this.
+    .replace(/[()[\]{}_\-\\.,]/g, " ")
     .replace(/[/&]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -197,6 +200,11 @@ const ALIASES: Record<CanonicalField, string[]> = {
     "ordem",
     "numero ordem",
     "id",
+    // NinjaTrader PT-BR: "Núm. Neg." → "num neg" after normalization.
+    "num neg",
+    "numero neg",
+    "numero negocio",
+    "n neg",
   ],
   symbol: [
     "contract",
@@ -227,7 +235,23 @@ const ALIASES: Record<CanonicalField, string[]> = {
     "ganancia",
     "gross profit",
   ],
-  commission: ["commission", "comissao", "comision", "fee", "fees", "taxa", "taxas"],
+  commission: [
+    "commission",
+    "comissao",
+    "comision",
+    "fee",
+    "fees",
+    "taxa",
+    "taxas",
+    // NinjaTrader PT-BR fee columns. "Corretagem" is the main broker fee;
+    // the others are venue/regulatory fees that get summed in a second pass
+    // (see summation block after field resolution).
+    "corretagem",
+    "clearing fee",
+    "exchange fee",
+    "ip fee",
+    "nfa fee",
+  ],
   swap: ["swap", "rollover", "juros", "financing"],
   volume: [
     "volume",
@@ -239,6 +263,10 @@ const ALIASES: Record<CanonicalField, string[]> = {
     "cantidad",
     "contratos",
     "shares",
+    // NinjaTrader PT-BR: "Qtd" is the quantity column.
+    "qtd",
+    "qtde",
+    "quantidade",
   ],
   direction: [
     "type",
@@ -248,6 +276,12 @@ const ALIASES: Record<CanonicalField, string[]> = {
     "tipo",
     "operacao",
     "lado",
+    // NinjaTrader PT-BR: "Pos mercado." → "pos mercado" after normalization.
+    "pos mercado",
+    "posicao mercado",
+    "posicao",
+    "position",
+    "market position",
   ],
   opened_at: [
     "open time",
@@ -259,6 +293,11 @@ const ALIASES: Record<CanonicalField, string[]> = {
     "open date",
     "horario abertura",
     "time opened",
+    // NinjaTrader PT-BR: "Hora entrada".
+    "hora entrada",
+    "hora de entrada",
+    "data entrada",
+    "data de entrada",
   ],
   closed_at: [
     "close time",
@@ -270,6 +309,11 @@ const ALIASES: Record<CanonicalField, string[]> = {
     "close date",
     "horario fechamento",
     "time closed",
+    // NinjaTrader PT-BR: "Hora saída".
+    "hora saida",
+    "hora de saida",
+    "data saida",
+    "data de saida",
   ],
   bought_ts: ["bought timestamp", "buy time", "long entry time", "horario compra"],
   sold_ts: ["sold timestamp", "sell time", "short entry time", "horario venda"],
@@ -291,8 +335,18 @@ const ALIASES: Record<CanonicalField, string[]> = {
     "buy price",
     "sell price",
     "preco abertura",
+    // NinjaTrader PT-BR: "Preço entrada".
+    "preco entrada",
+    "preco de entrada",
   ],
-  price_close: ["close price", "exit price", "preco fechamento"],
+  price_close: [
+    "close price",
+    "exit price",
+    "preco fechamento",
+    // NinjaTrader PT-BR: "Preço saída".
+    "preco saida",
+    "preco de saida",
+  ],
 };
 
 const NORMALIZED_ALIASES: Record<CanonicalField, string[]> = Object.fromEntries(
@@ -572,7 +626,19 @@ function resolveField(
         else {
           const overlap = tokenOverlap(nh, a);
           if (overlap >= 0.5) best = Math.max(best, 4);
-          else if (nh.length <= 8 && a.length <= 8 && levenshtein(nh, a) <= 2)
+          // Levenshtein fallback: require BOTH strings to be ≥5 chars so
+          // short aliases like "id", "pl", "side" don't cannibalize unrelated
+          // 3-char headers like "qtd", "etd", or 5-char ones like "saida".
+          // Before this guard "qtd"→"id" (lev 2) stole the volume column
+          // and "saida"→"side" (lev 2) stole the direction column in
+          // NinjaTrader PT-BR exports, producing corrupted imports.
+          else if (
+            nh.length >= 5 &&
+            a.length >= 5 &&
+            nh.length <= 12 &&
+            a.length <= 12 &&
+            levenshtein(nh, a) <= 2
+          )
             best = Math.max(best, 3);
         }
       }
@@ -611,10 +677,16 @@ function resolveField(
           break;
         case "opened_at":
         case "closed_at":
-        case "bought_ts":
-        case "sold_ts":
           if (p.dateLike) score = 2;
           break;
+        // bought_ts / sold_ts intentionally omitted from date-sniff:
+        // they are Tradovate-specific column names ("Bought Timestamp" /
+        // "Sold Timestamp") that must be matched by explicit alias. Letting
+        // them sniff ANY dateLike column caused them to steal "Hora entrada"
+        // / "Hora saída" from NinjaTrader PT-BR exports before the alias
+        // match for opened_at/closed_at could claim those columns, which
+        // pushed opened_at to fuzzy-match the price column "Preço entrada"
+        // (value "4814,8") and produced garbage dates like year 4814.
         // commission/swap/volume/price_* NÃO caem em sniff (qualquer coluna
         // numérica positiva casaria — gera falso positivo).
       }
@@ -840,14 +912,30 @@ export function parseCsvAdaptive(
     }
   }
 
-  // broker hint
+  // broker hint — signatures that are narrow enough to be exclusive.
   const normHeaders = headers.map((h) => normalizeHeader(h));
-  const brokerHint: CsvAdaptiveResult["broker_hint"] =
+  const isTradovate =
     normHeaders.includes("position id") &&
     normHeaders.includes("bought timestamp") &&
     normHeaders.includes("sold timestamp") &&
-    normHeaders.includes("contract")
-      ? "tradovate"
+    normHeaders.includes("contract");
+  // NinjaTrader (PT-BR locale) Trades Performance report. Signature fields
+  // after normalization: "Núm. Neg." → "num neg", "Pos mercado." →
+  // "pos mercado", plus the Ativo/Hora entrada pair. Any file matching
+  // three of these is treated as NinjaTrader for category/dedup purposes.
+  const ninjaSignals = [
+    "num neg",
+    "pos mercado",
+    "ativo",
+    "hora entrada",
+    "hora saida",
+    "estrategia",
+  ].filter((sig) => normHeaders.includes(sig)).length;
+  const isNinjaTrader = ninjaSignals >= 3;
+  const brokerHint: CsvAdaptiveResult["broker_hint"] = isTradovate
+    ? "tradovate"
+    : isNinjaTrader
+      ? "ninjatrader"
       : "generic";
 
   // required fields check
@@ -887,7 +975,48 @@ export function parseCsvAdaptive(
     "Timestamps do CSV tratados como UTC. Ajuste timezone da conta se necessário."
   );
 
-  const external_source = brokerHint === "tradovate" ? "csv_tradovate" : "csv_generic";
+  const external_source =
+    brokerHint === "tradovate"
+      ? "csv_tradovate"
+      : brokerHint === "ninjatrader"
+        ? "csv_ninjatrader"
+        : "csv_generic";
+
+  // Multi-fee summation: if the broker ships several fee columns (NinjaTrader
+  // has Corretagem + Clearing + Exchange + IP + NFA) and the alias-matcher
+  // only picked one for `commission`, find every remaining numeric column
+  // whose header looks fee-ish and sum them into an extraFees field used
+  // below when computing fees_usd. Idempotent — won't double-count the one
+  // already in mapping.commission.
+  const extraFeeCols: MappingEntry[] = [];
+  const feeLike = (n: string): boolean =>
+    /\bfee\b/.test(n) ||
+    /\bfees\b/.test(n) ||
+    n.includes("corretagem") ||
+    n.includes("clearing") ||
+    n.includes("exchange") ||
+    n.includes("nfa") ||
+    n.includes("ip fee") ||
+    n.includes("taxa");
+  for (let c = 0; c < headers.length; c++) {
+    if (used.has(c)) continue;
+    const nh = normalizeHeader(headers[c] ?? "");
+    if (!nh || !feeLike(nh)) continue;
+    // Only include columns that look numeric (not enum/ticker text).
+    const p = profiles[c];
+    if (!p || p.dateLike || p.tickerLike || p.enumSide || p.currencyCode) continue;
+    extraFeeCols.push({
+      header: headers[c],
+      column: c,
+      confidence: "derived",
+    });
+    used.add(c);
+  }
+  if (extraFeeCols.length > 0) {
+    warnings.push(
+      `${extraFeeCols.length} coluna(s) de taxas adicionais somadas a fees_usd: ${extraFeeCols.map((e) => e.header).join(", ")}`
+    );
+  }
 
   const trades: CsvAdaptiveTrade[] = [];
   let skippedOpen = 0;
@@ -965,7 +1094,12 @@ export function parseCsvAdaptive(
 
     const commission = commCol ? parseNumber(r[commCol.column] ?? "") ?? 0 : 0;
     const swap = swapCol ? parseNumber(r[swapCol.column] ?? "") ?? 0 : 0;
-    const fees_usd = commission + swap;
+    let extraFees = 0;
+    for (const fc of extraFeeCols) {
+      const v = parseNumber(r[fc.column] ?? "") ?? 0;
+      extraFees += v;
+    }
+    const fees_usd = commission + swap + extraFees;
 
     let external_id = idCol ? (r[idCol.column] ?? "").trim() : "";
     if (!external_id) {
