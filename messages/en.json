@@ -13,5 +13,32 @@
     "trades": "{n} trades imported",
     "activeTraders": "{n} active traders in the last 30 days",
     "volume": "{n} of volume analyzed"
+  },
+  "bento": {
+    "eyebrow": "Four pillars",
+    "heading": "Everything you need to stop guessing.",
+    "headingAccent": "On one screen.",
+    "cell_01": {
+      "label": "Journal",
+      "manifest": "Every MT5 order becomes evidence, not a spreadsheet row."
+    },
+    "cell_02": {
+      "label": "Dexter AI",
+      "manifest": "An analyst that reads your history and runs 24/7.",
+      "visualQuote": "Your best setup is a pullback on EUR/USD during the London session. 78% win rate across 23 trades."
+    },
+    "cell_03": {
+      "label": "Macro",
+      "manifest": "Bloomberg in your pocket, in plain English.",
+      "visualCpi": "CPI YoY",
+      "visualEcb": "ECB rate decision",
+      "visualNfp": "Non-Farm Payrolls"
+    },
+    "cell_04": {
+      "label": "Prop firms",
+      "manifest": "One panel per firm, rules in real time, zero surprises.",
+      "visualDd": "Daily drawdown",
+      "visualPt": "Profit target"
+    }
   }
 }
