@@ -16,6 +16,10 @@ import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
 import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
+import { SessionHeatmap } from "@/components/dashboard/SessionHeatmap";
+import { TopSymbolsWidget } from "@/components/dashboard/TopSymbolsWidget";
+import { StreaksWidget } from "@/components/dashboard/StreaksWidget";
+import type { JournalTradeKpiRow } from "@/hooks/useDashboardData";
 import { DdBreachModal } from "@/components/account/DdBreachModal";
 import { ImportDropZone } from "@/components/journal/ImportDropZone";
 import { ImportPreview } from "@/components/journal/ImportPreview";
@@ -789,6 +793,12 @@ export default function JournalPage() {
                   activeAccountId={activeAccountId}
                   startingBalance={startingBalanceUsd}
                 />
+                {/* Dashboard-retired widgets relocated here (C-05) */}
+                <SessionHeatmap trades={trades as unknown as JournalTradeKpiRow[]} />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <TopSymbolsWidget trades={trades as unknown as JournalTradeKpiRow[]} />
+                  <StreaksWidget trades={trades as unknown as JournalTradeKpiRow[]} />
+                </div>
               </div>
             )}
             {activeTab === SECTION_TRADES && (
