@@ -40,5 +40,34 @@
       "visualDd": "Drawdown diário",
       "visualPt": "Meta de lucro"
     }
+  },
+  "howItWorks": {
+    "eyebrow": "Como funciona",
+    "heading": "Três passos.",
+    "headingAccent": "Zero fricção.",
+    "step_01": {
+      "title": "Conecta seu MT5 em 60 segundos",
+      "body": "Sem plugin, sem credencial de corretora. Conecte pelo número da conta ou faça upload do relatório em XLSX/HTML."
+    },
+    "step_02": {
+      "title": "wealth lê todo seu histórico",
+      "body": "Cada trade é parseado, enriquecido com contexto macro e indexado em segundos. Dez mil ordens em menos de um minuto."
+    },
+    "step_03": {
+      "title": "Dexter te conta o que você não viu",
+      "body": "Padrões, setups vencedores, horários tóxicos, erros recorrentes. O insight que sua planilha nunca te deu.",
+      "visualQuote": "Você perde 2x mais nas quintas entre 10h e 12h. Revise esse horário no seu plano."
+    },
+    "visual_01": {
+      "broker": "Corretora",
+      "account": "Número da conta",
+      "cta": "Conectar"
+    },
+    "visual_02": {
+      "status": "Importando trades",
+      "parsed": "Parseados",
+      "enriched": "Enriquecidos",
+      "indexed": "Indexados"
+    }
   }
 }
