@@ -2,5 +2,11 @@
   "_meta": {
     "locale": "pt",
     "note": "Populated incrementally by Track B tasks B-02 to B-13. Final pass in B-14."
+  },
+  "hero": {
+    "headline": "Pare de operar no escuro.",
+    "sub": "wealth é onde seus trades viram dados, seus dados viram padrão, e seus padrões viram decisão. Sem planilha. Sem achismo.",
+    "ctaPrimary": "Conecte seu MT5 em 60 segundos",
+    "ctaGhost": "Ver como funciona"
   }
 }

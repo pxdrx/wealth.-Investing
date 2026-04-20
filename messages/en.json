@@ -2,5 +2,11 @@
   "_meta": {
     "locale": "en",
     "note": "Populated incrementally by Track B tasks B-02 to B-13. Final pass in B-14."
+  },
+  "hero": {
+    "headline": "Stop trading in the dark.",
+    "sub": "Where your trades become data, your data becomes patterns, and your patterns become decisions.",
+    "ctaPrimary": "Connect your MT5 in 60 seconds",
+    "ctaGhost": "See how it works"
   }
 }
