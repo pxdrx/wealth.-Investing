@@ -1,19 +1,21 @@
 import { setRequestLocale } from "next-intl/server";
 import { Hero } from "@/components/landing/Hero";
+import { SocialProof } from "@/components/landing/SocialProof";
+import { getCommunityStats } from "@/lib/community-stats";
 
 export const revalidate = 3600;
 
-export default function LandingPage({
+export default async function LandingPage({
   params,
 }: {
   params: { locale: string };
 }) {
   setRequestLocale(params.locale);
+  const stats = await getCommunityStats();
 
   return (
     <>
-      <Hero />
-      {/* TODO(B-03): <SocialProof /> */}
+      <Hero socialProof={<SocialProof {...stats} />} />
       {/* TODO(B-04): <BentoFeatures /> */}
       {/* TODO(B-05): <HowItWorks /> */}
       {/* TODO(B-06): <Pricing /> */}

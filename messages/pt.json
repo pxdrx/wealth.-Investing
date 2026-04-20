@@ -8,5 +8,10 @@
     "sub": "wealth é onde seus trades viram dados, seus dados viram padrão, e seus padrões viram decisão. Sem planilha. Sem achismo.",
     "ctaPrimary": "Conecte seu MT5 em 60 segundos",
     "ctaGhost": "Ver como funciona"
+  },
+  "socialProof": {
+    "trades": "{n} trades importados",
+    "activeTraders": "{n} traders ativos nos últimos 30 dias",
+    "volume": "{n} de volume analisado"
   }
 }

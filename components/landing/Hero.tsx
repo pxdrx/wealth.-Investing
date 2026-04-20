@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { SmartCTALink } from "./SmartCTALink";
 
-export function Hero() {
+export function Hero({ socialProof }: { socialProof?: ReactNode }) {
   const t = useTranslations("hero");
 
   return (
@@ -33,7 +34,7 @@ export function Hero() {
             {t("ctaGhost")}
           </Link>
         </div>
-        {/* TODO(B-03): <SocialProof /> — single real stat line from Supabase, mono font, text-muted-foreground */}
+        {socialProof}
       </div>
     </section>
   );
