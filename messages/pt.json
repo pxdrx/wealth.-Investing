@@ -13,5 +13,32 @@
     "trades": "{n} trades importados",
     "activeTraders": "{n} traders ativos nos últimos 30 dias",
     "volume": "{n} de volume analisado"
+  },
+  "bento": {
+    "eyebrow": "Quatro pilares",
+    "heading": "Tudo que você precisa pra parar de achar.",
+    "headingAccent": "Numa tela só.",
+    "cell_01": {
+      "label": "Journal",
+      "manifest": "Toda ordem do MT5 vira evidência, não linha de planilha."
+    },
+    "cell_02": {
+      "label": "Dexter IA",
+      "manifest": "Um analista que lê seu histórico e opera 24/7.",
+      "visualQuote": "Seu melhor setup é pullback em EUR/USD na sessão de Londres. Win rate 78% em 23 trades."
+    },
+    "cell_03": {
+      "label": "Macro",
+      "manifest": "Bloomberg no seu bolso, em português.",
+      "visualCpi": "CPI YoY",
+      "visualEcb": "Decisão de juros BCE",
+      "visualNfp": "Payroll dos EUA"
+    },
+    "cell_04": {
+      "label": "Prop firms",
+      "manifest": "Um painel por firma, regras em tempo real, zero surpresa.",
+      "visualDd": "Drawdown diário",
+      "visualPt": "Meta de lucro"
+    }
   }
 }

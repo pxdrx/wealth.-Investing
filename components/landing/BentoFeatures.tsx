@@ -1,186 +1,199 @@
-import {
-  BookOpen,
-  Sparkles,
-  CalendarClock,
-  Brain,
-  History,
-  Shield,
-  GraduationCap,
-} from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
-type Cell = {
-  icon: ReactNode;
-  title: string;
-  body: string;
-  className: string;
-  dark?: boolean;
-  visual?: ReactNode;
-};
+type CellKey = "01" | "02" | "03" | "04";
+
+function Numeral({ n }: { n: CellKey }) {
+  return (
+    <div className="text-[11px] tracking-[0.18em] font-mono text-amber-600 dark:text-amber-500">
+      {n}
+    </div>
+  );
+}
 
 function JournalVisual() {
+  const rows = [
+    { sym: "EURUSD", size: "0.50", pnl: "+$234", pos: true },
+    { sym: "XAUUSD", size: "1.20", pnl: "-$89", pos: false },
+    { sym: "NAS100", size: "2.00", pnl: "+$456", pos: true },
+    { sym: "GBPJPY", size: "0.30", pnl: "+$128", pos: true },
+  ];
   return (
-    <div className="mt-6 rounded-xl bg-zinc-800/60 border border-zinc-700/60 p-4">
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="rounded-lg bg-zinc-900/70 border border-zinc-700/40 px-3 py-2">
-          <div className="text-[9px] uppercase tracking-wider text-zinc-500">Net PnL</div>
-          <div className="text-[15px] font-semibold text-emerald-400 mt-0.5">+$4.280</div>
+    <div className="mt-6 rounded-xl border border-border bg-muted/30 p-3 font-mono text-[11px]">
+      {rows.map((r, i) => (
+        <div
+          key={r.sym + i}
+          className="flex items-center justify-between py-1.5 border-b border-border/40 last:border-0"
+        >
+          <span className="text-foreground">{r.sym}</span>
+          <span className="text-muted-foreground">{r.size}</span>
+          <span
+            className={
+              "font-semibold " + (r.pos ? "text-emerald-600 dark:text-emerald-400" : "text-red-500")
+            }
+          >
+            {r.pnl}
+          </span>
         </div>
-        <div className="rounded-lg bg-zinc-900/70 border border-zinc-700/40 px-3 py-2">
-          <div className="text-[9px] uppercase tracking-wider text-zinc-500">Win rate</div>
-          <div className="text-[15px] font-semibold text-white mt-0.5">62%</div>
-        </div>
-        <div className="rounded-lg bg-zinc-900/70 border border-zinc-700/40 px-3 py-2">
-          <div className="text-[9px] uppercase tracking-wider text-zinc-500">Trades</div>
-          <div className="text-[15px] font-semibold text-white mt-0.5">147</div>
-        </div>
+      ))}
+    </div>
+  );
+}
+
+function DexterVisual({ quote }: { quote: string }) {
+  return (
+    <div className="mt-6 flex gap-2.5">
+      <div className="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-white flex items-center justify-center text-[11px] font-semibold">
+        D
       </div>
-      <div className="rounded-lg bg-zinc-900/70 border border-zinc-700/40 p-3">
-        <div className="text-[9px] uppercase tracking-wider text-zinc-500 mb-1">
-          Equity curve · últimos 30 dias
-        </div>
-        <svg viewBox="0 0 400 110" preserveAspectRatio="none" className="w-full h-[90px]">
-          <defs>
-            <linearGradient id="bentoJ" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#34d399" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M 0 85 L 30 78 L 60 82 L 90 65 L 120 70 L 150 52 L 180 56 L 210 38 L 240 42 L 270 28 L 300 32 L 330 18 L 360 22 L 400 12 L 400 110 L 0 110 Z"
-            fill="url(#bentoJ)"
-          />
-          <path
-            d="M 0 85 L 30 78 L 60 82 L 90 65 L 120 70 L 150 52 L 180 56 L 210 38 L 240 42 L 270 28 L 300 32 L 330 18 L 360 22 L 400 12"
-            stroke="#34d399"
-            strokeWidth="1.8"
-            fill="none"
-          />
-        </svg>
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-[10px] text-zinc-500">
-        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-900/70 border border-zinc-700/40 px-2 py-0.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> MT5
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-900/70 border border-zinc-700/40 px-2 py-0.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> MT4
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-900/70 border border-zinc-700/40 px-2 py-0.5">
-          XLSX · HTML
-        </span>
+      <div className="flex-1 rounded-2xl rounded-tl-sm border border-border bg-muted/30 px-3 py-2.5 text-[12px] text-foreground leading-snug">
+        {quote}
       </div>
     </div>
   );
 }
 
-function BacktestVisual() {
+function MacroVisual({ labels }: { labels: { cpi: string; ecb: string; nfp: string } }) {
+  const events = [
+    { time: "14:30", flag: "🇺🇸", name: labels.cpi },
+    { time: "15:45", flag: "🇪🇺", name: labels.ecb },
+    { time: "19:30", flag: "🇺🇸", name: labels.nfp },
+  ];
   return (
-    <div className="mt-4 grid grid-cols-3 gap-2">
-      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2">
-        <div className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Retorno</div>
-        <div className="text-[14px] font-semibold text-emerald-600 mt-0.5">+34.2%</div>
-      </div>
-      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2">
-        <div className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Acerto</div>
-        <div className="text-[14px] font-semibold text-foreground mt-0.5">62%</div>
-      </div>
-      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2">
-        <div className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Drawdown</div>
-        <div className="text-[14px] font-semibold text-red-600 mt-0.5">-4.1%</div>
-      </div>
-    </div>
-  );
-}
-
-const CELLS: Cell[] = [
-  {
-    icon: <BookOpen className="w-5 h-5" />,
-    title: "Journal automatizado",
-    body: "Importe MT5 e MT4 em segundos. PnL real, taxa de acerto e curva de capital — sem planilha e sem copiar trade por trade.",
-    className: "lg:col-span-2 lg:row-span-2",
-    dark: true,
-    visual: <JournalVisual />,
-  },
-  {
-    icon: <Sparkles className="w-5 h-5" />,
-    title: "IA Coach",
-    body: "Insights automáticos sobre seus padrões — melhor setup, alertas e sugestões personalizadas.",
-    className: "",
-  },
-  {
-    icon: <CalendarClock className="w-5 h-5" />,
-    title: "Macroeconomia",
-    body: "Calendário com CPI, NFP, decisões de juros e impacto por notícia — em um só lugar.",
-    className: "",
-  },
-  {
-    icon: <Brain className="w-5 h-5" />,
-    title: "Dexter",
-    body: "Analista que faz análise dos fundamentos até a tese final do ativo que você escolher.",
-    className: "",
-  },
-  {
-    icon: <History className="w-5 h-5" />,
-    title: "Backtest",
-    body: "Teste estratégias com dados reais. Retorno, taxa de acerto e drawdown — direto e sem jargão.",
-    className: "lg:col-span-2",
-    visual: <BacktestVisual />,
-  },
-  {
-    icon: <Shield className="w-5 h-5" />,
-    title: "Risk / Prop firms",
-    body: "Drawdown diário e total, profit target, dias operados. Alertas antes de quebrar regra.",
-    className: "",
-  },
-  {
-    icon: <GraduationCap className="w-5 h-5" />,
-    title: "Mentor",
-    body: "Acompanhe seus alunos. PnL, taxa de acerto e status de cada um, com alertas automáticos.",
-    className: "lg:col-span-2",
-  },
-];
-
-export function BentoFeatures() {
-  return (
-    <section className="py-16 lg:py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-10 lg:mb-14 text-center lg:text-left">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
-            Funcionalidades
+    <div className="mt-6 rounded-xl border border-border bg-muted/30 divide-y divide-border/40">
+      {events.map((e) => (
+        <div key={e.name} className="flex items-center justify-between px-3 py-2 text-[11px]">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-foreground">{e.time}</span>
+            <span className="text-base leading-none">{e.flag}</span>
+            <span className="text-foreground">{e.name}</span>
           </div>
-          <h2 className="text-[28px] lg:text-[40px] font-semibold leading-tight tracking-tight text-foreground max-w-xl">
-            Tudo que seu trading precisa.{" "}
-            <span className="text-muted-foreground italic font-normal">Num lugar só.</span>
-          </h2>
+          <span className="w-2 h-2 rounded-full bg-red-500" aria-hidden />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 lg:auto-rows-[minmax(180px,auto)]">
-          {CELLS.map((c) => (
-            <div
-              key={c.title}
-              className={
-                "rounded-[22px] p-6 border flex flex-col " +
-                (c.dark
-                  ? "bg-zinc-900 text-white border-zinc-800"
-                  : "bg-card text-foreground border-border") +
-                " " +
-                c.className
-              }
-            >
-              <div
+      ))}
+    </div>
+  );
+}
+
+function PropVisual({ labels }: { labels: { dd: string; pt: string } }) {
+  const bars = [
+    { label: labels.dd, left: "-2.1%", right: "-5.0%", pct: 42, tone: "red" as const },
+    { label: labels.pt, left: "+6.2%", right: "+8.0%", pct: 77, tone: "green" as const },
+  ];
+  return (
+    <div className="mt-6 space-y-3">
+      {bars.map((b) => (
+        <div key={b.label}>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-muted-foreground">{b.label}</span>
+            <span className="font-mono">
+              <span
                 className={
-                  "w-9 h-9 rounded-lg flex items-center justify-center mb-4 " +
-                  (c.dark ? "bg-zinc-800 text-zinc-300" : "bg-muted text-muted-foreground")
+                  "font-semibold " +
+                  (b.tone === "red" ? "text-red-500" : "text-emerald-600 dark:text-emerald-400")
                 }
               >
-                {c.icon}
-              </div>
-              <h3 className="text-[16px] font-semibold mb-1.5 tracking-tight">{c.title}</h3>
-              <p className={"text-[13px] leading-snug " + (c.dark ? "text-zinc-400" : "text-muted-foreground")}>
-                {c.body}
-              </p>
-              {c.visual}
-            </div>
-          ))}
+                {b.left}
+              </span>
+              <span className="text-muted-foreground"> / {b.right}</span>
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className={
+                "h-full rounded-full " + (b.tone === "red" ? "bg-red-500" : "bg-emerald-500")
+              }
+              style={{ width: `${b.pct}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Cell({
+  numeral,
+  label,
+  manifest,
+  visual,
+}: {
+  numeral: CellKey;
+  label: string;
+  manifest: string;
+  visual: ReactNode;
+}) {
+  return (
+    <div className="rounded-[22px] border border-border bg-card p-6 sm:p-8 flex flex-col">
+      <div className="flex items-center gap-3 mb-4">
+        <Numeral n={numeral} />
+        <span className="text-[12px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+          {label}
+        </span>
+      </div>
+      <p className="text-[20px] sm:text-[22px] lg:text-[24px] font-semibold leading-[1.25] tracking-tight text-foreground">
+        {manifest}
+      </p>
+      <div className="mt-auto pt-2">{visual}</div>
+    </div>
+  );
+}
+
+export function BentoFeatures() {
+  const t = useTranslations("bento");
+
+  return (
+    <section className="py-20 lg:py-28">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mb-12 lg:mb-16 max-w-2xl">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-mono mb-3">
+            {t("eyebrow")}
+          </div>
+          <h2 className="text-[28px] sm:text-[36px] lg:text-[44px] font-semibold leading-[1.1] tracking-tight text-foreground">
+            {t("heading")}{" "}
+            <span className="text-muted-foreground italic font-normal">{t("headingAccent")}</span>
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+          <Cell
+            numeral="01"
+            label={t("cell_01.label")}
+            manifest={t("cell_01.manifest")}
+            visual={<JournalVisual />}
+          />
+          <Cell
+            numeral="02"
+            label={t("cell_02.label")}
+            manifest={t("cell_02.manifest")}
+            visual={<DexterVisual quote={t("cell_02.visualQuote")} />}
+          />
+          <Cell
+            numeral="03"
+            label={t("cell_03.label")}
+            manifest={t("cell_03.manifest")}
+            visual={
+              <MacroVisual
+                labels={{
+                  cpi: t("cell_03.visualCpi"),
+                  ecb: t("cell_03.visualEcb"),
+                  nfp: t("cell_03.visualNfp"),
+                }}
+              />
+            }
+          />
+          <Cell
+            numeral="04"
+            label={t("cell_04.label")}
+            manifest={t("cell_04.manifest")}
+            visual={
+              <PropVisual
+                labels={{
+                  dd: t("cell_04.visualDd"),
+                  pt: t("cell_04.visualPt"),
+                }}
+              />
+            }
+          />
         </div>
       </div>
     </section>
