@@ -69,5 +69,87 @@
       "enriched": "Enriched",
       "indexed": "Indexed"
     }
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "heading": "Simple.",
+    "headingAccent": "No gotchas.",
+    "subhead": "Start free. Upgrade when it makes sense — no contract, no cancellation fee.",
+    "badges": {
+      "popular": "Most popular"
+    },
+    "comparison": {
+      "without": "Without wealth",
+      "with": "With wealth",
+      "row_01": {
+        "pain": "Spreadsheet filled in whenever you remember",
+        "fix": "MT5 import in 60 seconds, 10k trades per minute"
+      },
+      "row_02": {
+        "pain": "\"I think my win rate is around 60%\"",
+        "fix": "Live dashboard with real PnL, real WR, and equity curve"
+      },
+      "row_03": {
+        "pain": "\"Feels like I lose more on Thursdays\"",
+        "fix": "Dexter shows you the pattern you missed"
+      },
+      "row_04": {
+        "pain": "Prop firm breaks a rule without warning",
+        "fix": "Alert before you hit drawdown or target"
+      },
+      "row_05": {
+        "pain": "News catches you sleeping",
+        "fix": "Macro briefing every day, 7 AM"
+      }
+    },
+    "tiers": {
+      "priceSuffix": "/mo",
+      "free": {
+        "name": "Free",
+        "tagline": "Start logging. See the difference.",
+        "cta": "Start for free",
+        "features": {
+          "0": "10 trades logged — a taste of what real data feels like",
+          "1": "1 account connected (prop or personal)",
+          "2": "3 AI analyses per month",
+          "3": "MT5 import in one click",
+          "4": "Macro calendar so news never surprises you"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Your data, your analysis, your control.",
+        "cta": "Get Pro",
+        "features": {
+          "0": "All your trades, no row limit",
+          "1": "5 accounts in parallel (prop + personal + crypto)",
+          "2": "15 AI analyses per month — enough to evolve week by week",
+          "3": "12 recurring-mistake tags — see the pattern holding you back",
+          "4": "Live headlines so you never trade in the dark",
+          "5": "Macro briefing in your inbox every day at 7 AM",
+          "6": "Full performance dashboard + CSV export"
+        }
+      },
+      "ultra": {
+        "name": "Ultra",
+        "tagline": "Dexter full-time. Zero blind spots.",
+        "cta": "Get Ultra",
+        "features": {
+          "0": "Everything in Pro, plus:",
+          "1": "Unlimited accounts",
+          "2": "15 AI analyses per day — Dexter becomes your copilot",
+          "3": "Psychology tags + behavioral analysis",
+          "4": "Compare accounts side by side (find out which prop firm is actually good)",
+          "5": "Custom alerts so you never miss a setup",
+          "6": "MFE/MAE: learn where you exit too early",
+          "7": "Unlimited Dexter — ask as much as you want",
+          "8": "Priority support within 2 hours"
+        }
+      }
+    },
+    "cta": {
+      "primary": "See full comparison →",
+      "ghost": "Start for free"
+    }
   }
 }

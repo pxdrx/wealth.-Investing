@@ -69,5 +69,87 @@
       "enriched": "Enriquecidos",
       "indexed": "Indexados"
     }
+  },
+  "pricing": {
+    "eyebrow": "Preços",
+    "heading": "Simples.",
+    "headingAccent": "Sem pegadinha.",
+    "subhead": "Comece grátis. Faça upgrade quando fizer sentido — sem contrato, sem multa de cancelamento.",
+    "badges": {
+      "popular": "Mais popular"
+    },
+    "comparison": {
+      "without": "Sem wealth",
+      "with": "Com wealth",
+      "row_01": {
+        "pain": "Planilha preenchida quando lembra",
+        "fix": "Import MT5 em 60 segundos, 10 mil trades por minuto"
+      },
+      "row_02": {
+        "pain": "\"Acho que meu win rate é uns 60%\"",
+        "fix": "Dashboard vivo com PnL real, WR real e curva de capital"
+      },
+      "row_03": {
+        "pain": "\"Parece que perco mais nas quintas\"",
+        "fix": "Dexter te mostra o padrão que você não viu"
+      },
+      "row_04": {
+        "pain": "Prop firm quebra regra sem aviso",
+        "fix": "Alerta antes de bater drawdown ou meta"
+      },
+      "row_05": {
+        "pain": "News pega você dormindo",
+        "fix": "Briefing macro todo dia, 7h da manhã"
+      }
+    },
+    "tiers": {
+      "priceSuffix": "/mês",
+      "free": {
+        "name": "Grátis",
+        "tagline": "Comece a registrar. Veja a diferença.",
+        "cta": "Começar grátis",
+        "features": {
+          "0": "10 trades registrados — gostinho de como é ter dado",
+          "1": "1 conta conectada (prop ou pessoal)",
+          "2": "3 análises de IA no mês",
+          "3": "Import MT5 num clique",
+          "4": "Calendário macro pra não tomar news de susto"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Seus dados, sua análise, seu controle.",
+        "cta": "Assinar Pro",
+        "features": {
+          "0": "Todos os seus trades sem limite de linhas",
+          "1": "5 contas em paralelo (prop + pessoal + cripto)",
+          "2": "15 análises de IA por mês — evolua semana a semana",
+          "3": "Tags de 12 erros recorrentes — você vê o padrão que te segura",
+          "4": "Headlines ao vivo pra nunca operar no escuro",
+          "5": "Briefing macro todo dia no seu email, 7h da manhã",
+          "6": "Dashboard completo de performance + export CSV"
+        }
+      },
+      "ultra": {
+        "name": "Ultra",
+        "tagline": "Dexter full-time. Zero ponto cego.",
+        "cta": "Assinar Ultra",
+        "features": {
+          "0": "Tudo do Pro, mais:",
+          "1": "Contas ilimitadas",
+          "2": "15 análises de IA por dia — Dexter vira seu copiloto",
+          "3": "Tags de psicologia + análise comportamental",
+          "4": "Comparar contas lado a lado (qual prop firm é boa mesmo)",
+          "5": "Alertas customizados pra não perder setup",
+          "6": "MFE/MAE: descobre onde você sai cedo",
+          "7": "Dexter ilimitado — pergunte o quanto quiser",
+          "8": "Suporte prioritário em até 2h"
+        }
+      }
+    },
+    "cta": {
+      "primary": "Ver comparação completa →",
+      "ghost": "Começar grátis"
+    }
   }
 }
