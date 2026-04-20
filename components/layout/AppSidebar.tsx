@@ -3,13 +3,23 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   LogOut,
   ChevronLeft,
   ChevronRight,
   Sparkles,
   Crown,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { usePrivacy } from "@/components/context/PrivacyContext";
+
+// StreakBadge only mounts client-side (depends on supabase) — dynamic to avoid SSR cost.
+const StreakBadge = dynamic(
+  () => import("@/components/dashboard/StreakBadge").then((m) => ({ default: m.StreakBadge })),
+  { ssr: false },
+);
 import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { getMyProfile } from "@/lib/profile";
@@ -36,8 +46,10 @@ function AppSidebarInner() {
   const [collapsed, setCollapsed] = useState(false);
   const [hasSession, setHasSession] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const { plan, isProOrAbove } = useEntitlements();
+  const { hidden: valuesHidden, toggle: togglePrivacy } = usePrivacy();
   const roles = useAppRoles();
 
   const navLinks = getAppNav({
@@ -96,6 +108,7 @@ function AppSidebarInner() {
         return;
       }
       setHasSession(true);
+      setUserId(session.user.id);
       try {
         const profile = await getMyProfile();
         const name = profile?.display_name?.trim();
@@ -138,6 +151,7 @@ function AppSidebarInner() {
         load();
       } else if (event === "SIGNED_OUT") {
         setDisplayName(null);
+        setUserId(null);
         setHasSession(false);
         loaded = false;
       }
@@ -300,6 +314,19 @@ function AppSidebarInner() {
           })}
 
           <button
+            onClick={togglePrivacy}
+            title={collapsed ? (valuesHidden ? "Mostrar valores" : "Ocultar valores") : undefined}
+            className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 w-full"
+          >
+            {valuesHidden ? <EyeOff className="h-4 w-4 shrink-0" /> : <Eye className="h-4 w-4 shrink-0" />}
+            {!collapsed && (
+              <span className="text-sm font-medium">
+                {valuesHidden ? "Mostrar valores" : "Ocultar valores"}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => { emit("logout_clicked", { surface: "sidebar" }); logout(); }}
             title={collapsed ? "Sair" : undefined}
             className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 w-full"
@@ -328,6 +355,7 @@ function AppSidebarInner() {
                     {!profileLoading && (
                       <SubscriptionBadge className="text-[9px] h-4 leading-none flex items-center px-1.5" />
                     )}
+                    <StreakBadge userId={userId} />
                   </div>
                   <span className="truncate text-[10px] text-muted-foreground uppercase tracking-widest">
                     Terminal {plan === 'mentor' ? 'Mentor' : plan === 'ultra' ? 'Ultra' : plan === 'pro' ? 'Pro' : 'Free'}

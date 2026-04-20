@@ -1,8 +1,19 @@
 // app/app/macro/page.tsx
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Globe, RefreshCw, CalendarDays, FileText, AlertTriangle, Clock } from "lucide-react";
+
+// Relocated from /app home (C-05) — compact macro widgets above the full terminal.
+const MacroWidgetBriefing = dynamic(
+  () => import("@/components/macro/MacroWidgetBriefing").then((m) => ({ default: m.MacroWidgetBriefing })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const MacroWidgetEvents = dynamic(
+  () => import("@/components/macro/MacroWidgetEvents").then((m) => ({ default: m.MacroWidgetEvents })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -567,6 +578,12 @@ export default function MacroIntelligencePage() {
           <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           {refreshing ? "Atualizando..." : "Atualizar"}
         </Button>
+      </div>
+
+      {/* Compact macro snapshot (relocated from /app home — C-05) */}
+      <div className="mb-6 grid gap-4 md:grid-cols-2 shrink-0">
+        <MacroWidgetBriefing />
+        <MacroWidgetEvents />
       </div>
 
       {/* Confirmation Dialog */}

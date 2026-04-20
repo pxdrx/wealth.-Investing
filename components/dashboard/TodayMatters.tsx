@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { getMyProfile } from "@/lib/profile";
+// TODO(A-02): replace lib/greetings with lib/brand/voice.getGreeting once Track A lands.
+import { getGreeting, getDashboardSubtitle } from "@/lib/greetings";
 
 type Mood = "default" | "thinking" | "alert" | "celebrating";
 
@@ -61,9 +64,24 @@ function freshnessLabel(generatedAt: string): string | null {
   return `atualizado há ${hours}h`;
 }
 
+function getFirstName(displayName: string | null): string | null {
+  if (!displayName) return null;
+  const first = displayName.trim().split(/\s+/)[0];
+  return first || null;
+}
+
 export function TodayMatters() {
   const { hasAccess, plan } = useEntitlements();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  // Tick greeting every minute so "Bom dia/tarde/noite" flips at the right hour.
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,6 +91,13 @@ export function TodayMatters() {
       if (!session) {
         setState({ kind: "error" });
         return;
+      }
+      setUserId(session.user.id);
+      try {
+        const profile = await getMyProfile();
+        if (!cancelled) setDisplayName(profile?.display_name?.trim() ?? null);
+      } catch {
+        // silent — greeting falls back to no-name variant
       }
       try {
         const res = await fetch("/api/dexter/today", {
@@ -110,18 +135,32 @@ export function TodayMatters() {
 
   if (!hasAccess("dexterTodayCard")) return null;
 
+  const firstName = getFirstName(displayName);
+  const greetingText = firstName
+    ? `${getGreeting(now, userId)}, ${firstName}`
+    : getGreeting(now, userId);
+  const subtitleText = getDashboardSubtitle(now, userId);
+
   return (
-    <section
-      aria-label="Hoje, isso importa"
-      className="w-full rounded-[22px] border p-6 md:p-8"
-      style={{
-        backgroundColor: "hsl(220 8% 10%)",
-        borderColor: "hsl(220 6% 18%)",
-        color: "hsl(0 0% 98%)",
-      }}
-    >
-      <Content state={state} planFree={plan === "free"} />
-    </section>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+          {greetingText}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">{subtitleText}</p>
+      </div>
+      <section
+        aria-label="Hoje, isso importa"
+        className="w-full rounded-[22px] border p-6 md:p-8"
+        style={{
+          backgroundColor: "hsl(220 8% 10%)",
+          borderColor: "hsl(220 6% 18%)",
+          color: "hsl(0 0% 98%)",
+        }}
+      >
+        <Content state={state} planFree={plan === "free"} />
+      </section>
+    </div>
   );
 }
 
