@@ -97,6 +97,51 @@
       "metricLabel": "em 30 dias"
     }
   },
+  "faq": {
+    "eyebrow": "Perguntas que você já fez",
+    "heading": "O que trava você antes de começar.",
+    "headingAccent": "Respondido.",
+    "q_01": {
+      "q": "Funciona com MT4?",
+      "a": "Import de MT4 ainda não está estável. Está no roadmap. Hoje o foco é MT5 (XLSX e HTML) e, pra quem opera em corretora americana, NinjaTrader via CSV."
+    },
+    "q_02": {
+      "q": "Posso cancelar a qualquer momento?",
+      "a": "Sim. Cancela no portal do Stripe em 1 clique. Sem multa, sem fidelidade. Você mantém acesso até o fim do ciclo pago."
+    },
+    "q_03": {
+      "q": "Meus dados estão seguros?",
+      "a": "Sim. Tudo roda em Supabase com Row Level Security — só você vê suas operações. Nunca pedimos credencial da sua corretora. Pagamentos são processados pela Stripe (PCI Level 1)."
+    },
+    "q_04": {
+      "q": "Qual a diferença pra Tradezella ou Edgewonk?",
+      "a": "Preço em real, suporte em português e uma IA de verdade (Dexter) que lê seu histórico e te aponta padrão — não só gráficos bonitos. Também integração direta com prop firms e calendário macro."
+    },
+    "q_05": {
+      "q": "Funciona com as principais prop firms?",
+      "a": "Sim. The5ers e FTMO já têm painéis dedicados com regras em tempo real. Outras firmas (FundedNext, Topstep, Apex, MyForexFunds) funcionam via import padrão de MT5 — painel específico chega conforme demanda."
+    },
+    "q_06": {
+      "q": "Preciso saber inglês?",
+      "a": "Não. Plataforma toda em português, incluindo o briefing macroeconômico, tags e Dexter. Inglês é opcional (toggle na interface)."
+    },
+    "q_07": {
+      "q": "Preciso conectar minha conta MT5 à nuvem?",
+      "a": "Não. Você faz upload do relatório XLSX/HTML que o MT5 já gera localmente. Nenhuma credencial de corretora passa pelos nossos servidores."
+    },
+    "q_08": {
+      "q": "E se eu opero em várias contas?",
+      "a": "Pro suporta 5 contas simultâneas (prop + pessoal + cripto). Ultra é ilimitado. Você pode comparar contas lado a lado e separar métricas por firma."
+    },
+    "q_09": {
+      "q": "O Dexter substitui um mentor?",
+      "a": "Não. Dexter analisa o seu histórico e aponta padrão — mentor humano ensina estratégia e corrige psicologia ao vivo. Um complementa o outro."
+    },
+    "q_10": {
+      "q": "Tenho garantia de retorno?",
+      "a": "Não. Ninguém sério garante retorno em trading. O que garantimos é a ferramenta: se não fizer sentido no seu fluxo, cancela e fim. Não fazemos promessa que não conseguimos cumprir."
+    }
+  },
   "pricing": {
     "eyebrow": "Preços",
     "heading": "Simples.",
