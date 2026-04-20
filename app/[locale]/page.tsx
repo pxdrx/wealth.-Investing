@@ -4,6 +4,7 @@ import { SocialProof } from "@/components/landing/SocialProof";
 import { BentoFeatures } from "@/components/landing/BentoFeatures";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PricingSummary } from "@/components/landing/PricingSummary";
+import { Testimonial } from "@/components/landing/Testimonial";
 import { getCommunityStats } from "@/lib/community-stats";
 
 export const revalidate = 3600;
@@ -22,7 +23,7 @@ export default async function LandingPage({
       <BentoFeatures />
       <HowItWorks />
       <PricingSummary />
-      {/* TODO(B-07): <Testimonials /> */}
+      <Testimonial />
       {/* TODO(B-08): <FAQ /> */}
       {/* TODO(B-13): <ExitIntentModal /> + <StickyMobileCta /> */}
     </>

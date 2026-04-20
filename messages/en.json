@@ -70,6 +70,33 @@
       "indexed": "Indexed"
     }
   },
+  "testimonials": {
+    "eyebrow": "Traders already on it",
+    "heading": "Real traders, their words.",
+    "headingAccent": "Coming here soon.",
+    "placeholderLabel": "PLACEHOLDER",
+    "slot_01": {
+      "quote": "[trader 01 quote here — replace with real @handle quote when available]",
+      "name": "[First Last]",
+      "handle": "@handle",
+      "metric": "+00%",
+      "metricLabel": "in 30 days"
+    },
+    "slot_02": {
+      "quote": "[trader 02 quote here — replace with real quote]",
+      "name": "[First Last]",
+      "handle": "@handle",
+      "metric": "+00%",
+      "metricLabel": "in 30 days"
+    },
+    "slot_03": {
+      "quote": "[trader 03 quote here — replace with real quote]",
+      "name": "[First Last]",
+      "handle": "@handle",
+      "metric": "+00%",
+      "metricLabel": "in 30 days"
+    }
+  },
   "pricing": {
     "eyebrow": "Pricing",
     "heading": "Simple.",
