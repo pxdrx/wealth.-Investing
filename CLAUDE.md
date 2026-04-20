@@ -156,6 +156,11 @@ On first login, `ensureDefaultAccounts()` creates 4 accounts per user:
 6. Never remove existing code without confirming
 7. Always type correctly — zero `any`
 8. Confirm before creating/altering Supabase tables or RLS policies
+9. **Self-review before delivery** — before sending ANY response back to the
+   user, re-read the full user prompt and confirm every explicit ask was
+   addressed. If the prompt has multiple asks (e.g. "faz X e Y e Z"),
+   enumerate them mentally and verify each was handled. Never stop
+   mid-prompt because one ask was satisfied.
 
 ---
 
