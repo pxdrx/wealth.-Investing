@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { Briefcase, Wallet, Bitcoin, Building2, ChevronLeft, Check, Upload, FlaskConical, Crown } from "lucide-react";
 import type { AccountKind } from "@/lib/accounts";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import Link from "next/link";
 
 interface AddAccountModalProps {
@@ -144,7 +144,7 @@ const PROP_FIRMS: PropFirmPreset[] = [
 const ACCOUNT_SIZES = [5000, 10000, 25000, 50000, 100000, 200000];
 
 export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefreshAccounts, defaultKind }: AddAccountModalProps) {
-  const { limits, plan } = useSubscription();
+  const { limits, plan } = useEntitlements();
   const [cachedUserId, setCachedUserId] = useState<string | null>(null);
   const [step, setStep] = useState<Step>(defaultKind ? "details" : "type");
   const [accountKind, setAccountKind] = useState<AccountKind | null>(defaultKind ?? null);

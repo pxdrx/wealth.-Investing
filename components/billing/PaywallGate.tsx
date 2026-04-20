@@ -1,6 +1,6 @@
 "use client";
 
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { Crown } from "lucide-react";
 import Link from "next/link";
 
@@ -77,7 +77,7 @@ function DefaultFallback({ requiredPlan, compact = false }: { requiredPlan: "pro
 }
 
 export function PaywallGate({ requiredPlan, children, fallback, blurContent = false }: PaywallGateProps) {
-  const { plan, isLoading } = useSubscription();
+  const { plan, isLoading } = useEntitlements();
 
   // While loading, show children optimistically to avoid flash of paywall.
   // This prevents the "Pro overlay on Ultra user" bug during subscription re-fetch.

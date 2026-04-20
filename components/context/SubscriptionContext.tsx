@@ -1,11 +1,12 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import { fetchMySubscription, getTierLimits, isProOrAbove, isUltra, isMentor } from "@/lib/subscription";
 import type { Plan, SubscriptionRow, TierLimits } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useAuthEvent } from "@/components/context/AuthEventContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 
 interface SubscriptionContextValue {
   plan: Plan;
@@ -19,7 +20,7 @@ interface SubscriptionContextValue {
   refreshSubscription: () => Promise<void>;
 }
 
-const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
+export const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
 
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
@@ -121,20 +122,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   );
 }
 
+/**
+ * @deprecated Use `useEntitlements` from `@/hooks/use-entitlements` instead.
+ * Kept as a thin wrapper for backwards-compat during Track A/B rebases.
+ * Scheduled for removal in C-11 cleanup once all consumers migrate.
+ */
 export function useSubscription(): SubscriptionContextValue {
-  const ctx = useContext(SubscriptionContext);
-  if (!ctx) {
-    return {
-      plan: "free",
-      status: "active",
-      subscription: null,
-      limits: getTierLimits("free"),
-      isProOrAbove: false,
-      isUltra: false,
-      isMentor: false,
-      isLoading: false,
-      refreshSubscription: async () => {},
-    };
-  }
-  return ctx;
+  const { hasAccess: _hasAccess, ...rest } = useEntitlements();
+  return rest;
 }

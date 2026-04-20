@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { safeGetSession } from "@/lib/supabase/safe-session";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 
 export interface AppRoles {
   isMentor: boolean;
@@ -18,7 +18,7 @@ export interface AppRoles {
 // isMentor comes from the subscription plan (already cached in context);
 // isLinkedStudent and isAdmin hit their respective API routes once per mount.
 export function useAppRoles(): AppRoles {
-  const { isMentor } = useSubscription();
+  const { isMentor } = useEntitlements();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLinkedStudent, setIsLinkedStudent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

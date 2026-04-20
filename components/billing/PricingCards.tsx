@@ -5,7 +5,7 @@ import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
 import { Check, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import type { Plan } from "@/lib/subscription";
 
@@ -140,7 +140,7 @@ function getButtonState(
 export function PricingCards() {
   const [annual, setAnnual] = useState(false);
   const [loadingTier, setLoadingTier] = useState<Plan | null>(null);
-  const { plan: currentPlan, subscription } = useSubscription();
+  const { plan: currentPlan, subscription } = useEntitlements();
 
   const currentInterval = subscription?.billing_interval ?? null;
 

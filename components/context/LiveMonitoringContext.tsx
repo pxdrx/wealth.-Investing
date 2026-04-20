@@ -4,7 +4,7 @@ import React, { createContext, useContext } from "react";
 import { useLiveMonitoring } from "@/hooks/useLiveMonitoring";
 import type { LiveMonitoringState, ActiveAlert } from "@/hooks/useLiveMonitoring";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 
 interface LiveMonitoringContextValue extends LiveMonitoringState {
   refresh: () => Promise<void>;
@@ -17,7 +17,7 @@ const LiveMonitoringContext = createContext<LiveMonitoringContextValue | null>(n
 
 export function LiveMonitoringProvider({ children }: { children: React.ReactNode }) {
   const { activeAccountId, accounts } = useActiveAccount();
-  const { isUltra } = useSubscription();
+  const { isUltra } = useEntitlements();
 
   // Only monitor prop accounts for Ultra users
   const activeAccount = accounts.find((a) => a.id === activeAccountId);
