@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { SmartCTALink } from "./SmartCTALink";
+import { HeroPrimaryCta, HeroGhostCta } from "./HeroCta";
 
 export function Hero({ socialProof }: { socialProof?: ReactNode }) {
   const t = useTranslations("hero");
@@ -24,15 +23,15 @@ export function Hero({ socialProof }: { socialProof?: ReactNode }) {
           {t("sub")}
         </p>
         <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
-          <SmartCTALink className="inline-flex items-center justify-center rounded-full bg-zinc-900 text-white px-6 py-3 text-[14px] sm:text-[15px] font-medium hover:bg-zinc-800 transition-colors min-h-[48px] w-full sm:w-auto">
+          <HeroPrimaryCta className="inline-flex items-center justify-center rounded-full bg-zinc-900 text-white px-6 py-3 text-[14px] sm:text-[15px] font-medium hover:bg-zinc-800 transition-colors min-h-[48px] w-full sm:w-auto">
             {t("ctaPrimary")}
-          </SmartCTALink>
-          <Link
+          </HeroPrimaryCta>
+          <HeroGhostCta
             href="#how-it-works"
             className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground px-4 py-3 text-[14px] sm:text-[15px] transition-colors min-h-[48px] w-full sm:w-auto"
           >
             {t("ctaGhost")}
-          </Link>
+          </HeroGhostCta>
         </div>
         {socialProof}
       </div>

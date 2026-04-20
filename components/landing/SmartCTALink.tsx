@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type MouseEventHandler, type ReactNode } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
@@ -15,12 +15,14 @@ export function SmartCTALink({
   appHref = "/app",
   loggedOutHref = "/login",
   "aria-label": ariaLabel,
+  onClick,
 }: {
   children: ReactNode;
   className?: string;
   appHref?: string;
   loggedOutHref?: string;
   "aria-label"?: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   const [href, setHref] = useState<string>(loggedOutHref);
 
@@ -41,7 +43,7 @@ export function SmartCTALink({
   }, [appHref, loggedOutHref]);
 
   return (
-    <Link href={href} className={className} aria-label={ariaLabel}>
+    <Link href={href} className={className} aria-label={ariaLabel} onClick={onClick}>
       {children}
     </Link>
   );

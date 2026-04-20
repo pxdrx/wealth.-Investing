@@ -6,6 +6,7 @@ import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PricingSummary } from "@/components/landing/PricingSummary";
 import { Testimonial } from "@/components/landing/Testimonial";
 import { FAQ } from "@/components/landing/FAQ";
+import { LandingAnalytics } from "@/components/landing/LandingAnalytics";
 import { getCommunityStats } from "@/lib/community-stats";
 
 export const revalidate = 3600;
@@ -20,6 +21,7 @@ export default async function LandingPage({
 
   return (
     <>
+      <LandingAnalytics locale={params.locale} />
       <Hero socialProof={<SocialProof {...stats} />} />
       <BentoFeatures />
       <HowItWorks />
