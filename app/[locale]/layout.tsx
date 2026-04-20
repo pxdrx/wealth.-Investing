@@ -1,32 +1,36 @@
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { routing, type Locale } from "@/i18n";
+import { routing } from "@/i18n";
+import { Navbar } from "@/components/landing/Navbar";
+import { Footer } from "@/components/landing/Footer";
 
+// html/body live in the root app/layout.tsx. When B-12 migrates public routes
+// into [locale], the root layout will move here and emit <html lang={locale}>.
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
-}
-
-interface LocaleLayoutProps {
-  children: React.ReactNode;
-  params: Promise<{ locale: string }>;
 }
 
 export default async function LocaleLayout({
   children,
   params,
-}: LocaleLayoutProps) {
-  const { locale } = await params;
+}: {
+  children: React.ReactNode;
+  params: { locale: string };
+}) {
+  const { locale } = params;
   if (!(routing.locales as readonly string[]).includes(locale)) {
     notFound();
   }
 
-  setRequestLocale(locale as Locale);
+  setRequestLocale(locale);
   const messages = await getMessages();
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      {children}
+      <Navbar />
+      <main>{children}</main>
+      <Footer />
     </NextIntlClientProvider>
   );
 }
