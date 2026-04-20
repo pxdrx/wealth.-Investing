@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SmartCTALink } from "./SmartCTALink";
 import { PricingComparison } from "./PricingComparison";
+import { PricingViewAnalytics } from "./PricingViewAnalytics";
 
 // Prices kept in sync with components/billing/PricingCards.tsx (track C).
 // TODO(post-B): extract tier data to lib/pricing/tiers.ts — coord w/ Track C.
@@ -26,6 +27,7 @@ export function PricingSummary() {
 
   return (
     <section className="py-20 lg:py-28 border-t border-border/60">
+      <PricingViewAnalytics />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-10 max-w-2xl">
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-mono mb-3">
