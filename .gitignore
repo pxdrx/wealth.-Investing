@@ -73,6 +73,7 @@ skills-lock.json
 # Local experiments / scratch (never deploy)
 ralph-claude-code/
 dexter/
+!app/api/dexter/
 posts/
 skills/
 forexfactory-ESSENCIAL/

@@ -48,7 +48,8 @@ export type Feature =
   | "regenerateReport"
   | "liveMonitoring"
   | "customAlerts"
-  | "prioritySupport";
+  | "prioritySupport"
+  | "dexterTodayCard";
 
 const FEATURE_TO_LIMIT_KEY: Record<Feature, keyof TierLimits> = {
   dashboardOverview: "hasDashboardOverview",
@@ -66,6 +67,7 @@ const FEATURE_TO_LIMIT_KEY: Record<Feature, keyof TierLimits> = {
   liveMonitoring: "hasLiveMonitoring",
   customAlerts: "hasCustomAlerts",
   prioritySupport: "hasPrioritySupport",
+  dexterTodayCard: "hasDexterTodayCard",
 };
 
 export function hasAccess(plan: Plan, feature: Feature): boolean {
