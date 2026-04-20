@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans, Manrope } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -34,7 +34,15 @@ export const metadata: Metadata = {
   title: "wealth.Investing — Consistência baseada em dados para traders",
   description:
     "Plataforma de analytics, journaling e gestão de risco para traders que querem consistência, controle e evolução baseada em dados reais.",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16.png", type: "image/png", sizes: "16x16" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     title: "wealth.Investing — Consistência baseada em dados para traders",
     description:
@@ -61,6 +69,10 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#2DB469",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -83,7 +95,6 @@ export default function RootLayout({
             `,
           }}
         />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body
         className={`${inter.variable} ${jetbrains.variable} ${jakarta.variable} ${manrope.variable} relative min-h-screen font-sans antialiased`}
