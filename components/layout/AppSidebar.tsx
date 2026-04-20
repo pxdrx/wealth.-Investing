@@ -59,7 +59,7 @@ function AppSidebarInner() {
   });
 
   const [coachConversations, setCoachConversations] = useState<SidebarConversation[]>([]);
-  const isOnCoachPage = pathname?.startsWith("/app/ai-coach") ?? false;
+  const isOnCoachPage = pathname?.startsWith("/app/dexter/coach") ?? false;
 
   // Load AI Coach conversations when on coach page
   useEffect(() => {
@@ -224,15 +224,15 @@ function AppSidebarInner() {
                 </span>
               )}
             </Link>
-            {/* AI Coach conversation sub-items */}
-            {link.href === "/app/ai-coach" && isOnCoachPage && !collapsed && coachConversations.length > 0 && (
+            {/* Dexter Coach conversation sub-items */}
+            {link.href === "/app/dexter" && isOnCoachPage && !collapsed && coachConversations.length > 0 && (
               <div className="ml-8 space-y-0.5 mt-1 mb-1">
                 {coachConversations.map((conv) => {
                   const isActiveConv = isOnCoachPage && searchParams.get("chat") === conv.id;
                   return (
                     <Link
                       key={conv.id}
-                      href={`/app/ai-coach?chat=${conv.id}`}
+                      href={`/app/dexter/coach?chat=${conv.id}`}
                       className={cn(
                         "block text-xs truncate py-1 px-2 rounded-lg transition-colors",
                         isActiveConv

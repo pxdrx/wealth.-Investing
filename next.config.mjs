@@ -11,6 +11,21 @@ const nextConfig = {
     return config;
   },
 
+  async redirects() {
+    // C-06: unified /app/dexter replaces /ai-coach + /analyst.
+    // 308 preserves method + query string. Legacy ?chat=<id> flows through.
+    return [
+      { source: "/ai-coach",            destination: "/app/dexter/coach",   permanent: true },
+      { source: "/ai-coach/:path*",     destination: "/app/dexter/coach",   permanent: true },
+      { source: "/app/ai-coach",        destination: "/app/dexter/coach",   permanent: true },
+      { source: "/app/ai-coach/:path*", destination: "/app/dexter/coach",   permanent: true },
+      { source: "/analyst",             destination: "/app/dexter/analyst", permanent: true },
+      { source: "/analyst/:path*",      destination: "/app/dexter/analyst", permanent: true },
+      { source: "/app/analyst",         destination: "/app/dexter/analyst", permanent: true },
+      { source: "/app/analyst/:path*",  destination: "/app/dexter/analyst", permanent: true },
+    ];
+  },
+
   async headers() {
     return [
       {

@@ -74,6 +74,7 @@ skills-lock.json
 ralph-claude-code/
 dexter/
 !app/api/dexter/
+!app/app/dexter/
 posts/
 skills/
 forexfactory-ESSENCIAL/
