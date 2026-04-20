@@ -3,6 +3,10 @@
     "locale": "en",
     "note": "Populated incrementally by Track B tasks B-02 to B-13. Final pass in B-14."
   },
+  "seo": {
+    "title": "wealth.Investing — Stop trading in the dark",
+    "description": "Automated trade journal, an AI that reads your history, a macro calendar, and prop-firm risk tracking. No spreadsheet. No guessing."
+  },
   "hero": {
     "headline": "Stop trading in the dark.",
     "sub": "Where your trades become data, your data becomes patterns, and your patterns become decisions.",

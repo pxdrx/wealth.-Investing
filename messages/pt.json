@@ -3,6 +3,10 @@
     "locale": "pt",
     "note": "Populated incrementally by Track B tasks B-02 to B-13. Final pass in B-14."
   },
+  "seo": {
+    "title": "wealth.Investing — Pare de operar no escuro",
+    "description": "Journal automatizado, IA que lê seu histórico, calendário macroeconômico e gestão de risco para prop firms. Sem planilha. Sem achismo."
+  },
   "hero": {
     "headline": "Pare de operar no escuro.",
     "sub": "wealth é onde seus trades viram dados, seus dados viram padrão, e seus padrões viram decisão. Sem planilha. Sem achismo.",
