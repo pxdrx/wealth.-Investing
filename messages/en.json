@@ -8,5 +8,10 @@
     "sub": "Where your trades become data, your data becomes patterns, and your patterns become decisions.",
     "ctaPrimary": "Connect your MT5 in 60 seconds",
     "ctaGhost": "See how it works"
+  },
+  "socialProof": {
+    "trades": "{n} trades imported",
+    "activeTraders": "{n} active traders in the last 30 days",
+    "volume": "{n} of volume analyzed"
   }
 }
