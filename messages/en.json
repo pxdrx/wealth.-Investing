@@ -97,6 +97,51 @@
       "metricLabel": "in 30 days"
     }
   },
+  "faq": {
+    "eyebrow": "Questions you've already asked",
+    "heading": "What holds you back before you start.",
+    "headingAccent": "Answered.",
+    "q_01": {
+      "q": "Does it work with MT4?",
+      "a": "MT4 import isn't stable yet — it's on the roadmap. Today the focus is MT5 (XLSX and HTML) and NinjaTrader via CSV for US brokers."
+    },
+    "q_02": {
+      "q": "Can I cancel anytime?",
+      "a": "Yes. One click in the Stripe portal. No fee, no lock-in. You keep access until the end of your paid cycle."
+    },
+    "q_03": {
+      "q": "Is my data safe?",
+      "a": "Yes. Everything runs on Supabase with Row Level Security — only you see your trades. We never ask for your broker credentials. Payments are processed by Stripe (PCI Level 1)."
+    },
+    "q_04": {
+      "q": "How is this different from Tradezella or Edgewonk?",
+      "a": "Pricing in your currency, Portuguese-first support, and a real AI (Dexter) that reads your history and shows you patterns — not just pretty charts. Plus direct prop-firm integration and a macro calendar."
+    },
+    "q_05": {
+      "q": "Does it work with major prop firms?",
+      "a": "Yes. The5ers and FTMO already have dedicated panels with real-time rule tracking. Other firms (FundedNext, Topstep, Apex, MyForexFunds) work via the standard MT5 import — dedicated panels land as demand ramps up."
+    },
+    "q_06": {
+      "q": "Do I need to speak English?",
+      "a": "No. The entire platform is available in Portuguese — including the macro briefing, tags, and Dexter. English is optional (toggle in the UI)."
+    },
+    "q_07": {
+      "q": "Do I have to connect my MT5 to the cloud?",
+      "a": "No. You upload the XLSX/HTML report MT5 already generates locally. No broker credentials ever touch our servers."
+    },
+    "q_08": {
+      "q": "What if I trade multiple accounts?",
+      "a": "Pro supports 5 simultaneous accounts (prop + personal + crypto). Ultra is unlimited. You can compare accounts side by side and split metrics by firm."
+    },
+    "q_09": {
+      "q": "Does Dexter replace a mentor?",
+      "a": "No. Dexter analyzes your history and surfaces patterns — a human mentor teaches strategy and corrects psychology in real time. They complement each other."
+    },
+    "q_10": {
+      "q": "Do I have a return guarantee?",
+      "a": "No. Nobody serious guarantees trading returns. What we guarantee is the tool: if it doesn't fit your workflow, you cancel and move on. No promises we can't keep."
+    }
+  },
   "pricing": {
     "eyebrow": "Pricing",
     "heading": "Simple.",

@@ -5,6 +5,7 @@ import { BentoFeatures } from "@/components/landing/BentoFeatures";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PricingSummary } from "@/components/landing/PricingSummary";
 import { Testimonial } from "@/components/landing/Testimonial";
+import { FAQ } from "@/components/landing/FAQ";
 import { getCommunityStats } from "@/lib/community-stats";
 
 export const revalidate = 3600;
@@ -24,7 +25,7 @@ export default async function LandingPage({
       <HowItWorks />
       <PricingSummary />
       <Testimonial />
-      {/* TODO(B-08): <FAQ /> */}
+      <FAQ />
       {/* TODO(B-13): <ExitIntentModal /> + <StickyMobileCta /> */}
     </>
   );
