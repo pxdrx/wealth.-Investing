@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp, Activity, Globe, Siren } from "lucide-react";
+import { Newspaper, RefreshCw, Megaphone, Zap, TrendingUp, Activity, Globe, Siren, Droplet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
 import { sortHeadlinesByTier, getHeadlineTier } from "@/lib/macro/headline-filter";
@@ -16,7 +16,7 @@ interface HeadlinesFeedProps {
   refreshing?: boolean;
 }
 
-type SourceFilter = "all" | "forexlive" | "reuters" | "truth_social" | "trading_economics" | "te_breaking";
+type SourceFilter = "all" | "forexlive" | "reuters" | "truth_social" | "trading_economics" | "financial_juice";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -71,6 +71,14 @@ function SourceBadge({ source }: { source: string }) {
       </span>
     );
   }
+  if (source === "financial_juice") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+        <Droplet className="w-2.5 h-2.5" />
+        FinancialJuice
+      </span>
+    );
+  }
   // Fallback
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
@@ -91,7 +99,7 @@ function BreakingDot() {
 
 const FILTER_OPTIONS: { key: SourceFilter; label: string }[] = [
   { key: "all", label: "Todos" },
-  { key: "te_breaking", label: "Breaking" },
+  { key: "financial_juice", label: "FinancialJuice" },
   { key: "truth_social", label: "Trump" },
   { key: "trading_economics", label: "Trading Economics" },
   { key: "reuters", label: "Reuters" },
@@ -105,6 +113,7 @@ function getBorderClass(source: string, isBreaking: boolean): string {
     case "reuters": return "border-l-4 border-blue-500 pl-3";
     case "truth_social": return "border-l-4 border-purple-500 pl-3";
     case "trading_economics": return "border-l-4 border-emerald-500 pl-3";
+    case "financial_juice": return "border-l-4 border-amber-500 pl-3";
     default: return "border-l-4 border-border pl-3";
   }
 }
