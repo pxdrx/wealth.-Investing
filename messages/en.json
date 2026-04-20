@@ -40,5 +40,34 @@
       "visualDd": "Daily drawdown",
       "visualPt": "Profit target"
     }
+  },
+  "howItWorks": {
+    "eyebrow": "How it works",
+    "heading": "Three steps.",
+    "headingAccent": "Zero friction.",
+    "step_01": {
+      "title": "Connect your MT5 in 60 seconds",
+      "body": "No plugin, no broker credentials. Connect by account number or upload an XLSX/HTML report."
+    },
+    "step_02": {
+      "title": "wealth reads your entire history",
+      "body": "Every trade gets parsed, enriched with macro context, and indexed in seconds. Ten thousand orders in under a minute."
+    },
+    "step_03": {
+      "title": "Dexter tells you what you missed",
+      "body": "Patterns, winning setups, toxic hours, recurring mistakes. The insight your spreadsheet never gave you.",
+      "visualQuote": "You lose 2x more on Thursdays between 10 and 12 AM. Revisit that window in your plan."
+    },
+    "visual_01": {
+      "broker": "Broker",
+      "account": "Account number",
+      "cta": "Connect"
+    },
+    "visual_02": {
+      "status": "Importing trades",
+      "parsed": "Parsed",
+      "enriched": "Enriched",
+      "indexed": "Indexed"
+    }
   }
 }

@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Hero } from "@/components/landing/Hero";
 import { SocialProof } from "@/components/landing/SocialProof";
 import { BentoFeatures } from "@/components/landing/BentoFeatures";
+import { HowItWorks } from "@/components/landing/HowItWorks";
 import { getCommunityStats } from "@/lib/community-stats";
 
 export const revalidate = 3600;
@@ -18,7 +19,7 @@ export default async function LandingPage({
     <>
       <Hero socialProof={<SocialProof {...stats} />} />
       <BentoFeatures />
-      {/* TODO(B-05): <HowItWorks /> */}
+      <HowItWorks />
       {/* TODO(B-06): <Pricing /> */}
       {/* TODO(B-07): <Testimonials /> */}
       {/* TODO(B-08): <FAQ /> */}
