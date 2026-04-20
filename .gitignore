@@ -75,6 +75,8 @@ ralph-claude-code/
 dexter/
 !app/api/dexter/
 !app/app/dexter/
+!lib/dexter/
+!components/dexter/
 posts/
 skills/
 forexfactory-ESSENCIAL/
