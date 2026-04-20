@@ -43,6 +43,7 @@ import { useLiveMonitoringSafe } from "@/components/context/LiveMonitoringContex
 import type { TradeInput } from "@/lib/smart-alerts";
 import { getMyProfile } from "@/lib/profile";
 import { getGreeting, getDashboardSubtitle } from "@/lib/greetings";
+import { TodayMatters } from "@/components/dashboard/TodayMatters";
 
 // ── Dynamic imports for heavy components (perf: code-split) ──
 const CalendarPnl = dynamic(
@@ -364,6 +365,11 @@ function DashboardContent({
             {hidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
           </span>
         </button>
+      </div>
+
+      {/* ═══════════ Dexter "Hoje, isso importa" (C-03) ═══════════ */}
+      <div className="mb-6">
+        <TodayMatters />
       </div>
 
       {/* Data accumulation indicator */}

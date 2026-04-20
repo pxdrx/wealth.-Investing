@@ -51,6 +51,11 @@ errors pre-existed the C-02 changes.
   pixel-art blob emerald, 7 poses").
 - **Fix scope:** Track A to land `components/brand/Mascot.tsx` (already
   referenced in MEMORY.md as committed, but file is absent in worktree-c's HEAD).
+- **Callsites awaiting Mascot:**
+  - `components/dashboard/TodayMatters.tsx` — uses inline `MascotPlaceholder`
+    with TODO; swap to `<Mascot pose={mood}/>` once the barrel compiles. The
+    placeholder already maps all 4 moods (`default` / `thinking` / `alert` /
+    `celebrating`) to tone variants.
 
 ---
 
