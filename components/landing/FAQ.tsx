@@ -31,11 +31,8 @@ export function FAQ() {
         </div>
         <div className="divide-y divide-border border-y border-border">
           {ITEM_KEYS.map((key) => (
-            <details
-              key={key}
-              className="group py-5 [&_svg]:data-[state=open]:rotate-180"
-            >
-              <summary className="flex items-center justify-between gap-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            <details key={key} className="group">
+              <summary className="flex items-center justify-between gap-4 py-5 min-h-[56px] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                 <h3 className="text-[15px] sm:text-[16px] font-medium text-foreground">
                   {t(`${key}.q`)}
                 </h3>
@@ -44,7 +41,7 @@ export function FAQ() {
                   aria-hidden
                 />
               </summary>
-              <p className="mt-3 text-[14px] text-muted-foreground leading-relaxed">
+              <p className="pb-5 -mt-1 text-[14px] text-muted-foreground leading-relaxed">
                 {t(`${key}.a`)}
               </p>
             </details>

@@ -33,12 +33,12 @@ function ConnectViz() {
             8245173
           </div>
         </div>
-        <button
-          type="button"
-          className="w-full rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-2 text-[12px] font-medium"
+        <div
+          aria-hidden
+          className="w-full rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-2 text-[12px] font-medium text-center select-none"
         >
           {t("cta")}
-        </button>
+        </div>
       </div>
     </div>
   );
