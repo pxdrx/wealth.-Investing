@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { supabase } from "@/lib/supabase/client";
 import {
   ProOnboardingModal,
@@ -19,7 +19,7 @@ function resolveOnboardingPlan(plan: string | null | undefined): "pro" | "ultra"
 }
 
 function SubscriptionSuccessInner() {
-  const { refreshSubscription, plan } = useSubscription();
+  const { refreshSubscription, plan } = useEntitlements();
   const searchParams = useSearchParams();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [verifyState, setVerifyState] = useState<VerifyState>("loading");

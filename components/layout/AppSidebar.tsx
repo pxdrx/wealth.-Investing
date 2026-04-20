@@ -15,7 +15,7 @@ import { safeGetSession } from "@/lib/supabase/safe-session";
 import { getMyProfile } from "@/lib/profile";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
@@ -37,7 +37,7 @@ function AppSidebarInner() {
   const [hasSession, setHasSession] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const { plan, isProOrAbove } = useSubscription();
+  const { plan, isProOrAbove } = useEntitlements();
   const roles = useAppRoles();
 
   const navLinks = getAppNav({

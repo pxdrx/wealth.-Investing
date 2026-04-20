@@ -6,7 +6,7 @@ import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, 
 import { motion, AnimatePresence } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useAuthEvent } from "@/components/context/AuthEventContext";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { getTierLimits } from "@/lib/subscription-shared";
 import { ChatMessage } from "@/components/ai/ChatMessage";
 import { ChatInput } from "@/components/ai/ChatInput";
@@ -84,7 +84,7 @@ const MAX_HISTORY = 50;
 function AICoachPageInner() {
   const { activeAccountId } = useActiveAccount();
   const { session: ctxSession } = useAuthEvent();
-  const { plan, isUltra: isUltraTier } = useSubscription();
+  const { plan, isUltra: isUltraTier } = useEntitlements();
   const limits = getTierLimits(plan);
   const searchParams = useSearchParams();
   const router = useRouter();

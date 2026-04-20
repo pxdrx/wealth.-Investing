@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { ChurnPreventionModal } from "@/components/billing/ChurnPreventionModal";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -48,7 +48,7 @@ export default function SettingsPage() {
 
   // ── Subscription ──
   const { plan, status, subscription, isLoading: subLoadingRaw, isMentor } =
-    useSubscription();
+    useEntitlements();
   const [subTimedOut, setSubTimedOut] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setSubTimedOut(true), 4000);
