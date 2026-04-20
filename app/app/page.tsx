@@ -44,6 +44,8 @@ import type { TradeInput } from "@/lib/smart-alerts";
 import { getMyProfile } from "@/lib/profile";
 import { getGreeting, getDashboardSubtitle } from "@/lib/greetings";
 import { TodayMatters } from "@/components/dashboard/TodayMatters";
+import { DayKpis } from "@/components/dashboard/DayKpis";
+import { DayTimeline } from "@/components/dashboard/DayTimeline";
 
 // ── Dynamic imports for heavy components (perf: code-split) ──
 const CalendarPnl = dynamic(
@@ -370,6 +372,12 @@ function DashboardContent({
       {/* ═══════════ Dexter "Hoje, isso importa" (C-03) ═══════════ */}
       <div className="mb-6">
         <TodayMatters />
+      </div>
+
+      {/* ═══════════ Day KPIs + Timeline (C-04) ═══════════ */}
+      <div className="mb-6 space-y-4">
+        <DayKpis />
+        <DayTimeline />
       </div>
 
       {/* Data accumulation indicator */}
