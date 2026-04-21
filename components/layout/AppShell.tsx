@@ -101,19 +101,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       // localStorage unavailable
     }
   }
-  const hideHeader = pathname === "/" ||
-    pathname === "/login" ||
-    pathname?.startsWith("/login") ||
-    pathname === "/auth/callback" ||
-    pathname?.startsWith("/onboarding") ||
-    pathname?.startsWith("/features") ||
-    pathname === "/manifesto" ||
-    pathname === "/academy" ||
-    pathname === "/changelog" ||
-    pathname === "/blog" ||
-    pathname === "/pricing" ||
-    pathname === "/risk-disclaimer" ||
-    pathname?.startsWith("/reset-password");
+  // next-intl localePrefix="as-needed" makes usePathname() return `/pt` or
+  // `/en` for the default-locale landing route. Strip the prefix before
+  // matching so all public routes hide the app shell regardless of locale.
+  const normalizedPath = (pathname ?? "").replace(/^\/(pt|en)(?=\/|$)/, "") || "/";
+  const hideHeader = normalizedPath === "/" ||
+    normalizedPath === "/login" ||
+    normalizedPath.startsWith("/login") ||
+    normalizedPath === "/auth/callback" ||
+    normalizedPath.startsWith("/onboarding") ||
+    normalizedPath.startsWith("/features") ||
+    normalizedPath === "/manifesto" ||
+    normalizedPath === "/academy" ||
+    normalizedPath === "/changelog" ||
+    normalizedPath === "/blog" ||
+    normalizedPath === "/pricing" ||
+    normalizedPath === "/risk-disclaimer" ||
+    normalizedPath.startsWith("/reset-password");
 
   return (
     <AuthEventProvider>
