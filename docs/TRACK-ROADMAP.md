@@ -647,7 +647,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-10 — Página interna /brand pra dogfood [PENDING] [summary only]
+### A-10 — Página interna /brand pra dogfood [SHIPPED] [summary only]
 
 **Objective:** Página interna /brand pra dogfood
 
