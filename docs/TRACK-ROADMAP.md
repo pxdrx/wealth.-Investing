@@ -515,7 +515,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-04 — <Dexter mood=... /> com 4 SVGs em public/dexter/ [PENDING] [summary only]
+### A-04 — <Dexter mood=... /> com 4 SVGs em public/dexter/ [SHIPPED] [summary only]
 
 **Objective:** <Dexter mood=... /> com 4 SVGs em public/dexter/
 
