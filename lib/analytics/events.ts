@@ -13,7 +13,22 @@ export type LandingViewProps = {
   utm_medium?: string;
   utm_campaign?: string;
 };
-export type HeroCtaClickProps = { variant: "primary" | "ghost"; position?: string };
+export type CtaSource =
+  | "hero"
+  | "pricing"
+  | "faq"
+  | "exit_intent"
+  | "sticky_mobile"
+  | "nav"
+  | "footer";
+export type HeroCtaClickProps = {
+  variant: "primary" | "ghost";
+  position?: string;
+  source?: CtaSource;
+};
+export type ExitIntentShownProps = { locale?: string };
+export type StickyMobileShownProps = { locale?: string };
+export type StickyMobileDismissedProps = { locale?: string };
 export type PricingViewProps = { locale: string };
 export type PlanSelectProps = { plan: Plan; billing: BillingInterval };
 export type CheckoutStartProps = { plan: Plan };
@@ -31,6 +46,9 @@ export type AnalyticsEventMap = {
   mt5_connect_start: Mt5ConnectProps;
   mt5_connect_success: Mt5ConnectProps;
   ultra_upgrade_clicked: UltraUpgradeClickedProps;
+  exit_intent_shown: ExitIntentShownProps;
+  sticky_mobile_shown: StickyMobileShownProps;
+  sticky_mobile_dismissed: StickyMobileDismissedProps;
 };
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;

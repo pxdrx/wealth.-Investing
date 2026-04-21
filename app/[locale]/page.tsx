@@ -7,6 +7,8 @@ import { PricingSummary } from "@/components/landing/PricingSummary";
 import { Testimonial } from "@/components/landing/Testimonial";
 import { FAQ } from "@/components/landing/FAQ";
 import { LandingAnalytics } from "@/components/landing/LandingAnalytics";
+import { ExitIntentModal } from "@/components/landing/ExitIntentModal";
+import { StickyMobileCta } from "@/components/landing/StickyMobileCta";
 import { getCommunityStats } from "@/lib/community-stats";
 
 export const revalidate = 3600;
@@ -28,7 +30,8 @@ export default async function LandingPage({
       <PricingSummary />
       <Testimonial />
       <FAQ />
-      {/* TODO(B-13): <ExitIntentModal /> + <StickyMobileCta /> */}
+      <ExitIntentModal />
+      <StickyMobileCta />
     </>
   );
 }

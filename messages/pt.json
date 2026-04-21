@@ -342,5 +342,19 @@
       "readMore": "Ler o artigo",
       "backToList": "Voltar para o blog"
     }
+  },
+  "exitIntent": {
+    "eyebrow": "Antes de sair",
+    "heading": "Ganhe 30 dias Pro grátis.",
+    "body": "Comece a operar com clareza hoje. Journal completo, IA de análise e alertas macro — sem cobrança nos primeiros 30 dias. Cancele quando quiser.",
+    "ctaPrimary": "Quero os 30 dias grátis",
+    "ctaGhost": "Continuar navegando",
+    "dismissAria": "Fechar"
+  },
+  "stickyCta": {
+    "label": "Pronto pra operar no claro?",
+    "cta": "Começar grátis",
+    "dismissAria": "Dispensar",
+    "regionAria": "Call-to-action fixo"
   }
 }
