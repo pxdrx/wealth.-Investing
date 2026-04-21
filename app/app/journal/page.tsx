@@ -4,12 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus, FileSpreadsheet, FileText } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
 import { AccountSelectorInline } from "@/components/account/AccountSelectorInline";
 import { JournalKpiCards } from "@/components/journal/JournalKpiCards";
+import { JournalEmptyOnboarding } from "@/components/journal/JournalEmptyOnboarding";
 
 const JournalEquityChart = dynamic(() => import("@/components/journal/JournalEquityChart").then(mod => mod.JournalEquityChart), { ssr: false });
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
@@ -91,7 +92,7 @@ const SECTION_IMPORT = 4;
 const PAGE_SIZE = 100;
 
 export default function JournalPage() {
-  const { activeAccountId, isLoading: accountsLoading } = useActiveAccount();
+  const { activeAccountId, accounts, isLoading: accountsLoading } = useActiveAccount();
   const [activeTab, setActiveTab] = useState(0);
   const [importFlowState, setImportFlowState] = useState<ImportFlowState>("idle");
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
@@ -766,23 +767,16 @@ export default function JournalPage() {
         <p className="text-sm text-destructive">{tradesError}</p>
       )}
 
-      {/* Empty state — no trades yet */}
+      {/* [C-08] Empty state as guided onboarding */}
       {hasData && trades.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-1">Nenhum trade encontrado</h3>
-          <p className="text-sm text-muted-foreground mb-6">Importe seus trades do MT5 ou adicione manualmente.</p>
-          <button
-            onClick={() => {
-              setShowImportPanel(true);
-              setActiveTab(SECTION_OVERVIEW);
-            }}
-            className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
-          >
-            <Upload className="h-4 w-4" />
-            Importar MT5
-          </button>
-        </div>
+        <JournalEmptyOnboarding
+          accountName={accounts.find((a) => a.id === activeAccountId)?.name ?? null}
+          onImportClick={() => {
+            setShowImportPanel(true);
+            setActiveTab(SECTION_OVERVIEW);
+          }}
+          onAddTradeClick={() => setShowAddTrade(true)}
+        />
       )}
 
       {/* Tab content */}
