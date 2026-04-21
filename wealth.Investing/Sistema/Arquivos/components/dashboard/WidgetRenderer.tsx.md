@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: components/dashboard/WidgetRenderer.tsx
-hits: 15
+hits: 16
 hub: true
-last_seen: "2026-03-18T07:33:03-03:00"
+last_seen: "2026-04-20T01:13:44-03:00"
 tags: ["arquivo", "hub"]
 ---
 
 # `components/dashboard/WidgetRenderer.tsx`
 
-> 15 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 16 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/48200b8-widget-registry-widgetrenderer-with-tier-gating]]
+[[Sistema/Commits/d9a76d4-c-02-consolidate-entitlements-single-source-of-truth]]

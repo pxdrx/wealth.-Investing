@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: components/context/LiveMonitoringContext.tsx
-hits: 2
+hits: 3
 hub: false
-last_seen: "2026-03-30T20:43:18-03:00"
+last_seen: "2026-04-20T01:13:44-03:00"
 tags: ["arquivo"]
 ---
 
 # `components/context/LiveMonitoringContext.tsx`
 
-> 2 commit(s) tocaram este arquivo. 
+> 3 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/f4c1c98-metaapi-live-monitoring-for-prop-firm-accounts-ultra]]
+[[Sistema/Commits/d9a76d4-c-02-consolidate-entitlements-single-source-of-truth]]
