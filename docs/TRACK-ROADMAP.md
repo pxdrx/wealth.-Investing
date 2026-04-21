@@ -1553,7 +1553,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-15 — i18n integra app com next-intl (namespace app.*) [PENDING] [summary only]
+### C-15 — i18n integra app com next-intl (namespace app.*) [PARTIAL] [summary only]
 
 **Objective:** i18n integra app com next-intl (namespace app.*)
 

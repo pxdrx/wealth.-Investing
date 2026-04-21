@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase/client";
 import { AccountSelectorInline } from "@/components/account/AccountSelectorInline";
 import { JournalKpiCards } from "@/components/journal/JournalKpiCards";
 import { JournalEmptyOnboarding } from "@/components/journal/JournalEmptyOnboarding";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const JournalEquityChart = dynamic(() => import("@/components/journal/JournalEquityChart").then(mod => mod.JournalEquityChart), { ssr: false });
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
@@ -92,6 +93,7 @@ const SECTION_IMPORT = 4;
 const PAGE_SIZE = 100;
 
 export default function JournalPage() {
+  const t = useAppT();
   const { activeAccountId, accounts, isLoading: accountsLoading } = useActiveAccount();
   const [activeTab, setActiveTab] = useState(0);
   const [importFlowState, setImportFlowState] = useState<ImportFlowState>("idle");
@@ -573,8 +575,8 @@ export default function JournalPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Journal</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Registro de operações e análise de performance.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t("journal.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("journal.subtitle")}</p>
         </div>
         <AccountSelectorInline showAddButton />
       </div>
