@@ -515,7 +515,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-04 — <Dexter mood=... /> com 4 SVGs em public/dexter/ [SHIPPED] [summary only]
+### A-04 — <Dexter mood=... /> com 4 SVGs em public/dexter/ [PENDING] [summary only]
 
 **Objective:** <Dexter mood=... /> com 4 SVGs em public/dexter/
 
@@ -559,7 +559,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-06 — <UltraBadge /> e <UltraLock active /> [SHIPPED] [summary only]
+### A-06 — <UltraBadge /> e <UltraLock active /> [PENDING] [summary only]
 
 **Objective:** <UltraBadge /> e <UltraLock active />
 
@@ -581,7 +581,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-07 — ThemeToggle com 3 estados (Light/Terminal/System) [SHIPPED] [summary only]
+### A-07 — ThemeToggle com 3 estados (Light/Terminal/System) [PENDING] [summary only]
 
 **Objective:** ThemeToggle com 3 estados (Light/Terminal/System)
 
@@ -603,7 +603,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-08 — Remover tokens --landing-* duplicados, documentar migração [SHIPPED] [summary only]
+### A-08 — Remover tokens --landing-* duplicados, documentar migração [PENDING] [summary only]
 
 **Objective:** Remover tokens --landing-* duplicados, documentar migração
 
@@ -625,7 +625,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-09 — lib/brand/voice.ts com 30 microcopy strings (PT + EN) [SHIPPED] [summary only]
+### A-09 — lib/brand/voice.ts com 30 microcopy strings (PT + EN) [PENDING] [summary only]
 
 **Objective:** lib/brand/voice.ts com 30 microcopy strings (PT + EN)
 
@@ -647,7 +647,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-10 — Página interna /brand pra dogfood [SHIPPED] [summary only]
+### A-10 — Página interna /brand pra dogfood [PENDING] [summary only]
 
 **Objective:** Página interna /brand pra dogfood
 
@@ -669,7 +669,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-11 — PR + docs/MIGRATION-TRACK-A.md [SHIPPED] [summary only]
+### A-11 — PR + docs/MIGRATION-TRACK-A.md [PENDING] [summary only]
 
 **Objective:** PR + docs/MIGRATION-TRACK-A.md
 
@@ -1353,7 +1353,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-07 — Journal: Trade card narrativo com Dexter debrief [PENDING] [summary only]
+### C-07 — Journal: Trade card narrativo com Dexter debrief [SHIPPED]
 
 **Objective:** Journal: Trade card narrativo com Dexter debrief
 
