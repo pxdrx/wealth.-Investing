@@ -13,6 +13,8 @@ import { JournalKpiCards } from "@/components/journal/JournalKpiCards";
 
 const JournalEquityChart = dynamic(() => import("@/components/journal/JournalEquityChart").then(mod => mod.JournalEquityChart), { ssr: false });
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
+import { TradeNarrativeList } from "@/components/journal/TradeNarrativeList";
+import { JournalViewToggle, type JournalView } from "@/components/journal/JournalViewToggle";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
 import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
@@ -116,6 +118,25 @@ export default function JournalPage() {
   const [tradesPage, setTradesPage] = useState(0);
   const [hasMoreTrades, setHasMoreTrades] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // [C-07] Cards vs. table view. Default = cards on mobile, table on desktop;
+  // overridden by localStorage so user choice sticks across sessions.
+  const [journalView, setJournalView] = useState<JournalView>("cards");
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("journal.view");
+      if (stored === "cards" || stored === "table") {
+        setJournalView(stored);
+        return;
+      }
+    } catch {}
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
+      setJournalView("table");
+    }
+  }, []);
+  const handleJournalViewChange = useCallback((next: JournalView) => {
+    setJournalView(next);
+    try { localStorage.setItem("journal.view", next); } catch {}
+  }, []);
   const [allTradesSummary, setAllTradesSummary] = useState<{ net_pnl_usd: number; opened_at: string; closed_at: string | null; account_id: string }[]>([]);
   // Get userId once on mount — AuthGate already validates the session
   useEffect(() => {
@@ -803,7 +824,14 @@ export default function JournalPage() {
             )}
             {activeTab === SECTION_TRADES && (
               <div className="space-y-4">
-                <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
+                <div className="flex items-center justify-end">
+                  <JournalViewToggle value={journalView} onChange={handleJournalViewChange} />
+                </div>
+                {journalView === "cards" ? (
+                  <TradeNarrativeList trades={trades} onTradeClick={handleTradeClick} />
+                ) : (
+                  <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
+                )}
                 {hasMoreTrades && (
                   <div className="flex justify-center pt-2 pb-4">
                     <button
