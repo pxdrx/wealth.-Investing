@@ -342,5 +342,19 @@
       "readMore": "Read the article",
       "backToList": "Back to the blog"
     }
+  },
+  "exitIntent": {
+    "eyebrow": "Before you go",
+    "heading": "Get 30 days of Pro for free.",
+    "body": "Start trading with clarity today. Full journal, AI analysis and macro alerts — no charge for the first 30 days. Cancel anytime.",
+    "ctaPrimary": "Claim my 30 free days",
+    "ctaGhost": "Keep browsing",
+    "dismissAria": "Close"
+  },
+  "stickyCta": {
+    "label": "Ready to trade in the light?",
+    "cta": "Start free",
+    "dismissAria": "Dismiss",
+    "regionAria": "Pinned call-to-action"
   }
 }
