@@ -1,17 +1,26 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import createMiddleware from "next-intl/middleware";
+import { routing } from "./i18n";
 
 /**
- * SEC-028: Defense-in-depth middleware for /app/** routes.
+ * Track B i18n middleware.
  *
- * TEMPORARILY DISABLED: Supabase auth cookies may not be available at the
- * middleware level on custom domains. AuthGate handles auth client-side.
- * TODO: Re-enable with @supabase/ssr for proper server-side cookie handling.
+ * Scope (B-12): public landing root + EN-prefixed variants + migrated public
+ * pages (manifesto, pricing, features, blog). Does NOT match /app/**,
+ * /api/**, /auth/**, /login, /onboarding, /reset-password, /risk-disclaimer.
+ * Static files (anything containing a dot) and Next internals are excluded.
  */
-export function middleware(_request: NextRequest) {
-  return NextResponse.next();
-}
+export default createMiddleware(routing);
 
 export const config = {
-  matcher: ["/app/:path*"],
+  matcher: [
+    "/",
+    "/(en)",
+    "/(en)/:path*",
+    "/manifesto",
+    "/pricing",
+    "/features",
+    "/features/:path*",
+    "/blog",
+    "/blog/:path*",
+  ],
 };

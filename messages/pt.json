@@ -1,0 +1,360 @@
+{
+  "_meta": {
+    "locale": "pt",
+    "note": "Populated incrementally by Track B tasks B-02 to B-13. Final pass in B-14."
+  },
+  "seo": {
+    "title": "wealth.Investing — Pare de operar no escuro",
+    "description": "Journal automatizado, IA que lê seu histórico, calendário macroeconômico e gestão de risco para prop firms. Sem planilha. Sem achismo."
+  },
+  "hero": {
+    "headline": "Pare de operar no escuro.",
+    "sub": "wealth é onde seus trades viram dados, seus dados viram padrão, e seus padrões viram decisão. Sem planilha. Sem achismo.",
+    "ctaPrimary": "Conecte seu MT5 em 60 segundos",
+    "ctaGhost": "Ver como funciona"
+  },
+  "socialProof": {
+    "trades": "{n} trades importados",
+    "activeTraders": "{n} traders ativos nos últimos 30 dias",
+    "volume": "{n} de volume analisado"
+  },
+  "bento": {
+    "eyebrow": "Quatro pilares",
+    "heading": "Tudo que você precisa pra parar de achar.",
+    "headingAccent": "Numa tela só.",
+    "cell_01": {
+      "label": "Journal",
+      "manifest": "Toda ordem do MT5 vira evidência, não linha de planilha."
+    },
+    "cell_02": {
+      "label": "Dexter IA",
+      "manifest": "Um analista que lê seu histórico e opera 24/7.",
+      "visualQuote": "Seu melhor setup é pullback em EUR/USD na sessão de Londres. Win rate 78% em 23 trades."
+    },
+    "cell_03": {
+      "label": "Macro",
+      "manifest": "Bloomberg no seu bolso, em português.",
+      "visualCpi": "CPI YoY",
+      "visualEcb": "Decisão de juros BCE",
+      "visualNfp": "Payroll dos EUA"
+    },
+    "cell_04": {
+      "label": "Prop firms",
+      "manifest": "Um painel por firma, regras em tempo real, zero surpresa.",
+      "visualDd": "Drawdown diário",
+      "visualPt": "Meta de lucro"
+    }
+  },
+  "howItWorks": {
+    "eyebrow": "Como funciona",
+    "heading": "Três passos.",
+    "headingAccent": "Zero fricção.",
+    "step_01": {
+      "title": "Conecta seu MT5 em 60 segundos",
+      "body": "Sem plugin, sem credencial de corretora. Conecte pelo número da conta ou faça upload do relatório em XLSX/HTML."
+    },
+    "step_02": {
+      "title": "wealth lê todo seu histórico",
+      "body": "Cada trade é parseado, enriquecido com contexto macro e indexado em segundos. Dez mil ordens em menos de um minuto."
+    },
+    "step_03": {
+      "title": "Dexter te conta o que você não viu",
+      "body": "Padrões, setups vencedores, horários tóxicos, erros recorrentes. O insight que sua planilha nunca te deu.",
+      "visualQuote": "Você perde 2x mais nas quintas entre 10h e 12h. Revise esse horário no seu plano."
+    },
+    "visual_01": {
+      "broker": "Corretora",
+      "account": "Número da conta",
+      "cta": "Conectar"
+    },
+    "visual_02": {
+      "status": "Importando trades",
+      "parsed": "Parseados",
+      "enriched": "Enriquecidos",
+      "indexed": "Indexados"
+    }
+  },
+  "testimonials": {
+    "eyebrow": "Quem já usa",
+    "heading": "Traders reais, palavras deles.",
+    "headingAccent": "Em breve, aqui.",
+    "placeholderLabel": "PLACEHOLDER",
+    "slot_01": {
+      "quote": "[depoimento do trader 01 aqui — substituir com quote real do @handle quando disponível]",
+      "name": "[Nome Sobrenome]",
+      "handle": "@handle",
+      "metric": "+00%",
+      "metricLabel": "em 30 dias"
+    },
+    "slot_02": {
+      "quote": "[depoimento do trader 02 aqui — substituir com quote real]",
+      "name": "[Nome Sobrenome]",
+      "handle": "@handle",
+      "metric": "+00%",
+      "metricLabel": "em 30 dias"
+    },
+    "slot_03": {
+      "quote": "[depoimento do trader 03 aqui — substituir com quote real]",
+      "name": "[Nome Sobrenome]",
+      "handle": "@handle",
+      "metric": "+00%",
+      "metricLabel": "em 30 dias"
+    }
+  },
+  "faq": {
+    "eyebrow": "Perguntas que você já fez",
+    "heading": "O que trava você antes de começar.",
+    "headingAccent": "Respondido.",
+    "q_01": {
+      "q": "Funciona com MT4?",
+      "a": "Import de MT4 ainda não está estável. Está no roadmap. Hoje o foco é MT5 (XLSX e HTML) e, pra quem opera em corretora americana, NinjaTrader via CSV."
+    },
+    "q_02": {
+      "q": "Posso cancelar a qualquer momento?",
+      "a": "Sim. Cancela no portal do Stripe em 1 clique. Sem multa, sem fidelidade. Você mantém acesso até o fim do ciclo pago."
+    },
+    "q_03": {
+      "q": "Meus dados estão seguros?",
+      "a": "Sim. Tudo roda em Supabase com Row Level Security — só você vê suas operações. Nunca pedimos credencial da sua corretora. Pagamentos são processados pela Stripe (PCI Level 1)."
+    },
+    "q_04": {
+      "q": "Qual a diferença pra Tradezella ou Edgewonk?",
+      "a": "Preço em real, suporte em português e uma IA de verdade (Dexter) que lê seu histórico e te aponta padrão — não só gráficos bonitos. Também integração direta com prop firms e calendário macro."
+    },
+    "q_05": {
+      "q": "Funciona com as principais prop firms?",
+      "a": "Sim. The5ers e FTMO já têm painéis dedicados com regras em tempo real. Outras firmas (FundedNext, Topstep, Apex, MyForexFunds) funcionam via import padrão de MT5 — painel específico chega conforme demanda."
+    },
+    "q_06": {
+      "q": "Preciso saber inglês?",
+      "a": "Não. Plataforma toda em português, incluindo o briefing macroeconômico, tags e Dexter. Inglês é opcional (toggle na interface)."
+    },
+    "q_07": {
+      "q": "Preciso conectar minha conta MT5 à nuvem?",
+      "a": "Não. Você faz upload do relatório XLSX/HTML que o MT5 já gera localmente. Nenhuma credencial de corretora passa pelos nossos servidores."
+    },
+    "q_08": {
+      "q": "E se eu opero em várias contas?",
+      "a": "Pro suporta 5 contas simultâneas (prop + pessoal + cripto). Ultra é ilimitado. Você pode comparar contas lado a lado e separar métricas por firma."
+    },
+    "q_09": {
+      "q": "O Dexter substitui um mentor?",
+      "a": "Não. Dexter analisa o seu histórico e aponta padrão — mentor humano ensina estratégia e corrige psicologia ao vivo. Um complementa o outro."
+    },
+    "q_10": {
+      "q": "Tenho garantia de retorno?",
+      "a": "Não. Ninguém sério garante retorno em trading. O que garantimos é a ferramenta: se não fizer sentido no seu fluxo, cancela e fim. Não fazemos promessa que não conseguimos cumprir."
+    }
+  },
+  "pricing": {
+    "eyebrow": "Preços",
+    "heading": "Simples.",
+    "headingAccent": "Sem pegadinha.",
+    "subhead": "Comece grátis. Faça upgrade quando fizer sentido — sem contrato, sem multa de cancelamento.",
+    "badges": {
+      "popular": "Mais popular"
+    },
+    "comparison": {
+      "without": "Sem wealth",
+      "with": "Com wealth",
+      "row_01": {
+        "pain": "Planilha preenchida quando lembra",
+        "fix": "Import MT5 em 60 segundos, 10 mil trades por minuto"
+      },
+      "row_02": {
+        "pain": "\"Acho que meu win rate é uns 60%\"",
+        "fix": "Dashboard vivo com PnL real, WR real e curva de capital"
+      },
+      "row_03": {
+        "pain": "\"Parece que perco mais nas quintas\"",
+        "fix": "Dexter te mostra o padrão que você não viu"
+      },
+      "row_04": {
+        "pain": "Prop firm quebra regra sem aviso",
+        "fix": "Alerta antes de bater drawdown ou meta"
+      },
+      "row_05": {
+        "pain": "News pega você dormindo",
+        "fix": "Briefing macro todo dia, 7h da manhã"
+      }
+    },
+    "tiers": {
+      "priceSuffix": "/mês",
+      "free": {
+        "name": "Grátis",
+        "tagline": "Comece a registrar. Veja a diferença.",
+        "cta": "Começar grátis",
+        "features": {
+          "0": "10 trades registrados — gostinho de como é ter dado",
+          "1": "1 conta conectada (prop ou pessoal)",
+          "2": "3 análises de IA no mês",
+          "3": "Import MT5 num clique",
+          "4": "Calendário macro pra não tomar news de susto"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Seus dados, sua análise, seu controle.",
+        "cta": "Assinar Pro",
+        "features": {
+          "0": "Todos os seus trades sem limite de linhas",
+          "1": "5 contas em paralelo (prop + pessoal + cripto)",
+          "2": "15 análises de IA por mês — evolua semana a semana",
+          "3": "Tags de 12 erros recorrentes — você vê o padrão que te segura",
+          "4": "Headlines ao vivo pra nunca operar no escuro",
+          "5": "Briefing macro todo dia no seu email, 7h da manhã",
+          "6": "Dashboard completo de performance + export CSV"
+        }
+      },
+      "ultra": {
+        "name": "Ultra",
+        "tagline": "Dexter full-time. Zero ponto cego.",
+        "cta": "Assinar Ultra",
+        "features": {
+          "0": "Tudo do Pro, mais:",
+          "1": "Contas ilimitadas",
+          "2": "15 análises de IA por dia — Dexter vira seu copiloto",
+          "3": "Tags de psicologia + análise comportamental",
+          "4": "Comparar contas lado a lado (qual prop firm é boa mesmo)",
+          "5": "Alertas customizados pra não perder setup",
+          "6": "MFE/MAE: descobre onde você sai cedo",
+          "7": "Dexter ilimitado — pergunte o quanto quiser",
+          "8": "Suporte prioritário em até 2h"
+        }
+      }
+    },
+    "cta": {
+      "primary": "Ver comparação completa →",
+      "ghost": "Começar grátis"
+    },
+    "page": {
+      "eyebrow": "Preços",
+      "heading": "Planos simples.",
+      "headingAccent": "Sem surpresa.",
+      "subhead": "Comece grátis. Faça upgrade quando quiser — sem contrato, sem taxa de cancelamento.",
+      "footer": "Dúvida sobre qual plano cabe em você? Começa no grátis — você pode evoluir a qualquer momento.",
+      "cta": "Começar grátis agora"
+    }
+  },
+  "manifesto": {
+    "eyebrow": "Nosso manifesto",
+    "heading": "Trading não é sobre sorte. É sobre evidência.",
+    "intro": {
+      "body": "A maioria dos traders quebra. Não por falta de vontade, de disciplina ou de coragem. Quebra porque opera no escuro — decidindo sem dado, repetindo padrão que nunca mediu, comprando narrativa de si mesmo que os números desmentem. Construímos a wealth pra desligar o escuro."
+    },
+    "section_01": {
+      "title": "A maioria quebra, mas não por falta de estratégia.",
+      "body": "Todo trader que você já viu quebrar tinha um plano. Tinha setups favoritos. Tinha horário bom e horário ruim. Tinha opinião clara sobre o que funciona. O problema nunca foi ausência de estratégia — foi ausência de verificação."
+    },
+    "section_02": {
+      "title": "É porque estão operando cego.",
+      "body": "Sem dado, intuição vira verdade. \"Perco mais nas quintas\" gruda. \"Meu setup de pullback é o melhor\" gruda. Decisões seguem rumo de narrativa interna. Meses passam, a curva cai, e o trader ainda diz as mesmas frases. A planilha que deveria corrigir virou cemitério de linhas esquecidas."
+    },
+    "section_03": {
+      "title": "Dado muda tudo.",
+      "body": "O que uma plataforma honesta faz é baixar o custo de confrontar a própria história. Import automático do MT5. Cada trade com contexto macro, tag de erro, sessão, estado mental. Você abre o dashboard e a narrativa quebra: a quinta era boa. O pullback estava abaixo da média. O que sustenta sua curva é outro setup, num outro horário, com outro tamanho. A partir daí, você opera diferente."
+    },
+    "section_04": {
+      "title": "O que acreditamos.",
+      "body": "1. Evidência > intuição. Sempre.\n2. O journal que funciona é o que preenche sozinho.\n3. IA boa não dá resposta pronta — mostra o padrão que você não viu.\n4. Preço em real. Suporte em português. Honestidade no que a ferramenta entrega e no que ainda não."
+    },
+    "section_05": {
+      "title": "Pra quem é.",
+      "body": "Pra quem já perdeu dinheiro, já tirou conta, já fez challenge de prop firm e olhou pro gráfico cansado. Pra quem suspeita que há padrão ali e quer parar de adivinhar. Pra quem opera em MT5, em prop firm, em NinjaTrader — e está disposto a trocar planilha por evidência."
+    },
+    "section_06": {
+      "title": "O que estamos construindo.",
+      "body": "Uma plataforma onde seus trades viram dado, seu dado vira padrão e seu padrão vira decisão. Onde prop firm tem painel vivo. Onde o macro não pega você de surpresa. Onde Dexter, nosso analista de IA, lê seu histórico e te conta o que você não viu — em português, sem frescura, com números e não com marketing."
+    },
+    "cta": {
+      "primary": "Conecte seu MT5 em 60 segundos",
+      "ghost": "Ver planos"
+    }
+  },
+  "features": {
+    "backToHub": "Voltar para Funcionalidades",
+    "hub": {
+      "eyebrow": "Funcionalidades",
+      "heading": "Três pilares.",
+      "headingAccent": "Uma decisão honesta por vez.",
+      "subhead": "O que a wealth faz em três superfícies que conversam entre si. Journal manda dado pra Dexter. Dexter cruza com Macro. Macro avisa antes da news quebrar seu trade.",
+      "cardCta": "Entrar"
+    },
+    "pages": {
+      "journal": {
+        "label": "Journal",
+        "title": "Toda ordem do MT5 vira evidência, não linha de planilha.",
+        "subtitle": "Upload em segundos, PnL real, taxa de acerto real, curva de capital viva. O histórico que você nunca teve tempo de montar na mão.",
+        "bullets": {
+          "0": "Import MT5 via XLSX, HTML ou número da conta — 10 mil trades em menos de um minuto",
+          "1": "Tags de 12 erros recorrentes (pressa, revenge, fomo, fora do plano…) — um clique por trade",
+          "2": "Filtros por dia da semana, sessão, setup, tag — a narrativa quebra onde o dado mostra",
+          "3": "Dashboard vivo de PnL, win rate, MFE/MAE, expectativa matemática, recovery factor",
+          "4": "Comparação por conta (prop, pessoal, cripto) — qual está te sustentando de verdade",
+          "5": "Export CSV e PDF pra quando precisar levar evidência pra mentor ou prop firm"
+        },
+        "cta": {
+          "primary": "Importar meu MT5 agora",
+          "ghost": "Ver planos"
+        }
+      },
+      "dexter": {
+        "label": "Dexter IA",
+        "title": "Um analista que lê seu histórico e opera 24/7.",
+        "subtitle": "Não é chatbot. Dexter é IA de análise que conecta seus trades ao macro, identifica padrão que você não vê e te devolve insight com número, não com achismo.",
+        "bullets": {
+          "0": "Análise automática sobre seus padrões: melhor setup, melhor horário, erro recorrente",
+          "1": "Alerta quando seu comportamento desvia do plano — antes de virar perda",
+          "2": "Cruza seu PnL com calendário macro (CPI, NFP, decisões de juros) pra achar pontos cegos",
+          "3": "Relatório semanal por email: o que deu certo, o que não deu, o que mudar nos próximos 7 dias",
+          "4": "Consultas ilimitadas no plano Ultra — pergunte qualquer coisa sobre seu histórico",
+          "5": "Multi-camada: fundamento, técnica, risco, tese final — em 30 segundos, em português"
+        },
+        "cta": {
+          "primary": "Conversar com Dexter",
+          "ghost": "Ver planos"
+        }
+      },
+      "macro": {
+        "label": "Macro",
+        "title": "Bloomberg no seu bolso, em português.",
+        "subtitle": "Calendário econômico com impacto, headlines ao vivo, taxa de juros dos principais bancos centrais e briefing diário — tudo o que move seu ativo antes do gráfico se mover.",
+        "bullets": {
+          "0": "Calendário econômico ao vivo: CPI, NFP, decisões de juros, PPI, PMI — com impacto por notícia",
+          "1": "Headlines em tempo real de fontes confiáveis (FinancialJuice, TradingEconomics) — sem ruído",
+          "2": "Taxa de juros dos principais bancos centrais (Fed, BCE, BoE, BoJ, Bacen) — última ação e próxima",
+          "3": "Briefing macro todo dia às 7h no seu email: o que importa hoje, em 3 parágrafos",
+          "4": "Ajuste diário do cenário quando headline muda a narrativa do dia — você nunca fica parado",
+          "5": "Weekly report de domingo com o que esperar da semana — planejamento antes do pregão"
+        },
+        "cta": {
+          "primary": "Ver o macro de hoje",
+          "ghost": "Ver planos"
+        }
+      }
+    }
+  },
+  "blog": {
+    "list": {
+      "eyebrow": "Blog",
+      "heading": "Trading como evidência.",
+      "headingAccent": "Sem fórmula mágica.",
+      "readMore": "Ler o artigo",
+      "backToList": "Voltar para o blog"
+    }
+  },
+  "exitIntent": {
+    "eyebrow": "Antes de sair",
+    "heading": "Ganhe 30 dias Pro grátis.",
+    "body": "Comece a operar com clareza hoje. Journal completo, IA de análise e alertas macro — sem cobrança nos primeiros 30 dias. Cancele quando quiser.",
+    "ctaPrimary": "Quero os 30 dias grátis",
+    "ctaGhost": "Continuar navegando",
+    "dismissAria": "Fechar"
+  },
+  "stickyCta": {
+    "label": "Pronto pra operar no claro?",
+    "cta": "Começar grátis",
+    "dismissAria": "Dispensar",
+    "regionAria": "Call-to-action fixo"
+  }
+}
