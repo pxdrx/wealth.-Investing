@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: app/app/prop/page.tsx
-hits: 9
+hits: 11
 hub: true
-last_seen: "2026-04-15T15:23:29-03:00"
+last_seen: "2026-04-20T23:00:33-03:00"
 tags: ["arquivo", "hub"]
 ---
 
 # `app/app/prop/page.tsx`
 
-> 9 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 11 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/9db65db-eod-drawdown-editable-rules-per-account-phase-rework]]
+[[Sistema/Commits/e0f5faf-c-13-prop-firms-overview-grouped-by-firm-name]]

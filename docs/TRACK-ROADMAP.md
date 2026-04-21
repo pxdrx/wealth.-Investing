@@ -515,7 +515,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-04 — <Dexter mood=... /> com 4 SVGs em public/dexter/ [SHIPPED] [summary only]
+### A-04 — <Dexter mood=... /> com 4 SVGs em public/dexter/ [PENDING] [summary only]
 
 **Objective:** <Dexter mood=... /> com 4 SVGs em public/dexter/
 
@@ -559,7 +559,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-06 — <UltraBadge /> e <UltraLock active /> [SHIPPED] [summary only]
+### A-06 — <UltraBadge /> e <UltraLock active /> [PENDING] [summary only]
 
 **Objective:** <UltraBadge /> e <UltraLock active />
 
@@ -581,7 +581,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-07 — ThemeToggle com 3 estados (Light/Terminal/System) [SHIPPED] [summary only]
+### A-07 — ThemeToggle com 3 estados (Light/Terminal/System) [PENDING] [summary only]
 
 **Objective:** ThemeToggle com 3 estados (Light/Terminal/System)
 
@@ -603,7 +603,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-08 — Remover tokens --landing-* duplicados, documentar migração [SHIPPED] [summary only]
+### A-08 — Remover tokens --landing-* duplicados, documentar migração [PENDING] [summary only]
 
 **Objective:** Remover tokens --landing-* duplicados, documentar migração
 
@@ -625,7 +625,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-09 — lib/brand/voice.ts com 30 microcopy strings (PT + EN) [SHIPPED] [summary only]
+### A-09 — lib/brand/voice.ts com 30 microcopy strings (PT + EN) [PENDING] [summary only]
 
 **Objective:** lib/brand/voice.ts com 30 microcopy strings (PT + EN)
 
@@ -647,7 +647,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-10 — Página interna /brand pra dogfood [SHIPPED] [summary only]
+### A-10 — Página interna /brand pra dogfood [PENDING] [summary only]
 
 **Objective:** Página interna /brand pra dogfood
 
@@ -669,7 +669,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-11 — PR + docs/MIGRATION-TRACK-A.md [SHIPPED] [summary only]
+### A-11 — PR + docs/MIGRATION-TRACK-A.md [PENDING] [summary only]
 
 **Objective:** PR + docs/MIGRATION-TRACK-A.md
 
@@ -1353,7 +1353,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-07 — Journal: Trade card narrativo com Dexter debrief [PENDING] [summary only]
+### C-07 — Journal: Trade card narrativo com Dexter debrief [SHIPPED]
 
 **Objective:** Journal: Trade card narrativo com Dexter debrief
 
@@ -1378,7 +1378,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-08 — Journal: Empty state como onboarding guiado [PENDING] [summary only]
+### C-08 — Journal: Empty state como onboarding guiado [SHIPPED] [summary only]
 
 **Objective:** Journal: Empty state como onboarding guiado
 
@@ -1403,7 +1403,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-09 — Macro: Terminal mode layout (grid 5-4-3) [PENDING] [summary only]
+### C-09 — Macro: Terminal mode layout (grid 5-4-3) [SHIPPED] [summary only]
 
 **Objective:** Macro: Terminal mode layout (grid 5-4-3)
 
@@ -1428,7 +1428,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-10 — Macro: filtro "só meus ativos" [PENDING] [summary only]
+### C-10 — Macro: filtro "só meus ativos" [SHIPPED] [summary only]
 
 **Objective:** Macro: filtro "só meus ativos"
 
@@ -1453,7 +1453,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-11 — Dexter unificado (consolida /ai-coach + /analyst; redirects 301) [PENDING] [summary only]
+### C-11 — Dexter unificado (consolida /ai-coach + /analyst; redirects 301) [SHIPPED] [summary only]
 
 **Objective:** Dexter unificado (consolida /ai-coach + /analyst; redirects 301)
 
@@ -1478,7 +1478,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-12 — MT5 Live como <UltraLock active> (economia de infra real) [PENDING] [summary only]
+### C-12 — MT5 Live como <UltraLock active> (economia de infra real) [SHIPPED] [summary only]
 
 **Objective:** MT5 Live como <UltraLock active> (economia de infra real)
 
@@ -1503,7 +1503,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-13 — Prop firms dashboard por firma [PENDING] [summary only]
+### C-13 — Prop firms dashboard por firma [SHIPPED] [summary only]
 
 **Objective:** Prop firms dashboard por firma
 
@@ -1528,7 +1528,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-14 — Reports: export PDF com branding (viralização) [PENDING] [summary only]
+### C-14 — Reports: export PDF com branding (viralização) [SHIPPED] [summary only]
 
 **Objective:** Reports: export PDF com branding (viralização)
 
@@ -1553,7 +1553,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-15 — i18n integra app com next-intl (namespace app.*) [PENDING] [summary only]
+### C-15 — i18n integra app com next-intl (namespace app.*) [PARTIAL] [summary only]
 
 **Objective:** i18n integra app com next-intl (namespace app.*)
 
@@ -1578,7 +1578,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-16 — QA smoke tests + PR + docs/CHANGES-C.md [PENDING] [summary only]
+### C-16 — QA smoke tests + PR + docs/CHANGES-C.md [SHIPPED] [summary only]
 
 **Objective:** QA smoke tests + PR + docs/CHANGES-C.md
 

@@ -1,8 +1,22 @@
 // app/app/macro/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useMyAssets } from "@/hooks/useMyAssets";
+import { MyAssetsFilter, useMyAssetsToggle } from "@/components/macro/MyAssetsFilter";
+import { useAppT } from "@/hooks/useAppLocale";
 import { Globe, RefreshCw, CalendarDays, FileText, AlertTriangle, Clock } from "lucide-react";
+
+// Relocated from /app home (C-05) — compact macro widgets above the full terminal.
+const MacroWidgetBriefing = dynamic(
+  () => import("@/components/macro/MacroWidgetBriefing").then((m) => ({ default: m.MacroWidgetBriefing })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
+const MacroWidgetEvents = dynamic(
+  () => import("@/components/macro/MacroWidgetEvents").then((m) => ({ default: m.MacroWidgetEvents })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -21,11 +35,13 @@ import { EconomicCalendar } from "@/components/macro/EconomicCalendar";
 import { WeeklyBriefing } from "@/components/macro/WeeklyBriefing";
 import { InterestRatesPanel } from "@/components/macro/InterestRatesPanel";
 import { WeeklyHistory } from "@/components/macro/WeeklyHistory";
+import { SentimentBar } from "@/components/macro/SentimentBar";
 import { supabase } from "@/lib/supabase/client";
 import { getWeekStart } from "@/lib/macro/constants";
 import type { EconomicEvent, WeeklyPanorama, CentralBankRate, AdaptiveAlert as AdaptiveAlertType, MacroHeadline } from "@/lib/macro/types";
 
 export default function MacroIntelligencePage() {
+  const t = useAppT();
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [panorama, setPanorama] = useState<WeeklyPanorama | null>(null);
   const [rates, setRates] = useState<CentralBankRate[]>([]);
@@ -52,6 +68,34 @@ export default function MacroIntelligencePage() {
     return getWeekStart();
   })();
   const [calendarWeek, setCalendarWeek] = useState(defaultWeek);
+
+  // [C-10] My-assets filter: narrow feeds to currencies of user-traded symbols.
+  const myAssets = useMyAssets();
+  const [myAssetsEnabled, setMyAssetsEnabled] = useMyAssetsToggle();
+  const activeCurrencies = useMemo(() => new Set(myAssets.currencies), [myAssets.currencies]);
+  const activeCountries = useMemo(() => new Set(myAssets.countries), [myAssets.countries]);
+  const filteredEvents = useMemo(() => {
+    if (!myAssetsEnabled || activeCurrencies.size === 0) return events;
+    return events.filter((e) => {
+      if (e.currency && activeCurrencies.has(e.currency)) return true;
+      if (e.country && activeCountries.has(e.country)) return true;
+      return false;
+    });
+  }, [events, myAssetsEnabled, activeCurrencies, activeCountries]);
+  const filteredRates = useMemo(() => {
+    if (!myAssetsEnabled || activeCountries.size === 0) return rates;
+    return rates.filter((r) => activeCountries.has(r.country));
+  }, [rates, myAssetsEnabled, activeCountries]);
+  const filteredHeadlines = useMemo(() => {
+    if (!myAssetsEnabled || (myAssets.symbols.length === 0 && activeCurrencies.size === 0)) {
+      return headlines;
+    }
+    const needles = [...myAssets.symbols, ...Array.from(activeCurrencies)].map((s) => s.toUpperCase());
+    return headlines.filter((h) => {
+      const text = `${h.headline} ${h.summary ?? ""}`.toUpperCase();
+      return needles.some((n) => text.includes(n));
+    });
+  }, [headlines, myAssetsEnabled, myAssets.symbols, activeCurrencies]);
 
   // Helper to safely parse JSON from a fetch result
   const safeJson = useCallback(async (result: PromiseSettledResult<Response>) => {
@@ -550,23 +594,35 @@ export default function MacroIntelligencePage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Globe className="h-6 w-6 text-blue-500" />
-            <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Inteligência Macro</h1>
+            <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">{t("macro.title")}</h1>
             <LiveIndicator />
           </div>
-          <p className="text-sm text-muted-foreground font-medium">
-            Terminal quantitativo, calendário econômico e narrativas macro geradas por IA.
-          </p>
+          <p className="text-sm text-muted-foreground font-medium">{t("macro.subtitle")}</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefreshClick}
-          disabled={refreshing}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Atualizando..." : "Atualizar"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <MyAssetsFilter
+            enabled={myAssetsEnabled}
+            onToggle={setMyAssetsEnabled}
+            currencies={myAssets.currencies}
+            loading={myAssets.loading}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefreshClick}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Atualizando..." : "Atualizar"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Compact macro snapshot (relocated from /app home — C-05) */}
+      <div className="mb-6 grid gap-4 md:grid-cols-2 shrink-0">
+        <MacroWidgetBriefing />
+        <MacroWidgetEvents />
       </div>
 
       {/* Confirmation Dialog */}
@@ -671,46 +727,104 @@ export default function MacroIntelligencePage() {
         </TabsList>
 
         {/* Tab 1: Terminal — Calendar, Rates */}
+        {/* [C-09] Terminal mode: dense 5-4-3 asymmetric grid (Bloomberg-like). */}
         <TabsContent value="terminal" className="flex-1 min-h-0 mt-0">
-          <div className="flex flex-col gap-6">
-            {/* Economic Calendar — full width */}
-            <section className="w-full flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-6" style={{ backgroundColor: "hsl(var(--card))" }}>
-              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                Calendário Econômico
-              </h2>
-              <div className="flex-1 min-h-[400px]">
-                <EconomicCalendar
-                  events={events}
-                  weekStart={calendarWeek}
-                  onWeekChange={handleWeekChange}
-                  onRefresh={handleCalendarRefresh}
+          <div className="flex flex-col gap-4">
+            {/* Row 1 — 5 cols: Calendar 3, Rates 2 */}
+            <div className="grid gap-4 lg:grid-cols-5">
+              <section className="lg:col-span-3 flex flex-col rounded-[24px] border border-border/40 shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  Calendário Econômico
+                </h2>
+                <div className="flex-1 min-h-[400px]">
+                  <EconomicCalendar
+                    events={filteredEvents}
+                    weekStart={calendarWeek}
+                    onWeekChange={handleWeekChange}
+                    onRefresh={handleCalendarRefresh}
+                  />
+                </div>
+              </section>
+              <section className="lg:col-span-2 flex flex-col rounded-[24px] border border-border/40 shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Bancos Centrais
+                </h2>
+                <PaywallGate requiredPlan="pro" blurContent>
+                  <InterestRatesPanel rates={filteredRates} />
+                </PaywallGate>
+              </section>
+            </div>
+
+            {/* Row 2 — 4 cols: Headlines 3, Sentiment 1 */}
+            <div className="grid gap-4 lg:grid-cols-4">
+              <div className="lg:col-span-3">
+                <HeadlinesFeed
+                  headlines={filteredHeadlines}
+                  onRefresh={handleHeadlinesRefresh}
+                  refreshing={headlinesRefreshing}
                 />
               </div>
-            </section>
+              <section className="lg:col-span-1 flex flex-col rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  Sentimento Global
+                </h2>
+                {panorama?.sentiment ? (
+                  <div className="flex-1 flex flex-col justify-center">
+                    <SentimentBar sentiment={panorama.sentiment} />
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Sem dados de sentimento.</p>
+                )}
+              </section>
+            </div>
 
-            {/* Interest Rates — horizontal, between calendar and headlines */}
-            <section className="w-full flex flex-col rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
-              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Taxas Baseadas (Bancos Centrais)</h2>
-              <PaywallGate requiredPlan="pro" blurContent>
-                <InterestRatesPanel rates={rates} />
-              </PaywallGate>
-            </section>
-
-            {/* Headlines Feed — Terminal tab only */}
-            <HeadlinesFeed
-              headlines={headlines}
-              onRefresh={handleHeadlinesRefresh}
-              refreshing={headlinesRefreshing}
-            />
-
-            {/* Weekly History */}
-            <section className="w-full flex flex-col rounded-[24px] border border-border/40 bg-card shadow-sm p-6 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
-              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Histórico Macro Semanal</h2>
-              <PaywallGate requiredPlan="pro" blurContent>
-                <WeeklyHistory weeks={weeks} currentWeek={defaultWeek} />
-              </PaywallGate>
-            </section>
+            {/* Row 3 — 3 cols: History 2, Event counter 1 */}
+            <div className="grid gap-4 lg:grid-cols-3">
+              <section className="lg:col-span-2 flex flex-col rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                  Histórico Macro Semanal
+                </h2>
+                <PaywallGate requiredPlan="pro" blurContent>
+                  <WeeklyHistory weeks={weeks} currentWeek={defaultWeek} />
+                </PaywallGate>
+              </section>
+              <section className="lg:col-span-1 flex flex-col rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                  Semana em Números
+                </h2>
+                {(() => {
+                  const high = filteredEvents.filter((e) => e.impact === "high").length;
+                  const medium = filteredEvents.filter((e) => e.impact === "medium").length;
+                  const countries = new Set(filteredEvents.map((e) => e.country)).size;
+                  const rateCount = filteredRates.length;
+                  return (
+                    <dl className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-xl border border-border/40 p-3">
+                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Alto Impacto</dt>
+                        <dd className="mt-1 text-xl font-semibold text-red-500 tabular-nums">{high}</dd>
+                      </div>
+                      <div className="rounded-xl border border-border/40 p-3">
+                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Médio</dt>
+                        <dd className="mt-1 text-xl font-semibold text-amber-500 tabular-nums">{medium}</dd>
+                      </div>
+                      <div className="rounded-xl border border-border/40 p-3">
+                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Países</dt>
+                        <dd className="mt-1 text-xl font-semibold text-foreground tabular-nums">{countries}</dd>
+                      </div>
+                      <div className="rounded-xl border border-border/40 p-3">
+                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Bancos Centrais</dt>
+                        <dd className="mt-1 text-xl font-semibold text-foreground tabular-nums">{rateCount}</dd>
+                      </div>
+                    </dl>
+                  );
+                })()}
+              </section>
+            </div>
           </div>
         </TabsContent>
 

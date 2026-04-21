@@ -63,7 +63,7 @@ export function ImportResult({
         )}
         {showAiCoach && (
           <Link
-            href="/app/ai-coach"
+            href="/app/dexter/coach"
             className="text-xs px-3 py-1.5 rounded-lg border border-primary/30 text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
           >
             <Brain size={12} className="inline mr-1" />Analisar com AI Coach

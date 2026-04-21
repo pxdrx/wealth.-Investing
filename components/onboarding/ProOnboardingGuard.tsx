@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import {
   ProOnboardingModal,
   hasSeenProOnboarding,
@@ -21,7 +21,7 @@ function resolvePlan(plan: string | null | undefined): "pro" | "ultra" {
 }
 
 export function ProOnboardingGuard() {
-  const { plan, isLoading } = useSubscription();
+  const { plan, isLoading } = useEntitlements();
   const pathname = usePathname();
   const [show, setShow] = useState(false);
   const [onboardingPlan, setOnboardingPlan] = useState<"pro" | "ultra">("pro");

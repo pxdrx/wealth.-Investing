@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: next.config.mjs
-hits: 7
+hits: 9
 hub: true
-last_seen: "2026-02-28T14:34:22-03:00"
+last_seen: "2026-04-20T10:18:01-03:00"
 tags: ["arquivo", "hub"]
 ---
 
 # `next.config.mjs`
 
-> 7 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 9 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/f1e069a-initial-commit-trading-dashboard-next-js-app-router-tailwind]]
+[[Sistema/Commits/a39e6df-c-06-unified-shell-tab-routing]]

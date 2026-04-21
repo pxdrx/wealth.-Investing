@@ -10,7 +10,7 @@ import {
   Bell,
   X,
 } from "lucide-react";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { analyzeSmartAlerts, type TradeInput, type SmartAlert } from "@/lib/smart-alerts";
 import { supabase } from "@/lib/supabase/client";
 
@@ -214,7 +214,7 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
       : "bg-amber-100 dark:bg-amber-900/30";
 
   // Subscription check: hide entirely for non-ultra (expensive feature, no teaser)
-  const { plan: subPlan, isLoading: subLoading } = useSubscription();
+  const { plan: subPlan, isLoading: subLoading } = useEntitlements();
   const isUltraOrAbove = subPlan === "ultra" || subPlan === "mentor";
   if (!isUltraOrAbove && !subLoading) return null;
 

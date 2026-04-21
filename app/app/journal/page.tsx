@@ -4,18 +4,26 @@ import { useEffect, useState, useCallback } from "react";
 
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus, FileSpreadsheet, FileText } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Upload, BarChart3, Eye, EyeOff, Plus } from "lucide-react";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { supabase } from "@/lib/supabase/client";
 import { AccountSelectorInline } from "@/components/account/AccountSelectorInline";
 import { JournalKpiCards } from "@/components/journal/JournalKpiCards";
+import { JournalEmptyOnboarding } from "@/components/journal/JournalEmptyOnboarding";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const JournalEquityChart = dynamic(() => import("@/components/journal/JournalEquityChart").then(mod => mod.JournalEquityChart), { ssr: false });
 import { JournalTradesTable } from "@/components/journal/JournalTradesTable";
+import { TradeNarrativeList } from "@/components/journal/TradeNarrativeList";
+import { JournalViewToggle, type JournalView } from "@/components/journal/JournalViewToggle";
 import { TradeDetailModal } from "@/components/journal/TradeDetailModal";
 import { CalendarPnl } from "@/components/calendar/CalendarPnl";
 import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
+import { SessionHeatmap } from "@/components/dashboard/SessionHeatmap";
+import { TopSymbolsWidget } from "@/components/dashboard/TopSymbolsWidget";
+import { StreaksWidget } from "@/components/dashboard/StreaksWidget";
+import type { JournalTradeKpiRow } from "@/hooks/useDashboardData";
 import { DdBreachModal } from "@/components/account/DdBreachModal";
 import { ImportDropZone } from "@/components/journal/ImportDropZone";
 import { ImportPreview } from "@/components/journal/ImportPreview";
@@ -85,7 +93,8 @@ const SECTION_IMPORT = 4;
 const PAGE_SIZE = 100;
 
 export default function JournalPage() {
-  const { activeAccountId, isLoading: accountsLoading } = useActiveAccount();
+  const t = useAppT();
+  const { activeAccountId, accounts, isLoading: accountsLoading } = useActiveAccount();
   const [activeTab, setActiveTab] = useState(0);
   const [importFlowState, setImportFlowState] = useState<ImportFlowState>("idle");
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
@@ -112,6 +121,25 @@ export default function JournalPage() {
   const [tradesPage, setTradesPage] = useState(0);
   const [hasMoreTrades, setHasMoreTrades] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // [C-07] Cards vs. table view. Default = cards on mobile, table on desktop;
+  // overridden by localStorage so user choice sticks across sessions.
+  const [journalView, setJournalView] = useState<JournalView>("cards");
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("journal.view");
+      if (stored === "cards" || stored === "table") {
+        setJournalView(stored);
+        return;
+      }
+    } catch {}
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
+      setJournalView("table");
+    }
+  }, []);
+  const handleJournalViewChange = useCallback((next: JournalView) => {
+    setJournalView(next);
+    try { localStorage.setItem("journal.view", next); } catch {}
+  }, []);
   const [allTradesSummary, setAllTradesSummary] = useState<{ net_pnl_usd: number; opened_at: string; closed_at: string | null; account_id: string }[]>([]);
   // Get userId once on mount — AuthGate already validates the session
   useEffect(() => {
@@ -547,8 +575,8 @@ export default function JournalPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Journal</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Registro de operações e análise de performance.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t("journal.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("journal.subtitle")}</p>
         </div>
         <AccountSelectorInline showAddButton />
       </div>
@@ -741,23 +769,16 @@ export default function JournalPage() {
         <p className="text-sm text-destructive">{tradesError}</p>
       )}
 
-      {/* Empty state — no trades yet */}
+      {/* [C-08] Empty state as guided onboarding */}
       {hasData && trades.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-1">Nenhum trade encontrado</h3>
-          <p className="text-sm text-muted-foreground mb-6">Importe seus trades do MT5 ou adicione manualmente.</p>
-          <button
-            onClick={() => {
-              setShowImportPanel(true);
-              setActiveTab(SECTION_OVERVIEW);
-            }}
-            className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
-          >
-            <Upload className="h-4 w-4" />
-            Importar MT5
-          </button>
-        </div>
+        <JournalEmptyOnboarding
+          accountName={accounts.find((a) => a.id === activeAccountId)?.name ?? null}
+          onImportClick={() => {
+            setShowImportPanel(true);
+            setActiveTab(SECTION_OVERVIEW);
+          }}
+          onAddTradeClick={() => setShowAddTrade(true)}
+        />
       )}
 
       {/* Tab content */}
@@ -789,11 +810,24 @@ export default function JournalPage() {
                   activeAccountId={activeAccountId}
                   startingBalance={startingBalanceUsd}
                 />
+                {/* Dashboard-retired widgets relocated here (C-05) */}
+                <SessionHeatmap trades={trades as unknown as JournalTradeKpiRow[]} />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <TopSymbolsWidget trades={trades as unknown as JournalTradeKpiRow[]} />
+                  <StreaksWidget trades={trades as unknown as JournalTradeKpiRow[]} />
+                </div>
               </div>
             )}
             {activeTab === SECTION_TRADES && (
               <div className="space-y-4">
-                <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
+                <div className="flex items-center justify-end">
+                  <JournalViewToggle value={journalView} onChange={handleJournalViewChange} />
+                </div>
+                {journalView === "cards" ? (
+                  <TradeNarrativeList trades={trades} onTradeClick={handleTradeClick} />
+                ) : (
+                  <JournalTradesTable trades={trades} onTradeClick={handleTradeClick} />
+                )}
                 {hasMoreTrades && (
                   <div className="flex justify-center pt-2 pb-4">
                     <button

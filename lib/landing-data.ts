@@ -14,7 +14,7 @@ export const NAV_LINKS = [
 export const NAV_LINKS_AUTH = [
   { label: "Dashboard", href: "/app" },
   { label: "Journal", href: "/app/journal" },
-  { label: "AI Coach", href: "/app/ai-coach" },
+  { label: "AI Coach", href: "/app/dexter/coach" },
   { label: "Calendário", href: "/app/journal?tab=calendar" },
 ] as const;
 

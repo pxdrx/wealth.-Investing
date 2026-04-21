@@ -2,69 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  LayoutDashboard,
-  BookOpen,
-  LineChart,
-  Scan,
-  BrainCircuit,
-  GraduationCap,
-  Shield,
-} from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
-import { safeGetSession } from "@/lib/supabase/safe-session";
 import { cn } from "@/lib/utils";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-const baseNavItems: NavItem[] = [
-  { href: "/app", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/app/journal", label: "Journal", icon: BookOpen },
-  { href: "/app/macro", label: "Macro", icon: LineChart },
-  { href: "/app/analyst", label: "Analista", icon: Scan },
-  { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit },
-];
-
-const mentorNavItem: NavItem = { href: "/app/mentor", label: "Mentor", icon: GraduationCap };
-const adminNavItem: NavItem = { href: "/app/admin", label: "Admin", icon: Shield };
-
-const easeApple = [0.16, 1, 0.3, 1] as const;
+import { getAppNav } from "@/lib/app-nav";
+import { useAppRoles } from "@/lib/hooks/useAppRoles";
+import { emit } from "@/lib/analytics/emit";
 
 export function AppMobileNav() {
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const roles = useAppRoles();
 
-  useEffect(() => {
-    let cancelled = false;
-    const safety = setTimeout(() => { /* noop */ }, 8000);
-    async function checkAdmin() {
-      try {
-        const { data: { session } } = await safeGetSession();
-        if (!session || cancelled) return;
-        const res = await fetch("/api/admin/me", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const json = await res.json();
-        if (!cancelled && json.ok && json.isAdmin) setIsAdmin(true);
-      } catch {
-        // silently ignore
-      }
-    }
-    checkAdmin();
-    return () => { cancelled = true; clearTimeout(safety); };
-  }, []);
-
-  const navItems = [
-    ...baseNavItems,
-    mentorNavItem,
-    ...(isAdmin ? [adminNavItem] : []),
-  ];
+  const navItems = getAppNav({
+    isMentor: roles.isMentor,
+    isLinkedStudent: roles.isLinkedStudent,
+    isAdmin: roles.isAdmin,
+  }).filter((item) => item.mobileBar);
 
   return (
     <nav
@@ -84,12 +36,14 @@ export function AppMobileNav() {
               ? pathname === "/app"
               : pathname === item.href || pathname?.startsWith(item.href + "/");
           const Icon = item.icon;
+          const label = item.shortLabel ?? item.label;
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              data-tour-id={`mobile-${item.href.replace("/app/", "").replace("/app", "dashboard")}`}
+              data-tour-id={`mobile-${item.id === "dashboard" ? "dashboard" : item.id}`}
+              onClick={() => emit("nav_clicked", { id: item.id, surface: "mobile-bar" })}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-3 py-1 rounded-xl transition-colors duration-200",
                 isActive
@@ -117,7 +71,7 @@ export function AppMobileNav() {
                   isActive && "font-semibold"
                 )}
               >
-                {item.label}
+                {label}
               </span>
             </Link>
           );

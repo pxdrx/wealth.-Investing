@@ -1,6 +1,6 @@
 "use client";
 
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { cn } from "@/lib/utils";
 
 const PLAN_STYLES = {
@@ -18,7 +18,7 @@ const PLAN_LABELS = {
 } as const;
 
 export function SubscriptionBadge({ className }: { className?: string }) {
-  const { plan, isLoading } = useSubscription();
+  const { plan, isLoading } = useEntitlements();
 
   if (isLoading) {
     return (
