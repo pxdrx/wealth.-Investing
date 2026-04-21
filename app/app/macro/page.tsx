@@ -2,7 +2,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useMyAssets } from "@/hooks/useMyAssets";
+import { MyAssetsFilter, useMyAssetsToggle } from "@/components/macro/MyAssetsFilter";
 import { Globe, RefreshCw, CalendarDays, FileText, AlertTriangle, Clock } from "lucide-react";
 
 // Relocated from /app home (C-05) — compact macro widgets above the full terminal.
@@ -64,6 +66,34 @@ export default function MacroIntelligencePage() {
     return getWeekStart();
   })();
   const [calendarWeek, setCalendarWeek] = useState(defaultWeek);
+
+  // [C-10] My-assets filter: narrow feeds to currencies of user-traded symbols.
+  const myAssets = useMyAssets();
+  const [myAssetsEnabled, setMyAssetsEnabled] = useMyAssetsToggle();
+  const activeCurrencies = useMemo(() => new Set(myAssets.currencies), [myAssets.currencies]);
+  const activeCountries = useMemo(() => new Set(myAssets.countries), [myAssets.countries]);
+  const filteredEvents = useMemo(() => {
+    if (!myAssetsEnabled || activeCurrencies.size === 0) return events;
+    return events.filter((e) => {
+      if (e.currency && activeCurrencies.has(e.currency)) return true;
+      if (e.country && activeCountries.has(e.country)) return true;
+      return false;
+    });
+  }, [events, myAssetsEnabled, activeCurrencies, activeCountries]);
+  const filteredRates = useMemo(() => {
+    if (!myAssetsEnabled || activeCountries.size === 0) return rates;
+    return rates.filter((r) => activeCountries.has(r.country));
+  }, [rates, myAssetsEnabled, activeCountries]);
+  const filteredHeadlines = useMemo(() => {
+    if (!myAssetsEnabled || (myAssets.symbols.length === 0 && activeCurrencies.size === 0)) {
+      return headlines;
+    }
+    const needles = [...myAssets.symbols, ...Array.from(activeCurrencies)].map((s) => s.toUpperCase());
+    return headlines.filter((h) => {
+      const text = `${h.headline} ${h.summary ?? ""}`.toUpperCase();
+      return needles.some((n) => text.includes(n));
+    });
+  }, [headlines, myAssetsEnabled, myAssets.symbols, activeCurrencies]);
 
   // Helper to safely parse JSON from a fetch result
   const safeJson = useCallback(async (result: PromiseSettledResult<Response>) => {
@@ -569,16 +599,24 @@ export default function MacroIntelligencePage() {
             Terminal quantitativo, calendário econômico e narrativas macro geradas por IA.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefreshClick}
-          disabled={refreshing}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Atualizando..." : "Atualizar"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <MyAssetsFilter
+            enabled={myAssetsEnabled}
+            onToggle={setMyAssetsEnabled}
+            currencies={myAssets.currencies}
+            loading={myAssets.loading}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefreshClick}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Atualizando..." : "Atualizar"}
+          </Button>
+        </div>
       </div>
 
       {/* Compact macro snapshot (relocated from /app home — C-05) */}
@@ -701,7 +739,7 @@ export default function MacroIntelligencePage() {
                 </h2>
                 <div className="flex-1 min-h-[400px]">
                   <EconomicCalendar
-                    events={events}
+                    events={filteredEvents}
                     weekStart={calendarWeek}
                     onWeekChange={handleWeekChange}
                     onRefresh={handleCalendarRefresh}
@@ -714,7 +752,7 @@ export default function MacroIntelligencePage() {
                   Bancos Centrais
                 </h2>
                 <PaywallGate requiredPlan="pro" blurContent>
-                  <InterestRatesPanel rates={rates} />
+                  <InterestRatesPanel rates={filteredRates} />
                 </PaywallGate>
               </section>
             </div>
@@ -723,7 +761,7 @@ export default function MacroIntelligencePage() {
             <div className="grid gap-4 lg:grid-cols-4">
               <div className="lg:col-span-3">
                 <HeadlinesFeed
-                  headlines={headlines}
+                  headlines={filteredHeadlines}
                   onRefresh={handleHeadlinesRefresh}
                   refreshing={headlinesRefreshing}
                 />
@@ -760,10 +798,10 @@ export default function MacroIntelligencePage() {
                   Semana em Números
                 </h2>
                 {(() => {
-                  const high = events.filter((e) => e.impact === "high").length;
-                  const medium = events.filter((e) => e.impact === "medium").length;
-                  const countries = new Set(events.map((e) => e.country)).size;
-                  const rateCount = rates.length;
+                  const high = filteredEvents.filter((e) => e.impact === "high").length;
+                  const medium = filteredEvents.filter((e) => e.impact === "medium").length;
+                  const countries = new Set(filteredEvents.map((e) => e.country)).size;
+                  const rateCount = filteredRates.length;
                   return (
                     <dl className="grid grid-cols-2 gap-3 text-sm">
                       <div className="rounded-xl border border-border/40 p-3">
