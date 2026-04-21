@@ -669,7 +669,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-11 — PR + docs/MIGRATION-TRACK-A.md [PENDING] [summary only]
+### A-11 — PR + docs/MIGRATION-TRACK-A.md [SHIPPED] [summary only]
 
 **Objective:** PR + docs/MIGRATION-TRACK-A.md
 
