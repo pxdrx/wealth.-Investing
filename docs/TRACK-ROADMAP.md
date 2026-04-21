@@ -1078,7 +1078,7 @@ Por milestone (após B-09 e B-15):
 - **B-11 — SEO + OG + hreflang + sitemap** — [PENDING] — full plan embedded above
 - **B-12 — Páginas públicas traduzidas** — [SHIPPED] — full plan embedded above
 - **B-13 — Exit intent + sticky mobile CTA** — [SHIPPED] — full plan embedded above
-- **B-14 — messages/{pt,en}.json (~150 keys)** — [PENDING] — full plan embedded above
+- **B-14 — messages/{pt,en}.json (~150 keys)** — [SHIPPED] — full plan embedded above
 - **B-15 — docs/CONVERSION-FUNNEL.md + PR** — [PENDING] — full plan embedded above
 
 ---
