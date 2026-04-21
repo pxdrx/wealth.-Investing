@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useMyAssets } from "@/hooks/useMyAssets";
 import { MyAssetsFilter, useMyAssetsToggle } from "@/components/macro/MyAssetsFilter";
+import { useAppT } from "@/hooks/useAppLocale";
 import { Globe, RefreshCw, CalendarDays, FileText, AlertTriangle, Clock } from "lucide-react";
 
 // Relocated from /app home (C-05) — compact macro widgets above the full terminal.
@@ -40,6 +41,7 @@ import { getWeekStart } from "@/lib/macro/constants";
 import type { EconomicEvent, WeeklyPanorama, CentralBankRate, AdaptiveAlert as AdaptiveAlertType, MacroHeadline } from "@/lib/macro/types";
 
 export default function MacroIntelligencePage() {
+  const t = useAppT();
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [panorama, setPanorama] = useState<WeeklyPanorama | null>(null);
   const [rates, setRates] = useState<CentralBankRate[]>([]);
@@ -592,12 +594,10 @@ export default function MacroIntelligencePage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Globe className="h-6 w-6 text-blue-500" />
-            <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Inteligência Macro</h1>
+            <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">{t("macro.title")}</h1>
             <LiveIndicator />
           </div>
-          <p className="text-sm text-muted-foreground font-medium">
-            Terminal quantitativo, calendário econômico e narrativas macro geradas por IA.
-          </p>
+          <p className="text-sm text-muted-foreground font-medium">{t("macro.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <MyAssetsFilter
