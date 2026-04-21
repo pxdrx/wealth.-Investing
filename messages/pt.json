@@ -226,6 +226,121 @@
     "cta": {
       "primary": "Ver comparação completa →",
       "ghost": "Começar grátis"
+    },
+    "page": {
+      "eyebrow": "Preços",
+      "heading": "Planos simples.",
+      "headingAccent": "Sem surpresa.",
+      "subhead": "Comece grátis. Faça upgrade quando quiser — sem contrato, sem taxa de cancelamento.",
+      "footer": "Dúvida sobre qual plano cabe em você? Começa no grátis — você pode evoluir a qualquer momento.",
+      "cta": "Começar grátis agora"
+    }
+  },
+  "manifesto": {
+    "eyebrow": "Nosso manifesto",
+    "heading": "Trading não é sobre sorte. É sobre evidência.",
+    "intro": {
+      "body": "A maioria dos traders quebra. Não por falta de vontade, de disciplina ou de coragem. Quebra porque opera no escuro — decidindo sem dado, repetindo padrão que nunca mediu, comprando narrativa de si mesmo que os números desmentem. Construímos a wealth pra desligar o escuro."
+    },
+    "section_01": {
+      "title": "A maioria quebra, mas não por falta de estratégia.",
+      "body": "Todo trader que você já viu quebrar tinha um plano. Tinha setups favoritos. Tinha horário bom e horário ruim. Tinha opinião clara sobre o que funciona. O problema nunca foi ausência de estratégia — foi ausência de verificação."
+    },
+    "section_02": {
+      "title": "É porque estão operando cego.",
+      "body": "Sem dado, intuição vira verdade. \"Perco mais nas quintas\" gruda. \"Meu setup de pullback é o melhor\" gruda. Decisões seguem rumo de narrativa interna. Meses passam, a curva cai, e o trader ainda diz as mesmas frases. A planilha que deveria corrigir virou cemitério de linhas esquecidas."
+    },
+    "section_03": {
+      "title": "Dado muda tudo.",
+      "body": "O que uma plataforma honesta faz é baixar o custo de confrontar a própria história. Import automático do MT5. Cada trade com contexto macro, tag de erro, sessão, estado mental. Você abre o dashboard e a narrativa quebra: a quinta era boa. O pullback estava abaixo da média. O que sustenta sua curva é outro setup, num outro horário, com outro tamanho. A partir daí, você opera diferente."
+    },
+    "section_04": {
+      "title": "O que acreditamos.",
+      "body": "1. Evidência > intuição. Sempre.\n2. O journal que funciona é o que preenche sozinho.\n3. IA boa não dá resposta pronta — mostra o padrão que você não viu.\n4. Preço em real. Suporte em português. Honestidade no que a ferramenta entrega e no que ainda não."
+    },
+    "section_05": {
+      "title": "Pra quem é.",
+      "body": "Pra quem já perdeu dinheiro, já tirou conta, já fez challenge de prop firm e olhou pro gráfico cansado. Pra quem suspeita que há padrão ali e quer parar de adivinhar. Pra quem opera em MT5, em prop firm, em NinjaTrader — e está disposto a trocar planilha por evidência."
+    },
+    "section_06": {
+      "title": "O que estamos construindo.",
+      "body": "Uma plataforma onde seus trades viram dado, seu dado vira padrão e seu padrão vira decisão. Onde prop firm tem painel vivo. Onde o macro não pega você de surpresa. Onde Dexter, nosso analista de IA, lê seu histórico e te conta o que você não viu — em português, sem frescura, com números e não com marketing."
+    },
+    "cta": {
+      "primary": "Conecte seu MT5 em 60 segundos",
+      "ghost": "Ver planos"
+    }
+  },
+  "features": {
+    "backToHub": "Voltar para Funcionalidades",
+    "hub": {
+      "eyebrow": "Funcionalidades",
+      "heading": "Três pilares.",
+      "headingAccent": "Uma decisão honesta por vez.",
+      "subhead": "O que a wealth faz em três superfícies que conversam entre si. Journal manda dado pra Dexter. Dexter cruza com Macro. Macro avisa antes da news quebrar seu trade.",
+      "cardCta": "Entrar"
+    },
+    "pages": {
+      "journal": {
+        "label": "Journal",
+        "title": "Toda ordem do MT5 vira evidência, não linha de planilha.",
+        "subtitle": "Upload em segundos, PnL real, taxa de acerto real, curva de capital viva. O histórico que você nunca teve tempo de montar na mão.",
+        "bullets": {
+          "0": "Import MT5 via XLSX, HTML ou número da conta — 10 mil trades em menos de um minuto",
+          "1": "Tags de 12 erros recorrentes (pressa, revenge, fomo, fora do plano…) — um clique por trade",
+          "2": "Filtros por dia da semana, sessão, setup, tag — a narrativa quebra onde o dado mostra",
+          "3": "Dashboard vivo de PnL, win rate, MFE/MAE, expectativa matemática, recovery factor",
+          "4": "Comparação por conta (prop, pessoal, cripto) — qual está te sustentando de verdade",
+          "5": "Export CSV e PDF pra quando precisar levar evidência pra mentor ou prop firm"
+        },
+        "cta": {
+          "primary": "Importar meu MT5 agora",
+          "ghost": "Ver planos"
+        }
+      },
+      "dexter": {
+        "label": "Dexter IA",
+        "title": "Um analista que lê seu histórico e opera 24/7.",
+        "subtitle": "Não é chatbot. Dexter é IA de análise que conecta seus trades ao macro, identifica padrão que você não vê e te devolve insight com número, não com achismo.",
+        "bullets": {
+          "0": "Análise automática sobre seus padrões: melhor setup, melhor horário, erro recorrente",
+          "1": "Alerta quando seu comportamento desvia do plano — antes de virar perda",
+          "2": "Cruza seu PnL com calendário macro (CPI, NFP, decisões de juros) pra achar pontos cegos",
+          "3": "Relatório semanal por email: o que deu certo, o que não deu, o que mudar nos próximos 7 dias",
+          "4": "Consultas ilimitadas no plano Ultra — pergunte qualquer coisa sobre seu histórico",
+          "5": "Multi-camada: fundamento, técnica, risco, tese final — em 30 segundos, em português"
+        },
+        "cta": {
+          "primary": "Conversar com Dexter",
+          "ghost": "Ver planos"
+        }
+      },
+      "macro": {
+        "label": "Macro",
+        "title": "Bloomberg no seu bolso, em português.",
+        "subtitle": "Calendário econômico com impacto, headlines ao vivo, taxa de juros dos principais bancos centrais e briefing diário — tudo o que move seu ativo antes do gráfico se mover.",
+        "bullets": {
+          "0": "Calendário econômico ao vivo: CPI, NFP, decisões de juros, PPI, PMI — com impacto por notícia",
+          "1": "Headlines em tempo real de fontes confiáveis (FinancialJuice, TradingEconomics) — sem ruído",
+          "2": "Taxa de juros dos principais bancos centrais (Fed, BCE, BoE, BoJ, Bacen) — última ação e próxima",
+          "3": "Briefing macro todo dia às 7h no seu email: o que importa hoje, em 3 parágrafos",
+          "4": "Ajuste diário do cenário quando headline muda a narrativa do dia — você nunca fica parado",
+          "5": "Weekly report de domingo com o que esperar da semana — planejamento antes do pregão"
+        },
+        "cta": {
+          "primary": "Ver o macro de hoje",
+          "ghost": "Ver planos"
+        }
+      }
+    }
+  },
+  "blog": {
+    "list": {
+      "eyebrow": "Blog",
+      "heading": "Trading como evidência.",
+      "headingAccent": "Sem fórmula mágica.",
+      "readMore": "Ler o artigo",
+      "backToList": "Voltar para o blog"
     }
   }
 }

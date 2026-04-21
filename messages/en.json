@@ -226,6 +226,121 @@
     "cta": {
       "primary": "See full comparison →",
       "ghost": "Start for free"
+    },
+    "page": {
+      "eyebrow": "Pricing",
+      "heading": "Simple plans.",
+      "headingAccent": "No surprises.",
+      "subhead": "Start free. Upgrade when it makes sense — no contract, no cancellation fee.",
+      "footer": "Not sure which plan fits? Start on free — you can move up any time.",
+      "cta": "Start free now"
+    }
+  },
+  "manifesto": {
+    "eyebrow": "Our manifesto",
+    "heading": "Trading isn't about luck. It's about evidence.",
+    "intro": {
+      "body": "Most traders blow up. Not for lack of will, discipline or courage. They blow up because they trade in the dark — deciding without data, repeating a pattern they never measured, buying a story about themselves the numbers quietly disagree with. We built wealth to turn the dark off."
+    },
+    "section_01": {
+      "title": "Most blow up — and it isn't for lack of strategy.",
+      "body": "Every trader you've watched blow up had a plan. Had favorite setups. Had a good window and a bad one. Had strong opinions about what works. The problem was never the absence of strategy — it was the absence of verification."
+    },
+    "section_02": {
+      "title": "It's because they're trading blind.",
+      "body": "Without data, intuition turns into truth. \"I lose more on Thursdays\" sticks. \"My pullback setup is the best one\" sticks. Decisions follow the internal story. Months go by, equity drops, and the trader still repeats the same lines. The spreadsheet that was supposed to correct them turned into a graveyard of forgotten rows."
+    },
+    "section_03": {
+      "title": "Data changes everything.",
+      "body": "What an honest platform does is lower the cost of confronting your own history. Automatic MT5 import. Every trade with macro context, error tag, session, mental state. You open the dashboard and the story breaks: Thursday was fine. The pullback was below average. What actually sustains your curve is another setup, another session, another size. From that point on, you trade differently."
+    },
+    "section_04": {
+      "title": "What we believe.",
+      "body": "1. Evidence > intuition. Always.\n2. The journal that works is the one that fills itself in.\n3. Good AI doesn't hand you an answer — it shows the pattern you missed.\n4. Honest pricing. Honest support. Honest about what the tool ships today and what it doesn't."
+    },
+    "section_05": {
+      "title": "Who it's for.",
+      "body": "For the trader who has already lost money, already been taken off an account, already run a prop firm challenge and stared at the chart exhausted. For the trader who suspects there's a pattern in there and wants to stop guessing. For anyone on MT5, on a prop firm, on NinjaTrader — and willing to trade spreadsheet for evidence."
+    },
+    "section_06": {
+      "title": "What we're building.",
+      "body": "A platform where your trades become data, your data becomes a pattern and your pattern becomes a decision. Where prop firms have a live panel. Where macro doesn't catch you off guard. Where Dexter, our AI analyst, reads your history and tells you what you didn't see — in plain language, with numbers, not marketing."
+    },
+    "cta": {
+      "primary": "Connect your MT5 in 60 seconds",
+      "ghost": "See plans"
+    }
+  },
+  "features": {
+    "backToHub": "Back to Features",
+    "hub": {
+      "eyebrow": "Features",
+      "heading": "Three pillars.",
+      "headingAccent": "One honest decision at a time.",
+      "subhead": "What wealth does across three surfaces that talk to each other. Journal feeds Dexter. Dexter cross-references with Macro. Macro warns you before the news breaks your trade.",
+      "cardCta": "Open"
+    },
+    "pages": {
+      "journal": {
+        "label": "Journal",
+        "title": "Every MT5 order becomes evidence — not a spreadsheet row.",
+        "subtitle": "Upload in seconds, real PnL, real win rate, live equity curve. The track record you never had time to build by hand.",
+        "bullets": {
+          "0": "MT5 import via XLSX, HTML or account number — 10k trades in under a minute",
+          "1": "12 recurring error tags (rushed, revenge, fomo, off-plan…) — one click per trade",
+          "2": "Filters by weekday, session, setup, tag — the story breaks where the data shows it",
+          "3": "Live dashboard for PnL, win rate, MFE/MAE, mathematical expectancy, recovery factor",
+          "4": "Per-account comparison (prop, personal, crypto) — which one is really carrying you",
+          "5": "CSV and PDF export for when you need to bring evidence to a mentor or prop firm"
+        },
+        "cta": {
+          "primary": "Import my MT5 now",
+          "ghost": "See plans"
+        }
+      },
+      "dexter": {
+        "label": "Dexter AI",
+        "title": "An analyst who reads your history and works 24/7.",
+        "subtitle": "Not a chatbot. Dexter is analytical AI that connects your trades to macro, identifies a pattern you don't see and hands back insight with numbers — not opinions.",
+        "bullets": {
+          "0": "Automatic analysis of your patterns: best setup, best time window, recurring mistake",
+          "1": "Alerts when your behavior drifts from plan — before it turns into a loss",
+          "2": "Cross-references your PnL with the macro calendar (CPI, NFP, rate decisions) to find blind spots",
+          "3": "Weekly email report: what worked, what didn't, what to change over the next 7 days",
+          "4": "Unlimited queries on the Ultra plan — ask anything about your own history",
+          "5": "Multi-layer: fundamentals, technicals, risk, final thesis — in 30 seconds, in plain language"
+        },
+        "cta": {
+          "primary": "Talk to Dexter",
+          "ghost": "See plans"
+        }
+      },
+      "macro": {
+        "label": "Macro",
+        "title": "Bloomberg in your pocket.",
+        "subtitle": "Economic calendar with impact, live headlines, central bank rates and a daily briefing — everything that moves your asset before the chart does.",
+        "bullets": {
+          "0": "Live economic calendar: CPI, NFP, rate decisions, PPI, PMI — impact tagged per release",
+          "1": "Real-time headlines from trusted sources (FinancialJuice, TradingEconomics) — no noise",
+          "2": "Rates for the major central banks (Fed, ECB, BoE, BoJ, Bacen) — last action and next one",
+          "3": "Daily macro briefing at 7am in your inbox: what matters today, in three paragraphs",
+          "4": "Daily scenario updates when a headline shifts the narrative — you never stand still",
+          "5": "Sunday weekly report on what to expect ahead — planning before the open"
+        },
+        "cta": {
+          "primary": "See today's macro",
+          "ghost": "See plans"
+        }
+      }
+    }
+  },
+  "blog": {
+    "list": {
+      "eyebrow": "Blog",
+      "heading": "Trading as evidence.",
+      "headingAccent": "No magic formula.",
+      "readMore": "Read the article",
+      "backToList": "Back to the blog"
     }
   }
 }
