@@ -4,56 +4,77 @@
 
 @layer base {
   :root {
-    /* ── Light theme (Lumina Slate Identity) ── */
-    --background: 0 0% 95%; /* #F2F2F2 (Mais contraste com os cards) */
-    --foreground: 0 0% 10%; /* #1A1A1A */
+    /* ── Semantic tokens — Terminal (light) ── */
+    --background: 0 0% 96%;
+    --foreground: 222 47% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%; 
-    --primary: 0 0% 10%; /* #1A1A1A */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 93%;
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 93%;
-    --muted-foreground: 0 0% 36%; /* #5C5C5C — WCAG AA 4.5:1 on light bg */
-    --accent: 0 0% 93%;
-    --accent-foreground: 0 0% 10%;
-    --border: 0 0% 82%; /* #D1D1D1 (Linhas divisórias mais visíveis) */
-    --input: 0 0% 82%;
-    --input-bg: 0 0% 100%;
-    --ring: 0 0% 10%;
+    --card-foreground: 222 47% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 222 47% 8%;
+    --primary: 152 60% 30%;           /* emerald execution */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 14% 90%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 93%;
+    --muted-foreground: 220 9% 40%;
+    --accent: 44 100% 47%;             /* amber alert */
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 152 60% 30%;
+    --success-foreground: 0 0% 98%;
+    --warning: 44 100% 47%;
+    --warning-foreground: 222 47% 11%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --input-bg: 0 0% 100%;
+    --ring: 152 60% 30%;
 
-    /* ── Landing tokens (Lumina Slate) ── */
-    --landing-bg: 0 0% 95%;
-    --landing-bg-elevated: 0 0% 100%;
-    --landing-bg-tertiary: 0 0% 93%;
-    --landing-border: 0 0% 82%;
-    --landing-border-strong: 0 0% 65%;
-    --landing-text: 0 0% 10%;
-    --landing-text-secondary: 0 0% 42%;
-    --landing-text-muted: 0 0% 60%;
-    --landing-accent: 0 0% 10%;
-    --landing-accent-secondary: 0 0% 25%;
-    --landing-accent-warning: 38 80% 48%;
-    --landing-accent-danger: 0 72% 50%;
+    /* ── Domain tokens — PNL (kept; semantic, not duplicative) ── */
     --pnl-positive: 152 40% 38%;
     --pnl-positive-light: 152 35% 48%;
     --pnl-negative: 4 50% 52%;
-    --pnl-cell-win: 152 80% 45% / 0.12; 
-    --pnl-cell-loss: 350 80% 55% / 0.10; 
-    --pnl-text-positive: 152 85% 30%; 
-    --pnl-text-negative: 350 75% 48%; 
-    --landing-grid: 0 0% 82%; 
-    --landing-card-shadow: 0 1px 2px rgba(0,0,0,0.02), 0 4px 16px -4px rgba(0,0,0,0.04);
-    --landing-card-shadow-hover: 0 2px 4px rgba(0,0,0,0.03), 0 8px 24px -4px rgba(0,0,0,0.08);
+    --pnl-cell-win: 152 80% 45% / 0.12;
+    --pnl-cell-loss: 350 80% 55% / 0.10;
+    --pnl-text-positive: 152 85% 30%;
+    --pnl-text-negative: 350 75% 48%;
 
-    /* Radius (Lumina Soft Geometry) */
-    --radius-card: 22px;
-    --radius-modal: 24px;
-    --radius-input: 12px;
+    /* ── Landing aliases (A-08 deprecation shim, light) ──
+     * A-03 removed the parallel `--landing-*` design system, but ~458 call
+     * sites across Tracks B/C still reference these vars (inline styles,
+     * feature mockups, landing components). Instead of leaving them
+     * resolving to `unset`, we alias each one to its canonical counterpart.
+     *
+     * ⚠ Deprecated. Do NOT introduce NEW `var(--landing-*)` references in
+     * any code. Tracks B and C migrate to the canonical tokens on the
+     * right in B-02..B-04 and C-* refactors. This shim is removed in the
+     * Track A close-out PR (A-11).
+     *
+     * Full mapping + per-file migration guidance: docs/TOKEN-MIGRATION.md
+     * §"A-08 — landing-* deprecation map".
+     */
+    --landing-bg: var(--background);
+    --landing-bg-elevated: var(--card);
+    --landing-bg-tertiary: var(--secondary);
+    --landing-elevated: var(--card);
+    --landing-border: var(--border);
+    --landing-border-strong: 220 9% 40%;          /* ≈ muted-foreground, stronger than --border */
+    --landing-text: var(--foreground);
+    --landing-text-secondary: var(--secondary-foreground);
+    --landing-text-muted: var(--muted-foreground);
+    --landing-accent: var(--primary);
+    --landing-accent-secondary: var(--accent);
+    --landing-accent-warning: var(--warning);
+    --landing-accent-danger: var(--destructive);
+    --landing-grid: var(--border);
 
-    /* Typography */
+    /* ── Radius ── */
+    --radius: 0.75rem;                 /* new system base (terminal) */
+    --radius-card: 22px;               /* legacy — existing cards keep this */
+    --radius-modal: 24px;              /* legacy — existing modals keep this */
+    --radius-input: 12px;              /* legacy — existing inputs keep this */
+
+    /* ── Typography ── */
     --tracking-tight: -0.02em;
     --tracking-tighter: -0.03em;
     --leading-tight: 1.15;
@@ -61,54 +82,64 @@
     --leading-normal: 1.5;
     --leading-relaxed: 1.625;
     --placeholder-opacity: 0.55;
-    --font-weight-heading: 800; /* For Manrope headlines */
+    --font-weight-heading: 700;
     --font-weight-display: 800;
   }
 
   .dark {
-    /* ── Dark theme ── */
-    --background: 0 0% 4%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 100%;
-    --primary: 210 20% 90%;
-    --primary-foreground: 215 25% 8%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 10%;
-    --muted-foreground: 220 9% 64%;
-    --accent: 215 15% 15%;
-    --accent-foreground: 210 20% 90%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --input-bg: 0 0% 10%;
-    --ring: 215 20% 55%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 100%;
+    /* ── Semantic tokens — Terminal (dark) ── */
+    --background: 220 8% 7%;
+    --foreground: 0 0% 96%;
+    --card: 220 8% 10%;
+    --card-foreground: 0 0% 96%;
+    --popover: 220 8% 10%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 152 65% 45%;
+    --primary-foreground: 220 8% 7%;
+    --secondary: 220 6% 14%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 220 6% 14%;
+    --muted-foreground: 220 9% 60%;
+    --accent: 44 100% 55%;
+    --accent-foreground: 220 8% 7%;
+    --destructive: 0 55% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 152 65% 45%;
+    --success-foreground: 220 8% 7%;
+    --warning: 44 100% 55%;
+    --warning-foreground: 220 8% 7%;
+    --border: 220 6% 18%;
+    --input: 220 6% 18%;
+    --input-bg: 220 8% 10%;
+    --ring: 152 65% 45%;
 
-    /* ── Landing tokens (dark) ── */
-    --landing-bg: 0 0% 4%;
-    --landing-bg-elevated: 0 0% 9%;
-    --landing-bg-tertiary: 0 0% 12%;
-    --landing-border: 0 0% 14%;
-    --landing-border-strong: 0 0% 20%;
-    --landing-text: 0 0% 96%;
-    --landing-text-secondary: 0 0% 65%;
-    --landing-text-muted: 0 0% 45%;
-    --landing-accent: 210 20% 90%;
-    --landing-accent-secondary: 217 60% 55%;
-    --landing-accent-warning: 38 80% 50%;
-    --landing-accent-danger: 0 72% 55%;
+    /* ── Domain tokens — PNL (dark) ── */
     --pnl-positive: 152 40% 60%;
     --pnl-positive-light: 152 35% 65%;
     --pnl-negative: 4 45% 62%;
-    --pnl-cell-win: 152 70% 50% / 0.15; /* Neon Emerald bg */
-    --pnl-cell-loss: 350 70% 55% / 0.12; /* Deep Rose bg */
-    --pnl-text-positive: 152 80% 55%; /* Glowing green text */
-    --pnl-text-negative: 350 85% 65%; /* Glowing red text */
-    --landing-grid: 0 0% 10%;
-    --landing-card-shadow: none;
-    --landing-card-shadow-hover: none;
+    --pnl-cell-win: 152 70% 50% / 0.15;
+    --pnl-cell-loss: 350 70% 55% / 0.12;
+    --pnl-text-positive: 152 80% 55%;
+    --pnl-text-negative: 350 85% 65%;
+
+    /* ── Landing aliases (A-08 deprecation shim, dark) ──
+     * Same deprecation semantics as :root. See docs/TOKEN-MIGRATION.md
+     * §"A-08 — landing-* deprecation map". Removed in A-11.
+     */
+    --landing-bg: var(--background);
+    --landing-bg-elevated: var(--card);
+    --landing-bg-tertiary: var(--secondary);
+    --landing-elevated: var(--card);
+    --landing-border: var(--border);
+    --landing-border-strong: 220 9% 60%;
+    --landing-text: var(--foreground);
+    --landing-text-secondary: var(--secondary-foreground);
+    --landing-text-muted: var(--muted-foreground);
+    --landing-accent: var(--primary);
+    --landing-accent-secondary: var(--accent);
+    --landing-accent-warning: var(--warning);
+    --landing-accent-danger: var(--destructive);
+    --landing-grid: var(--border);
 
     --placeholder-opacity: 0.5;
   }
@@ -146,6 +177,34 @@
   .text-muted, [class*="text-muted-foreground"] {
     line-height: var(--leading-relaxed);
   }
+
+  ::selection {
+    background-color: hsl(var(--accent) / 0.35);
+    color: hsl(var(--accent-foreground));
+  }
+
+  /* Scrollbar — minimal terminal. Uses semantic tokens so it respects theme. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+    background-clip: padding-box;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
 }
 
 @layer components {
@@ -165,19 +224,19 @@
   }
 
   /* ── Premium Glass Cards (Global Override) ── */
-  .bg-card { 
-    background-color: hsl(var(--card) / 0.65) !important; 
+  .bg-card {
+    background-color: hsl(var(--card) / 0.65) !important;
     backdrop-filter: blur(28px) saturate(140%);
     -webkit-backdrop-filter: blur(28px) saturate(140%);
     border: 1px solid hsl(var(--border) / 0.8) !important;
     box-shadow: inset 0 1px 1px hsl(0 0% 100% / 0.15), 0 8px 32px -8px rgba(0, 0, 0, 0.08) !important;
   }
   .dark .bg-card {
-    background-color: hsl(var(--card) / 0.35) !important; 
+    background-color: hsl(var(--card) / 0.35) !important;
     border: 1px solid hsl(0 0% 100% / 0.12) !important;
     box-shadow: inset 0 1px 1px hsl(0 0% 100% / 0.1), 0 8px 32px -8px rgba(0, 0, 0, 0.6) !important;
   }
-  
+
   .metric-value {
     font-family: theme('fontFamily.display');
     font-variant-numeric: tabular-nums;
@@ -191,56 +250,36 @@
   .bg-primary { background-color: hsl(var(--primary)) !important; }
   .bg-input { background-color: hsl(var(--input)) !important; }
 
-  .landing-grid-pattern {
-    background-image:
-      linear-gradient(to right, hsl(var(--landing-grid)) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--landing-grid)) 1px, transparent 1px);
-    background-size: 64px 64px;
-  }
-
-  .landing-section { @apply py-12 sm:py-16 md:py-28 lg:py-32; }
-  .landing-container { @apply mx-auto max-w-[1280px] px-6; }
-
-  /* ── Premium Glass Cards ── */
+  /* ── Landing compat shim — rewritten to use semantic tokens ──
+   * Legacy `.landing-card` is still referenced by CalendarPnl (Track C) and
+   * ~20 landing files (Track B). Track B migrates in B-02..B-04.
+   * No longer uses any --l-* or --landing-* variables.
+   */
   .landing-card {
-    background-color: hsl(var(--landing-bg-elevated) / 0.7);
+    background-color: hsl(var(--card) / 0.7);
     backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--landing-border) / 0.5);
-    box-shadow: var(--landing-card-shadow);
+    border: 1px solid hsl(var(--border) / 0.5);
     @apply rounded-2xl relative overflow-hidden;
   }
-  
-  /* Gradiente luminoso na borda no hover (Micro-interação) */
-  .landing-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(to bottom right, hsl(var(--primary)/0.4), transparent, hsl(var(--l-accent-secondary)/0.3));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    pointer-events: none;
-  }
-  
   .landing-card-hover {
     @apply transition-transform duration-300 ease-out;
   }
   .landing-card-hover:hover {
     transform: translateY(-4px);
-    box-shadow: var(--landing-card-shadow-hover), 0 0 40px -10px hsl(var(--primary)/0.15);
-  }
-  .landing-card-hover:hover::before {
-    opacity: 1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06), 0 8px 24px -4px rgba(0,0,0,0.1), 0 0 40px -10px hsl(var(--primary) / 0.15);
   }
 
-  /* Hero entry animation — CSS only, no framer-motion needed */
+  .landing-section { @apply py-12 sm:py-16 md:py-28 lg:py-32; }
+  .landing-container { @apply mx-auto max-w-[1280px] px-6; }
+
+  /* Hero entry animation — CSS only */
   .hero-fade-in {
     animation: heroFadeIn 0.7s ease-out both;
+  }
+
+  /* Tabular nums helper — opt-in via class */
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 

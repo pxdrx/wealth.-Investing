@@ -17,7 +17,7 @@
 |-----------------------------------|-------|--------------------|-------|
 | `lib/brand/**`                    | A     | B, C               | Voice, tokens helpers |
 | `components/brand/**`             | A     | B, C               | Components live here |
-| `components/brand/index.ts`       | A     | B, C               | Re-exports BrandMark, Mascot |
+| `components/brand/index.ts`       | A     | B, C               | Re-exports BrandMark, Dexter |
 | `docs/TOKEN-MIGRATION.md`         | A     | —                  | Migration log |
 | `tailwind.config.ts`              | A     | coord. w/ B, C     | Changes require ping |
 | `app/globals.css`                 | A     | coord. w/ B, C     | Changes require ping |
@@ -63,3 +63,15 @@ API require a ping before merge.
 `next-intl` is installed but not wired into `app/**`. Track B integrates it
 during their work. Until then, treat `app/**` copy as pt-BR hardcoded
 (current state).
+
+## Changelog
+
+- **2026-04-20 — A-03: design tokens consolidated.** `tailwind.config.ts`
+  rewritten (semantic tokens with `/<alpha-value>`, new `neutral/green/red/amber`
+  scales, `display` font → Manrope, `fontSize` scale with paired line-heights,
+  new `--radius` system + legacy `--radius-card/modal/input` preserved).
+  `app/globals.css` re-skinned: Lumina Slate → Terminal (emerald primary
+  `152 60% 30%`, amber accent `44 100% 47%`). All `--landing-*` vars and
+  `l-*` Tailwind classes removed. PNL tokens untouched. Migration table
+  in `docs/TOKEN-MIGRATION.md`. **Action for B/C after pulling:** run
+  `npm install && npm run build` in your worktree, smoke-test both modes.

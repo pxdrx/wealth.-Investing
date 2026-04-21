@@ -72,7 +72,7 @@ skills-lock.json
 
 # Local experiments / scratch (never deploy)
 ralph-claude-code/
-dexter/
+/dexter/
 posts/
 skills/
 forexfactory-ESSENCIAL/
