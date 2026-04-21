@@ -1503,7 +1503,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-13 — Prop firms dashboard por firma [PENDING] [summary only]
+### C-13 — Prop firms dashboard por firma [SHIPPED] [summary only]
 
 **Objective:** Prop firms dashboard por firma
 
