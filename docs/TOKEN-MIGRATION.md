@@ -136,6 +136,100 @@ semantic tokens changed values. Test these flows after pulling A-03:
 - `bg-l-*`, `text-l-*`, `border-l-*`, `shadow-landing-*` utilities no
   longer resolve (Tailwind silently drops unknown classes).
 - `.landing-grid-pattern` no longer exists.
-- `--landing-*` CSS variables no longer defined.
+- `--landing-*` CSS variables no longer defined. → **See A-08 below — shim added, deprecation map published.**
 
 All other tokens remain 1:1 compatible.
+
+---
+
+## A-08 — landing-* deprecation map
+
+### Current state
+
+A-03 deleted the `--landing-*` variable definitions from `app/globals.css`
+and removed the companion `landing-*` keys from `tailwind.config.ts`.
+But ~458 call sites across Tracks B (landing) and C (calendar, backtest)
+still reference `var(--landing-*)` inline. Without definitions, those
+vars resolved to their CSS fallback (`unset` / initial), which produced
+silent visual regressions on landing pages.
+
+### What A-08 does
+
+A-08 adds a **deprecation shim** in `app/globals.css` `:root` and `.dark`:
+every legacy `--landing-*` name is re-declared as an alias pointing to
+the canonical Terminal token it should have been using. Existing code
+keeps rendering; new code must use the canonical token on the right.
+
+**The shim is temporary.** It exists so Track B can migrate the 458 call
+sites incrementally (B-02 through B-04) without breaking the landing
+surface in between. The entire block is deleted in the Track A close-out
+PR (A-11). Adding a new `var(--landing-*)` reference after A-08 is a
+regression — lint for it if Track B gets a reviewer bot.
+
+### Full alias table (light + dark)
+
+| Legacy `--landing-*`       | Canonical replacement        | Notes |
+|----------------------------|------------------------------|-------|
+| `--landing-bg`             | `--background`               | Base surface |
+| `--landing-bg-elevated`    | `--card`                     | Elevated surface (cards, modals) |
+| `--landing-bg-tertiary`    | `--secondary`                | Tertiary surface / muted fill |
+| `--landing-elevated`       | `--card`                     | Duplicate of `bg-elevated` in legacy usage |
+| `--landing-border`         | `--border`                   | Standard border |
+| `--landing-border-strong`  | hardcoded stronger neutral   | Slightly darker than `--border`; no exact canonical equiv |
+| `--landing-text`           | `--foreground`               | Body text |
+| `--landing-text-secondary` | `--secondary-foreground`     | Secondary text |
+| `--landing-text-muted`     | `--muted-foreground`         | Muted text |
+| `--landing-accent`         | `--primary`                  | Emerald execution |
+| `--landing-accent-secondary` | `--accent`                 | Amber alert accent |
+| `--landing-accent-warning` | `--warning`                  | Warning (same palette as accent) |
+| `--landing-accent-danger`  | `--destructive`              | Destructive / danger |
+| `--landing-grid`           | `--border`                   | Grid line color |
+
+### Gotchas (tokens that do NOT have a direct canonical equivalent)
+
+- **`--landing-card-shadow`** and **`--landing-card-shadow-hover`** — these
+  were full `box-shadow` values, not color vars. The canonical replacement
+  is Tailwind's `shadow-soft` / `dark:shadow-soft-dark` (defined in
+  `tailwind.config.ts`). There is **no CSS var shim**; any remaining
+  inline `box-shadow: var(--landing-card-shadow)` returns `none` and must
+  be rewritten. Grep:
+  ```
+  grep -rn 'var(--landing-card-shadow' components/ app/
+  ```
+
+- **`--landing-border-strong`** — no exact canonical equivalent. The shim
+  uses a hand-picked neutral (`220 9% 40%` light / `220 9% 60%` dark).
+  Track B should migrate to `hsl(var(--muted-foreground) / 0.4)` or
+  `hsl(var(--border))` depending on intent.
+
+### Per-track migration guidance
+
+**Track B** (owns `app/page.tsx`, `app/academy/page.tsx`, `app/blog/page.tsx`,
+`app/changelog/page.tsx`, `app/manifesto/page.tsx`, `components/landing/**`):
+
+1. Grep `var(--landing-` in the owned surface.
+2. Replace each match with the canonical `var(--<replacement>)` from
+   the table above (Tailwind `hsl(var(--x) / <alpha>)` works inline).
+3. Prefer Tailwind utility classes where possible:
+   - `bg-[hsl(var(--landing-bg))]` → `bg-background`
+   - `text-[hsl(var(--landing-text))]` → `text-foreground`
+   - `border-[hsl(var(--landing-border))]` → `border-border`
+4. For `box-shadow: var(--landing-card-shadow*)`, switch to
+   `shadow-soft dark:shadow-soft-dark`.
+
+**Track C** (owns calendar + backtest components): a handful of usages
+in `components/calendar/CalendarPnl.tsx`, `CalendarGrid.tsx`,
+`DayDetailPanel.tsx`, `utils.ts`, `components/dashboard/BacktestSection.tsx`.
+Migrate on the same schedule as Track C refactors touch those files.
+
+### Acceptance (A-08)
+
+- [x] `--landing-*` aliases declared in `:root` and `.dark` with
+      deprecation comment pointing here.
+- [x] Every alias resolves to a canonical Terminal token (except
+      `--landing-border-strong`, documented as hand-picked).
+- [x] Full mapping table published in this document.
+- [x] Per-track migration steps documented.
+- [x] No new `--landing-*` definitions introduced; A-03 removals stand.
+- [ ] Track B migration (B-02..B-04) empties the shim of real callers.
+- [ ] A-11 close-out PR deletes the shim block entirely.

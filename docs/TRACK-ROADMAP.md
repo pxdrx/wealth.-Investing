@@ -603,7 +603,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-08 — Remover tokens --landing-* duplicados, documentar migração [PENDING] [summary only]
+### A-08 — Remover tokens --landing-* duplicados, documentar migração [SHIPPED] [summary only]
 
 **Objective:** Remover tokens --landing-* duplicados, documentar migração
 

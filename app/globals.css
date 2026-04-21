@@ -39,6 +39,35 @@
     --pnl-text-positive: 152 85% 30%;
     --pnl-text-negative: 350 75% 48%;
 
+    /* ── Landing aliases (A-08 deprecation shim, light) ──
+     * A-03 removed the parallel `--landing-*` design system, but ~458 call
+     * sites across Tracks B/C still reference these vars (inline styles,
+     * feature mockups, landing components). Instead of leaving them
+     * resolving to `unset`, we alias each one to its canonical counterpart.
+     *
+     * ⚠ Deprecated. Do NOT introduce NEW `var(--landing-*)` references in
+     * any code. Tracks B and C migrate to the canonical tokens on the
+     * right in B-02..B-04 and C-* refactors. This shim is removed in the
+     * Track A close-out PR (A-11).
+     *
+     * Full mapping + per-file migration guidance: docs/TOKEN-MIGRATION.md
+     * §"A-08 — landing-* deprecation map".
+     */
+    --landing-bg: var(--background);
+    --landing-bg-elevated: var(--card);
+    --landing-bg-tertiary: var(--secondary);
+    --landing-elevated: var(--card);
+    --landing-border: var(--border);
+    --landing-border-strong: 220 9% 40%;          /* ≈ muted-foreground, stronger than --border */
+    --landing-text: var(--foreground);
+    --landing-text-secondary: var(--secondary-foreground);
+    --landing-text-muted: var(--muted-foreground);
+    --landing-accent: var(--primary);
+    --landing-accent-secondary: var(--accent);
+    --landing-accent-warning: var(--warning);
+    --landing-accent-danger: var(--destructive);
+    --landing-grid: var(--border);
+
     /* ── Radius ── */
     --radius: 0.75rem;                 /* new system base (terminal) */
     --radius-card: 22px;               /* legacy — existing cards keep this */
@@ -92,6 +121,25 @@
     --pnl-cell-loss: 350 70% 55% / 0.12;
     --pnl-text-positive: 152 80% 55%;
     --pnl-text-negative: 350 85% 65%;
+
+    /* ── Landing aliases (A-08 deprecation shim, dark) ──
+     * Same deprecation semantics as :root. See docs/TOKEN-MIGRATION.md
+     * §"A-08 — landing-* deprecation map". Removed in A-11.
+     */
+    --landing-bg: var(--background);
+    --landing-bg-elevated: var(--card);
+    --landing-bg-tertiary: var(--secondary);
+    --landing-elevated: var(--card);
+    --landing-border: var(--border);
+    --landing-border-strong: 220 9% 60%;
+    --landing-text: var(--foreground);
+    --landing-text-secondary: var(--secondary-foreground);
+    --landing-text-muted: var(--muted-foreground);
+    --landing-accent: var(--primary);
+    --landing-accent-secondary: var(--accent);
+    --landing-accent-warning: var(--warning);
+    --landing-accent-danger: var(--destructive);
+    --landing-grid: var(--border);
 
     --placeholder-opacity: 0.5;
   }
