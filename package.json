@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "clean": "node scripts/clean.js",
+    "i18n:check": "node scripts/check-i18n-parity.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
