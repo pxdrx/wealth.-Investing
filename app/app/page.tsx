@@ -4,10 +4,12 @@ import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { TodayMatters } from "@/components/dashboard/TodayMatters";
 import { DayKpis } from "@/components/dashboard/DayKpis";
 import { DayTimeline } from "@/components/dashboard/DayTimeline";
 import { SmartAlertsBanner } from "@/components/dashboard/SmartAlertsBanner";
+import { LiveLockCard } from "@/components/live/LiveLockCard";
 import type { TradeInput } from "@/lib/smart-alerts";
 
 // Live surfaces are Ultra-gated inside each component; mount as dynamic to keep
@@ -24,6 +26,9 @@ const LiveMonitoringWidget = dynamic(
 export default function AppHome() {
   const { activeAccountId } = useActiveAccount();
   const { journalTrades, propAccounts, accountsById } = useDashboardData();
+  // [C-12] Gate MT5 Live monitoring surfaces behind Ultra tier.
+  const entitlements = useEntitlements();
+  const canLive = entitlements.hasAccess("liveMonitoring");
 
   // SmartAlertsBanner analyzes real (non-backtest) trades. Keep this tiny —
   // every other widget on this page fetches its own data.
@@ -59,8 +64,14 @@ export default function AppHome() {
         trades={realTrades as unknown as TradeInput[]}
         dailyDdLimit={dailyDdLimit}
       />
-      <LiveAlertsBanner />
-      <LiveMonitoringWidget propAccount={activePropAccount} />
+      {canLive ? (
+        <>
+          <LiveAlertsBanner />
+          <LiveMonitoringWidget propAccount={activePropAccount} />
+        </>
+      ) : (
+        <LiveLockCard />
+      )}
     </div>
   );
 }

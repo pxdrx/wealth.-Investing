@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: app/app/analyst/page.tsx
-hits: 17
+hits: 18
 hub: true
-last_seen: "2026-04-15T02:01:10-03:00"
+last_seen: "2026-04-20T22:52:13-03:00"
 tags: ["arquivo", "hub"]
 ---
 
 # `app/app/analyst/page.tsx`
 
-> 17 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 18 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/8608546-destrava-modais-equity-chart-e-ai-coach-no-celular]]
+[[Sistema/Commits/4ac16c0-c-11-consolidate-dexter-move-ai-coach-analyst-under-dexter]]
