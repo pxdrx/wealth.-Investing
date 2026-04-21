@@ -1076,7 +1076,7 @@ Por milestone (após B-09 e B-15):
 - **B-09 — Mobile-first audit em 375px** — [PENDING] — full plan embedded above
 - **B-10 — lib/analytics/events.ts** — [PENDING] — full plan embedded above
 - **B-11 — SEO + OG + hreflang + sitemap** — [PENDING] — full plan embedded above
-- **B-12 — Páginas públicas traduzidas** — [PENDING] — full plan embedded above
+- **B-12 — Páginas públicas traduzidas** — [SHIPPED] — full plan embedded above
 - **B-13 — Exit intent + sticky mobile CTA** — [PENDING] — full plan embedded above
 - **B-14 — messages/{pt,en}.json (~150 keys)** — [PENDING] — full plan embedded above
 - **B-15 — docs/CONVERSION-FUNNEL.md + PR** — [PENDING] — full plan embedded above
