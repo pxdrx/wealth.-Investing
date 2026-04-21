@@ -172,6 +172,103 @@ export const voice = {
     },
   },
 
+  // Empty states — when a surface has nothing to show yet.
+  // Keep them actionable: always pair a state with a next step.
+  empty: {
+    noTrades: {
+      pt: "Sem trades ainda. Importe seu primeiro MT5 pra começar.",
+      en: "No trades yet. Import your first MT5 to get started.",
+    },
+    noAccounts: {
+      pt: "Nenhuma conta conectada. Adicione uma prop ou pessoal.",
+      en: "No accounts connected. Add a prop or personal account.",
+    },
+    noAlerts: {
+      pt: "Sem alertas hoje. Mercado calmo — bora planejar a próxima.",
+      en: "No alerts today. Markets calm — plan the next one.",
+    },
+    noJournalEntry: {
+      pt: "Nenhuma nota nesse trade. Abra o editor e escreva a sua leitura.",
+      en: "No notes on this trade. Open the editor and write your read.",
+    },
+  },
+
+  // Success confirmations — short, specific, no exclamation marks.
+  success: {
+    importDone: {
+      pt: "Trades importados. Conferindo duplicatas agora.",
+      en: "Trades imported. Checking duplicates now.",
+    },
+    saved: {
+      pt: "Salvo.",
+      en: "Saved.",
+    },
+    connected: {
+      pt: "Conta conectada.",
+      en: "Account connected.",
+    },
+    accountSwitched: {
+      pt: "Conta ativa trocada.",
+      en: "Active account switched.",
+    },
+  },
+
+  // Destructive / irreversible confirmations — be explicit about what is lost.
+  confirm: {
+    deleteTrade: {
+      pt: "Apagar esse trade? Não dá pra desfazer.",
+      en: "Delete this trade? Can't be undone.",
+    },
+    discardChanges: {
+      pt: "Descartar alterações?",
+      en: "Discard changes?",
+    },
+    disconnectAccount: {
+      pt: "Desconectar conta? Trades já importados ficam; o sync para.",
+      en: "Disconnect account? Imported trades stay; sync stops.",
+    },
+  },
+
+  // Onboarding nudges — for new-user flows. Each string points at one action.
+  onboarding: {
+    welcome: {
+      pt: "Bem-vindo. Dexter está pronto — só falta conectar seu MT5.",
+      en: "Welcome. Dexter is ready — just connect your MT5.",
+    },
+    nextStep: {
+      pt: "Próximo passo:",
+      en: "Next step:",
+    },
+    skipForNow: {
+      pt: "Pular por enquanto",
+      en: "Skip for now",
+    },
+  },
+
+  // Nav hints — short tooltips on sidebar items. One line, no period.
+  nav: {
+    dashboard: {
+      pt: "Visão geral do dia",
+      en: "Today at a glance",
+    },
+    journal: {
+      pt: "Histórico e leitura dos trades",
+      en: "History and trade notes",
+    },
+    macro: {
+      pt: "Calendário econômico e contexto",
+      en: "Economic calendar and context",
+    },
+    ai: {
+      pt: "Converse com Dexter",
+      en: "Talk to Dexter",
+    },
+    settings: {
+      pt: "Contas, plano e preferências",
+      en: "Accounts, plan and preferences",
+    },
+  },
+
   // Operational rules — consumed by linters, reviewers, and copy generators.
   // Do not treat as UI strings.
   rules: {

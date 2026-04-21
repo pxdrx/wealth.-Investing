@@ -625,7 +625,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-09 — lib/brand/voice.ts com 30 microcopy strings (PT + EN) [PENDING] [summary only]
+### A-09 — lib/brand/voice.ts com 30 microcopy strings (PT + EN) [SHIPPED] [summary only]
 
 **Objective:** lib/brand/voice.ts com 30 microcopy strings (PT + EN)
 
