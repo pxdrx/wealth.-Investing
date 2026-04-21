@@ -1378,7 +1378,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-08 — Journal: Empty state como onboarding guiado [PENDING] [summary only]
+### C-08 — Journal: Empty state como onboarding guiado [SHIPPED] [summary only]
 
 **Objective:** Journal: Empty state como onboarding guiado
 
