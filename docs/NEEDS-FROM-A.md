@@ -1,16 +1,18 @@
 # Needs from Track A
 
-Track B depends on artifacts owned by Track A that are not yet delivered.
-This file lists what is missing and what must be restored during the final merge.
+Historical coordination doc. Tracked artifacts Track B expected from Track A.
 
-## Pending artifacts
+## Resolution (2026-04-21)
 
-- `components/brand/Mascot.tsx` — 7 poses pixel-art, pose API.
+Superseded — Track A shipped `Dexter` as the mascot abstraction instead of
+`Mascot`. Current Track A barrel exports: `BrandMark`, `Dexter` +
+`DEXTER_MOODS`, `UltraBadge`, `UltraLock`, `ThemeToggle`.
 
-## Barrel lines to restore on final merge
+- `components/brand/Mascot.tsx` — **not delivered, not needed.** Track A's
+  `Dexter` fulfils the mascot role.
+- No barrel line to restore. Track A's `components/brand/index.ts` will
+  replace B's stub at merge (A owns that file).
+- Track B uses local `components/landing/_brand-stubs/` for landing visuals
+  — no `Mascot` imports exist in B code.
 
-In `components/brand/index.ts`, restore:
-
-```ts
-export * from './Mascot'
-```
+No action required before merging PR #1.
