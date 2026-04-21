@@ -1578,7 +1578,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-16 — QA smoke tests + PR + docs/CHANGES-C.md [PENDING] [summary only]
+### C-16 — QA smoke tests + PR + docs/CHANGES-C.md [SHIPPED] [summary only]
 
 **Objective:** QA smoke tests + PR + docs/CHANGES-C.md
 
