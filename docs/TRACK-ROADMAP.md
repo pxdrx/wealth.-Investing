@@ -1428,7 +1428,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-10 — Macro: filtro "só meus ativos" [PENDING] [summary only]
+### C-10 — Macro: filtro "só meus ativos" [SHIPPED] [summary only]
 
 **Objective:** Macro: filtro "só meus ativos"
 
@@ -1453,7 +1453,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-11 — Dexter unificado (consolida /ai-coach + /analyst; redirects 301) [PENDING] [summary only]
+### C-11 — Dexter unificado (consolida /ai-coach + /analyst; redirects 301) [SHIPPED] [summary only]
 
 **Objective:** Dexter unificado (consolida /ai-coach + /analyst; redirects 301)
 

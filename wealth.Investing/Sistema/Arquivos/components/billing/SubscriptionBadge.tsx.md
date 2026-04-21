@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: components/billing/SubscriptionBadge.tsx
-hits: 4
-hub: false
-last_seen: "2026-03-17T00:12:46-03:00"
-tags: ["arquivo"]
+hits: 5
+hub: true
+last_seen: "2026-04-20T01:13:44-03:00"
+tags: ["arquivo", "hub"]
 ---
 
 # `components/billing/SubscriptionBadge.tsx`
 
-> 4 commit(s) tocaram este arquivo. 
+> 5 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/cd9264a-subscriptionbadge-component]]
+[[Sistema/Commits/d9a76d4-c-02-consolidate-entitlements-single-source-of-truth]]
