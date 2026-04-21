@@ -28,6 +28,7 @@ import { type PropAccountRow, phaseLabel } from "@/lib/accounts";
 import { DrawdownBar } from "@/components/prop/DrawdownBar";
 import { StaleBadge } from "@/components/prop/StaleBadge";
 import { EditAccountRulesDrawer } from "@/components/account/EditAccountRulesDrawer";
+import { PropFirmsOverview } from "@/components/prop/PropFirmsOverview";
 import { supabase } from "@/lib/supabase/client";
 import { AlertCircle, TrendingUp, Pencil } from "lucide-react";
 
@@ -254,6 +255,9 @@ export default function PropPage() {
           propPayoutsTotal={dashData.propPayoutsTotal}
         />
       </div>
+
+      {/* [C-13] Firm-level rollup above per-account cards */}
+      <PropFirmsOverview cards={cardsData} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {cardsData.map((card) => (
