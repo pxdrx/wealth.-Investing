@@ -1,15 +1,15 @@
 ---
 type: arquivo
-path: app/app/macro/page.tsx
-hits: 39
-hub: true
+path: hooks/useAppLocale.ts
+hits: 1
+hub: false
 last_seen: "2026-04-20T23:05:51-03:00"
-tags: ["arquivo", "hub"]
+tags: ["arquivo"]
 ---
 
-# `app/app/macro/page.tsx`
+# `hooks/useAppLocale.ts`
 
-> 39 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 1 commit(s) tocaram este arquivo. 
 
 ## Último commit
 

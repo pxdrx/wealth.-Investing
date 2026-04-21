@@ -90,3 +90,7 @@ CLAUDE_HANDOFF.md
 
 .vercel
 backups/
+
+# Vault post-commit hook recursion guard (self-feeding bug produces
+# wealth.Investing/Sistema/Arquivos/wealth.Investing/... — always junk)
+wealth.Investing/Sistema/Arquivos/wealth.Investing/

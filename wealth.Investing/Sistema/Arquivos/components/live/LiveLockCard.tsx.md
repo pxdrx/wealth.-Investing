@@ -1,15 +1,15 @@
 ---
 type: arquivo
-path: "wealth.Investing/Sistema/Sess\303\265es/2026-04-20.md"
-hits: 2
+path: components/live/LiveLockCard.tsx
+hits: 1
 hub: false
 last_seen: "2026-04-20T22:58:48-03:00"
 tags: ["arquivo"]
 ---
 
-# `"wealth.Investing/Sistema/Sess\303\265es/2026-04-20.md"`
+# `components/live/LiveLockCard.tsx`
 
-> 2 commit(s) tocaram este arquivo. 
+> 1 commit(s) tocaram este arquivo. 
 
 ## Último commit
 

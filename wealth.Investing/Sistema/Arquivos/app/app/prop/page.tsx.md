@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: app/app/prop/page.tsx
-hits: 10
+hits: 11
 hub: true
-last_seen: "2026-04-20T10:04:09-03:00"
+last_seen: "2026-04-20T23:00:33-03:00"
 tags: ["arquivo", "hub"]
 ---
 
 # `app/app/prop/page.tsx`
 
-> 10 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 11 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/bf902e2-c-05-retire-legacy-widgets-reorganize-by-route]]
+[[Sistema/Commits/e0f5faf-c-13-prop-firms-overview-grouped-by-firm-name]]
