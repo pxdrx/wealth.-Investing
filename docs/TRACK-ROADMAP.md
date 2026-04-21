@@ -1528,7 +1528,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-14 — Reports: export PDF com branding (viralização) [PENDING] [summary only]
+### C-14 — Reports: export PDF com branding (viralização) [SHIPPED] [summary only]
 
 **Objective:** Reports: export PDF com branding (viralização)
 
