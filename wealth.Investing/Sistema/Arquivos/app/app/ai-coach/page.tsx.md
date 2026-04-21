@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: app/app/ai-coach/page.tsx
-hits: 27
+hits: 28
 hub: true
-last_seen: "2026-04-20T01:13:44-03:00"
+last_seen: "2026-04-20T22:52:13-03:00"
 tags: ["arquivo", "hub"]
 ---
 
 # `app/app/ai-coach/page.tsx`
 
-> 27 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 28 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
 
 ## Último commit
 
-[[Sistema/Commits/d9a76d4-c-02-consolidate-entitlements-single-source-of-truth]]
+[[Sistema/Commits/4ac16c0-c-11-consolidate-dexter-move-ai-coach-analyst-under-dexter]]

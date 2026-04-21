@@ -1,16 +1,16 @@
 ---
 type: arquivo
 path: wealth.Investing/Sistema/Arquivos/components/dashboard/SmartAlertsBanner.tsx.md
-hits: 1
+hits: 2
 hub: false
-last_seen: "2026-04-14T21:55:36-03:00"
+last_seen: "2026-04-20T22:52:13-03:00"
 tags: ["arquivo"]
 ---
 
 # `wealth.Investing/Sistema/Arquivos/components/dashboard/SmartAlertsBanner.tsx.md`
 
-> 1 commit(s) tocaram este arquivo. 
+> 2 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
-[[Sistema/Commits/67144ff-unifica-links-de-precos-para-pricing]]
+[[Sistema/Commits/4ac16c0-c-11-consolidate-dexter-move-ai-coach-analyst-under-dexter]]

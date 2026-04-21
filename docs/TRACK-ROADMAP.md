@@ -1478,7 +1478,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-12 — MT5 Live como <UltraLock active> (economia de infra real) [PENDING] [summary only]
+### C-12 — MT5 Live como <UltraLock active> (economia de infra real) [SHIPPED] [summary only]
 
 **Objective:** MT5 Live como <UltraLock active> (economia de infra real)
 
