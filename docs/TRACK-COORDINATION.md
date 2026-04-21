@@ -17,7 +17,7 @@
 |-----------------------------------|-------|--------------------|-------|
 | `lib/brand/**`                    | A     | B, C               | Voice, tokens helpers |
 | `components/brand/**`             | A     | B, C               | Components live here |
-| `components/brand/index.ts`       | A     | B, C               | Re-exports BrandMark, Mascot |
+| `components/brand/index.ts`       | A     | B, C               | Re-exports BrandMark, Dexter |
 | `docs/TOKEN-MIGRATION.md`         | A     | —                  | Migration log |
 | `tailwind.config.ts`              | A     | coord. w/ B, C     | Changes require ping |
 | `app/globals.css`                 | A     | coord. w/ B, C     | Changes require ping |

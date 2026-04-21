@@ -13,7 +13,7 @@ const pub = resolve(__dirname, "..", "public");
 
 mkdirSync(pub, { recursive: true });
 
-// ── Dexter default pose — must stay in sync with generate-mascot.mjs ──
+// ── Dexter default pose — must stay in sync with generate-dexter.mjs ──
 const DEFAULT_POSE = [
   "................",
   "................",

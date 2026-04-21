@@ -2,9 +2,9 @@
 
 import type { CSSProperties } from "react";
 
-import styles from "./Mascot.module.css";
+import styles from "./Dexter.module.css";
 
-export const MASCOT_POSES = [
+export const DEXTER_MOODS = [
   "default",
   "thinking",
   "alert",
@@ -14,10 +14,10 @@ export const MASCOT_POSES = [
   "offline",
 ] as const;
 
-export type MascotPose = (typeof MASCOT_POSES)[number];
+export type DexterMood = (typeof DEXTER_MOODS)[number];
 
-export interface MascotProps {
-  pose?: MascotPose;
+export interface DexterProps {
+  mood?: DexterMood;
   size?: number;
   animated?: boolean;
   className?: string;
@@ -29,24 +29,24 @@ const STYLE: CSSProperties = {
   imageRendering: "pixelated",
 };
 
-export function Mascot({
-  pose = "default",
+export function Dexter({
+  mood = "default",
   size = 32,
   animated = false,
   className,
   alt,
   title,
-}: MascotProps) {
-  const classes = [styles.mascot, animated ? styles.animated : null, className]
+}: DexterProps) {
+  const classes = [styles.dexter, animated ? styles.animated : null, className]
     .filter(Boolean)
     .join(" ");
   // eslint-disable-next-line @next/next/no-img-element -- pixel-art SVG, next/image would add unwanted optimization pipeline
   return (
     <img
-      src={`/dexter/${pose}.svg`}
+      src={`/dexter/${mood}.svg`}
       width={size}
       height={size}
-      alt={alt ?? `Dexter ${pose}`}
+      alt={alt ?? `Dexter ${mood}`}
       title={title}
       className={classes}
       style={STYLE}

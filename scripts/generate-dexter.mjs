@@ -1,5 +1,5 @@
 // Regenerates public/dexter/*.svg from pixel grids below.
-// Usage: node scripts/generate-mascot.mjs
+// Usage: node scripts/generate-dexter.mjs
 // Track A owns this script. Re-run after editing grids; do not hand-edit SVGs.
 
 import { mkdirSync, writeFileSync } from "node:fs";

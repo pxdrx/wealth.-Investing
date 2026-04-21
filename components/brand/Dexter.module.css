@@ -1,4 +1,4 @@
-.mascot {
+.dexter {
   display: inline-block;
   user-select: none;
   -webkit-user-drag: none;
@@ -6,11 +6,11 @@
 }
 
 .animated {
-  animation: mascot-bob 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  animation: dexter-bob 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
   will-change: transform;
 }
 
-@keyframes mascot-bob {
+@keyframes dexter-bob {
   0%,
   100% {
     transform: translateY(0);

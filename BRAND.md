@@ -313,5 +313,33 @@ Antes de publicar qualquer conteúdo no Instagram da wealth.Investing:
 
 ---
 
-*Última atualização: Março 2026*  
+## Dexter — mascote
+
+Dexter é o mascote pixel-art da wealth.Investing. Blob 16×16 em tons de esmeralda (paleta Terminal de A-01), com expressões discretas que traduzem o estado do produto sem virar emoji.
+
+**Componente:** `import { Dexter } from "@/components/brand"` — uso: `<Dexter mood="thinking" size={32} animated />`.
+
+**Moods (7):**
+
+| mood | quando usar |
+|---|---|
+| `default` | estado padrão / avatar idle |
+| `thinking` | loading de análise, "Dexter está lendo seu trade…" |
+| `analyzing` | processamento pesado, cálculo de risco, backtests |
+| `celebrating` | trade vencedor, meta batida, milestone de prop firm |
+| `alert` | aviso crítico, drawdown próximo do limite, regra violada |
+| `sleeping` | área offline, feriado de mercado, sem dados do dia |
+| `offline` | conta desconectada, corretora fora do ar, estado desabilitado |
+
+**Tamanhos:** 16 (inline com texto), 24 (chips), 32 (avatar padrão), 48 (header/empty state). SVGs são gerados em grid 16×16 — sempre manter múltiplos inteiros e `imageRendering: pixelated` (o componente já aplica) para evitar blur.
+
+**Animação:** opcional via `animated` — bob vertical de 6% a cada 2.4s. Respeita `prefers-reduced-motion`. Use só em estados ativos (loading, celebrating); evite em listas longas.
+
+**Geração:** `node scripts/generate-dexter.mjs` lê os grids no topo do arquivo e reescreve `public/dexter/*.svg`. Não editar SVGs à mão; ajustar grids e rodar o script.
+
+**Paleta (do script):** `#0B0E0C` void • `#064E3B` emerald-900 • `#047857` emerald-700 • `#10B981` emerald-500 • `#6EE7B7` emerald-300 • `#F0C000` amber (só `alert`).
+
+---
+
+*Última atualização: Abril 2026*  
 *Mantenha este arquivo atualizado conforme a marca evolui.*
