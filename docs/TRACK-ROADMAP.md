@@ -1353,7 +1353,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-07 — Journal: Trade card narrativo com Dexter debrief [SHIPPED]
+### C-07 — Journal: Trade card narrativo com Dexter debrief [PENDING] [summary only]
 
 **Objective:** Journal: Trade card narrativo com Dexter debrief
 
@@ -1378,7 +1378,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-08 — Journal: Empty state como onboarding guiado [SHIPPED] [summary only]
+### C-08 — Journal: Empty state como onboarding guiado [PENDING] [summary only]
 
 **Objective:** Journal: Empty state como onboarding guiado
 
@@ -1403,7 +1403,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-09 — Macro: Terminal mode layout (grid 5-4-3) [SHIPPED] [summary only]
+### C-09 — Macro: Terminal mode layout (grid 5-4-3) [PENDING] [summary only]
 
 **Objective:** Macro: Terminal mode layout (grid 5-4-3)
 
@@ -1428,7 +1428,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-10 — Macro: filtro "só meus ativos" [SHIPPED] [summary only]
+### C-10 — Macro: filtro "só meus ativos" [PENDING] [summary only]
 
 **Objective:** Macro: filtro "só meus ativos"
 
@@ -1453,7 +1453,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-11 — Dexter unificado (consolida /ai-coach + /analyst; redirects 301) [SHIPPED] [summary only]
+### C-11 — Dexter unificado (consolida /ai-coach + /analyst; redirects 301) [PENDING] [summary only]
 
 **Objective:** Dexter unificado (consolida /ai-coach + /analyst; redirects 301)
 
@@ -1478,7 +1478,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-12 — MT5 Live como <UltraLock active> (economia de infra real) [SHIPPED] [summary only]
+### C-12 — MT5 Live como <UltraLock active> (economia de infra real) [PENDING] [summary only]
 
 **Objective:** MT5 Live como <UltraLock active> (economia de infra real)
 
@@ -1503,7 +1503,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-13 — Prop firms dashboard por firma [SHIPPED] [summary only]
+### C-13 — Prop firms dashboard por firma [PENDING] [summary only]
 
 **Objective:** Prop firms dashboard por firma
 
@@ -1528,7 +1528,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-14 — Reports: export PDF com branding (viralização) [SHIPPED] [summary only]
+### C-14 — Reports: export PDF com branding (viralização) [PENDING] [summary only]
 
 **Objective:** Reports: export PDF com branding (viralização)
 
@@ -1553,7 +1553,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-15 — i18n integra app com next-intl (namespace app.*) [PARTIAL] [summary only]
+### C-15 — i18n integra app com next-intl (namespace app.*) [PENDING] [summary only]
 
 **Objective:** i18n integra app com next-intl (namespace app.*)
 
@@ -1578,7 +1578,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-16 — QA smoke tests + PR + docs/CHANGES-C.md [SHIPPED] [summary only]
+### C-16 — QA smoke tests + PR + docs/CHANGES-C.md [PENDING] [summary only]
 
 **Objective:** QA smoke tests + PR + docs/CHANGES-C.md
 
