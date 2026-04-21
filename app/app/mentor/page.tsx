@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { MentorOnboardingModal } from "@/components/mentor/MentorOnboardingModal";
 import { StudentFeedbackFeed } from "@/components/mentor/StudentFeedbackFeed";
 
@@ -953,7 +953,7 @@ function UnlinkedStudentView({ onLinked }: { onLinked: () => void }) {
 
 export default function MentorPage() {
   const router = useRouter();
-  const { isMentor, isLoading: subLoading } = useSubscription();
+  const { isMentor, isLoading: subLoading } = useEntitlements();
   const [codes, setCodes] = useState<MentorCode[]>([]);
   const [students, setStudents] = useState<StudentSummary[]>([]);
   const [loadingCodes, setLoadingCodes] = useState(true);

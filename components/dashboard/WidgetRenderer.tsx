@@ -19,7 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { PaywallGate } from "@/components/billing/PaywallGate";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ interface WidgetRendererProps {
 const HIDDEN_UNLESS_ULTRA = new Set(["live-monitoring"]);
 
 export function WidgetRenderer({ layout, registry, onReorder }: WidgetRendererProps) {
-  const { plan, isLoading: subLoading } = useSubscription();
+  const { plan, isLoading: subLoading } = useEntitlements();
 
   const isUltraOrAbove = plan === "ultra" || plan === "mentor";
 

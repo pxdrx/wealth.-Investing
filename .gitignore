@@ -73,6 +73,10 @@ skills-lock.json
 # Local experiments / scratch (never deploy)
 ralph-claude-code/
 dexter/
+!app/api/dexter/
+!app/app/dexter/
+!lib/dexter/
+!components/dexter/
 posts/
 skills/
 forexfactory-ESSENCIAL/
@@ -86,3 +90,7 @@ CLAUDE_HANDOFF.md
 
 .vercel
 backups/
+
+# Vault post-commit hook recursion guard (self-feeding bug produces
+# wealth.Investing/Sistema/Arquivos/wealth.Investing/... — always junk)
+wealth.Investing/Sistema/Arquivos/wealth.Investing/

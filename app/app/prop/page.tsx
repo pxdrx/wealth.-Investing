@@ -1,7 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useSafetyTimeout } from "@/hooks/useSafetyTimeout";
+import { useDashboardData } from "@/hooks/useDashboardData";
+
+const AccountsOverview = dynamic(
+  () =>
+    import("@/components/dashboard/AccountsOverview").then((m) => ({
+      default: m.AccountsOverview,
+    })),
+  { ssr: false, loading: () => <div className="h-[200px] w-full rounded-xl bg-muted animate-pulse" /> },
+);
 import {
   Card,
   CardContent,
@@ -18,6 +28,7 @@ import { type PropAccountRow, phaseLabel } from "@/lib/accounts";
 import { DrawdownBar } from "@/components/prop/DrawdownBar";
 import { StaleBadge } from "@/components/prop/StaleBadge";
 import { EditAccountRulesDrawer } from "@/components/account/EditAccountRulesDrawer";
+import { PropFirmsOverview } from "@/components/prop/PropFirmsOverview";
 import { supabase } from "@/lib/supabase/client";
 import { AlertCircle, TrendingUp, Pencil } from "lucide-react";
 
@@ -35,6 +46,34 @@ interface PropCardData {
 export default function PropPage() {
   const { accounts, refreshAccounts } = useActiveAccount();
   const propAccounts = accounts.filter((a) => a.kind === "prop" && a.is_active);
+
+  // Overview card inputs (C-05 relocation — widget moved from /app home).
+  const dashData = useDashboardData();
+  const overviewAccounts = useMemo(
+    () =>
+      Array.from(dashData.accountsById.values())
+        .filter((a) => a.kind !== "backtest")
+        .map((a) => ({ id: a.id, name: a.name, kind: a.kind, is_active: a.is_active })),
+    [dashData.accountsById],
+  );
+  const overviewTrades = useMemo(
+    () =>
+      dashData.journalTrades
+        .filter(
+          (t) =>
+            t.account_id !== null &&
+            t.opened_at !== null &&
+            t.direction !== null,
+        )
+        .map((t) => ({
+          account_id: t.account_id as string,
+          pnl_usd: t.net_pnl_usd ?? 0,
+          net_pnl_usd: t.net_pnl_usd ?? 0,
+          direction: t.direction as "long" | "short",
+          opened_at: t.opened_at as string,
+        })),
+    [dashData.journalTrades],
+  );
 
   const [cardsData, setCardsData] = useState<PropCardData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -206,6 +245,19 @@ export default function PropPage() {
           Visão geral de todas as suas contas prop · {cardsData.length} conta{cardsData.length !== 1 ? "s" : ""} ativa{cardsData.length !== 1 ? "s" : ""}
         </p>
       </div>
+
+      {/* Accounts snapshot (relocated from /app home — C-05) */}
+      <div className="mb-8">
+        <AccountsOverview
+          accounts={overviewAccounts}
+          propAccounts={dashData.propAccounts}
+          trades={overviewTrades}
+          propPayoutsTotal={dashData.propPayoutsTotal}
+        />
+      </div>
+
+      {/* [C-13] Firm-level rollup above per-account cards */}
+      <PropFirmsOverview cards={cardsData} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {cardsData.map((card) => (

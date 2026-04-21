@@ -3,60 +3,41 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import {
-  LayoutDashboard,
-  LineChart,
-  BookOpen,
-  BrainCircuit,
-  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  CreditCard,
-  Scan,
-  Plus,
-  Wallet,
   Crown,
-  MessageSquare,
-  GraduationCap,
-  Shield,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { usePrivacy } from "@/components/context/PrivacyContext";
+
+// StreakBadge only mounts client-side (depends on supabase) — dynamic to avoid SSR cost.
+const StreakBadge = dynamic(
+  () => import("@/components/dashboard/StreakBadge").then((m) => ({ default: m.StreakBadge })),
+  { ssr: false },
+);
 import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { getMyProfile } from "@/lib/profile";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
-import { useSubscription } from "@/components/context/SubscriptionContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { getAppNav, footerNavItems } from "@/lib/app-nav";
+import { useAppRoles } from "@/lib/hooks/useAppRoles";
+import { logout } from "@/lib/auth/logout";
+import { emit } from "@/lib/analytics/emit";
 
 interface SidebarConversation {
   id: string;
   title: string;
   updated_at: string;
-}
-
-const baseNavLinks = [
-  { href: "/app", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/app/journal", label: "Trade Journal", icon: BookOpen },
-  { href: "/app/prop", label: "Contas", icon: Wallet },
-  { href: "/app/macro", label: "Inteligência Macro", icon: LineChart, highlight: true },
-  { href: "/app/analyst", label: "Analista Dexter", icon: Scan, highlight: true },
-  { href: "/app/ai-coach", label: "AI Coach", icon: BrainCircuit, highlight: true },
-];
-
-const adminNavLink = { href: "/app/admin", label: "Admin", icon: Shield, highlight: false };
-
-function logout() {
-  const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0] ?? "";
-  const key = `sb-${projectRef}-auth-token`;
-  try {
-    localStorage.removeItem(key);
-    sessionStorage.clear();
-  } catch {}
-  window.location.href = "/login";
 }
 
 function AppSidebarInner() {
@@ -65,74 +46,20 @@ function AppSidebarInner() {
   const [collapsed, setCollapsed] = useState(false);
   const [hasSession, setHasSession] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const { plan, isProOrAbove, isMentor } = useSubscription();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLinkedStudent, setIsLinkedStudent] = useState(false);
+  const { plan, isProOrAbove } = useEntitlements();
+  const { hidden: valuesHidden, toggle: togglePrivacy } = usePrivacy();
+  const roles = useAppRoles();
 
-  // Check admin status
-  useEffect(() => {
-    let cancelled = false;
-    const safety = setTimeout(() => { /* noop — just prevents hanging */ }, 8000);
-    async function checkAdmin() {
-      try {
-        const { data: { session } } = await safeGetSession();
-        if (!session || cancelled) return;
-        const res = await fetch("/api/admin/me", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const json = await res.json();
-        if (!cancelled && json.ok && json.isAdmin) setIsAdmin(true);
-      } catch {
-        // silently ignore — non-admin
-      }
-    }
-    checkAdmin();
-    return () => { cancelled = true; clearTimeout(safety); };
-  }, []);
+  const navLinks = getAppNav({
+    isMentor: roles.isMentor,
+    isLinkedStudent: roles.isLinkedStudent,
+    isAdmin: roles.isAdmin,
+  });
 
-  // Detect active mentor relationship (student side)
-  useEffect(() => {
-    if (isMentor) return; // mentors don't need the student check
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data: { session } } = await safeGetSession();
-        if (!session || cancelled) return;
-        const res = await fetch("/api/mentor/my-mentor", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const json = await res.json();
-        if (!cancelled && json.ok && json.mentor) setIsLinkedStudent(true);
-      } catch {
-        // silent — unlinked is the fallback
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [isMentor]);
-
-  const navLinks = (() => {
-    const links = [...baseNavLinks];
-    // Mentor entry is always visible; label varies by role
-    const mentorLabel = isMentor
-      ? "Painel Mentor"
-      : isLinkedStudent
-      ? "Mentor"
-      : "Mentoria";
-    const mentorNavLink = {
-      href: "/app/mentor",
-      label: mentorLabel,
-      icon: GraduationCap,
-      highlight: false,
-    };
-    // Insert mentor after Journal (index 1) — before Contas
-    links.splice(2, 0, mentorNavLink);
-    // Admin goes at the end
-    if (isAdmin) links.push(adminNavLink);
-    return links;
-  })();
   const [coachConversations, setCoachConversations] = useState<SidebarConversation[]>([]);
-  const isOnCoachPage = pathname?.startsWith("/app/ai-coach") ?? false;
+  const isOnCoachPage = pathname?.startsWith("/app/dexter/coach") ?? false;
 
   // Load AI Coach conversations when on coach page
   useEffect(() => {
@@ -181,6 +108,7 @@ function AppSidebarInner() {
         return;
       }
       setHasSession(true);
+      setUserId(session.user.id);
       try {
         const profile = await getMyProfile();
         const name = profile?.display_name?.trim();
@@ -201,10 +129,7 @@ function AppSidebarInner() {
         } else if (!loaded) {
           setDisplayName(null);
         }
-        // else: keep the previously-loaded name (profile fetch returned
-        // empty on re-entry — don't regress to "Operador").
       } catch {
-        // Profile fetch failed — only seed the fallback if we never loaded.
         if (!loaded) {
           const meta = session.user.user_metadata;
           const fallback =
@@ -221,15 +146,12 @@ function AppSidebarInner() {
 
     load();
 
-    // Only react to events that could genuinely change the display name.
-    // TOKEN_REFRESHED / INITIAL_SESSION fire after idle and are pure-auth
-    // events — re-running load() during a refresh window may briefly return
-    // an empty profile, which historically wiped the name to "Operador".
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
         load();
       } else if (event === "SIGNED_OUT") {
         setDisplayName(null);
+        setUserId(null);
         setHasSession(false);
         loaded = false;
       }
@@ -269,7 +191,7 @@ function AppSidebarInner() {
       {/* Main Navigation */}
       <div className="flex-1 overflow-y-auto py-6 px-3 custom-scrollbar flex flex-col gap-1.5">
         {navLinks.map((link) => {
-          const isActive = link.href === "/app" 
+          const isActive = link.href === "/app"
             ? pathname === "/app"
             : pathname === link.href || pathname?.startsWith(link.href + "/");
           const Icon = link.icon;
@@ -278,7 +200,8 @@ function AppSidebarInner() {
             <Link
               href={link.href}
               title={collapsed ? link.label : undefined}
-              data-tour-id={`sidebar-${link.href.replace("/app/", "").replace("/app", "dashboard")}`}
+              data-tour-id={`sidebar-${link.id === "dashboard" ? "dashboard" : link.id}`}
+              onClick={() => emit("nav_clicked", { id: link.id, surface: "sidebar" })}
               className={cn(
                 "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
                 isActive
@@ -291,7 +214,7 @@ function AppSidebarInner() {
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 h-[60%] w-1 bg-primary rounded-r-md" />
               )}
               <Icon className={cn("h-5 w-5 shrink-0 transition-transform group-hover:scale-110", isActive && "text-primary")} />
-              
+
               {!collapsed && (
                 <span className="text-sm tracking-wide truncate">
                   {link.label}
@@ -301,15 +224,15 @@ function AppSidebarInner() {
                 </span>
               )}
             </Link>
-            {/* AI Coach conversation sub-items */}
-            {link.href === "/app/ai-coach" && isOnCoachPage && !collapsed && coachConversations.length > 0 && (
+            {/* Dexter Coach conversation sub-items */}
+            {link.href === "/app/dexter" && isOnCoachPage && !collapsed && coachConversations.length > 0 && (
               <div className="ml-8 space-y-0.5 mt-1 mb-1">
                 {coachConversations.map((conv) => {
                   const isActiveConv = isOnCoachPage && searchParams.get("chat") === conv.id;
                   return (
                     <Link
                       key={conv.id}
-                      href={`/app/ai-coach?chat=${conv.id}`}
+                      href={`/app/dexter/coach?chat=${conv.id}`}
                       className={cn(
                         "block text-xs truncate py-1 px-2 rounded-lg transition-colors",
                         isActiveConv
@@ -333,6 +256,7 @@ function AppSidebarInner() {
         <div className="px-3 pb-2">
           <Link
             href="/app/pricing"
+            onClick={() => emit("ultra_upgrade_clicked", { source: "sidebar", variant: "expanded" })}
             className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Crown className="h-4 w-4" />
@@ -345,6 +269,7 @@ function AppSidebarInner() {
           <Link
             href="/app/pricing"
             title="Seja Pro"
+            onClick={() => emit("ultra_upgrade_clicked", { source: "sidebar", variant: "collapsed" })}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Crown className="h-4 w-4" />
@@ -355,36 +280,54 @@ function AppSidebarInner() {
       {/* Bottom Actions / User Section */}
       <div className="p-4 border-t border-border/40 bg-background/20 space-y-2">
         <div className="flex flex-col gap-1">
-          <Link
-            href="/app/settings"
-            title={collapsed ? "Configurações" : undefined}
-            className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200"
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="text-sm font-medium">Configurações</span>}
-          </Link>
-          <Link
-            href="/app/pricing"
-            title={collapsed ? "Planos" : undefined}
-            className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200"
-          >
-            <CreditCard className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="text-sm font-medium">Planos</span>}
-          </Link>
-          <FeedbackDialog
-            trigger={
-              <span
-                title={collapsed ? "Feedback" : undefined}
-                className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 cursor-pointer"
-              >
-                <MessageSquare className="h-4 w-4 shrink-0" />
-                {!collapsed && <span className="text-sm font-medium">Feedback</span>}
-              </span>
+          {footerNavItems.map((item) => {
+            const Icon = item.icon;
+            if (item.id === "feedback") {
+              return (
+                <FeedbackDialog
+                  key={item.id}
+                  trigger={
+                    <span
+                      title={collapsed ? item.label : undefined}
+                      onClick={() => emit("nav_clicked", { id: item.id, surface: "sidebar-footer" })}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 cursor-pointer"
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+                    </span>
+                  }
+                />
+              );
             }
-          />
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                title={collapsed ? item.label : undefined}
+                onClick={() => emit("nav_clicked", { id: item.id, surface: "sidebar-footer" })}
+                className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200"
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+              </Link>
+            );
+          })}
 
           <button
-            onClick={logout}
+            onClick={togglePrivacy}
+            title={collapsed ? (valuesHidden ? "Mostrar valores" : "Ocultar valores") : undefined}
+            className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 w-full"
+          >
+            {valuesHidden ? <EyeOff className="h-4 w-4 shrink-0" /> : <Eye className="h-4 w-4 shrink-0" />}
+            {!collapsed && (
+              <span className="text-sm font-medium">
+                {valuesHidden ? "Mostrar valores" : "Ocultar valores"}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => { emit("logout_clicked", { surface: "sidebar" }); logout(); }}
             title={collapsed ? "Sair" : undefined}
             className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 w-full"
           >
@@ -412,6 +355,7 @@ function AppSidebarInner() {
                     {!profileLoading && (
                       <SubscriptionBadge className="text-[9px] h-4 leading-none flex items-center px-1.5" />
                     )}
+                    <StreakBadge userId={userId} />
                   </div>
                   <span className="truncate text-[10px] text-muted-foreground uppercase tracking-widest">
                     Terminal {plan === 'mentor' ? 'Mentor' : plan === 'ultra' ? 'Ultra' : plan === 'pro' ? 'Pro' : 'Free'}

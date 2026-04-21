@@ -21,6 +21,8 @@ export interface TierLimits {
   hasHistoryMacro: boolean;
   hasRegenerateReport: boolean;
   hasLiveMonitoring: boolean;
+  hasDexterTodayCard: boolean;
+  hasDexterTradeDebrief: boolean;
 }
 
 const TIER_LIMITS: Record<Plan, TierLimits> = {
@@ -44,6 +46,8 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasHistoryMacro: false,
     hasRegenerateReport: false,
     hasLiveMonitoring: false,
+    hasDexterTodayCard: true,
+    hasDexterTradeDebrief: false,
   },
   pro: {
     maxTrades: null,
@@ -65,6 +69,8 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasHistoryMacro: false,
     hasRegenerateReport: false,
     hasLiveMonitoring: false,
+    hasDexterTodayCard: true,
+    hasDexterTradeDebrief: true,
   },
   ultra: {
     maxTrades: null,
@@ -86,6 +92,8 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasHistoryMacro: true,
     hasRegenerateReport: true,
     hasLiveMonitoring: true,
+    hasDexterTodayCard: true,
+    hasDexterTradeDebrief: true,
   },
   mentor: {
     maxTrades: null,
@@ -107,6 +115,8 @@ const TIER_LIMITS: Record<Plan, TierLimits> = {
     hasHistoryMacro: true,
     hasRegenerateReport: true,
     hasLiveMonitoring: true,
+    hasDexterTodayCard: true,
+    hasDexterTradeDebrief: true,
   },
 };
 

@@ -9,7 +9,7 @@ import { JournalTradeRow, getNetPnl } from "@/components/journal/types";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { PaywallGate } from "@/components/billing/PaywallGate";
-import { TrendingUp, PieChart, Brain, Globe } from "lucide-react";
+import { TrendingUp, PieChart, Brain, Globe, Printer } from "lucide-react";
 
 const DrawdownChart = dynamic(() => import("@/components/reports/DrawdownChart").then(mod => mod.DrawdownChart), { ssr: false });
 const PnlDistribution = dynamic(() => import("@/components/reports/PnlDistribution").then(mod => mod.PnlDistribution), { ssr: false });
@@ -155,9 +155,22 @@ export function JournalReports() {
   }
 
   return (
-    <div className="space-y-6">
+    <div id="journal-print-root" className="space-y-6 print-surface">
+      {/* [C-14] Print header — only visible when printing. */}
+      <div className="hidden print:block print-header mb-6">
+        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          wealth<span className="mx-[1px]">.</span>Investing
+        </p>
+        <h1 className="mt-1 text-xl font-semibold tracking-tight">
+          Relatório de Performance · Journal
+        </h1>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Gerado em {new Date().toLocaleString("pt-BR")}
+        </p>
+      </div>
+
       {/* Controls: Period + Timezone + Sub-tabs */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Sub-tabs */}
           <div className="flex gap-1 rounded-full p-1 w-fit" style={{ backgroundColor: "hsl(var(--muted))" }}>
@@ -209,6 +222,17 @@ export function JournalReports() {
                 ))}
               </select>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") window.print();
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
+              title="Exportar PDF via diálogo de impressão"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Exportar PDF
+            </button>
           </div>
         </div>
 
