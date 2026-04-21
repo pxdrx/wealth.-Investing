@@ -6,3 +6,5 @@ export { UltraBadge, ultraBadgeVariants } from "./UltraBadge";
 export type { UltraBadgeProps } from "./UltraBadge";
 export { UltraLock } from "./UltraLock";
 export type { UltraLockProps, UltraLockCta } from "./UltraLock";
+export { ThemeToggle } from "./ThemeToggle";
+export type { ThemeToggleProps } from "./ThemeToggle";

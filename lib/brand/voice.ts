@@ -153,6 +153,25 @@ export const voice = {
     },
   },
 
+  theme: {
+    label: {
+      pt: "Tema",
+      en: "Theme",
+    },
+    light: {
+      pt: "Claro",
+      en: "Light",
+    },
+    terminal: {
+      pt: "Terminal",
+      en: "Terminal",
+    },
+    system: {
+      pt: "Sistema",
+      en: "System",
+    },
+  },
+
   // Operational rules — consumed by linters, reviewers, and copy generators.
   // Do not treat as UI strings.
   rules: {

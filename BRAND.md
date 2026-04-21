@@ -427,5 +427,48 @@ import { UltraLock } from "@/components/brand";
 
 ---
 
+## ThemeToggle — 3 estados: Light / Terminal / System
+
+`<ThemeToggle />` é o seletor de tema de marca. Três estados: **Light**, **Terminal** (o dark brutalist de A-01) e **System** (segue OS).
+
+"Terminal" é o nome brand do tema escuro — internamente mapeia para `setTheme("dark")` no `ThemeProvider` existente em `components/theme-provider.tsx`. Nenhum provider novo, nenhuma migração.
+
+```tsx
+import { ThemeToggle } from "@/components/brand";
+
+<ThemeToggle />                          // segmented (padrão) — pt
+<ThemeToggle variant="icon" />           // dropdown compacto pra navbar
+<ThemeToggle locale="en" />              // labels em inglês
+```
+
+**Props:** `variant` (`"segmented"` | `"icon"`, padrão `"segmented"`), `locale` (`"pt"` | `"en"`, padrão `"pt"`), `className`.
+
+**Variantes visuais:**
+- `segmented` — 3 botões lado a lado dentro de um container com border. Use em páginas de configuração, forms de preferência, onde há espaço horizontal.
+- `icon` — um botão ícone no `DropdownMenu`. Use em topbar/navbar.
+
+**Estilo brutalist:**
+- Tipografia mono, `uppercase`, `tracking-wider`, tamanho `text-[11px]`
+- Cantos retos (`rounded-sm`), sem pills
+- Ícones lucide: `Sun` (Light), `Terminal` (Terminal), `Monitor` (System)
+- Estado ativo: fundo `--background`, sombra sutil; inativo: `--muted-foreground`
+
+**A11y:**
+- `role="radiogroup"` + `aria-label` no container; `role="radio"` + `aria-checked` em cada opção (variante segmented)
+- `aria-label` + `sr-only` no trigger (variante icon); `aria-pressed` em cada item do menu
+- Foco visível via `focus-visible:ring-2`
+
+**Do / Don't:**
+- ✅ Use `variant="icon"` em topbars densas.
+- ✅ Use `variant="segmented"` em `/settings` ou onboarding, onde o usuário está escolhendo ativamente.
+- ❌ Não adicione um 4º estado (ex.: "Dark" separado de "Terminal"). Terminal é o dark da marca.
+- ❌ Não chame `setTheme("terminal")` direto no provider — o mapeamento é responsabilidade do `<ThemeToggle />`.
+
+**Coexistência com `components/theme-toggle.tsx`:** esse componente legado continua funcionando (labels "Claro/Escuro/Sistema"). Consumidores (Tracks B/C) podem migrar para `@/components/brand#ThemeToggle` quando quiserem a linguagem de marca. Nenhum breaking change.
+
+**Textos padrão:** `lib/brand/voice.ts` → `voice.theme.{label,light,terminal,system}` (pt+en).
+
+---
+
 *Última atualização: Abril 2026*  
 *Mantenha este arquivo atualizado conforme a marca evolui.*

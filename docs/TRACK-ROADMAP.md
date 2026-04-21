@@ -581,7 +581,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-07 — ThemeToggle com 3 estados (Light/Terminal/System) [PENDING] [summary only]
+### A-07 — ThemeToggle com 3 estados (Light/Terminal/System) [SHIPPED] [summary only]
 
 **Objective:** ThemeToggle com 3 estados (Light/Terminal/System)
 
