@@ -63,20 +63,12 @@ const TOUR_STEPS: TourStep[] = [
     mobileTarget: "mobile-macro",
   },
   {
-    id: "analyst",
-    title: "Analista Dexter",
+    id: "dexter",
+    title: "Dexter",
     description:
-      "Research completo com 30+ confluencias tecnicas e IA multi-agente.",
-    sidebarTarget: "sidebar-analyst",
-    mobileTarget: "mobile-analyst",
-  },
-  {
-    id: "ai-coach",
-    title: "AI Coach",
-    description:
-      "Seu analista pessoal que conhece todo seu historico de trading.",
-    sidebarTarget: "sidebar-ai-coach",
-    mobileTarget: "mobile-ai-coach",
+      "Dexter — seu analista pessoal (chat, coach, research) em um lugar só.",
+    sidebarTarget: "sidebar-dexter",
+    mobileTarget: "mobile-dexter",
   },
   {
     id: "conclusion",

@@ -60,9 +60,12 @@ API require a ping before merge.
 
 ## i18n note
 
-`next-intl` is installed but not wired into `app/**`. Track B integrates it
-during their work. Until then, treat `app/**` copy as pt-BR hardcoded
-(current state).
+`next-intl` is wired for the landing tree via `app/[locale]/layout.tsx`
+(Track B). `/app/**` still runs *without* a `NextIntlClientProvider` — the
+`useAppT()` hook (`hooks/useAppLocale.ts`) silently falls back to PT when no
+provider is mounted, backed by `lib/i18n/app.ts`'s typed dict. Folding the
+`app.*` dict into `messages/{pt,en}.json` (and wrapping `/app/**` with a
+provider) is tracked under `docs/CHANGES-C.md` follow-ups.
 
 ## Changelog
 

@@ -5,8 +5,8 @@ import Link from "next/link";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { getMyProfile } from "@/lib/profile";
-// TODO(A-02): replace lib/greetings with lib/brand/voice.getGreeting once Track A lands.
 import { getGreeting, getDashboardSubtitle } from "@/lib/greetings";
+import { Dexter } from "@/components/brand";
 
 type Mood = "default" | "thinking" | "alert" | "celebrating";
 
@@ -24,27 +24,6 @@ type LoadState =
   | { kind: "success"; data: DexterPayload }
   | { kind: "error" }
   | { kind: "empty" };
-
-// TODO(track-a): replace with <Mascot pose={mood}/> once components/brand/Mascot.tsx lands.
-// Tracked in docs/BUILD-DEBT.md entry #3.
-function MascotPlaceholder({ mood = "default" as Mood }) {
-  const tone =
-    mood === "alert"
-      ? "bg-rose-500/15 text-rose-300"
-      : mood === "celebrating"
-        ? "bg-emerald-500/20 text-emerald-300"
-        : mood === "thinking"
-          ? "bg-sky-500/15 text-sky-300"
-          : "bg-emerald-500/15 text-emerald-300";
-  return (
-    <div
-      aria-hidden
-      className={`grid h-12 w-12 shrink-0 place-items-center rounded-full font-bold ${tone}`}
-    >
-      D
-    </div>
-  );
-}
 
 function formatDatePt(): string {
   return new Date().toLocaleDateString("pt-BR", {
@@ -167,7 +146,7 @@ export function TodayMatters() {
 function Eyebrow({ mood = "default" as Mood, freshness }: { mood?: Mood; freshness?: string | null }) {
   return (
     <div className="flex items-center gap-3">
-      <MascotPlaceholder mood={mood} />
+      <Dexter mood={mood} size={48} animated />
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
           Hoje, isso importa · <span className="font-medium normal-case tracking-normal text-white/50">{formatDatePt()}</span>

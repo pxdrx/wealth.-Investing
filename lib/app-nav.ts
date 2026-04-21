@@ -55,7 +55,6 @@ export function getAppNav(ctx: AppNavContext): AppNavItem[] {
     { id: "chart", href: "/app/chart", label: "Gráfico", icon: CandlestickChart },
     { id: "backtest", href: "/app/backtest", label: "Backtest", icon: FlaskConical },
     { id: "macro", href: "/app/macro", label: "Inteligência Macro", shortLabel: "Macro", icon: LineChart, mobileBar: true, highlight: true },
-    // TODO(track-a): swap Bot for Mascot once components/brand/Mascot.tsx lands.
     { id: "dexter", href: "/app/dexter", label: "Dexter", icon: Bot, mobileBar: true, highlight: true },
   ];
 

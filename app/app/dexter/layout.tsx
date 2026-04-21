@@ -94,7 +94,6 @@ export default function DexterLayout({ children }: { children: React.ReactNode }
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-4 flex items-center gap-3">
-        {/* TODO(track-a): swap Bot placeholder for <Mascot /> once components/brand/Mascot.tsx lands. */}
         <div className="grid h-10 w-10 place-items-center rounded-full bg-emerald-500/15 text-emerald-300">
           <Bot className="h-5 w-5" />
         </div>

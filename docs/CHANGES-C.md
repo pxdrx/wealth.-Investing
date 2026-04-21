@@ -86,8 +86,11 @@ app/app/analyst/         (migrated to app/app/dexter/analyst)
 
 ## Follow-ups (post-merge)
 
-- Fold `lib/i18n/app.ts` keys into Track B's `messages/{pt,en}.json`.
-- Track A: ship `components/brand/Mascot.tsx` (barrel was trimmed in
-  build fix commit to avoid TS2307).
+- **Deferred:** fold `lib/i18n/app.ts` into `messages/{pt,en}.json` under the
+  `app.*` namespace. Requires wrapping `/app/**` with `NextIntlClientProvider`
+  (currently only `/[locale]/**` is wrapped). Out of scope for finalize.
+- **Resolved:** Track A shipped `Dexter` in place of the original Mascot
+  concept; `components/brand/index.ts` now exports it, and
+  `components/dashboard/TodayMatters.tsx` consumes it directly.
 - Replace `/app/ai-coach` file-system fallbacks if any external link still
   points there (redirect handles it, but update internal docs).
