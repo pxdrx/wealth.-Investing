@@ -327,3 +327,38 @@
     font-size: 15px;
   }
 }
+
+/* [C-14] PDF export via browser print dialog.
+   Hide everything except #journal-print-root; it rehydrates visible and
+   snaps to the top-left of the page. Users save as PDF via the print sheet. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #journal-print-root,
+  #journal-print-root * {
+    visibility: visible;
+  }
+  #journal-print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0 16px;
+    background: white;
+    color: black;
+  }
+  .print-header p,
+  .print-header h1 {
+    color: black;
+  }
+  /* Collapse interactive chrome in print */
+  button,
+  select,
+  input {
+    display: none !important;
+  }
+  @page {
+    margin: 18mm 14mm;
+  }
+}
