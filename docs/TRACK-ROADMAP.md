@@ -1403,7 +1403,7 @@ layer on top, so C-01 keeps scope tight: **restructure, don't reskin**.
 
 ---
 
-### C-09 — Macro: Terminal mode layout (grid 5-4-3) [PENDING] [summary only]
+### C-09 — Macro: Terminal mode layout (grid 5-4-3) [SHIPPED] [summary only]
 
 **Objective:** Macro: Terminal mode layout (grid 5-4-3)
 
