@@ -1,15 +1,15 @@
 ---
 type: arquivo
-path: docs/TRACK-ROADMAP.md
-hits: 9
-hub: true
+path: docs/CHANGES-C.md
+hits: 1
+hub: false
 last_seen: "2026-04-20T23:06:45-03:00"
-tags: ["arquivo", "hub"]
+tags: ["arquivo"]
 ---
 
-# `docs/TRACK-ROADMAP.md`
+# `docs/CHANGES-C.md`
 
-> 9 commit(s) tocaram este arquivo. 🧠 **Hub** (5+ commits).
+> 1 commit(s) tocaram este arquivo. 
 
 ## Último commit
 
