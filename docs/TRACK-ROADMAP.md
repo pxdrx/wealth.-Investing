@@ -559,7 +559,7 @@ If build fails with an error that is clearly caused by A-01 (not pre-existing), 
 
 ---
 
-### A-06 — <UltraBadge /> e <UltraLock active /> [PENDING] [summary only]
+### A-06 — <UltraBadge /> e <UltraLock active /> [SHIPPED] [summary only]
 
 **Objective:** <UltraBadge /> e <UltraLock active />
 

@@ -341,5 +341,91 @@ Dexter é o mascote pixel-art da wealth.Investing. Blob 16×16 em tons de esmera
 
 ---
 
+## Ultra primitives — `<UltraBadge />` e `<UltraLock active />`
+
+Primitivos visuais de marca para sinalizar superfícies Ultra. **Puro visual, sem contexto de subscription.** O consumidor decide *quando* aplicar — os componentes só pintam a marca.
+
+Para **gating ciente do tier** (lê `SubscriptionContext`, bloqueia com base no plano do usuário), continue usando `components/billing/PaywallGate.tsx` e `components/billing/SubscriptionBadge.tsx`. Esses dois ficam na camada de dados; os primitivos aqui estão na camada de marca.
+
+### `<UltraBadge />`
+
+Marca "ULTRA" inline — tipografia mono (brutalist), `uppercase`, `tracking-wider`, cantos retos.
+
+```tsx
+import { UltraBadge } from "@/components/brand";
+
+<UltraBadge />                                      // solid / md (padrão)
+<UltraBadge variant="outline" size="sm" />           // para nav items
+<UltraBadge variant="ghost" size="lg" />             // para hero/pricing
+<UltraBadge icon={null} label="ULTRA ONLY" />        // sem ícone, label custom
+```
+
+**Props:** `size` (`sm` | `md` | `lg`), `variant` (`solid` | `outline` | `ghost`), `label`, `icon` (`LucideIcon` | `null`), `className`.
+
+**Quando usar:** ao lado do nome de uma feature que exige Ultra (sidebar, cards de pricing, título de uma página bloqueada). Não use dentro de frases corridas — é um rótulo, não uma palavra.
+
+**Do / Don't:**
+- ✅ Use `outline` em sidebar nav para não competir com hover/selected.
+- ✅ Use `solid` em hero/pricing para afirmar o tier.
+- ❌ Não pinte com cores de PnL (`--pnl-positive/negative`) — Ultra não é sobre resultado.
+- ❌ Não anime o badge. Estático. Quem precisa de movimento é o `<Dexter />`.
+
+### `<UltraLock active />`
+
+Wrapper que cobre os filhos com uma camada dashed brutalist + ícone de cadeado + `<UltraBadge variant="outline" />` + hint opcional + CTA opcional. Quando `active={false}`, não renderiza overlay (zero overhead de DOM).
+
+```tsx
+import { UltraLock } from "@/components/brand";
+
+// Bloqueando um card inteiro
+<UltraLock active={!isUltra} cta={{ label: "Ver planos", href: "/pricing" }}>
+  <AdvancedReportsCard />
+</UltraLock>
+
+// Com labels custom
+<UltraLock
+  active
+  label="MT5 Live"
+  hint="Streaming em tempo real é Ultra."
+  cta={{ label: "Desbloquear", onClick: handleUpgrade }}
+>
+  <MT5LiveWidget />
+</UltraLock>
+
+// Passthrough quando não está ativo — sem wrapper visível
+<UltraLock active={false}>
+  <FreeFeature />
+</UltraLock>
+```
+
+**Props:** `active` (boolean, obrigatório), `children`, `label`, `hint`, `cta` (`{ label, href?, onClick? }`), `blur` (`sm` | `md` | `lg`), `className`.
+
+**Anatomia do overlay:**
+```
+┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐
+│   [✨ ULTRA]                  │   ← <UltraBadge size="sm" outline />
+│       🔒                      │   ← Lock icon, 28px, cor primary
+│   ULTRA                       │   ← label (mono, uppercase)
+│   Desbloqueie com o plano     │   ← hint (muted-foreground)
+│                               │
+│     [ Ver planos ]            │   ← CTA opcional
+└─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘
+```
+
+**A11y:**
+- Filhos recebem `aria-hidden` + `inert` quando `active` — foco por tab não entra no conteúdo borrado.
+- Overlay tem `role="status"` + `aria-live="polite"` + `aria-label` consolidado.
+- Animação de entrada só em `motion-safe` (respeita `prefers-reduced-motion`).
+
+**Do / Don't:**
+- ✅ Envolva apenas o conteúdo gated, não a página inteira.
+- ✅ Use `blur="sm"` para cards pequenos, `md` padrão, `lg` para áreas grandes.
+- ❌ Não aninhe `<UltraLock>` dentro de `<UltraLock>`.
+- ❌ Não use para paywalls que exigem lógica de negócio — use `PaywallGate` da camada billing.
+
+**Textos padrão:** vêm de `lib/brand/voice.ts` (`voice.upgrade.ultraBadge` / `ultraLocked` / `ultraLockedHint`). Bilíngue (pt/en) — o componente usa `pt` por padrão; passe `label`/`hint` se quiser outra coisa.
+
+---
+
 *Última atualização: Abril 2026*  
 *Mantenha este arquivo atualizado conforme a marca evolui.*

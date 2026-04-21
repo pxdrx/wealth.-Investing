@@ -137,6 +137,20 @@ export const voice = {
       pt: "Pro desbloqueia isso. Dá uma olhada?",
       en: "Pro unlocks this. Take a look?",
     },
+    // Ultra primitives — consumed by <UltraBadge /> and <UltraLock />.
+    // Keep short: the badge sits inline, the lock overlay is already dense.
+    ultraBadge: {
+      pt: "ULTRA",
+      en: "ULTRA",
+    },
+    ultraLocked: {
+      pt: "Ultra",
+      en: "Ultra",
+    },
+    ultraLockedHint: {
+      pt: "Desbloqueie com o plano Ultra.",
+      en: "Unlock with the Ultra plan.",
+    },
   },
 
   // Operational rules — consumed by linters, reviewers, and copy generators.
