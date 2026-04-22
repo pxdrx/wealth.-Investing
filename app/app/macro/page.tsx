@@ -35,7 +35,7 @@ import { EconomicCalendar } from "@/components/macro/EconomicCalendar";
 import { WeeklyBriefing } from "@/components/macro/WeeklyBriefing";
 import { InterestRatesPanel } from "@/components/macro/InterestRatesPanel";
 import { WeeklyHistory } from "@/components/macro/WeeklyHistory";
-import { SentimentBar } from "@/components/macro/SentimentBar";
+import { SentimentCard } from "@/components/macro/SentimentCard";
 import { supabase } from "@/lib/supabase/client";
 import { getWeekStart } from "@/lib/macro/constants";
 import type { EconomicEvent, WeeklyPanorama, CentralBankRate, AdaptiveAlert as AdaptiveAlertType, MacroHeadline } from "@/lib/macro/types";
@@ -789,19 +789,9 @@ export default function MacroIntelligencePage() {
                   refreshing={headlinesRefreshing}
                 />
               </div>
-              <section className="lg:col-span-1 flex flex-col rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
-                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  Sentimento Global
-                </h2>
-                {panorama?.sentiment ? (
-                  <div className="flex-1 flex flex-col justify-center">
-                    <SentimentBar sentiment={panorama.sentiment} />
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Sem dados de sentimento.</p>
-                )}
-              </section>
+              <div className="lg:col-span-1">
+                <SentimentCard sentiment={panorama?.sentiment ?? null} />
+              </div>
             </div>
 
             {/* Row 3 — 3 cols: History 2, Event counter 1 */}
