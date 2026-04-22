@@ -26,19 +26,21 @@ import {
   Wand2,
   XCircle,
 } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
 const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
-const CANONICAL_FIELDS: Array<{ key: string; label: string; required: boolean }> = [
-  { key: "symbol", label: "Símbolo", required: true },
-  { key: "pnl_usd", label: "Lucro/Prejuízo (USD)", required: true },
-  { key: "opened_at", label: "Abertura", required: true },
-  { key: "closed_at", label: "Fechamento", required: true },
-  { key: "direction", label: "Direção", required: true },
-  { key: "volume", label: "Volume / Lotes", required: false },
-  { key: "entry_price", label: "Preço de entrada", required: false },
-  { key: "exit_price", label: "Preço de saída", required: false },
-  { key: "fees_usd", label: "Taxas (USD)", required: false },
+const CANONICAL_FIELDS: Array<{ key: string; labelKey: AppMessageKey; required: boolean }> = [
+  { key: "symbol", labelKey: "adaptiveImport.field.symbol", required: true },
+  { key: "pnl_usd", labelKey: "adaptiveImport.field.pnlUsd", required: true },
+  { key: "opened_at", labelKey: "adaptiveImport.field.openedAt", required: true },
+  { key: "closed_at", labelKey: "adaptiveImport.field.closedAt", required: true },
+  { key: "direction", labelKey: "adaptiveImport.field.direction", required: true },
+  { key: "volume", labelKey: "adaptiveImport.field.volume", required: false },
+  { key: "entry_price", labelKey: "adaptiveImport.field.entryPrice", required: false },
+  { key: "exit_price", labelKey: "adaptiveImport.field.exitPrice", required: false },
+  { key: "fees_usd", labelKey: "adaptiveImport.field.feesUsd", required: false },
 ];
 
 interface MappingEntry {
@@ -170,6 +172,7 @@ export function AdaptiveImportModal({
   onCancel,
   onDone,
 }: AdaptiveImportModalProps) {
+  const tr = useAppT();
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
@@ -198,13 +201,13 @@ export function AdaptiveImportModal({
       clearTimeout(t);
       const data = (await res.json().catch(() => ({}))) as PreviewResponse & { error?: string };
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || `Erro ${res.status}`);
+        throw new Error(data.error || tr("adaptiveImport.errorGeneric").replace("{status}", String(res.status)));
       }
       setPreview(data);
       setMapping(normalizeMapping(data.parsed?.mapping ?? {}));
       setPhase("preview_ready");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Falha ao gerar preview.";
+      const msg = e instanceof Error ? e.message : tr("adaptiveImport.previewFailed");
       setError(msg);
       setPhase("error");
     }
@@ -263,7 +266,7 @@ export function AdaptiveImportModal({
       clearTimeout(t);
       const data = (await res.json().catch(() => ({}))) as ImportResponse;
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || `Erro ${res.status}`);
+        throw new Error(data.error || tr("adaptiveImport.errorGeneric").replace("{status}", String(res.status)));
       }
 
       const durationMs = Date.now() - startTimeRef.current;
@@ -326,7 +329,7 @@ export function AdaptiveImportModal({
       });
       setPhase("done");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Falha ao importar.";
+      const msg = e instanceof Error ? e.message : tr("adaptiveImport.importFailed");
       setError(msg);
       setPhase("error");
     }
@@ -339,7 +342,7 @@ export function AdaptiveImportModal({
         <div className="flex items-center gap-3 py-6">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <p className="text-sm text-muted-foreground">
-            Analisando estrutura do CSV...
+            {tr("adaptiveImport.analyzingCsv")}
           </p>
         </div>
       </Shell>
@@ -352,7 +355,7 @@ export function AdaptiveImportModal({
         <div className="space-y-3 py-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            Importando trades...
+            {tr("adaptiveImport.importing")}
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted/30">
             <div
@@ -376,13 +379,13 @@ export function AdaptiveImportModal({
               onClick={onCancel}
               className="rounded-lg border px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
             >
-              Fechar
+              {tr("common.close")}
             </button>
             <button
               onClick={runPreview}
               className="rounded-lg bg-primary px-4 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Tentar novamente
+              {tr("common.retry")}
             </button>
           </div>
         </div>
@@ -408,24 +411,24 @@ export function AdaptiveImportModal({
     ? {
         tone: "green" as const,
         icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-        label: "Formato reconhecido",
+        label: tr("adaptiveImport.recognizedFormat"),
       }
     : aiSuggested
       ? {
           tone: "purple" as const,
           icon: <Sparkles className="h-3.5 w-3.5" />,
-          label: "Mapeamento sugerido por IA",
+          label: tr("adaptiveImport.aiSuggestedMapping"),
         }
       : !needsMapping
         ? {
             tone: "green" as const,
             icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-            label: "Formato reconhecido",
+            label: tr("adaptiveImport.recognizedFormat"),
           }
         : {
             tone: "blue" as const,
             icon: <Wand2 className="h-3.5 w-3.5" />,
-            label: "Mapeamento automático",
+            label: tr("adaptiveImport.autoMapping"),
           };
 
   return (
@@ -455,8 +458,7 @@ export function AdaptiveImportModal({
                 {badge.label}
               </span>
               <span className="text-[11px] text-muted-foreground">
-                {parsed.totalRows} linha{parsed.totalRows === 1 ? "" : "s"} detectada
-                {parsed.totalRows === 1 ? "" : "s"}
+                {(parsed.totalRows === 1 ? tr("adaptiveImport.rowsDetected") : tr("adaptiveImport.rowsDetectedPlural")).replace("{count}", String(parsed.totalRows))}
               </span>
             </div>
             <span className="font-mono text-[10px] text-muted-foreground/70">
@@ -468,7 +470,7 @@ export function AdaptiveImportModal({
           {preview.claudeSuggestion?.reasoning && (
             <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-[11px] text-muted-foreground">
               <p className="mb-1 font-medium text-purple-600 dark:text-purple-400">
-                Raciocínio do mapeamento
+                {tr("adaptiveImport.mappingReasoning")}
               </p>
               <p>{preview.claudeSuggestion.reasoning}</p>
             </div>
@@ -480,9 +482,9 @@ export function AdaptiveImportModal({
           {needsMapping && (
           <div className="rounded-[22px] border border-border/60 overflow-hidden">
             <div className="grid grid-cols-[1fr_1.4fr_auto] gap-0 text-[11px] font-medium text-muted-foreground uppercase tracking-wider bg-muted/30 px-3 py-2">
-              <span>Campo</span>
-              <span>Coluna do CSV</span>
-              <span className="text-right">Confiança</span>
+              <span>{tr("adaptiveImport.colField")}</span>
+              <span>{tr("adaptiveImport.colCsvColumn")}</span>
+              <span className="text-right">{tr("adaptiveImport.colConfidence")}</span>
             </div>
             <div className="divide-y divide-border/40">
               {CANONICAL_FIELDS.map((field) => {
@@ -494,11 +496,11 @@ export function AdaptiveImportModal({
                     <div className="grid grid-cols-[1fr_1.4fr_auto] items-center gap-2 px-3 py-2 text-xs">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">
-                          {field.label}
+                          {tr(field.labelKey)}
                         </span>
                         {field.required && (
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            obrigatório
+                            {tr("adaptiveImport.required")}
                           </span>
                         )}
                       </div>
@@ -515,7 +517,7 @@ export function AdaptiveImportModal({
                           " focus:outline-none"
                         }
                       >
-                        <option value="">— não mapeado —</option>
+                        <option value="">{tr("adaptiveImport.unmapped")}</option>
                         {parsed.headers.map((h) => (
                           <option key={h} value={h}>
                             {h}
@@ -523,7 +525,7 @@ export function AdaptiveImportModal({
                         ))}
                       </select>
                       <span className="text-right text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {current ? conf ?? "manual" : isMissing ? "—" : "opcional"}
+                        {current ? conf ?? tr("adaptiveImport.manual") : isMissing ? "—" : tr("adaptiveImport.optional")}
                       </span>
                     </div>
                   </Fragment>
@@ -537,7 +539,7 @@ export function AdaptiveImportModal({
           {parsed.warnings && parsed.warnings.length > 0 && (
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
               <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                <AlertTriangle className="h-3.5 w-3.5" /> Avisos
+                <AlertTriangle className="h-3.5 w-3.5" /> {tr("adaptiveImport.warnings")}
               </div>
               <ul className="list-inside list-disc space-y-0.5 text-[11px] text-muted-foreground">
                 {parsed.warnings.map((w, i) => (
@@ -551,16 +553,16 @@ export function AdaptiveImportModal({
           {parsed.sampleRows && parsed.sampleRows.length > 0 && (
             <div>
               <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Prévia (primeiras 5 linhas)
+                {tr("adaptiveImport.previewLabel")}
               </p>
               <div className="overflow-hidden rounded-lg border border-border/60">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground">
                     <tr>
-                      <th className="px-3 py-2 text-left">Símbolo</th>
-                      <th className="px-3 py-2 text-left">Direção</th>
-                      <th className="px-3 py-2 text-right">P&L</th>
-                      <th className="px-3 py-2 text-left">Abertura</th>
+                      <th className="px-3 py-2 text-left">{tr("adaptiveImport.field.symbol")}</th>
+                      <th className="px-3 py-2 text-left">{tr("adaptiveImport.field.direction")}</th>
+                      <th className="px-3 py-2 text-right">{tr("adaptiveImport.colPnl")}</th>
+                      <th className="px-3 py-2 text-left">{tr("adaptiveImport.field.openedAt")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
@@ -615,7 +617,7 @@ export function AdaptiveImportModal({
               onChange={(e) => setSaveProfile(e.target.checked)}
               className="h-3.5 w-3.5 rounded border-border"
             />
-            Reaproveitar este mapeamento em imports futuros
+            {tr("adaptiveImport.rememberMapping")}
           </label>
 
           {/* Actions */}
@@ -624,14 +626,14 @@ export function AdaptiveImportModal({
               onClick={onCancel}
               className="rounded-lg border px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
             >
-              Cancelar
+              {tr("common.cancel")}
             </button>
             <button
               onClick={runFinalImport}
               disabled={!canImport}
               className="rounded-lg bg-primary px-4 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              Importar {parsed.totalRows} trade{parsed.totalRows === 1 ? "" : "s"}
+              {(parsed.totalRows === 1 ? tr("adaptiveImport.importCta") : tr("adaptiveImport.importCtaPlural")).replace("{count}", String(parsed.totalRows))}
             </button>
           </div>
         </motion.div>

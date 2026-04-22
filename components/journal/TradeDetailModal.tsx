@@ -21,6 +21,7 @@ import { TradeScreenshotUpload } from "./TradeScreenshotUpload";
 import { deleteTradeScreenshot } from "@/lib/supabase/screenshot";
 import { validateCustomTags } from "@/lib/psychology-tags";
 import { TagPicker } from "./TagPicker";
+import { useAppT } from "@/hooks/useAppLocale";
 
 interface MentorNoteForTrade {
   id: string;
@@ -39,6 +40,7 @@ interface TradeDetailModalProps {
 }
 
 export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted }: TradeDetailModalProps) {
+  const t = useAppT();
   const [context, setContext] = useState("");
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -101,13 +103,13 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
         .eq("id", trade.id);
 
       if (error) throw error;
-      setToast({ type: "success", message: "Salvo com sucesso." });
+      setToast({ type: "success", message: t("tradeDetail.savedSuccess") });
       onSaved?.();
       setTimeout(() => {
         onOpenChange(false);
       }, 600);
     } catch (e) {
-      setToast({ type: "error", message: "Erro ao salvar." });
+      setToast({ type: "error", message: t("tradeDetail.saveError") });
     } finally {
       setSaving(false);
     }
@@ -115,13 +117,13 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
 
   const handleDelete = async () => {
     if (!trade?.id) return;
-    if (!confirm("Tem certeza que deseja excluir este trade? Esta acao nao pode ser desfeita.")) return;
+    if (!confirm(t("tradeDetail.confirmDelete"))) return;
 
     setDeleting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
-        setToast({ type: "error", message: "Sessao expirada. Faca login novamente." });
+        setToast({ type: "error", message: t("tradeDetail.sessionExpired") });
         return;
       }
 
@@ -141,7 +143,7 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
         .eq("user_id", session.user.id);
 
       if (error) {
-        setToast({ type: "error", message: "Erro ao excluir trade." });
+        setToast({ type: "error", message: t("tradeDetail.deleteError") });
         return;
       }
 
@@ -153,7 +155,7 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
       }
     } catch (err) {
       console.error("[trade-detail] Delete error:", err);
-      setToast({ type: "error", message: "Erro ao excluir trade." });
+      setToast({ type: "error", message: t("tradeDetail.deleteError") });
     } finally {
       setDeleting(false);
     }
@@ -170,55 +172,55 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg" showClose={true}>
         <DialogHeader>
-          <DialogTitle>Detalhe do trade</DialogTitle>
+          <DialogTitle>{t("tradeDetail.title")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Símbolo</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.symbol")}</Label>
               <p className="font-medium">{trade.symbol}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Direção</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.direction")}</Label>
               <p><Badge variant={isBuy ? "default" : "warning"} className="capitalize">{trade.direction ?? "—"}</Badge></p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Categoria</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.category")}</Label>
               <p className="text-sm">{trade.category ?? "—"}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Resultado</Label>
-              <p><Badge variant={isWin ? "success" : "destructive"}>{isWin ? "Win" : "Loss"}</Badge></p>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.result")}</Label>
+              <p><Badge variant={isWin ? "success" : "destructive"}>{isWin ? t("tradeDetail.win") : t("tradeDetail.loss")}</Badge></p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Abertura</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.openedAt")}</Label>
               <p className="text-sm">{formatDateTime(trade.opened_at)}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Fechamento</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.closedAt")}</Label>
               <p className="text-sm">{formatDateTime(trade.closed_at)}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Duração</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.duration")}</Label>
               <p className="text-sm">{formatDuration(trade.opened_at, trade.closed_at)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground">PnL bruto</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.grossPnl")}</Label>
               <p className="text-sm">{(trade.pnl_usd ?? 0).toFixed(2)} USD</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Fees</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.fees")}</Label>
               <p className="text-sm">{(trade.fees_usd ?? 0).toFixed(2)} USD</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Net PnL</Label>
+              <Label className="text-xs text-muted-foreground">{t("tradeDetail.netPnl")}</Label>
               <p className={net >= 0 ? "text-emerald-600 dark:text-emerald-500 font-medium" : "text-red-600 dark:text-red-500 font-medium"}>
                 {net >= 0 ? "+" : ""}{net.toFixed(2)} USD
               </p>
@@ -249,7 +251,7 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-amber-900 dark:text-amber-300">
                       <MessageSquare className="h-3.5 w-3.5" />
-                      Nota do mentor · {n.mentor_name}
+                      {t("tradeDetail.mentorNote")} · {n.mentor_name}
                     </div>
                     {n.rating ? (
                       <div className="flex items-center gap-0.5">
@@ -276,18 +278,18 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="context">Contexto</Label>
+            <Label htmlFor="context">{t("tradeDetail.context")}</Label>
             <Input
               id="context"
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              placeholder="Contexto do trade"
+              placeholder={t("tradeDetail.contextPlaceholder")}
             />
           </div>
 
           {/* Tags — taxonomia + freeform */}
           <div className="space-y-2">
-            <Label>Tags <span className="text-muted-foreground text-xs">({customTags.length}/{MAX_TAGS})</span></Label>
+            <Label>{t("tradeDetail.tags")} <span className="text-muted-foreground text-xs">({customTags.length}/{MAX_TAGS})</span></Label>
             <TagPicker value={customTags} onChange={setCustomTags} allowFreeform maxTags={MAX_TAGS} />
           </div>
 
@@ -312,14 +314,14 @@ export function TradeDetailModal({ trade, open, onOpenChange, onSaved, onDeleted
             className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            {deleting ? "Excluindo..." : "Excluir trade"}
+            {deleting ? t("tradeDetail.deleting") : t("tradeDetail.deleteCta")}
           </button>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Fechar
+              {t("tradeDetail.closeCta")}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Salvando..." : "Salvar"}
+              {saving ? t("tradeDetail.savingCta") : t("tradeDetail.saveCta")}
             </Button>
           </div>
         </DialogFooter>

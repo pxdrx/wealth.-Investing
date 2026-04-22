@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toForexDateKey, forexDayBoundsUtc } from "@/lib/trading/forex-day";
 import { deleteTradeScreenshot } from "@/lib/supabase/screenshot";
 import { TradeScreenshotUpload } from "./TradeScreenshotUpload";
+import { useAppT } from "@/hooks/useAppLocale";
 
 interface DayDetailModalProps {
   date: string | null;
@@ -63,6 +64,7 @@ interface DayNote {
 }
 
 export function DayDetailModal({ date, userId, accountId, accountIds, defaultReadOnly, filterSymbol, open, onOpenChange, onNoteSaved, onTradeDeleted }: DayDetailModalProps) {
+  const tr = useAppT();
   const [accountSummaries, setAccountSummaries] = useState<AccountTradesSummary[]>([]);
   const [individualTrades, setIndividualTrades] = useState<IndividualTrade[]>([]);
   const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null);
@@ -206,7 +208,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
         if (!byAccount.has(r.account_id)) {
           byAccount.set(r.account_id, {
             accountId: r.account_id,
-            accountName: accountNames.get(r.account_id) ?? "Conta",
+            accountName: accountNames.get(r.account_id) ?? tr("dayDetail.accountFallback"),
             trades: 0, wins: 0, losses: 0, breakeven: 0, pnl: 0,
           });
         }
@@ -224,7 +226,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
           net_pnl_usd: net,
           opened_at: r.opened_at,
           account_id: r.account_id,
-          accountName: accountNames.get(r.account_id) ?? "Conta",
+          accountName: accountNames.get(r.account_id) ?? tr("dayDetail.accountFallback"),
           screenshot_path: r.screenshot_path,
         });
       }
@@ -315,7 +317,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
       onOpenChange(false);
     } catch (err) {
       console.warn("[DayDetailModal] save error", err);
-      setSaveError("Erro ao salvar. Tente novamente.");
+      setSaveError(tr("dayDetail.saveError"));
     } finally {
       setSaving(false);
     }
@@ -426,8 +428,8 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
           <DialogTitle className="capitalize">{formattedDate}</DialogTitle>
           <DialogDescription>
             {totalTrades > 0
-              ? `${totalTrades} ${totalTrades !== 1 ? "operações" : "operação"}`
-              : "Nenhuma operação neste dia"}
+              ? `${totalTrades} ${totalTrades !== 1 ? tr("dayDetail.operationsPlural") : tr("dayDetail.operations")}`
+              : tr("dayDetail.noOperations")}
           </DialogDescription>
         </DialogHeader>
 
@@ -435,10 +437,10 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
         {filterSymbol && (
           <div className="flex items-center justify-between rounded-xl border border-blue-500/30 bg-blue-500/5 px-3 py-2">
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              Filtro ativo: <span className="font-semibold">{filterSymbol}</span>
+              {tr("dayDetail.filterActive")} <span className="font-semibold">{filterSymbol}</span>
             </p>
             <p className="text-[10px] text-muted-foreground">
-              Desative o filtro no calendário para ver todos
+              {tr("dayDetail.filterHint")}
             </p>
           </div>
         )}
@@ -459,7 +461,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                 : totalPnl < 0 ? "border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/30"
                 : "border-border/40 bg-muted/10"
               )}>
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Resultado do Dia</p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">{tr("dayDetail.dayResult")}</p>
                 <p className={cn(
                   "text-2xl font-bold",
                   totalPnl > 0 ? "text-emerald-700 dark:text-emerald-400"
@@ -474,7 +476,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
             {/* Per-account breakdown — only shown when multiple accounts (e.g. backtest "Todas" mode) */}
             {accountSummaries.length > 1 && (
               <div className="space-y-1.5">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Por conta</h4>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tr("dayDetail.byAccount")}</h4>
                 {accountSummaries.map((acc) => (
                   <div
                     key={acc.accountId}
@@ -484,7 +486,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                     <div>
                       <p className="text-sm font-medium text-foreground">{acc.accountName}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {acc.trades} ops — {acc.wins}W / {acc.losses}L{acc.breakeven > 0 ? ` / ${acc.breakeven}BE` : ""}
+                        {acc.trades} {tr("dayDetail.opsShort")} — {acc.wins}W / {acc.losses}L{acc.breakeven > 0 ? ` / ${acc.breakeven}BE` : ""}
                       </p>
                     </div>
                     <p className={cn(
@@ -503,7 +505,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
             {/* Individual trades with delete */}
             {individualTrades.length > 0 && (
               <div className="space-y-1.5">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Operações</h4>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tr("dayDetail.operationsSection")}</h4>
                 <AnimatePresence initial={false}>
                   {individualTrades.map((t) => {
                     const dirLower = t.direction.toLowerCase();
@@ -534,7 +536,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                             <div className="flex items-center gap-2">
                               <Trash2 className="h-3.5 w-3.5 text-red-500" />
                               <span className="text-sm font-medium text-red-700 dark:text-red-400">
-                                Excluir {t.symbol}?
+                                {tr("dayDetail.deletePrompt").replace("{symbol}", t.symbol)}
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5">
@@ -543,7 +545,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                                 onClick={() => setConfirmingTradeId(null)}
                                 className="rounded-md px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
                               >
-                                Não
+                                {tr("common.no")}
                               </button>
                               <button
                                 type="button"
@@ -551,7 +553,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                                 disabled={isDeleting}
                                 className="rounded-md px-2.5 py-1 text-[11px] font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
                               >
-                                {isDeleting ? "Excluindo..." : "Sim, excluir"}
+                                {isDeleting ? tr("dayDetail.deleting") : tr("dayDetail.confirmDelete")}
                               </button>
                             </div>
                           </div>
@@ -594,8 +596,8 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                                       ? "text-blue-500 bg-blue-500/10"
                                       : "text-muted-foreground/50 hover:text-blue-500 hover:bg-blue-500/10"
                                   )}
-                                  title="Editar trade"
-                                  aria-label={`Editar trade ${t.symbol}`}
+                                  title={tr("dayDetail.editTrade")}
+                                  aria-label={tr("dayDetail.editTradeAria").replace("{symbol}", t.symbol)}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </button>
@@ -603,8 +605,8 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                                   type="button"
                                   onClick={() => setConfirmingTradeId(t.id)}
                                   className="rounded-md p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                                  title="Excluir trade"
-                                  aria-label={`Excluir trade ${t.symbol}`}
+                                  title={tr("dayDetail.deleteTrade")}
+                                  aria-label={tr("dayDetail.deleteTradeAria").replace("{symbol}", t.symbol)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
@@ -654,7 +656,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Observação</h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tr("dayDetail.observation")}</h4>
                   </div>
                   <button
                     type="button"
@@ -662,7 +664,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                     className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
                   >
                     <Pencil className="h-3 w-3" />
-                    Editar
+                    {tr("dayDetail.editObservation")}
                   </button>
                 </div>
 
@@ -691,7 +693,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                 )}
 
                 {saved && (
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium text-center">Salvo</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium text-center">{tr("dayDetail.savedLabel")}</p>
                 )}
               </div>
             ) : (
@@ -701,7 +703,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
                     <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Etiquetas</h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tr("dayDetail.tags")}</h4>
                   </div>
                   {/* Applied tags — removable chips */}
                   {dayNote.tags.length > 0 && (
@@ -716,7 +718,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                             type="button"
                             onClick={() => toggleTag(tag)}
                             className="ml-0.5 opacity-50 hover:opacity-100 hover:text-red-500 transition-opacity"
-                            title="Remover etiqueta"
+                            title={tr("dayDetail.removeTag")}
                           >
                             <X className="h-2.5 w-2.5" />
                           </button>
@@ -739,7 +741,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                             type="button"
                             onClick={(e) => { e.stopPropagation(); deleteUserTag(tag); }}
                             className="ml-0.5 opacity-50 hover:opacity-100 hover:text-red-500 transition-opacity"
-                            title="Excluir etiqueta salva"
+                            title={tr("dayDetail.deleteSavedTag")}
                           >
                             <X className="h-2.5 w-2.5" />
                           </button>
@@ -752,7 +754,7 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                       value={newTag}
                       onChange={(e) => setNewTag(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomTag())}
-                      placeholder="Tag personalizada..."
+                      placeholder={tr("dayDetail.customTagPlaceholder")}
                       className="flex-1 h-7 text-xs"
                     />
                     <Button type="button" variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={addCustomTag}>
@@ -765,12 +767,12 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Observação</h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tr("dayDetail.observation")}</h4>
                   </div>
                   <textarea
                     value={dayNote.observation}
                     onChange={(e) => setDayNote((prev) => ({ ...prev, observation: e.target.value }))}
-                    placeholder="Contexto do mercado, lições aprendidas, ajustes para o próximo dia..."
+                    placeholder={tr("dayDetail.observationPlaceholder")}
                     rows={3}
                     className="w-full resize-y rounded-lg border border-border/40 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
                   />
@@ -784,16 +786,16 @@ export function DayDetailModal({ date, userId, accountId, accountIds, defaultRea
                 <div className="flex gap-2">
                   {dayNote.id && (
                     <Button type="button" variant="outline" className="flex-1" onClick={() => { setEditMode(false); loadDayData(); }}>
-                      Cancelar
+                      {tr("dayDetail.cancel")}
                     </Button>
                   )}
                   <Button onClick={handleSaveNote} disabled={saving} className={cn("gap-2", dayNote.id ? "flex-1" : "w-full")} variant={saved ? "outline" : "default"}>
                     {saved ? (
-                      <>Salvo</>
+                      <>{tr("dayDetail.savedLabel")}</>
                     ) : (
                       <>
                         <Save className="h-3.5 w-3.5" />
-                        {saving ? "Salvando…" : dayNote.id ? "Atualizar observação" : "Salvar observação"}
+                        {saving ? tr("dayDetail.savingEllipsis") : dayNote.id ? tr("dayDetail.updateObservation") : tr("dayDetail.saveObservation")}
                       </>
                     )}
                   </Button>

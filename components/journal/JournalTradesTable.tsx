@@ -21,6 +21,7 @@ import type { JournalTradeRow } from "./types";
 import { ListFilter, TrendingUp, Tag as TagIcon, X } from "lucide-react";
 import { SETUP_TAGS, MISTAKE_TAGS } from "@/lib/psychology-tags";
 import { StickyNote } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
 import {
   PREDEFINED_TAGS,
   TAG_CATEGORY_LABELS,
@@ -71,6 +72,7 @@ interface JournalTradesTableProps {
 }
 
 export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableProps) {
+  const tr = useAppT();
   const { mask } = usePrivacy();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -166,14 +168,14 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">Trades</CardTitle>
+        <CardTitle className="text-base font-medium">{tr("tradesTable.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ListFilter className="h-3.5 w-3.5" />
-            Filtros
+            {tr("tradesTable.filters")}
           </div>
 
           {/* Direction pills */}
@@ -190,7 +192,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                 )}
               >
-                {d === "all" ? "Todos" : d === "buy" ? "Buy" : "Sell"}
+                {d === "all" ? tr("common.all") : d === "buy" ? tr("tradesTable.buy") : tr("tradesTable.sell")}
               </button>
             ))}
           </div>
@@ -209,7 +211,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                 )}
               >
-                {r === "all" ? "Todos" : r === "win" ? "Win" : "Loss"}
+                {r === "all" ? tr("common.all") : r === "win" ? tr("tradesTable.win") : tr("tradesTable.loss")}
               </button>
             ))}
           </div>
@@ -219,14 +221,14 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
             type="text"
             value={symbolFilter}
             onChange={(e) => { setSymbolFilter(e.target.value.toUpperCase()); setPage(0); }}
-            placeholder="Buscar ativo..."
+            placeholder={tr("tradesTable.searchSymbol")}
             className="rounded-xl border border-border/60 bg-transparent px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring w-28"
           />
 
           {/* Date filters */}
           <div className="flex items-center gap-2 ml-auto">
             <div className="flex items-center gap-1.5">
-              <Label className="text-xs text-muted-foreground">De</Label>
+              <Label className="text-xs text-muted-foreground">{tr("common.from")}</Label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -235,7 +237,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <Label className="text-xs text-muted-foreground">Até</Label>
+              <Label className="text-xs text-muted-foreground">{tr("common.to")}</Label>
               <Input
                 type="date"
                 value={dateTo}
@@ -249,7 +251,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
         {/* Tag filters */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/20">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-            <TagIcon className="h-3.5 w-3.5" /> Tags
+            <TagIcon className="h-3.5 w-3.5" /> {tr("tradeDetail.tags")}
           </div>
 
           {TAG_CATEGORY_ORDER.map((cat) => {
@@ -276,7 +278,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
             onClick={() => setTagPanelOpen((v) => !v)}
             className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:border-foreground/40 hover:text-foreground transition-colors"
           >
-            {tagPanelOpen ? "Fechar tags" : "Todas as tags"}
+            {tagPanelOpen ? tr("tradesTable.closeTags") : tr("tradesTable.allTags")}
           </button>
 
           {selectedTags.length > 0 && (
@@ -285,7 +287,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
               onClick={clearTags}
               className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
             >
-              Limpar
+              {tr("common.clear")}
             </button>
           )}
         </div>
@@ -340,12 +342,12 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                   className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px]"
                 >
                   <span className="font-medium">{label}</span>
-                  <span className="text-muted-foreground">· {count} trade{count !== 1 ? "s" : ""}</span>
+                  <span className="text-muted-foreground">· {count} {count !== 1 ? tr("tradesTable.tradesSuffixPlural") : tr("tradesTable.tradesSuffix")}</span>
                   <button
                     type="button"
                     onClick={() => toggleTag(slug)}
                     className="rounded-full p-0.5 hover:bg-muted"
-                    aria-label={`Remover filtro ${label}`}
+                    aria-label={tr("tradesTable.removeFilterTag").replace("{label}", label)}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -360,16 +362,16 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
           <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow className="border-border/40 hover:bg-transparent">
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Símbolo</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Direção</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Abertura</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Fechamento</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground hidden lg:table-cell">Duração</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right hidden lg:table-cell">PnL bruto</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right hidden lg:table-cell">Fees</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right">Net PnL</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Resultado</TableHead>
-                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground hidden xl:table-cell">Tags</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{tr("tradesTable.colSymbol")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{tr("tradesTable.colDirection")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{tr("tradesTable.colOpen")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{tr("tradesTable.colClose")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground hidden lg:table-cell">{tr("tradesTable.colDuration")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right hidden lg:table-cell">{tr("tradesTable.colGrossPnl")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right hidden lg:table-cell">{tr("tradesTable.colFees")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-right">{tr("tradesTable.colNetPnl")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{tr("tradesTable.colResult")}</TableHead>
+                <TableHead className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground hidden xl:table-cell">{tr("tradesTable.colTags")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -395,7 +397,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                         {t.symbol}
                         {t.external_source === "metaapi" && (
                           <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 leading-none">
-                            Live
+                            {tr("tradesTable.liveBadge")}
                           </span>
                         )}
                       </span>
@@ -425,7 +427,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                     </TableCell>
                     <TableCell>
                       <Badge variant={isWin ? "success" : "destructive"}>
-                        {isWin ? "Win" : "Loss"}
+                        {isWin ? tr("tradesTable.win") : tr("tradesTable.loss")}
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden xl:table-cell">
@@ -458,7 +460,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                           </>
                         )}
                         {t.context && (
-                          <span title="Tem notas"><StickyNote className="h-3 w-3 text-muted-foreground/50" /></span>
+                          <span title={tr("tradesTable.hasNotes")}><StickyNote className="h-3 w-3 text-muted-foreground/50" /></span>
                         )}
                       </div>
                     </TableCell>
@@ -474,10 +476,10 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <TrendingUp className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm font-medium text-muted-foreground">
-              Nenhum trade encontrado
+              {tr("tradesTable.emptyTitle")}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              Ajuste os filtros ou importe um relatório MT5 para começar.
+              {tr("tradesTable.emptyHint")}
             </p>
           </div>
         )}
@@ -488,7 +490,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
             {/* Summary */}
             <div className="flex items-center gap-4 text-xs">
               <span className="text-muted-foreground">
-                {summary.totalTrades} trade{summary.totalTrades !== 1 ? "s" : ""}
+                {summary.totalTrades} {summary.totalTrades !== 1 ? tr("tradesTable.tradesSuffixPlural") : tr("tradesTable.tradesSuffix")}
               </span>
               <span className={cn(
                 "font-semibold",
@@ -497,7 +499,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 {mask(`${summary.totalPnl >= 0 ? "+" : ""}${summary.totalPnl.toFixed(2)} USD`)}
               </span>
               <span className="text-muted-foreground">
-                WR: {summary.winRate.toFixed(0)}%
+                {tr("tradesTable.winRate").replace("{rate}", summary.winRate.toFixed(0))}
               </span>
             </div>
 
@@ -513,7 +515,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 className="h-7 text-xs"
               >
-                Anterior
+                {tr("common.previous")}
               </Button>
               <Button
                 variant="outline"
@@ -522,7 +524,7 @@ export function JournalTradesTable({ trades, onTradeClick }: JournalTradesTableP
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 className="h-7 text-xs"
               >
-                Próximo
+                {tr("common.next")}
               </Button>
             </div>
           </div>
