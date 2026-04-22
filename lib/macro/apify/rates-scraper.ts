@@ -161,6 +161,8 @@ function parseRatesFromMarkdown(markdown: string): Omit<CentralBankRate, "id">[]
       last_change_date: null,   // stamped by cron handler on detection
       next_meeting: null,
       updated_at: new Date().toISOString(),
+      summary: null,
+      source_url: null,
     });
   }
 
@@ -194,6 +196,8 @@ function parseRatesFromMarkdown(markdown: string): Omit<CentralBankRate, "id">[]
         last_change_date: null,
         next_meeting: null,
         updated_at: new Date().toISOString(),
+        summary: null,
+        source_url: null,
       });
     }
 
