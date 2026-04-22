@@ -150,11 +150,18 @@ function SegmentedControl({ period, onChange }: SegmentedControlProps) {
 }
 
 interface DeltaBadgeProps {
-  delta: number;
+  delta: number | null;
   source: SourceKey;
 }
 
 function DeltaBadge({ delta, source }: DeltaBadgeProps) {
+  if (delta === null || !Number.isFinite(delta)) {
+    return (
+      <span className="tabular-nums text-[11px] font-semibold text-muted-foreground">
+        — sem base
+      </span>
+    );
+  }
   // For F/G sources: positive = improving (emerald). For VIX: inverted.
   const inverted = source === "vix";
   const positiveIsGood = !inverted;
@@ -187,6 +194,10 @@ interface SourceRowProps {
 }
 
 function SourceRow({ source, stats }: SourceRowProps) {
+  // Guard: skip sources with no samples or null aggregates (source missing from window).
+  if (stats.samples === 0 || stats.avg === null || stats.min === null || stats.max === null) {
+    return null;
+  }
   const fmt = (n: number) => (source === "vix" ? n.toFixed(1) : Math.round(n).toString());
   return (
     <div className="rounded-xl border border-border/40 px-3 py-2">
