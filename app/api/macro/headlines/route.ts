@@ -23,6 +23,43 @@ const BREAKING_KEYWORDS = [
   "trump", "biden", "putin", "xi",
 ];
 
+/**
+ * Normalise a title for deduplication: lowercase, strip accents/punctuation,
+ * collapse whitespace. Two headlines whose normalised forms share >= 60% of
+ * their words are considered duplicates.
+ */
+function normaliseTitle(t: string): string {
+  return t
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function titleOverlap(a: string, b: string): number {
+  const wordsA = normaliseTitle(a).split(" ").filter(Boolean);
+  const wb = new Set(normaliseTitle(b).split(" ").filter(Boolean));
+  if (wordsA.length === 0 || wb.size === 0) return 0;
+  const common = wordsA.filter((w) => wb.has(w)).length;
+  return common / Math.min(wordsA.length, wb.size);
+}
+
+/**
+ * Deduplicate headlines: keep the most recent representative of each "cluster"
+ * of semantically similar headlines (>= 60% word overlap).
+ */
+function deduplicateBreaking<T extends { title?: string | null; published_at?: string | null }>(items: T[]): T[] {
+  const kept: T[] = [];
+  for (const item of items) {
+    const title = item.title ?? "";
+    const isDup = kept.some((k) => titleOverlap(k.title ?? "", title) >= 0.6);
+    if (!isDup) kept.push(item);
+  }
+  return kept;
+}
+
 const BREAKING_SOURCES = new Set<string>(["te_breaking", "financial_juice"]);
 
 /**
@@ -134,9 +171,12 @@ export async function GET(req: NextRequest) {
   const breakingMode = searchParams.get("breaking") === "true" || searchParams.get("breaking") === "1";
   const limitParam = parseInt(searchParams.get("limit") || (breakingMode ? "3" : "30"), 10);
   // Breaking mode caps at 5 to stay focused; default 3.
-  const limit = breakingMode
+  const userLimit = breakingMode
     ? Math.min(Math.max(1, limitParam), 5)
     : Math.min(Math.max(1, limitParam), 100);
+  // DB fetch limit: for breaking mode fetch more rows so dedup + filter still
+  // yields enough results. For normal mode, use the user limit directly.
+  const limit = breakingMode ? 50 : userLimit;
   const source = searchParams.get("source") as "forexlive" | "reuters" | "truth_social" | "trading_economics" | null;
   const forceLive = searchParams.get("live") === "1";
   // Extend default window to 7 days to catch more cached headlines
@@ -183,7 +223,7 @@ export async function GET(req: NextRequest) {
       .map((h) => ({ ...h, news_key: buildNewsKey((h as { url?: string | null }).url, (h as { title?: string | null }).title) }))
       .filter((h) => !dismissedKeys.has(h.news_key));
     const filtered = breakingMode
-      ? enriched.filter(isBreakingItem).slice(0, limit)
+      ? deduplicateBreaking(enriched.filter(isBreakingItem)).slice(0, userLimit)
       : enriched;
 
     return NextResponse.json({ ok: true, data: filtered, source: "live" });
@@ -233,7 +273,7 @@ export async function GET(req: NextRequest) {
   });
   const notDismissed = withKeys.filter((h) => !dismissedKeys.has(h.news_key));
   const finalData = breakingMode
-    ? notDismissed.filter(isBreakingItem).slice(0, limit)
+    ? deduplicateBreaking(notDismissed.filter(isBreakingItem)).slice(0, userLimit)
     : notDismissed;
 
   return NextResponse.json({ ok: true, data: finalData }, { headers: cacheHeaders });
