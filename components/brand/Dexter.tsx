@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 
 import styles from "./Dexter.module.css";
 
+// 7 moods kept for API backwards-compat; 3 alias onto the 4 canonical poses
+// shipped by claude-design (default / thinking / alert / offline).
 export const DEXTER_MOODS = [
   "default",
   "thinking",
@@ -25,21 +27,16 @@ export interface DexterProps {
   title?: string;
 }
 
-// Ticker mascot viewBox is 40x34 (full body with head + blob + 4 pseudopods).
-const MASCOT_W = 40;
-const MASCOT_H = 34;
-const ASPECT = MASCOT_W / MASCOT_H;
+type CanonicalPose = "default" | "thinking" | "alert" | "offline";
 
-// Map Dexter moods to Ticker pose assets so the full-body mascot renders
-// instead of the legacy 16x16 head-only sprite.
-const MOOD_TO_POSE: Record<DexterMood, string> = {
-  default: "stand",
-  thinking: "focus",
-  alert: "blink",
-  celebrating: "cheer",
-  sleeping: "sleep",
-  analyzing: "loading",
-  offline: "wink",
+const MOOD_TO_POSE: Record<DexterMood, CanonicalPose> = {
+  default: "default",
+  thinking: "thinking",
+  alert: "alert",
+  celebrating: "default",
+  sleeping: "offline",
+  analyzing: "thinking",
+  offline: "offline",
 };
 
 const STYLE: CSSProperties = {
@@ -57,17 +54,13 @@ export function Dexter({
   const classes = [styles.dexter, animated ? styles.animated : null, className]
     .filter(Boolean)
     .join(" ");
-  const pose = MOOD_TO_POSE[mood] ?? "stand";
-  // Preserve the caller's intent: use `size` as the height budget so the
-  // mascot's taller body keeps its proportions without stretching.
-  const height = size;
-  const width = Math.round(height * ASPECT);
+  const pose = MOOD_TO_POSE[mood] ?? "default";
   // eslint-disable-next-line @next/next/no-img-element -- pixel-art SVG, next/image would add unwanted optimization pipeline
   return (
     <img
-      src={`/brand/mascot/ticker-${pose}.svg`}
-      width={width}
-      height={height}
+      src={`/dexter/${pose}.svg`}
+      width={size}
+      height={size}
       alt={alt ?? `Dexter ${mood}`}
       title={title}
       className={classes}

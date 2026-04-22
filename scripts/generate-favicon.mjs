@@ -13,37 +13,38 @@ const pub = resolve(__dirname, "..", "public");
 
 mkdirSync(pub, { recursive: true });
 
-// ── Dexter default pose — must stay in sync with generate-dexter.mjs ──
+// ── Dexter default pose — must stay in sync with generate-dexter-assets.mjs ──
 const DEFAULT_POSE = [
   "................",
   "................",
-  ".....oooooo.....",
-  "...ooddddddoo...",
-  "..oddggggggddo..",
-  "..odgbbbbbbgdo..",
-  "..odgbhhhhbgdo..",
-  "..odgbobbobgdo..",
-  "..odgbbbbbbgdo..",
-  "..odgbboobbgdo..",
-  "..odgbbbbbbgdo..",
-  "..oddggggggddo..",
-  "...ooddddddoo...",
-  ".....oooooo.....",
+  ".....LLLLLL.....",
+  "....LFFFFFFL....",
+  "...LFFFFFFFFL...",
+  "..LFFOOFFOOFFL..",
+  "..LFFFFFFFFFFL..",
+  "..LFFFFOOFFFFL..",
+  "..LFFFFOOFFFFL..",
+  "..MFFFFFFFFFFM..",
+  "...MMFFFFFFMM...",
+  "....MMMMMMMM....",
+  "...D.D.D.D.D.D..",
+  "...D...D.D...D..",
   "................",
   "................",
 ];
 
+// Palette — 4 emerald shades + void + amber (claude-design spec).
 const COLORS = {
-  o: [0x0b, 0x0e, 0x0c, 0xff],
-  d: [0x06, 0x4e, 0x3b, 0xff],
-  g: [0x04, 0x78, 0x57, 0xff],
-  b: [0x10, 0xb9, 0x81, 0xff],
-  h: [0x6e, 0xe7, 0xb7, 0xff],
-  a: [0xf0, 0xc0, 0x00, 0xff],
+  L: [0x9b, 0xc6, 0xa3, 0xff], // highlight
+  F: [0x5f, 0x90, 0x68, 0xff], // phosphor
+  M: [0x3d, 0x6b, 0x47, 0xff], // mid
+  D: [0x1f, 0x3a, 0x2e, 0xff], // deep
+  O: [0x0a, 0x0f, 0x0d, 0xff], // void
+  A: [0xf0, 0xc0, 0x00, 0xff], // amber
 };
 
-// Maskable background — emerald-700, matches --primary dark
-const EMERALD_BG = [0x04, 0x78, 0x57, 0xff];
+// Maskable background — deep emerald, matches terminal CRT DNA
+const EMERALD_BG = [0x1f, 0x3a, 0x2e, 0xff];
 
 // ── PNG encoder ────────────────────────────────────────────────────────
 const CRC_TABLE = (() => {
