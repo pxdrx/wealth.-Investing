@@ -1,9 +1,11 @@
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { BootstrapWarning } from "@/components/auth/BootstrapWarning";
 import { PrivacyProvider } from "@/components/context/PrivacyContext";
 import { locales, defaultLocale, type Locale } from "@/i18n";
+import { providerConfig } from "@/lib/i18n/provider-config";
 import ptMessages from "@/messages/pt.json";
 import enMessages from "@/messages/en.json";
 
@@ -12,34 +14,28 @@ const MESSAGES: Record<Locale, typeof ptMessages> = {
   en: enMessages as typeof ptMessages,
 };
 
-function resolveLocale(cookieVal: string | undefined, acceptLang: string | null): Locale {
+// PT is default. EN only when user explicitly chose it (cookie). No
+// Accept-Language sniffing — matches landing middleware behavior.
+function resolveLocale(cookieVal: string | undefined): Locale {
   if (cookieVal && (locales as readonly string[]).includes(cookieVal)) {
     return cookieVal as Locale;
-  }
-  if (acceptLang) {
-    const preferred = acceptLang.split(",")[0]?.split("-")[0]?.toLowerCase();
-    if (preferred && (locales as readonly string[]).includes(preferred)) {
-      return preferred as Locale;
-    }
   }
   return defaultLocale;
 }
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  // The i18n middleware only covers public landing routes, so /app/** needs
-  // its own provider. Locale is read from the NEXT_LOCALE cookie (set by the
-  // LocaleSwitcher) with an Accept-Language fallback. Messages are imported
-  // statically so webpack can tree-shake / ship them in the server bundle.
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = cookies();
-  const headerStore = headers();
-  const locale = resolveLocale(
-    cookieStore.get("NEXT_LOCALE")?.value,
-    headerStore.get("accept-language"),
-  );
+  const locale = resolveLocale(cookieStore.get("NEXT_LOCALE")?.value);
   const messages = MESSAGES[locale] ?? MESSAGES[defaultLocale];
+  const tCommon = await getTranslations({ locale, namespace: "app.common" });
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages}
+      onError={providerConfig.onError}
+      getMessageFallback={providerConfig.getMessageFallback}
+    >
       <AuthGate>
         <PrivacyProvider>
           <div className="min-h-screen">
@@ -47,7 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               href="#main-content"
               className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-background focus:px-4 focus:py-2 focus:rounded-md focus:text-foreground focus:ring-2 focus:ring-ring"
             >
-              Pular para o conteúdo
+              {tCommon("skipToContent")}
             </a>
             <BootstrapWarning />
             <main id="main-content">

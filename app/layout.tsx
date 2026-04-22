@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans, Manrope } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -78,8 +79,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieLocale = cookies().get("NEXT_LOCALE")?.value;
+  const htmlLang = cookieLocale === "en" ? "en" : "pt-BR";
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang={htmlLang} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

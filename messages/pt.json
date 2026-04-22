@@ -438,5 +438,274 @@
     "unavailable": "Coach indisponível no momento. Tente novamente em alguns minutos.",
     "loading": "Preparando resposta do Dexter…",
     "placeholder": "Envie sua primeira mensagem ao Dexter"
+  },
+  "app": {
+    "common": {
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "close": "Fechar",
+      "confirm": "Confirmar",
+      "delete": "Excluir",
+      "edit": "Editar",
+      "add": "Adicionar",
+      "back": "Voltar",
+      "next": "Avançar",
+      "search": "Pesquisar",
+      "loading": "Carregando…",
+      "retry": "Tentar novamente",
+      "submit": "Enviar",
+      "yes": "Sim",
+      "no": "Não",
+      "optional": "Opcional",
+      "required": "Obrigatório",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "skipToContent": "Pular para o conteúdo",
+      "error": "Erro",
+      "success": "Sucesso",
+      "warning": "Aviso",
+      "remove": "Remover",
+      "update": "Atualizar",
+      "refresh": "Atualizar",
+      "export": "Exportar",
+      "import": "Importar",
+      "download": "Baixar",
+      "upload": "Enviar",
+      "select": "Selecionar",
+      "view": "Visualizar",
+      "all": "Todos",
+      "none": "Nenhum",
+      "today": "Hoje",
+      "yesterday": "Ontem",
+      "week": "Semana",
+      "month": "Mês",
+      "year": "Ano",
+      "open": "Abrir"
+    },
+    "journal": {
+      "title": "Journal",
+      "subtitle": "Registro de operações e análise de performance.",
+      "addTrade": "Adicionar trade",
+      "showValues": "Mostrar valores",
+      "hideValues": "Ocultar valores",
+      "emptyTitle": "Sem trades ainda",
+      "emptyDescription": "Importe seu histórico MT5 ou adicione trades manualmente.",
+      "import": "Importar",
+      "export": "Exportar",
+      "filter": "Filtrar",
+      "sort": "Ordenar",
+      "editTrade": "Editar trade",
+      "deleteTrade": "Excluir trade",
+      "confirmDelete": "Tem certeza que quer excluir este trade?",
+      "notes": "Notas",
+      "psychology": "Psicologia",
+      "tags": "Tags",
+      "noTradesToday": "Nenhum trade hoje"
+    },
+    "macro": {
+      "title": "Inteligência Macro",
+      "subtitle": "Terminal quantitativo, calendário econômico e narrativas macro geradas por IA.",
+      "refresh": "Atualizar",
+      "myAssets": "Só meus ativos",
+      "calendar": "Calendário",
+      "headlines": "Manchetes",
+      "rates": "Taxas",
+      "sentiment": "Sentimento",
+      "overview": "Visão geral",
+      "breaking": {
+        "title": "Breaking — Alto Impacto",
+        "dismiss": "Dispensar",
+        "dismissFailed": "Não foi possível dispensar a notícia. Tente novamente.",
+        "loginRequired": "Faça login para dispensar notícias permanentemente.",
+        "connectionError": "Erro de conexão ao dispensar notícia."
+      },
+      "sentimentLabels": {
+        "riskOn": "Risk On",
+        "riskOff": "Risk Off",
+        "neutral": "Neutro"
+      }
+    },
+    "prop": {
+      "title": "Contas",
+      "byFirm": "Por firma",
+      "subtitle": "Painel de contas prop, pessoais e cripto.",
+      "active": "Ativa",
+      "paused": "Pausada",
+      "failed": "Reprovada",
+      "passed": "Aprovada",
+      "drawdown": "Drawdown",
+      "profit": "Lucro",
+      "balance": "Saldo"
+    },
+    "reports": {
+      "title": "Relatórios",
+      "exportPdf": "Exportar PDF",
+      "period": "Período",
+      "account": "Conta"
+    },
+    "backtest": {
+      "title": "Backtest",
+      "run": "Rodar",
+      "noResults": "Sem resultados ainda. Configure parâmetros e execute."
+    },
+    "dexter": {
+      "chat": "Chat",
+      "coach": "Coach",
+      "analyst": "Analyst",
+      "unavailable": "Coach indisponível no momento. Tente novamente em alguns minutos.",
+      "loading": "Pensando…",
+      "placeholder": "Envie sua primeira mensagem ao Dexter.",
+      "newChat": "Nova conversa",
+      "history": "Histórico"
+    },
+    "dayTimeline": {
+      "subtitle": "Seus trades ao longo do dia (08:00–22:00 BRT). Tamanho da bolha = magnitude do PnL.",
+      "profit": "Lucro",
+      "loss": "Prejuízo",
+      "session": "Sessão de mercado (Londres / NY)",
+      "none": "Nenhum trade hoje ainda. Hora de observar antes de agir."
+    },
+    "sidebar": {
+      "tier": {
+        "free": "Gratuito",
+        "pro": "Pro",
+        "ultra": "Ultra",
+        "mentor": "Mentor"
+      },
+      "operator": "Operador",
+      "loading": "Carregando…",
+      "dayOne": "dia",
+      "dayMany": "dias",
+      "record": "Recorde",
+      "logout": "Sair",
+      "hideValues": "Ocultar valores",
+      "showValues": "Mostrar valores",
+      "settings": "Configurações"
+    },
+    "appHeader": {
+      "dashboard": "Painel",
+      "account": "Conta",
+      "notifications": "Notificações",
+      "openMenu": "Abrir menu",
+      "closeMenu": "Fechar menu",
+      "userMenu": "Menu do usuário"
+    },
+    "auth": {
+      "signIn": "Entrar",
+      "signUp": "Criar conta",
+      "signingIn": "Entrando…",
+      "signingUp": "Criando conta…",
+      "email": "E-mail",
+      "password": "Senha",
+      "confirmPassword": "Confirmar senha",
+      "forgotPassword": "Esqueci minha senha",
+      "resetPassword": "Redefinir senha",
+      "sendResetLink": "Enviar link de redefinição",
+      "magicLink": "Link mágico",
+      "sendMagicLink": "Enviar link mágico",
+      "continueWithGoogle": "Continuar com Google",
+      "orContinueWith": "Ou continue com",
+      "noAccount": "Não tem conta?",
+      "haveAccount": "Já tem conta?",
+      "createOne": "Criar uma",
+      "loginHere": "Entre aqui",
+      "checkEmail": "Verifique seu e-mail",
+      "linkSent": "Enviamos um link para seu e-mail.",
+      "invalidCredentials": "E-mail ou senha inválidos.",
+      "weakPassword": "Senha muito fraca.",
+      "emailTaken": "Este e-mail já está em uso.",
+      "agreeTerms": "Ao continuar você concorda com os Termos e Política de Privacidade."
+    },
+    "onboarding": {
+      "welcome": "Bem-vindo",
+      "step": "Passo",
+      "of": "de",
+      "displayNameLabel": "Como devemos te chamar?",
+      "displayNamePlaceholder": "Seu nome",
+      "continue": "Continuar",
+      "skip": "Pular",
+      "finish": "Finalizar"
+    },
+    "settings": {
+      "title": "Configurações",
+      "subtitle": "Gerencie preferências da conta e assinatura.",
+      "profile": "Perfil",
+      "subscription": "Assinatura",
+      "preferences": "Preferências",
+      "language": "Idioma",
+      "theme": "Tema",
+      "themeLight": "Claro",
+      "themeDark": "Escuro",
+      "themeSystem": "Sistema",
+      "signOut": "Sair",
+      "displayName": "Nome de exibição",
+      "save": "Salvar",
+      "saved": "Salvo",
+      "privacy": "Privacidade",
+      "hideValues": "Ocultar valores monetários",
+      "account": "Conta",
+      "email": "E-mail",
+      "changePassword": "Alterar senha"
+    },
+    "subscription": {
+      "title": "Assinatura",
+      "currentPlan": "Plano atual",
+      "upgrade": "Fazer upgrade",
+      "downgrade": "Fazer downgrade",
+      "manageBilling": "Gerenciar cobrança",
+      "cancelSubscription": "Cancelar assinatura",
+      "successTitle": "Assinatura confirmada",
+      "successDescription": "Seu plano foi ativado. Bom trabalho.",
+      "goToDashboard": "Ir para painel"
+    },
+    "academy": {
+      "title": "Academy",
+      "subtitle": "Cursos, trilhas e conteúdo educativo."
+    },
+    "brand": {
+      "title": "Marca",
+      "subtitle": "Identidade, tokens e guidelines."
+    },
+    "changelog": {
+      "title": "Changelog",
+      "subtitle": "Histórico de atualizações da plataforma."
+    },
+    "riskDisclaimer": {
+      "title": "Aviso de risco",
+      "subtitle": "Leia antes de utilizar a plataforma."
+    },
+    "errors": {
+      "notFound": "Página não encontrada",
+      "notFoundDescription": "O endereço não existe ou foi movido.",
+      "serverError": "Algo deu errado",
+      "serverErrorDescription": "Tente novamente em alguns instantes.",
+      "tryAgain": "Tentar novamente",
+      "goHome": "Voltar para início",
+      "goBack": "Voltar"
+    },
+    "mentor": {
+      "title": "Mentor",
+      "subtitle": "Sessões e acompanhamento com seu mentor."
+    },
+    "chart": {
+      "title": "Gráfico",
+      "subtitle": "Análise técnica e sinais."
+    },
+    "news": {
+      "title": "Notícias",
+      "subtitle": "Manchetes relevantes do mercado."
+    },
+    "pricing": {
+      "title": "Planos",
+      "subtitle": "Escolha o plano que cabe no seu setup."
+    },
+    "dashboard": {
+      "title": "Painel",
+      "subtitle": "Visão geral do seu desempenho."
+    },
+    "account": {
+      "title": "Conta",
+      "subtitle": "Seus dados e ajustes."
+    }
   }
 }
