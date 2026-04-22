@@ -380,8 +380,6 @@ const PT: Dict = {
   "sidebar.logout": "Sair",
   "sidebar.hideValues": "Ocultar valores",
   "sidebar.showValues": "Mostrar valores",
-  // Smart alerts
-  "smartAlerts.dismissFailed": "Erro ao dispensar alerta. Tente novamente.",
 };
 
 const EN: Dict = {
@@ -747,8 +745,6 @@ const EN: Dict = {
   "sidebar.logout": "Sign out",
   "sidebar.hideValues": "Hide values",
   "sidebar.showValues": "Show values",
-  // Smart alerts
-  "smartAlerts.dismissFailed": "Failed to dismiss alert. Try again.",
 };
 
 const DICTS: Record<AppLocale, Dict> = { pt: PT, en: EN };
