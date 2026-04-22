@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { locales, defaultLocale, type Locale } from "@/i18n";
@@ -16,14 +16,13 @@ const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 /**
- * Detects the current locale from the pathname. next-intl's routing keeps
- * the default locale (pt) with no prefix, so anything that does not start
- * with "/en" is treated as pt.
+ * Detects the current locale from the pathname. Works even when next-intl
+ * routing is in "as-needed" mode (default locale has no prefix) but a stale
+ * /pt URL was produced — we still treat any known locale prefix as current.
  */
 function resolveCurrentLocale(pathname: string | null): Locale {
   if (!pathname) return defaultLocale;
   for (const loc of locales) {
-    if (loc === defaultLocale) continue;
     if (pathname === `/${loc}` || pathname.startsWith(`/${loc}/`)) {
       return loc;
     }
@@ -32,20 +31,21 @@ function resolveCurrentLocale(pathname: string | null): Locale {
 }
 
 /**
- * Strips any existing locale prefix from the pathname, leaving the
- * canonical path the switcher can re-prefix with a new locale.
+ * Strip any known locale prefix (pt or en) from the pathname — even the
+ * default locale. Without this, a URL like /pt/app/dashboard would produce
+ * /en/pt/app/dashboard when toggling to EN.
  */
 function stripLocalePrefix(pathname: string): string {
   for (const loc of locales) {
-    if (loc === defaultLocale) continue;
     if (pathname === `/${loc}`) return "/";
-    if (pathname.startsWith(`/${loc}/`)) return pathname.slice(loc.length + 1);
+    if (pathname.startsWith(`/${loc}/`)) {
+      return pathname.slice(loc.length + 1); // keeps leading "/"
+    }
   }
   return pathname;
 }
 
 export function LocaleSwitcher({ className, compact = false }: LocaleSwitcherProps) {
-  const router = useRouter();
   const pathname = usePathname() ?? "/";
   const [isPending, startTransition] = useTransition();
   const current = resolveCurrentLocale(pathname);
@@ -53,13 +53,32 @@ export function LocaleSwitcher({ className, compact = false }: LocaleSwitcherPro
   const handleSwitch = (next: Locale) => {
     if (next === current) return;
     const canonical = stripLocalePrefix(pathname);
+    const normalized = canonical.startsWith("/") ? canonical : `/${canonical}`;
     const target =
       next === defaultLocale
-        ? canonical || "/"
-        : `/${next}${canonical === "/" ? "" : canonical}`;
+        ? normalized || "/"
+        : normalized === "/"
+        ? `/${next}`
+        : `/${next}${normalized}`;
+
+    // Preserve query string + hash so deep-linked anchors/search don't vanish
+    // on toggle. Search params live on window.location, not on pathname.
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const href = `${target}${search}${hash}`;
+
     startTransition(() => {
-      router.push(target);
-      router.refresh();
+      // Persist choice in cookie so server layouts (including /app/**, which
+      // the i18n middleware does not cover) can pick up the right locale on
+      // the next navigation.
+      if (typeof document !== "undefined") {
+        document.cookie = `NEXT_LOCALE=${next};path=/;max-age=31536000;samesite=lax`;
+      }
+      // Full navigation sidesteps next-intl router memory that can re-prepend
+      // the locale prefix.
+      if (typeof window !== "undefined") {
+        window.location.assign(href);
+      }
     });
   };
 

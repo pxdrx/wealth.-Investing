@@ -71,9 +71,14 @@ function saveDismissedToCache(records: DismissalRecord[]): void {
 interface SmartAlertsBannerProps {
   trades: TradeInput[];
   dailyDdLimit?: number | null;
+  /**
+   * Active account id. When provided, signatures become account-scoped so a
+   * dismissal on Firm A does not silence the same alert on Firm B.
+   */
+  accountId?: string | null;
 }
 
-export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerProps) {
+export function SmartAlertsBanner({ trades, dailyDdLimit, accountId }: SmartAlertsBannerProps) {
   const t = useTranslations("smartAlerts");
   const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
@@ -131,8 +136,8 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
   }, []);
 
   const allAlerts = useMemo(
-    () => analyzeSmartAlerts({ trades, dailyDdLimit }),
-    [trades, dailyDdLimit],
+    () => analyzeSmartAlerts({ trades, dailyDdLimit, accountId }),
+    [trades, dailyDdLimit, accountId],
   );
 
   // Filter by (id + signature) — alert reappears when signature changes.

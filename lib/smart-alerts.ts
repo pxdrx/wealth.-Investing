@@ -29,6 +29,13 @@ export interface AlertContext {
   trades: TradeInput[];
   dailyDdLimit?: number | null;
   currentDayPnl?: number;
+  /**
+   * Optional account scope. When present, all signatures are prefixed with
+   * this id so the same incident type on a different account is treated as
+   * a distinct dismissal (user dismissing "overtrading" on Firm A should not
+   * silence the same warning on Firm B).
+   */
+  accountId?: string | null;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -304,7 +311,7 @@ function analyzeOvertrading(trades: TradeInput[]): SmartAlert | null {
 // ── Main Analyzer ───────────────────────────────────────────────
 
 export function analyzeSmartAlerts(ctx: AlertContext): SmartAlert[] {
-  const { trades, dailyDdLimit } = ctx;
+  const { trades, dailyDdLimit, accountId } = ctx;
 
   if (!trades || trades.length === 0) return [];
 
@@ -321,5 +328,8 @@ export function analyzeSmartAlerts(ctx: AlertContext): SmartAlert[] {
     analyzeOvertrading(validTrades),
   ];
 
-  return results.filter((r): r is SmartAlert => r !== null);
+  const scope = accountId ?? "all";
+  return results
+    .filter((r): r is SmartAlert => r !== null)
+    .map((alert) => ({ ...alert, signature: `acc:${scope}:${alert.signature}` }));
 }

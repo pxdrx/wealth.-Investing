@@ -63,6 +63,7 @@ export default function AppHome() {
       <SmartAlertsBanner
         trades={realTrades as unknown as TradeInput[]}
         dailyDdLimit={dailyDdLimit}
+        accountId={activeAccountId}
       />
       {canLive ? (
         <>
