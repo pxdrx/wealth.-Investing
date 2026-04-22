@@ -31,7 +31,6 @@ import { PaywallGate } from "@/components/billing/PaywallGate";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
 import { AdaptiveAlerts } from "@/components/macro/AdaptiveAlerts";
 import { HeadlinesFeed } from "@/components/macro/HeadlinesFeed";
-import { BreakingNewsFeed } from "@/components/macro/BreakingNewsFeed";
 import { EconomicCalendar } from "@/components/macro/EconomicCalendar";
 import { WeeklyBriefing } from "@/components/macro/WeeklyBriefing";
 import { InterestRatesPanel } from "@/components/macro/InterestRatesPanel";
@@ -641,10 +640,7 @@ export default function MacroIntelligencePage() {
         </div>
       </div>
 
-      {/* Breaking — top-3 highest impact, dismiss persists to DB */}
-      <div className="mb-4 shrink-0">
-        <BreakingNewsFeed limit={3} />
-      </div>
+
 
       {/* Compact macro snapshot (relocated from /app home — C-05) */}
       <div className="mb-6 grid gap-4 md:grid-cols-2 shrink-0">

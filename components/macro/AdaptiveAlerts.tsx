@@ -74,10 +74,10 @@ function getLocalDismissals(): Set<string> {
   }
 }
 
-function persistDismissal(id: string) {
+function persistDismissals(ids: string[]) {
   try {
     const existing = getLocalDismissals();
-    existing.add(id);
+    for (const id of ids) existing.add(id);
     const arr = Array.from(existing).slice(-200);
     localStorage.setItem(DISMISSED_KEY, JSON.stringify(arr));
   } catch { /* ignore */ }
@@ -96,38 +96,14 @@ export function AdaptiveAlerts({ alerts }: AdaptiveAlertsProps) {
     return dedup(filtered).slice(0, MAX_VISIBLE);
   }, [alerts, dismissed]);
 
-  const handleDismiss = useCallback((id: string) => {
-    // Start exit animation.
-    setAnimatingOut((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-    persistDismissal(id);
+  const dismissIds = useCallback((ids: string[]) => {
+    // Persist to localStorage immediately.
+    persistDismissals(ids);
 
-    // After animation completes, remove from state.
-    setTimeout(() => {
-      setAnimatingOut((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      setDismissed((prev) => {
-        const next = new Set(prev);
-        next.add(id);
-        return next;
-      });
-    }, 300);
-  }, []);
-
-  const handleDismissAll = useCallback(() => {
-    for (const a of visible) {
-      persistDismissal(a.id);
-    }
-    // Animate all out.
-    const ids = visible.map((a) => a.id);
+    // Start exit animation for all.
     setAnimatingOut(new Set(ids));
 
+    // After animation, update dismissed state.
     setTimeout(() => {
       setAnimatingOut(new Set());
       setDismissed((prev) => {
@@ -136,7 +112,16 @@ export function AdaptiveAlerts({ alerts }: AdaptiveAlertsProps) {
         return next;
       });
     }, 300);
-  }, [visible]);
+  }, []);
+
+  const handleDismiss = useCallback((id: string) => {
+    dismissIds([id]);
+  }, [dismissIds]);
+
+  const handleDismissAll = useCallback(() => {
+    const ids = visible.map((a) => a.id);
+    dismissIds(ids);
+  }, [visible, dismissIds]);
 
   if (visible.length === 0) return null;
 
@@ -152,13 +137,13 @@ export function AdaptiveAlerts({ alerts }: AdaptiveAlertsProps) {
             </span>
           )}
         </h3>
-        {visible.length > 1 && (
+        {visible.length > 0 && (
           <button
             type="button"
             onClick={handleDismissAll}
             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider font-medium px-2 py-1 rounded-lg hover:bg-muted/50"
           >
-            Dispensar tudo
+            Dispensar {visible.length > 1 ? "tudo" : ""}
           </button>
         )}
       </div>
@@ -201,7 +186,7 @@ export function AdaptiveAlerts({ alerts }: AdaptiveAlertsProps) {
               type="button"
               onClick={() => handleDismiss(alert.id)}
               aria-label="Dispensar alerta"
-              className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+              className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
