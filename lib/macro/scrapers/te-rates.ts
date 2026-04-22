@@ -252,6 +252,25 @@ export async function scrapeTradingEconomicsRates(): Promise<Omit<CentralBankRat
     }
     console.log(`[te-rates] Fetched ${summaries.size}/${SUMMARY_BANKS.size} summaries`);
 
+    // Translate all summaries to PT-BR in one batch via Claude Haiku. On any
+    // failure we null out the summaries (UI hides the paragraph) rather than
+    // displaying English in a Portuguese dashboard.
+    if (summaries.size > 0) {
+      const { translateBankSummaries } = await import("../translate");
+      const entries = Array.from(summaries.entries());
+      const texts = entries.map(([, v]) => v.summary);
+      const translated = await translateBankSummaries(texts);
+      if (translated) {
+        entries.forEach(([code, v], i) => {
+          summaries.set(code, { summary: translated[i], source_url: v.source_url });
+        });
+        console.log(`[te-rates] Translated ${translated.length} summaries to PT-BR`);
+      } else {
+        summaries.clear();
+        console.warn("[te-rates] Translation failed — clearing summaries (no mixed-language output)");
+      }
+    }
+
     // Convert to full CentralBankRate shape (without id).
     // last_change_date deliberately left null — cron handler stamps detection moment.
     return scraped.map((s) => {
