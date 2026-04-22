@@ -70,9 +70,11 @@ async function scrapeBankSummary(
     const cheerio = await import("cheerio");
     const $ = cheerio.load(html);
 
-    // TE wraps the editorial copy in #description or .page-description.
-    // Try multiple selectors and pick the first paragraph long enough to matter.
+    // TE renders its SPA shell server-side but puts the editorial copy inside
+    // inline <h2 style="line-height:1.45em"> blocks (not <p>). We try h2 first,
+    // then fall back to <p> selectors in case TE ever changes the template.
     const candidateSelectors = [
+      "h2",
       "#description p",
       ".page-description p",
       ".col-md-8 p",
@@ -80,10 +82,10 @@ async function scrapeBankSummary(
     ];
 
     for (const selector of candidateSelectors) {
-      const paragraphs = $(selector);
-      for (let i = 0; i < paragraphs.length; i++) {
-        const raw = $(paragraphs[i]).text().trim().replace(/\s+/g, " ");
-        if (raw.length >= 120 && raw.length <= 800) {
+      const nodes = $(selector);
+      for (let i = 0; i < nodes.length; i++) {
+        const raw = $(nodes[i]).text().trim().replace(/\s+/g, " ");
+        if (raw.length >= 120 && raw.length <= 1500) {
           // Trim to ~400 chars without cutting mid-sentence when possible.
           const trimmed = raw.length > 400 ? raw.slice(0, 397).replace(/\s+\S*$/, "") + "…" : raw;
           return { summary: trimmed, source_url: url };
