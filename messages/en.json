@@ -366,5 +366,77 @@
     "unavailable": "Coach unavailable right now. Please try again in a few minutes.",
     "loading": "Preparing Dexter's response…",
     "placeholder": "Send your first message to Dexter"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "journal": "Trade Journal",
+    "mentor": "Mentoring",
+    "mentorPanel": "Mentor Panel",
+    "mentorStudent": "Mentor",
+    "prop": "Accounts",
+    "chart": "Chart",
+    "backtest": "Backtest",
+    "macro": "Macro Intelligence",
+    "dexter": "Dexter",
+    "admin": "Admin",
+    "settings": "Settings",
+    "plans": "Plans",
+    "feedback": "Feedback",
+    "hideValues": "Hide values",
+    "showValues": "Show values",
+    "logout": "Sign out",
+    "menu": "Menu",
+    "close": "Close",
+    "open": "Open menu",
+    "signIn": "Sign in",
+    "signUp": "Start free",
+    "goDashboard": "Go to Dashboard",
+    "account": "Account"
+  },
+  "sidebar": {
+    "profile": {
+      "goPro": "Go Pro",
+      "terminal": "Terminal",
+      "tier": {
+        "free": "Free",
+        "pro": "Pro",
+        "ultra": "Ultra",
+        "mentor": "Mentor"
+      },
+      "operator": "Operator",
+      "loading": "Loading…",
+      "dayOne": "day",
+      "dayMany": "days",
+      "record": "Record",
+      "logout": "Sign out",
+      "hideValues": "Hide values",
+      "showValues": "Show values"
+    }
+  },
+  "streak": {
+    "day": "{count, plural, one {# day} other {# days}}",
+    "record": "Record",
+    "recordShort": "Record: {count}d",
+    "lost": "Streak broken"
+  },
+  "dayTimeline": {
+    "title": "Day timeline",
+    "window": "08:00–22:00 BRT",
+    "tradesCount": "{count, plural, one {# trade} other {# trades}}",
+    "subtitle": "Your trades across the day (08:00–22:00 BRT). Bubble size = PnL magnitude.",
+    "profit": "Profit",
+    "loss": "Loss",
+    "sessionBand": "Band = session (London / NY)",
+    "unavailable": "Timeline unavailable right now.",
+    "empty": "No trades today yet. Time to observe before acting."
+  },
+  "propFirms": {
+    "heading": "By Firm",
+    "firmsCount": "{count, plural, one {# firm} other {# firms}}",
+    "accountsCount": "{count, plural, one {# account} other {# accounts}}",
+    "allocated": "Allocated",
+    "pnlTotal": "Total PnL",
+    "eligiblePayout": "Payout eligible",
+    "worstDrawdown": "Worst drawdown"
   }
 }

@@ -25,6 +25,19 @@ function resolveLocale(cookieVal: string | undefined, acceptLang: string | null)
   return defaultLocale;
 }
 
+function lookupFallback(path: string): string {
+  const parts = path.split(".");
+  let cursor: unknown = ptMessages;
+  for (const part of parts) {
+    if (cursor && typeof cursor === "object" && part in (cursor as Record<string, unknown>)) {
+      cursor = (cursor as Record<string, unknown>)[part];
+    } else {
+      return path;
+    }
+  }
+  return typeof cursor === "string" ? cursor : path;
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   // The i18n middleware only covers public landing routes, so /app/** needs
   // its own provider. Locale is read from the NEXT_LOCALE cookie (set by the
@@ -39,7 +52,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const messages = MESSAGES[locale] ?? MESSAGES[defaultLocale];
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages}
+      onError={(error) => {
+        if (error.code === "MISSING_MESSAGE") {
+          if (process.env.NODE_ENV !== "production") {
+            console.warn(`[i18n] missing ${locale} key — falling back to ${defaultLocale}`, error.message);
+          }
+          return;
+        }
+        throw error;
+      }}
+      getMessageFallback={({ namespace, key }) => {
+        const path = namespace ? `${namespace}.${key}` : key;
+        return lookupFallback(path);
+      }}
+    >
       <AuthGate>
         <PrivacyProvider>
           <div className="min-h-screen">
