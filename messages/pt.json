@@ -344,10 +344,12 @@
     }
   },
   "exitIntent": {
-    "eyebrow": "Antes de sair",
-    "heading": "Ganhe 30 dias Pro grátis.",
-    "body": "Comece a operar com clareza hoje. Journal completo, IA de análise e alertas macro — sem cobrança nos primeiros 30 dias. Cancele quando quiser.",
-    "ctaPrimary": "Quero os 30 dias grátis",
+    "eyebrow": "Presente pra você",
+    "heading": "1 mês de Pro grátis.",
+    "body": "Use o cupom IMERSAOHSM na hora do checkout e ganhe 1 mês completo de Pro — sem cobrança. Journal ilimitado, IA de análise e alertas macro. Cancele quando quiser.",
+    "coupon": "IMERSAOHSM",
+    "couponHint": "Copie e cole no checkout",
+    "ctaPrimary": "Ativar 1 mês grátis",
     "ctaGhost": "Continuar navegando",
     "dismissAria": "Fechar"
   },

@@ -35,6 +35,7 @@ export type CheckoutStartProps = { plan: Plan };
 export type SignupCompleteProps = { plan: Plan; source?: string };
 export type Mt5ConnectProps = Record<string, never>;
 export type UltraUpgradeClickedProps = { from: string };
+export type CouponCopiedProps = { coupon: string; source?: string };
 
 export type AnalyticsEventMap = {
   landing_view: LandingViewProps;
@@ -49,6 +50,7 @@ export type AnalyticsEventMap = {
   exit_intent_shown: ExitIntentShownProps;
   sticky_mobile_shown: StickyMobileShownProps;
   sticky_mobile_dismissed: StickyMobileDismissedProps;
+  coupon_copied: CouponCopiedProps;
 };
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;
