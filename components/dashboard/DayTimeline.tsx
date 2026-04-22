@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { safeGetSession } from "@/lib/supabase/safe-session";
+import { useAppT } from "@/hooks/useAppLocale";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 
 interface TodayStats {
@@ -41,6 +42,7 @@ function toOffsetHours(iso: string): number {
 }
 
 export function DayTimeline() {
+  const t = useAppT();
   const { activeAccountId } = useActiveAccount();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
@@ -124,7 +126,7 @@ function Body({ state }: { state: LoadState }) {
       <div className="py-6 text-center">
         <p className="text-sm text-white/70">
           {/* TODO(A-02): replace with voice.ts copy */}
-          Nenhum trade hoje ainda. Hora de observar antes de agir.
+          {t("dayTimeline.none")}
         </p>
       </div>
     );
@@ -139,21 +141,19 @@ function Body({ state }: { state: LoadState }) {
 
   return (
     <div>
-      <p className="mb-2 text-xs text-white/60">
-        Seus trades ao longo do dia (08:00–22:00 BRT). Tamanho da bolha = magnitude do PnL.
-      </p>
+      <p className="mb-2 text-xs text-white/60">{t("dayTimeline.subtitle")}</p>
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-white/60">
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#34d399" }} />
-          Lucro
+          {t("dayTimeline.profit")}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#f87171" }} />
-          Prejuízo
+          {t("dayTimeline.loss")}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-2 w-3 rounded-sm bg-white/10" />
-          Sessão de mercado (Londres / NY)
+          {t("dayTimeline.session")}
         </span>
       </div>
       <div className="overflow-x-auto">

@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { Sentiment } from "@/lib/macro/types";
+import { useAppT } from "@/hooks/useAppLocale";
 
 interface SentimentBarProps {
   /**
@@ -35,10 +36,16 @@ type State =
   | { kind: "ready"; data: SentimentResponse }
   | { kind: "error" };
 
-const OVERALL_STYLES: Record<Overall, { bg: string; label: string }> = {
-  risk_on: { bg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", label: "Risk On" },
-  neutral: { bg: "bg-muted text-foreground/70", label: "Neutro" },
-  risk_off: { bg: "bg-red-500/15 text-red-600 dark:text-red-400", label: "Risk Off" },
+const OVERALL_BG: Record<Overall, string> = {
+  risk_on: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  neutral: "bg-muted text-foreground/70",
+  risk_off: "bg-red-500/15 text-red-600 dark:text-red-400",
+};
+
+const OVERALL_KEY: Record<Overall, "macro.sentiment.riskOn" | "macro.sentiment.neutral" | "macro.sentiment.riskOff"> = {
+  risk_on: "macro.sentiment.riskOn",
+  neutral: "macro.sentiment.neutral",
+  risk_off: "macro.sentiment.riskOff",
 };
 
 function gaugeColor(value: number, inverted = false): string {
@@ -87,6 +94,7 @@ function Gauge({
 }
 
 export function SentimentBar({ sentiment: _legacy }: SentimentBarProps = {}) {
+  const t = useAppT();
   const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
@@ -134,32 +142,27 @@ export function SentimentBar({ sentiment: _legacy }: SentimentBarProps = {}) {
 
   if (state.kind === "error") {
     return (
-      <p className="text-xs text-muted-foreground">
-        Sem dados de sentimento no momento.
-      </p>
+      <p className="text-xs text-muted-foreground">{t("macro.sentiment.empty")}</p>
     );
   }
 
   const { crypto, stocks, vix, overall } = state.data;
   const overallKey: Overall = overall ?? "neutral";
-  const overallStyle = OVERALL_STYLES[overallKey];
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${overallStyle.bg}`}
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${OVERALL_BG[overallKey]}`}
         >
-          {overallStyle.label}
+          {t(OVERALL_KEY[overallKey])}
         </span>
-        <span className="text-[10px] text-muted-foreground">
-          Fear &amp; Greed · VIX
-        </span>
+        <span className="text-[10px] text-muted-foreground">{t("macro.sentiment.caption")}</span>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Gauge title="Crypto F&G" reading={crypto} />
-        <Gauge title="Stocks F&G" reading={stocks} />
-        <Gauge title="VIX" reading={vix} max={50} inverted suffix="" />
+        <Gauge title={t("macro.sentiment.crypto")} reading={crypto} />
+        <Gauge title={t("macro.sentiment.stocks")} reading={stocks} />
+        <Gauge title={t("macro.sentiment.vix")} reading={vix} max={50} inverted suffix="" />
       </div>
     </div>
   );

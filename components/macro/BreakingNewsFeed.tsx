@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Siren, X, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { useAppT } from "@/hooks/useAppLocale";
 
 interface BreakingItem {
   id?: string;
@@ -32,6 +33,7 @@ function relativeTime(ts: string | null): string {
 }
 
 export function BreakingNewsFeed({ limit = 3 }: { limit?: number }) {
+  const t = useAppT();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -80,7 +82,7 @@ export function BreakingNewsFeed({ limit = 3 }: { limit?: number }) {
         const token = sessionData.session?.access_token;
         if (!token) {
           setState({ kind: "ready", items: prev });
-          setErrorMsg("Faça login para dispensar notícias permanentemente.");
+          setErrorMsg(t("macro.breaking.loginRequired"));
           return;
         }
         const res = await fetch("/api/macro/news/dismissals", {
@@ -94,11 +96,11 @@ export function BreakingNewsFeed({ limit = 3 }: { limit?: number }) {
         if (!res.ok) {
           // Rollback.
           setState({ kind: "ready", items: prev });
-          setErrorMsg("Não foi possível dispensar a notícia. Tente novamente.");
+          setErrorMsg(t("macro.breaking.dismissFailed"));
         }
       } catch {
         setState({ kind: "ready", items: prev });
-        setErrorMsg("Erro de conexão ao dispensar notícia.");
+        setErrorMsg(t("macro.breaking.connectionError"));
       }
     },
     [state],
@@ -120,7 +122,7 @@ export function BreakingNewsFeed({ limit = 3 }: { limit?: number }) {
       <div className="flex items-center gap-2">
         <Siren className="h-4 w-4 text-red-500" />
         <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Breaking — Alto Impacto
+          {t("macro.breaking.title")}
         </h3>
       </div>
       {errorMsg && (
@@ -163,7 +165,7 @@ export function BreakingNewsFeed({ limit = 3 }: { limit?: number }) {
             <button
               type="button"
               onClick={() => handleDismiss(item.news_key)}
-              aria-label="Dispensar"
+              aria-label={t("macro.breaking.dismiss")}
               className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
