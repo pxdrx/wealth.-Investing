@@ -365,6 +365,21 @@ const PT: Dict = {
   "tradeDetail.closeCta": "Fechar",
   "tradeDetail.savingCta": "Salvando...",
   "tradeDetail.saveCta": "Salvar",
+  // Sidebar profile
+  "sidebar.goPro": "Seja Pro",
+  "sidebar.terminal": "Terminal",
+  "sidebar.tier.free": "Free",
+  "sidebar.tier.pro": "Pro",
+  "sidebar.tier.ultra": "Ultra",
+  "sidebar.tier.mentor": "Mentor",
+  "sidebar.operator": "Operador",
+  "sidebar.loading": "Carregando…",
+  "sidebar.dayOne": "dia",
+  "sidebar.dayMany": "dias",
+  "sidebar.record": "Recorde",
+  "sidebar.logout": "Sair",
+  "sidebar.hideValues": "Ocultar valores",
+  "sidebar.showValues": "Mostrar valores",
 };
 
 const EN: Dict = {
@@ -715,6 +730,21 @@ const EN: Dict = {
   "tradeDetail.closeCta": "Close",
   "tradeDetail.savingCta": "Saving...",
   "tradeDetail.saveCta": "Save",
+  // Sidebar profile
+  "sidebar.goPro": "Go Pro",
+  "sidebar.terminal": "Terminal",
+  "sidebar.tier.free": "Free",
+  "sidebar.tier.pro": "Pro",
+  "sidebar.tier.ultra": "Ultra",
+  "sidebar.tier.mentor": "Mentor",
+  "sidebar.operator": "Operator",
+  "sidebar.loading": "Loading…",
+  "sidebar.dayOne": "day",
+  "sidebar.dayMany": "days",
+  "sidebar.record": "Record",
+  "sidebar.logout": "Sign out",
+  "sidebar.hideValues": "Hide values",
+  "sidebar.showValues": "Show values",
 };
 
 const DICTS: Record<AppLocale, Dict> = { pt: PT, en: EN };

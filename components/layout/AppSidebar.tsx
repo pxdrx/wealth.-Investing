@@ -14,7 +14,7 @@ import {
   Flame,
   Trophy,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useAppT } from "@/hooks/useAppLocale";
 import { usePrivacy } from "@/components/context/PrivacyContext";
 import { useStreak } from "@/hooks/useStreak";
 import { supabase } from "@/lib/supabase/client";
@@ -49,7 +49,7 @@ function AppSidebarInner() {
   const { plan, isProOrAbove } = useEntitlements();
   const { hidden: valuesHidden, toggle: togglePrivacy } = usePrivacy();
   const roles = useAppRoles();
-  const t = useTranslations("sidebar.profile");
+  const t = useAppT();
   const { currentStreak, longestStreak } = useStreak(userId);
 
   const navLinks = getAppNav({
@@ -260,7 +260,7 @@ function AppSidebarInner() {
             className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Crown className="h-4 w-4" />
-            {t("goPro")}
+            {t("sidebar.goPro")}
           </Link>
         </div>
       )}
@@ -268,7 +268,7 @@ function AppSidebarInner() {
         <div className="flex justify-center pb-2">
           <Link
             href="/app/pricing"
-            title={t("goPro")}
+            title={t("sidebar.goPro")}
             onClick={() => emit("ultra_upgrade_clicked", { source: "sidebar", variant: "collapsed" })}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
@@ -315,24 +315,24 @@ function AppSidebarInner() {
 
           <button
             onClick={togglePrivacy}
-            title={collapsed ? (valuesHidden ? t("showValues") : t("hideValues")) : undefined}
+            title={collapsed ? (valuesHidden ? t("sidebar.showValues") : t("sidebar.hideValues")) : undefined}
             className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 w-full"
           >
             {valuesHidden ? <EyeOff className="h-4 w-4 shrink-0" /> : <Eye className="h-4 w-4 shrink-0" />}
             {!collapsed && (
               <span className="text-sm font-medium">
-                {valuesHidden ? t("showValues") : t("hideValues")}
+                {valuesHidden ? t("sidebar.showValues") : t("sidebar.hideValues")}
               </span>
             )}
           </button>
 
           <button
             onClick={() => { emit("logout_clicked", { surface: "sidebar" }); logout(); }}
-            title={collapsed ? t("logout") : undefined}
+            title={collapsed ? t("sidebar.logout") : undefined}
             className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 w-full"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="text-sm font-medium">{t("logout")}</span>}
+            {!collapsed && <span className="text-sm font-medium">{t("sidebar.logout")}</span>}
           </button>
         </div>
 
@@ -353,13 +353,13 @@ function AppSidebarInner() {
         {hasSession && (() => {
           const tierLabel =
             plan === "mentor"
-              ? `${t("terminal")} ${t("tier.mentor")}`
+              ? `${t("sidebar.terminal")} ${t("sidebar.tier.mentor")}`
               : plan === "ultra"
-              ? `${t("terminal")} ${t("tier.ultra")}`
+              ? `${t("sidebar.terminal")} ${t("sidebar.tier.ultra")}`
               : plan === "pro"
-              ? `${t("terminal")} ${t("tier.pro")}`
-              : `${t("terminal")} ${t("tier.free")}`;
-          const tooltipLabel = [displayName ?? t("operator"), tierLabel]
+              ? `${t("sidebar.terminal")} ${t("sidebar.tier.pro")}`
+              : `${t("sidebar.terminal")} ${t("sidebar.tier.free")}`;
+          const tooltipLabel = [displayName ?? t("sidebar.operator"), tierLabel]
             .filter(Boolean)
             .join(" · ");
           const showStreakRow = !collapsed && (currentStreak > 0 || longestStreak > 0);
@@ -381,7 +381,7 @@ function AppSidebarInner() {
                   <div className="flex flex-col min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="truncate text-sm font-medium text-foreground">
-                        {profileLoading ? t("loading") : (displayName ?? t("operator"))}
+                        {profileLoading ? t("sidebar.loading") : (displayName ?? t("sidebar.operator"))}
                       </span>
                       {!profileLoading && (
                         <SubscriptionBadge className="shrink-0 text-[9px] h-4 leading-none flex items-center px-1.5" />
@@ -401,7 +401,7 @@ function AppSidebarInner() {
                     <span className="inline-flex items-center gap-1">
                       <Flame className="h-3.5 w-3.5 text-orange-500" aria-hidden />
                       <span className="tabular-nums">
-                        {currentStreak} {currentStreak === 1 ? t("dayOne") : t("dayMany")}
+                        {currentStreak} {currentStreak === 1 ? t("sidebar.dayOne") : t("sidebar.dayMany")}
                       </span>
                     </span>
                   )}
@@ -409,7 +409,7 @@ function AppSidebarInner() {
                     <span className="inline-flex items-center gap-1">
                       <Trophy className="h-3.5 w-3.5 text-amber-500" aria-hidden />
                       <span className="tabular-nums">
-                        {t("record")}: {longestStreak}
+                        {t("sidebar.record")}: {longestStreak}
                         {longestStreak === 1 ? "d" : "d"}
                       </span>
                     </span>
