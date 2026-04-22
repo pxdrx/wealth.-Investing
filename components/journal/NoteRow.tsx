@@ -2,6 +2,7 @@
 
 import { Trash2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAppT } from "@/hooks/useAppLocale";
 
 export interface NoteRowItem {
   id: string; // trade id
@@ -31,6 +32,7 @@ function formatDate(iso: string): string {
 }
 
 export function NoteRow({ item, onOpen, onDelete, deleting }: NoteRowProps) {
+  const t = useAppT();
   const pnl = item.netPnl ?? 0;
   const isBuy = item.direction.toLowerCase() === "buy";
 
@@ -79,7 +81,7 @@ export function NoteRow({ item, onOpen, onDelete, deleting }: NoteRowProps) {
         </div>
         <p className="text-sm line-clamp-2 whitespace-pre-wrap">
           {item.preview || (
-            <span className="text-muted-foreground italic">Sem texto (apenas tags)</span>
+            <span className="text-muted-foreground italic">{t("noteRow.tagsOnly")}</span>
           )}
         </p>
         {item.tags.length > 0 && (
@@ -101,8 +103,8 @@ export function NoteRow({ item, onOpen, onDelete, deleting }: NoteRowProps) {
         onClick={() => onDelete(item)}
         disabled={deleting}
         className="flex shrink-0 items-center gap-1.5 self-start rounded-full p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/30"
-        aria-label="Excluir anotação"
-        title="Excluir anotação"
+        aria-label={t("noteRow.deleteLabel")}
+        title={t("noteRow.deleteLabel")}
       >
         <Trash2 className="h-4 w-4" />
       </button>

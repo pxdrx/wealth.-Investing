@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAppT } from "@/hooks/useAppLocale";
 import {
   PREDEFINED_TAGS,
   PREDEFINED_TAG_SLUGS,
@@ -41,6 +42,7 @@ export function TagPicker({
   maxTags = 10,
   className,
 }: TagPickerProps) {
+  const t = useAppT();
   const [freeformInput, setFreeformInput] = useState("");
 
   const selected = useMemo(() => new Set(value), [value]);
@@ -114,7 +116,7 @@ export function TagPicker({
       {allowFreeform && (
         <div className="space-y-1.5 pt-1">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-semibold">
-            Personalizadas
+            {t("tagPicker.customCategory")}
           </div>
           {freeformSelected.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -128,7 +130,7 @@ export function TagPicker({
                     type="button"
                     onClick={() => removeFreeform(tag)}
                     className="rounded-full p-0.5 hover:bg-muted"
-                    aria-label={`Remover ${tag}`}
+                    aria-label={`${t("tagPicker.removeTag")} ${tag}`}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -147,7 +149,7 @@ export function TagPicker({
                   addFreeform();
                 }
               }}
-              placeholder={atLimit ? "Limite de tags atingido" : "Tag personalizada..."}
+              placeholder={atLimit ? t("tagPicker.limitReached") : t("tagPicker.customPlaceholder")}
               disabled={atLimit}
               maxLength={50}
               className="flex-1 rounded-xl border border-border/60 bg-transparent px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
@@ -158,14 +160,14 @@ export function TagPicker({
               disabled={atLimit || !freeformInput.trim()}
               className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground hover:border-foreground/40 hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Adicionar
+              {t("common.add")}
             </button>
           </div>
         </div>
       )}
 
       <div className="text-[10px] text-muted-foreground">
-        {value.length}/{maxTags} tags selecionadas
+        {value.length}/{maxTags} {t("tagPicker.tagsSelected")}
       </div>
     </div>
   );

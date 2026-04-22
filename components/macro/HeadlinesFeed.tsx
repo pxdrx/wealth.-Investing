@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { LiveIndicator } from "@/components/macro/LiveIndicator";
 import { sortHeadlinesByTier, getHeadlineTier } from "@/lib/macro/headline-filter";
 import type { MacroHeadline } from "@/lib/macro/types";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
 const BREAKING_STICKY_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -18,11 +20,14 @@ interface HeadlinesFeedProps {
 
 type SourceFilter = "all" | "forexlive" | "reuters" | "truth_social" | "trading_economics" | "financial_juice";
 
-function timeAgo(dateStr: string): string {
+function timeAgo(
+  dateStr: string,
+  t: (key: AppMessageKey) => string,
+): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diffMin = Math.round((now - then) / 60000);
-  if (diffMin < 1) return "agora";
+  if (diffMin < 1) return t("headlines.now");
   if (diffMin < 60) return `${diffMin}min`;
   const diffH = Math.round(diffMin / 60);
   if (diffH < 24) return `${diffH}h`;
@@ -97,8 +102,8 @@ function BreakingDot() {
   );
 }
 
-const FILTER_OPTIONS: { key: SourceFilter; label: string }[] = [
-  { key: "all", label: "Todos" },
+const FILTER_OPTIONS: { key: SourceFilter; labelKey?: AppMessageKey; label?: string }[] = [
+  { key: "all", labelKey: "common.all" },
   { key: "financial_juice", label: "FinancialJuice" },
   { key: "truth_social", label: "Trump" },
   { key: "trading_economics", label: "Trading Economics" },
@@ -125,6 +130,7 @@ function isFreshBreaking(h: MacroHeadline): boolean {
 }
 
 export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFeedProps) {
+  const t = useAppT();
   const [filter, setFilter] = useState<SourceFilter>("all");
   const [expanded, setExpanded] = useState(false);
 
@@ -155,7 +161,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
         <div className="flex items-center gap-2.5">
           <Newspaper className="h-5 w-5 text-blue-500" />
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Headlines ao Vivo
+            {t("headlines.title")}
           </h2>
           <LiveIndicator />
         </div>
@@ -166,7 +172,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
             className="h-8 w-8"
             onClick={onRefresh}
             disabled={refreshing}
-            aria-label="Atualizar headlines"
+            aria-label={t("headlines.refresh")}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
           </Button>
@@ -185,7 +191,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            {opt.label}
+            {opt.labelKey ? t(opt.labelKey) : opt.label}
           </button>
         ))}
       </div>
@@ -193,7 +199,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
       {/* Headlines list */}
       {ordered.length === 0 ? (
         <p className="text-sm text-muted-foreground py-6 text-center">
-          Nenhuma headline recente
+          {t("headlines.empty")}
         </p>
       ) : (
         <div className={expanded ? "max-h-[400px] overflow-y-auto" : ""}>
@@ -212,7 +218,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
                     <SourceBadge source={h.source} />
                     {isBreaking && <BreakingDot />}
                     <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
-                      {timeAgo(h.published_at || h.fetched_at)}
+                      {timeAgo(h.published_at || h.fetched_at, t)}
                     </span>
                   </div>
                   <p className={`text-sm leading-snug ${isBreaking ? "font-semibold" : "font-normal"}`}>
@@ -242,7 +248,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
           onClick={() => setExpanded(true)}
           className="mt-3 text-xs font-medium text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
         >
-          Ver todas ({ordered.length})
+          {t("headlines.viewAll")} ({ordered.length})
         </button>
       )}
       {expanded && hasMore && (
@@ -250,7 +256,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
           onClick={() => setExpanded(false)}
           className="mt-3 text-xs font-medium text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
         >
-          Mostrar menos
+          {t("headlines.showLess")}
         </button>
       )}
     </div>

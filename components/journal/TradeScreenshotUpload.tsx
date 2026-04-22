@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { ImagePlus, X, Replace, Loader2 } from "lucide-react";
 import { uploadTradeScreenshot, deleteTradeScreenshot, getScreenshotUrl } from "@/lib/supabase/screenshot";
 import { supabase } from "@/lib/supabase/client";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_TYPES = ["image/png", "image/jpeg"];
@@ -20,12 +21,15 @@ interface TradeScreenshotUploadProps {
   compact?: boolean;
 }
 
-function validateFile(file: File): string | null {
+function validateFile(
+  file: File,
+  t: (key: import("@/lib/i18n/app").AppMessageKey) => string,
+): string | null {
   if (!ACCEPTED_TYPES.includes(file.type)) {
-    return "Formato inválido. Use PNG ou JPG.";
+    return t("screenshotUpload.invalidFormat");
   }
   if (file.size > MAX_SIZE_BYTES) {
-    return "Arquivo muito grande. Máximo 5MB.";
+    return t("screenshotUpload.tooLarge");
   }
   return null;
 }
@@ -39,6 +43,7 @@ export function TradeScreenshotUpload({
   onDeleted,
   compact,
 }: TradeScreenshotUploadProps) {
+  const t = useAppT();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -75,7 +80,7 @@ export function TradeScreenshotUpload({
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
-    const validationError = validateFile(file);
+    const validationError = validateFile(file, t);
     if (validationError) {
       setError(validationError);
       return;
@@ -87,7 +92,7 @@ export function TradeScreenshotUpload({
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user?.id) {
-          setError("Sessão expirada.");
+          setError(t("screenshotUpload.sessionExpired"));
           return;
         }
 
@@ -100,7 +105,7 @@ export function TradeScreenshotUpload({
         setLocalPath(path);
         onUploaded?.(path);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao enviar imagem.");
+        setError(err instanceof Error ? err.message : t("screenshotUpload.uploadError"));
       } finally {
         setUploading(false);
       }
@@ -108,7 +113,7 @@ export function TradeScreenshotUpload({
       // Deferred mode
       onChange?.(file);
     }
-  }, [isImmediate, tradeId, localPath, onChange, onUploaded]);
+  }, [isImmediate, tradeId, localPath, onChange, onUploaded, t]);
 
   const handleDelete = useCallback(async () => {
     setError(null);
@@ -117,7 +122,7 @@ export function TradeScreenshotUpload({
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user?.id) {
-          setError("Sessão expirada.");
+          setError(t("screenshotUpload.sessionExpired"));
           return;
         }
         await deleteTradeScreenshot(session.user.id, tradeId, localPath);
@@ -125,7 +130,7 @@ export function TradeScreenshotUpload({
         setPreviewUrl(null);
         onDeleted?.();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao excluir imagem.");
+        setError(err instanceof Error ? err.message : t("screenshotUpload.deleteError"));
       } finally {
         setUploading(false);
       }
@@ -133,7 +138,7 @@ export function TradeScreenshotUpload({
       onChange?.(null);
       setPreviewUrl(null);
     }
-  }, [isImmediate, tradeId, localPath, onChange, onDeleted]);
+  }, [isImmediate, tradeId, localPath, onChange, onDeleted, t]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -220,12 +225,12 @@ export function TradeScreenshotUpload({
   if (hasPreview) {
     return (
       <div ref={containerRef} className="space-y-1.5">
-        <label className="text-sm font-medium text-muted-foreground block">Screenshot</label>
+        <label className="text-sm font-medium text-muted-foreground block">{t("screenshotUpload.label")}</label>
         <div className="relative group rounded-xl overflow-hidden border border-border/40">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
-            alt="Screenshot do trade"
+            alt={t("screenshotUpload.alt")}
             className="w-full max-h-48 object-cover"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
@@ -234,7 +239,7 @@ export function TradeScreenshotUpload({
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
               className="rounded-full bg-white/90 p-2 text-foreground hover:bg-white transition-colors"
-              title="Trocar imagem"
+              title={t("screenshotUpload.replace")}
             >
               <Replace className="h-4 w-4" />
             </button>
@@ -243,7 +248,7 @@ export function TradeScreenshotUpload({
               onClick={handleDelete}
               disabled={uploading}
               className="rounded-full bg-red-500/90 p-2 text-white hover:bg-red-600 transition-colors"
-              title="Excluir imagem"
+              title={t("screenshotUpload.delete")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -268,7 +273,7 @@ export function TradeScreenshotUpload({
 
   return (
     <div ref={containerRef} className="space-y-1.5">
-      <label className="text-sm font-medium text-muted-foreground block">Screenshot</label>
+      <label className="text-sm font-medium text-muted-foreground block">{t("screenshotUpload.label")}</label>
       <div
         onDragEnter={handleDragIn}
         onDragLeave={handleDragOut}
@@ -289,10 +294,10 @@ export function TradeScreenshotUpload({
           <>
             <ImagePlus className="mx-auto h-5 w-5 text-muted-foreground mb-1.5" />
             <p className="text-[11px] text-muted-foreground">
-              Arraste, cole (Ctrl+V) ou clique
+              {t("screenshotUpload.hint")}
             </p>
             <p className="text-[9px] text-muted-foreground/60 mt-0.5">
-              PNG ou JPG, máx 5MB
+              {t("screenshotUpload.formatHint")}
             </p>
           </>
         )}

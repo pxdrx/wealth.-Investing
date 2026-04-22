@@ -14,6 +14,7 @@ import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 import { MonthlyPerformanceGrid } from "@/components/dashboard/MonthlyPerformanceGrid";
 import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import type { JournalTradeRow } from "@/components/journal/types";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const CalendarPnl = dynamic(
   () => import("@/components/calendar/CalendarPnl").then((m) => ({ default: m.CalendarPnl })),
@@ -73,6 +74,7 @@ function detectCategory(sym: string): string {
 
 // ── Inline Trade Form ──
 function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTradeAdded?: () => void }) {
+  const t = useAppT();
   const [symbol, setSymbol] = useState("");
   const [direction, setDirection] = useState<"buy" | "sell">("buy");
   const [pnl, setPnl] = useState("");
@@ -126,12 +128,12 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
 
   const handleSubmit = useCallback(async () => {
     if (!symbol.trim() || !pnl.trim() || !accountId) {
-      setError("Preencha ativo e P&L.");
+      setError(t("backtest.fillAssetAndPnl"));
       return;
     }
     const pnlNum = parseFloat(pnl);
     if (isNaN(pnlNum)) {
-      setError("P&L deve ser um número.");
+      setError(t("backtest.pnlMustBeNumber"));
       return;
     }
 
@@ -139,7 +141,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
     setError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) { setError("Sessão inválida."); return; }
+      if (!session?.user?.id) { setError(t("backtest.invalidSession")); return; }
 
       const openedAt = `${date}T${time}:00`;
       const sym = symbol.toUpperCase().trim();
@@ -190,7 +192,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
       setTimeout(() => setSuccess(false), 1500);
       return; // skip finally setSaving since we already did it
     } catch (err) {
-      setError("Erro ao salvar trade.");
+      setError(t("backtest.saveError"));
       console.error("[backtest] Save error:", err);
     } finally {
       setSaving(false);
@@ -201,7 +203,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
     <div className="rounded-[14px] border border-purple-500/20 p-3 space-y-2.5" style={{ backgroundColor: "hsl(var(--background))" }}>
       <div className="flex items-center gap-2">
         <Plus className="h-3 w-3 text-purple-500" />
-        <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Adicionar Trade</span>
+        <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">{t("journal.add-trade")}</span>
       </div>
 
       {/* Quick symbol buttons */}
@@ -226,7 +228,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
       {/* Saved symbols */}
       {savedSymbols.length > 0 && (
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-          <span className="text-[8px] text-muted-foreground shrink-0 uppercase tracking-wider">Salvos:</span>
+          <span className="text-[8px] text-muted-foreground shrink-0 uppercase tracking-wider">{t("addTrade.saved")}:</span>
           {savedSymbols.map((s) => (
             <span
               key={s}
@@ -258,8 +260,8 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
           type="text"
           value={symbol}
           onChange={(e) => setSymbol(e.target.value)}
-          placeholder="Ativo"
-          aria-label="Ativo"
+          placeholder={t("addTrade.asset")}
+          aria-label={t("addTrade.asset")}
           className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 uppercase"
         />
         <div className="flex rounded-lg border border-border/40 overflow-hidden">
@@ -283,7 +285,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
           value={pnl}
           onChange={(e) => setPnl(e.target.value)}
           placeholder="P&L ($)"
-          aria-label="P&L em dólares"
+          aria-label={t("backtest.pnlUsd")}
           step="0.01"
           className="w-20 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs font-medium tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500"
         />
@@ -291,16 +293,16 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
 
       {/* Date + Time */}
       <div className="flex gap-1.5">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Data da operação" className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500" />
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Hora da operação" className="w-24 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500" />
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label={t("backtest.tradeDate")} className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500" />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label={t("backtest.tradeTime")} className="w-24 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500" />
       </div>
 
       {/* Observation — collapsible */}
       <button type="button" onClick={() => setShowObs((v) => !v)} className="text-[9px] text-muted-foreground hover:text-foreground transition-colors">
-        {showObs ? "▾ Ocultar observações" : "▸ Adicionar observações"}
+        {showObs ? `▾ ${t("backtest.hideNotes")}` : `▸ ${t("backtest.addNotes")}`}
       </button>
       {showObs && (
-        <textarea value={observation} onChange={(e) => setObservation(e.target.value)} placeholder="Contexto, motivo da entrada..." aria-label="Observações" rows={2} className="w-full rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-[10px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 resize-none" />
+        <textarea value={observation} onChange={(e) => setObservation(e.target.value)} placeholder={t("backtest.notesPlaceholder")} aria-label={t("backtest.notes")} rows={2} className="w-full rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-[10px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 resize-none" />
       )}
 
       {/* Screenshot */}
@@ -313,7 +315,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
         disabled={saving}
         className={cn("w-full rounded-lg py-2 text-xs font-semibold transition-all", success ? "bg-green-500 text-white" : "bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50")}
       >
-        {saving ? "Salvando..." : success ? "Trade adicionado!" : "Adicionar trade"}
+        {saving ? t("addTrade.saving") : success ? t("backtest.tradeAdded") : t("journal.add-trade")}
       </button>
       {error && <p className="text-[10px] text-red-500">{error}</p>}
     </div>
@@ -322,6 +324,7 @@ function QuickTradeForm({ accountId, onTradeAdded }: { accountId: string; onTrad
 
 // ── Main Section ──
 export function BacktestSection({ accounts, trades, userId, onTradeAdded }: BacktestSectionProps) {
+  const t = useAppT();
   const [expanded, setExpanded] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null); // null = all
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -512,8 +515,8 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
           <h3 className="text-sm font-semibold tracking-tight">Backtest</h3>
           <p className="text-[10px] text-muted-foreground">
             {activeAccounts.length > 0
-              ? `${activeAccounts.length} conta${activeAccounts.length !== 1 ? "s" : ""} · ${stats.totalTrades} trades`
-              : "Simule estratégias sem arriscar capital real"}
+              ? `${activeAccounts.length} ${activeAccounts.length !== 1 ? t("backtest.accountsPlural") : t("backtest.account")} · ${stats.totalTrades} trades`
+              : t("backtest.simulateTagline")}
           </p>
         </div>
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
@@ -533,20 +536,20 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
                   : "border-border/60 text-muted-foreground hover:border-purple-500/40 hover:text-foreground"
               )}
             >
-              Todas
+              {t("backtest.all")}
             </button>
             {activeAccounts.map((a) => (
               <div key={a.id} className="flex items-center gap-0.5">
                 {confirmDeleteId === a.id ? (
                   <div className="flex items-center gap-1 rounded-full border border-red-500/40 px-2 py-1">
-                    <span className="text-[10px] text-red-500 font-medium">Excluir?</span>
+                    <span className="text-[10px] text-red-500 font-medium">{t("backtest.deleteQuestion")}</span>
                     <button
                       type="button"
                       disabled={deleting}
                       onClick={() => handleDeleteAccount(a.id)}
                       className="rounded-full bg-red-500 px-2 py-0.5 text-[9px] font-semibold text-white hover:bg-red-600 disabled:opacity-50"
                     >
-                      {deleting ? "..." : "Sim"}
+                      {deleting ? "..." : t("backtest.yes")}
                     </button>
                     <button
                       type="button"
@@ -554,7 +557,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
                       onClick={() => setConfirmDeleteId(null)}
                       className="rounded-full border border-border/60 px-2 py-0.5 text-[9px] font-medium text-muted-foreground hover:text-foreground"
                     >
-                      Não
+                      {t("backtest.no")}
                     </button>
                   </div>
                 ) : (
@@ -576,7 +579,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
                         type="button"
                         onClick={() => setConfirmDeleteId(a.id)}
                         className="rounded-full p-1 text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                        title="Excluir conta permanentemente"
+                        title={t("backtest.deleteAccountTitle")}
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -591,16 +594,16 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
               className="flex items-center gap-1 rounded-full border border-dashed border-purple-500/30 px-3 py-1.5 text-[10px] font-medium text-purple-500 transition-colors hover:bg-purple-500/5"
             >
               <PlusCircle className="h-3 w-3" />
-              Nova
+              {t("backtest.new")}
             </button>
           </div>
 
           {activeAccounts.length === 0 && (
             <div className="py-6 text-center">
               <FlaskConical className="mx-auto h-7 w-7 text-purple-500/40 mb-2" />
-              <p className="text-xs font-medium text-foreground mb-1">Nenhuma conta de backtest</p>
+              <p className="text-xs font-medium text-foreground mb-1">{t("backtest.noAccounts")}</p>
               <p className="text-[10px] text-muted-foreground mb-3">
-                Crie uma conta &quot;Backtest&quot; para simular estratégias.
+                {t("backtest.noAccountsHint")}
               </p>
             </div>
           )}
@@ -616,7 +619,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
             )}
             {!selectedAccountId && (
               <p className="text-[10px] text-muted-foreground pt-2 pb-1 italic">
-                Selecione uma conta para adicionar trades.
+                {t("backtest.selectAccountHint")}
               </p>
             )}
 
@@ -624,15 +627,15 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5 pt-2 pb-3">
               {[
                 { label: "P&L", value: mask(`$${Math.abs(stats.totalPnl).toFixed(0)}`), color: pnlColor(stats.totalPnl), prefix: stats.totalPnl >= 0 ? "+" : "-" },
-                { label: "WIN RATE", value: stats.totalTrades > 0 ? formatPercent(stats.winRate) : "—", color: stats.winRate >= 50 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
+                { label: t("backtest.kpiWinRate"), value: stats.totalTrades > 0 ? formatPercent(stats.winRate) : "—", color: stats.winRate >= 50 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
                 { label: "PF", value: stats.profitFactor === Infinity ? "∞" : stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : "—", color: stats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
                 { label: "TRADES", value: `${stats.wins}W / ${stats.losses}L`, color: "hsl(var(--landing-text))" },
-                { label: "MAX DD", value: stats.maxDD > 0 ? mask(`-$${stats.maxDD.toFixed(0)}`) : "—", color: stats.maxDD > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
+                { label: t("backtest.kpiMaxDd"), value: stats.maxDD > 0 ? mask(`-$${stats.maxDD.toFixed(0)}`) : "—", color: stats.maxDD > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
                 {
-                  label: "RR MÉDIO",
+                  label: t("backtest.kpiAvgRr"),
                   value:
                     stats.totalTrades > 0 && stats.tradesWithoutRR === stats.totalTrades
-                      ? "— adicione SL para ver RR"
+                      ? t("backtest.addSlForRr")
                       : stats.avgRR > 0
                         ? stats.avgRR.toFixed(2)
                         : "—",
@@ -665,7 +668,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
               accountId={selectedAccountId ?? null}
               accountIds={activeAccounts.map((a) => a.id)}
               defaultReadOnly
-              title={selectedAccount ? selectedAccount.name : "Calendário Backtest"}
+              title={selectedAccount ? selectedAccount.name : t("backtest.calendarTitle")}
               compact
               onTradeDeleted={onTradeAdded}
             />

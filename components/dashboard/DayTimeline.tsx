@@ -100,12 +100,12 @@ export function DayTimeline() {
           {state.kind === "success" ? `${state.data.trades.length} trades` : ""}
         </p>
       </div>
-      <Body state={state} />
+      <Body state={state} t={t} />
     </div>
   );
 }
 
-function Body({ state }: { state: LoadState }) {
+function Body({ state, t }: { state: LoadState; t: (key: import("@/lib/i18n/app").AppMessageKey) => string }) {
   if (state.kind === "loading") {
     return <div className="h-[60px] md:h-[80px] w-full rounded-md bg-white/5 animate-pulse" />;
   }

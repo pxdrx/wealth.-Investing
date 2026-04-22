@@ -6,6 +6,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Clock, ExternalLink, RefreshCw,
 import { IMPACT_COLORS } from "@/lib/macro/constants";
 import { cn } from "@/lib/utils";
 import type { EconomicEvent } from "@/lib/macro/types";
+import { useAppT } from "@/hooks/useAppLocale";
 
 interface EconomicCalendarProps {
   events: EconomicEvent[];
@@ -155,6 +156,7 @@ function isSpeechEvent(title: string): boolean {
 
 
 export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }: EconomicCalendarProps) {
+  const t = useAppT();
   const [impactFilter, setImpactFilter] = useState<ImpactFilter>("all");
   const [timezone, setTimezone] = useState<string>("America/Sao_Paulo");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -269,7 +271,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
             onClick={() => canGoPrev && onWeekChange(shiftWeek(weekStart, -1))}
             disabled={!canGoPrev}
             className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"
-            title="Semana anterior"
+            title={t("econCalendar.prevWeek")}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -290,7 +292,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
             onClick={() => canGoNext && onWeekChange(shiftWeek(weekStart, 1))}
             disabled={!canGoNext}
             className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"
-            title="Próxima semana"
+            title={t("econCalendar.nextWeek")}
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -300,7 +302,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
               onClick={() => onWeekChange(currentWeekMonday)}
               className="ml-1 rounded-full bg-muted/60 px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              Hoje
+              {t("econCalendar.today")}
             </button>
           )}
         </div>
@@ -320,7 +322,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
-              {filter === "all" ? "Todos" : filter === "high" ? "Alto" : filter === "medium" ? "Médio" : "Baixo"}
+              {filter === "all" ? t("common.all") : filter === "high" ? t("econCalendar.impactHigh") : filter === "medium" ? t("econCalendar.impactMedium") : t("econCalendar.impactLow")}
             </button>
           ))}
         </div>
@@ -347,10 +349,10 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
               type="button"
               onClick={toggleAll}
               className="flex items-center gap-1 rounded-full border border-border/50 px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
-              title={allExpanded ? "Recolher todos" : "Expandir todos"}
+              title={allExpanded ? t("econCalendar.collapseAll") : t("econCalendar.expandAll")}
             >
               <ChevronsUpDown className="h-3 w-3" />
-              {allExpanded ? "Recolher" : "Expandir"}
+              {allExpanded ? t("econCalendar.collapse") : t("econCalendar.expand")}
             </button>
           )}
 
@@ -360,10 +362,10 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="flex items-center gap-1.5 rounded-full border border-border/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground disabled:opacity-50"
-              title="Atualizar calendário"
+              title={t("econCalendar.refreshTitle")}
             >
               <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
-              {isRefreshing ? "Atualizando..." : "Atualizar"}
+              {isRefreshing ? t("econCalendar.refreshing") : t("macro.refresh")}
             </button>
           )}
         </div>
@@ -373,7 +375,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
       <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500/60" />
-          Próximo evento
+          {t("econCalendar.nextEvent")}
         </span>
       </div>
 
@@ -381,7 +383,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
       {isCurrentWeek && events.length > 0 && events.length < 10 && onRefresh && (
         <div className="flex items-center gap-3 rounded-[16px] border border-amber-500/30 bg-amber-500/5 px-4 py-3">
           <span className="text-xs text-amber-600 dark:text-amber-400">
-            Apenas {events.length} evento{events.length !== 1 ? "s" : ""} encontrado{events.length !== 1 ? "s" : ""}. O calendário pode ainda estar sendo atualizado.
+            {t("econCalendar.fewEventsHint").replace("{count}", String(events.length))}
           </span>
           <button
             type="button"
@@ -390,7 +392,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
             className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
           >
             <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
-            Atualizar
+            {t("macro.refresh")}
           </button>
         </div>
       )}
@@ -427,7 +429,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
                 isToday && "text-blue-600 dark:text-blue-400"
               )}>
                 {formatDayHeader(date)}
-                {isToday && <span className="ml-2 text-xs font-normal text-blue-500">Hoje</span>}
+                {isToday && <span className="ml-2 text-xs font-normal text-blue-500">{t("econCalendar.today")}</span>}
               </span>
 
               {/* Impact badges summary */}
@@ -444,7 +446,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
                     {counts.medium}
                   </span>
                 )}
-                <span className="text-[10px] text-muted-foreground">{dayEvents.length} eventos</span>
+                <span className="text-[10px] text-muted-foreground">{dayEvents.length} {t("econCalendar.events")}</span>
               </div>
 
               <ChevronDown className={cn(
@@ -497,17 +499,17 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
                       {!isSpeechEvent(event.title) ? (
                         <div className="hidden shrink-0 gap-4 text-xs sm:flex">
                           <div className="w-14 text-center">
-                            <div className="text-[10px] text-muted-foreground">Anterior</div>
+                            <div className="text-[10px] text-muted-foreground">{t("econCalendar.previous")}</div>
                             <div>{event.previous || "—"}</div>
                           </div>
                           <div className="w-14 text-center">
-                            <div className="text-[10px] text-muted-foreground">Previsão</div>
+                            <div className="text-[10px] text-muted-foreground">{t("econCalendar.forecast")}</div>
                             <div>{event.forecast || "—"}</div>
                           </div>
                         </div>
                       ) : (
                         <span className="hidden sm:block text-[10px] text-muted-foreground italic">
-                          Discurso
+                          {t("econCalendar.speech")}
                         </span>
                       )}
                     </div>
@@ -526,10 +528,10 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
           </div>
           <div>
             <p className="text-sm font-medium text-foreground">
-              Sem dados para esta semana
+              {t("econCalendar.noData")}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Clique em Atualizar para sincronizar o calendário.
+              {t("econCalendar.noDataHint")}
             </p>
           </div>
           {onRefresh && (
@@ -539,7 +541,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
               disabled={isRefreshing}
               className="mt-1 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              {isRefreshing ? "Sincronizando..." : "Sincronizar agora"}
+              {isRefreshing ? t("econCalendar.syncing") : t("econCalendar.syncNow")}
             </button>
           )}
         </div>
@@ -547,7 +549,7 @@ export function EconomicCalendar({ events, weekStart, onWeekChange, onRefresh }:
 
       {events.length > 0 && filtered.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          Nenhum evento encontrado para este filtro.
+          {t("econCalendar.noneForFilter")}
         </p>
       )}
     </div>

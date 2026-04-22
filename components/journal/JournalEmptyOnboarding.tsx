@@ -2,14 +2,18 @@
 
 import { motion } from "framer-motion";
 import { Upload, PenLine, Sparkles, Calendar, BarChart3, ArrowRight } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
+
+type ActionId = "import" | "manual";
 
 type OnboardingAction = {
-  id: "import" | "manual";
+  id: ActionId;
   icon: typeof Upload;
-  eyebrow: string;
-  title: string;
-  description: string;
-  cta: string;
+  eyebrowKey: AppMessageKey;
+  titleKey: AppMessageKey;
+  descriptionKey: AppMessageKey;
+  ctaKey: AppMessageKey;
   recommended?: boolean;
 };
 
@@ -17,26 +21,26 @@ const ACTIONS: OnboardingAction[] = [
   {
     id: "import",
     icon: Upload,
-    eyebrow: "Mais rápido",
-    title: "Importar do MT5",
-    description: "Envie o relatório .xlsx ou .html do MetaTrader 5. Dexter analisa cada trade e gera insights em segundos.",
-    cta: "Importar relatório",
+    eyebrowKey: "journalOnboarding.importEyebrow",
+    titleKey: "journalOnboarding.importTitle",
+    descriptionKey: "journalOnboarding.importDescription",
+    ctaKey: "journalOnboarding.importCta",
     recommended: true,
   },
   {
     id: "manual",
     icon: PenLine,
-    eyebrow: "Começar do zero",
-    title: "Adicionar manualmente",
-    description: "Registre cada trade na mão. Ideal para quem opera pouco por dia ou quer revisar cada entrada com calma.",
-    cta: "Novo trade",
+    eyebrowKey: "journalOnboarding.manualEyebrow",
+    titleKey: "journalOnboarding.manualTitle",
+    descriptionKey: "journalOnboarding.manualDescription",
+    ctaKey: "journalOnboarding.manualCta",
   },
 ];
 
-const PROMISES = [
-  { icon: Sparkles, label: "Dexter escreve um debrief para cada trade" },
-  { icon: Calendar, label: "Calendário PnL e heatmap de sessões automáticos" },
-  { icon: BarChart3, label: "KPIs, winrate e expectância calculados por você" },
+const PROMISES: { icon: typeof Sparkles; key: AppMessageKey }[] = [
+  { icon: Sparkles, key: "journalOnboarding.promiseDebrief" },
+  { icon: Calendar, key: "journalOnboarding.promiseCalendar" },
+  { icon: BarChart3, key: "journalOnboarding.promiseKpis" },
 ];
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -52,10 +56,15 @@ export function JournalEmptyOnboarding({
   onImportClick,
   onAddTradeClick,
 }: JournalEmptyOnboardingProps) {
-  const handleClick = (id: OnboardingAction["id"]) => {
+  const t = useAppT();
+  const handleClick = (id: ActionId) => {
     if (id === "import") onImportClick();
     else onAddTradeClick();
   };
+
+  const heroTitle = accountName
+    ? t("journalOnboarding.heroTitleWithAccount").replace("{account}", accountName)
+    : t("journalOnboarding.heroTitle");
 
   return (
     <motion.div
@@ -68,13 +77,13 @@ export function JournalEmptyOnboarding({
       <div className="text-center mb-10 sm:mb-12">
         <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground mb-5">
           <Sparkles className="h-3 w-3" />
-          Passo 1 de 2
+          {t("journalOnboarding.step1of2")}
         </div>
         <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
-          Vamos trazer seus trades{accountName ? ` para ${accountName}` : ""}.
+          {heroTitle}
         </h2>
         <p className="mt-3 text-sm sm:text-[15px] text-muted-foreground max-w-xl mx-auto leading-relaxed">
-          Sem trades, o journal é só um caderno em branco. Escolha como quer começar — depois Dexter assume daqui.
+          {t("journalOnboarding.heroBody")}
         </p>
       </div>
 
@@ -96,7 +105,7 @@ export function JournalEmptyOnboarding({
             >
               {action.recommended && (
                 <span className="absolute -top-2 right-5 rounded-full bg-foreground px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-background">
-                  Recomendado
+                  {t("journalOnboarding.recommended")}
                 </span>
               )}
               <div className="flex items-center gap-3 mb-4">
@@ -104,17 +113,17 @@ export function JournalEmptyOnboarding({
                   <Icon className="h-4 w-4" />
                 </div>
                 <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  {action.eyebrow}
+                  {t(action.eyebrowKey)}
                 </span>
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2 tracking-tight">
-                {action.title}
+                {t(action.titleKey)}
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed mb-5 flex-1">
-                {action.description}
+                {t(action.descriptionKey)}
               </p>
               <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                {action.cta}
+                {t(action.ctaKey)}
                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               </div>
             </motion.button>
@@ -128,18 +137,18 @@ export function JournalEmptyOnboarding({
         style={{ backgroundColor: "hsl(var(--card))" }}
       >
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground mb-4">
-          O que Dexter faz com seus trades
+          {t("journalOnboarding.promisesTitle")}
         </p>
         <ul className="grid gap-3 sm:grid-cols-3">
           {PROMISES.map((promise) => {
             const Icon = promise.icon;
             return (
-              <li key={promise.label} className="flex items-start gap-2.5">
+              <li key={promise.key} className="flex items-start gap-2.5">
                 <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-muted/60 text-foreground shrink-0">
                   <Icon className="h-3 w-3" />
                 </div>
                 <span className="text-[13px] text-foreground/80 leading-snug">
-                  {promise.label}
+                  {t(promise.key)}
                 </span>
               </li>
             );

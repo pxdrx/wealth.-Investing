@@ -7,6 +7,7 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { getMyProfile } from "@/lib/profile";
 import { getGreeting, getDashboardSubtitle } from "@/lib/greetings";
 import { Dexter } from "@/components/brand";
+import { useAppT } from "@/hooks/useAppLocale";
 
 type Mood = "default" | "thinking" | "alert" | "celebrating";
 
@@ -33,14 +34,17 @@ function formatDatePt(): string {
   });
 }
 
-function freshnessLabel(generatedAt: string): string | null {
+function freshnessLabel(
+  generatedAt: string,
+  t: (key: import("@/lib/i18n/app").AppMessageKey) => string,
+): string | null {
   const then = new Date(generatedAt).getTime();
   if (Number.isNaN(then)) return null;
   const diffMs = Date.now() - then;
   const hours = Math.floor(diffMs / (60 * 60 * 1000));
-  if (hours < 1) return "atualizado agora";
-  if (hours === 1) return "atualizado há 1h";
-  return `atualizado há ${hours}h`;
+  if (hours < 1) return t("todayMatters.updatedNow");
+  if (hours === 1) return t("todayMatters.updated1h");
+  return t("todayMatters.updatedHours").replace("{h}", String(hours));
 }
 
 function getFirstName(displayName: string | null): string | null {
@@ -51,6 +55,7 @@ function getFirstName(displayName: string | null): string | null {
 
 export function TodayMatters() {
   const { hasAccess, plan } = useEntitlements();
+  const t = useAppT();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -129,7 +134,7 @@ export function TodayMatters() {
         <p className="mt-1 text-sm text-muted-foreground">{subtitleText}</p>
       </div>
       <section
-        aria-label="Hoje, isso importa"
+        aria-label={t("todayMatters.sectionLabel")}
         className="w-full rounded-[22px] border p-6 md:p-8"
         style={{
           backgroundColor: "hsl(220 8% 10%)",
@@ -137,19 +142,27 @@ export function TodayMatters() {
           color: "hsl(0 0% 98%)",
         }}
       >
-        <Content state={state} planFree={plan === "free"} />
+        <Content state={state} planFree={plan === "free"} t={t} />
       </section>
     </div>
   );
 }
 
-function Eyebrow({ mood = "default" as Mood, freshness }: { mood?: Mood; freshness?: string | null }) {
+function Eyebrow({
+  mood = "default" as Mood,
+  freshness,
+  label,
+}: {
+  mood?: Mood;
+  freshness?: string | null;
+  label: string;
+}) {
   return (
     <div className="flex items-center gap-3">
       <Dexter mood={mood} size={48} animated />
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
-          Hoje, isso importa · <span className="font-medium normal-case tracking-normal text-white/50">{formatDatePt()}</span>
+          {label} · <span className="font-medium normal-case tracking-normal text-white/50">{formatDatePt()}</span>
         </p>
         {freshness && (
           <p className="mt-0.5 text-[11px] text-white/40">{freshness}</p>
@@ -159,11 +172,20 @@ function Eyebrow({ mood = "default" as Mood, freshness }: { mood?: Mood; freshne
   );
 }
 
-function Content({ state, planFree }: { state: LoadState; planFree: boolean }) {
+function Content({
+  state,
+  planFree,
+  t,
+}: {
+  state: LoadState;
+  planFree: boolean;
+  t: (key: import("@/lib/i18n/app").AppMessageKey) => string;
+}) {
+  const eyebrowLabel = t("todayMatters.sectionLabel");
   if (state.kind === "loading") {
     return (
       <>
-        <Eyebrow mood="thinking" />
+        <Eyebrow mood="thinking" label={eyebrowLabel} />
         <div className="mt-5 space-y-3">
           <div className="h-7 w-4/5 rounded-md bg-white/10 animate-pulse" />
           <div className="h-7 w-3/5 rounded-md bg-white/10 animate-pulse" />
@@ -176,12 +198,12 @@ function Content({ state, planFree }: { state: LoadState; planFree: boolean }) {
   if (state.kind === "error") {
     return (
       <>
-        <Eyebrow mood="default" />
+        <Eyebrow mood="default" label={eyebrowLabel} />
         <p className="mt-5 text-xl md:text-2xl font-semibold tracking-tight text-white/90">
-          Dexter está offline no momento.
+          {t("todayMatters.errorTitle")}
         </p>
         <p className="mt-2 text-sm text-white/60">
-          Tente recarregar em alguns minutos. Seus dados continuam seguros.
+          {t("todayMatters.errorBody")}
         </p>
       </>
     );
@@ -190,18 +212,18 @@ function Content({ state, planFree }: { state: LoadState; planFree: boolean }) {
   if (state.kind === "empty") {
     return (
       <>
-        <Eyebrow mood="default" />
+        <Eyebrow mood="default" label={eyebrowLabel} />
         <p className="mt-5 text-2xl md:text-3xl font-semibold tracking-tight leading-tight text-white">
-          Sem trades ainda — conecte o MT5 e o Dexter começa a te observar.
+          {t("todayMatters.emptyTitle")}
         </p>
         <p className="mt-2 text-sm text-white/60">
-          A primeira análise roda assim que o primeiro trade importar.
+          {t("todayMatters.emptyBody")}
         </p>
         <Link
           href="/app/settings"
           className="mt-5 inline-flex items-center rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-900 transition-opacity hover:opacity-90"
         >
-          Conectar MT5
+          {t("todayMatters.connectMt5")}
         </Link>
       </>
     );
@@ -209,11 +231,11 @@ function Content({ state, planFree }: { state: LoadState; planFree: boolean }) {
 
   const { data } = state;
   // Free plan stays frozen (24h TTL); paid plans refresh every 4h — freshness label is a paid-plan signal.
-  const freshness = !planFree ? freshnessLabel(data.generatedAt) : null;
+  const freshness = !planFree ? freshnessLabel(data.generatedAt, t) : null;
 
   return (
     <>
-      <Eyebrow mood={data.mood} freshness={freshness} />
+      <Eyebrow mood={data.mood} freshness={freshness} label={eyebrowLabel} />
       <p className="mt-5 text-2xl md:text-3xl font-semibold tracking-tight leading-tight text-white">
         {data.insight}
       </p>

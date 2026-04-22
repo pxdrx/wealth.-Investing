@@ -10,6 +10,7 @@ import { TradeScreenshotUpload } from "./TradeScreenshotUpload";
 import { uploadTradeScreenshot } from "@/lib/supabase/screenshot";
 import { TagPicker } from "./TagPicker";
 import { validateCustomTags } from "@/lib/psychology-tags";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const QUICK_SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NAS100", "US30", "BTCUSD", "USOIL"];
 
@@ -22,6 +23,7 @@ interface AddTradeModalProps {
 
 export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalProps) {
   const { activeAccountId } = useActiveAccount();
+  const t = useAppT();
 
   // Quick vs Complete mode
   const [mode, setMode] = useState<"quick" | "complete">("quick");
@@ -84,7 +86,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       const openDate = new Date(openedAt);
       const closeDate = new Date(closedAt);
       if (closeDate <= openDate) {
-        setError("O horário de fechamento deve ser posterior ao de abertura.");
+        setError(t("addTrade.closeBeforeOpen"));
         return;
       }
     }
@@ -124,13 +126,13 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       const { data: insertedTrade, error: dbError } = await Promise.race([
         insertPromise,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout: o servidor demorou mais de 10s. Tente novamente.")), 10_000)
+          setTimeout(() => reject(new Error(t("addTrade.timeout"))), 10_000)
         ),
       ]);
 
       if (dbError) {
         console.error("[add-trade] DB error:", dbError.code, dbError.message);
-        setError(`Erro ao salvar: ${dbError.message}`);
+        setError(`${t("addTrade.saveError")}: ${dbError.message}`);
         return;
       }
 
@@ -161,7 +163,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       onSaved();
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro ao salvar trade";
+      const msg = err instanceof Error ? err.message : t("addTrade.saveErrorGeneric");
       console.error("[add-trade] Error:", msg);
       setError(msg);
     } finally {
@@ -179,8 +181,8 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
       >
         {/* Header — fixed */}
         <div className="flex items-center justify-between p-4 sm:p-6 pb-0 sm:pb-0 shrink-0">
-          <h2 className="text-lg font-semibold tracking-tight">Adicionar Trade</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted transition-colors" aria-label="Fechar modal">
+          <h2 className="text-lg font-semibold tracking-tight">{t("journal.add-trade")}</h2>
+          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted transition-colors" aria-label={t("addTrade.closeModal")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -197,7 +199,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Rápido
+            {t("addTrade.modeQuick")}
           </button>
           <button
             type="button"
@@ -209,7 +211,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Completo
+            {t("addTrade.modeComplete")}
           </button>
         </div>
 
@@ -217,7 +219,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-4 space-y-4">
           {/* Quick symbol buttons */}
           <div>
-            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Ativo</label>
+            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("addTrade.asset")}</label>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {QUICK_SYMBOLS.map((s) => (
                 <button
@@ -239,7 +241,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
             {/* Saved symbols */}
             {savedSymbols.length > 0 && (
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none mb-2">
-                <span className="text-[10px] text-muted-foreground shrink-0 uppercase tracking-wider">Salvos:</span>
+                <span className="text-[10px] text-muted-foreground shrink-0 uppercase tracking-wider">{t("addTrade.saved")}:</span>
                 {savedSymbols.map((s) => (
                   <span
                     key={s}
@@ -270,14 +272,14 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
               type="text"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="ex: EURUSD"
+              placeholder={t("addTrade.symbolPlaceholder")}
               className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
           {/* Direction */}
           <div>
-            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Direcao</label>
+            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("addTrade.direction")}</label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -288,7 +290,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
                     : "border-border/60 text-muted-foreground hover:bg-muted"
                 }`}
               >
-                <ArrowUp className="h-3.5 w-3.5" /> Compra
+                <ArrowUp className="h-3.5 w-3.5" /> {t("addTrade.buy")}
               </button>
               <button
                 type="button"
@@ -299,7 +301,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
                     : "border-border/60 text-muted-foreground hover:bg-muted"
                 }`}
               >
-                <ArrowDown className="h-3.5 w-3.5" /> Venda
+                <ArrowDown className="h-3.5 w-3.5" /> {t("addTrade.sell")}
               </button>
             </div>
           </div>
@@ -308,7 +310,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
           {mode === "complete" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="add-trade-opened" className="text-sm font-medium text-muted-foreground mb-1.5 block">Abertura</label>
+                <label htmlFor="add-trade-opened" className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("addTrade.open")}</label>
                 <input
                   id="add-trade-opened"
                   type="datetime-local"
@@ -318,7 +320,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
                 />
               </div>
               <div>
-                <label htmlFor="add-trade-closed" className="text-sm font-medium text-muted-foreground mb-1.5 block">Fechamento</label>
+                <label htmlFor="add-trade-closed" className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("addTrade.close")}</label>
                 <input
                   id="add-trade-closed"
                   type="datetime-local"
@@ -339,7 +341,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
               step="0.01"
               value={pnlUsd}
               onChange={(e) => setPnlUsd(e.target.value)}
-              placeholder="ex: 150.00"
+              placeholder={t("addTrade.pnlPlaceholder")}
               className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
@@ -350,11 +352,11 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
           {/* Context — complete mode only */}
           {mode === "complete" && (
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Contexto (por que entrou?)</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("addTrade.contextLabel")}</label>
               <textarea
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
-                placeholder="Setup, analise, razao da entrada..."
+                placeholder={t("addTrade.contextPlaceholder")}
                 rows={2}
                 className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
@@ -364,11 +366,11 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
           {/* Notes — complete mode only */}
           {mode === "complete" && (
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Observacoes</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("addTrade.notesLabel")}</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="O que aprendeu, o que faria diferente..."
+                placeholder={t("addTrade.notesPlaceholder")}
                 rows={2}
                 className="w-full rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
@@ -378,7 +380,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
           {/* Tags — complete mode only */}
           {mode === "complete" && (
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Tags</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("addTrade.tagsLabel")}</label>
               <TagPicker value={customTags} onChange={setCustomTags} allowFreeform maxTags={10} />
             </div>
           )}
@@ -397,7 +399,7 @@ export function AddTradeModal({ open, onClose, onSaved, userId }: AddTradeModalP
             className="w-full rounded-full bg-foreground text-background py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Plus className="h-4 w-4" />
-            {saving ? "Salvando..." : "Adicionar Trade"}
+            {saving ? t("addTrade.saving") : t("journal.add-trade")}
           </button>
         </div>
       </div>

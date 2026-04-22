@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { FileCheck, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
 
 interface PreviewTrade {
   symbol: string;
@@ -35,6 +36,7 @@ export function ImportPreview({
   fileName, totalTrades, payouts, trades, compact = false, onConfirm, onCancel, loading = false,
   parserUsed, mapping, warnings, skippedOpenPositions = 0,
 }: ImportPreviewProps) {
+  const t = useAppT();
   const [showMapping, setShowMapping] = useState(false);
   const isAdaptive = !!parserUsed && parserUsed.startsWith("csv_adaptive");
   const mappingEntries = mapping ? Object.entries(mapping) : [];
@@ -47,17 +49,17 @@ export function ImportPreview({
         <div>
           <p className="text-sm font-semibold">{fileName}</p>
           <p className="text-xs text-muted-foreground">
-            {totalTrades} trades encontrados{payouts > 0 ? ` · ${payouts} payouts` : ""}
+            {totalTrades} {t("importPreview.tradesFound")}{payouts > 0 ? ` · ${payouts} payouts` : ""}
           </p>
         </div>
         <span className="text-[11px] px-2 py-0.5 rounded-md bg-[hsl(var(--pnl-positive)/0.15)] text-[hsl(var(--pnl-positive))]">
-          <FileCheck size={12} className="inline mr-1" />Parseado OK
+          <FileCheck size={12} className="inline mr-1" />{t("importPreview.parsedOk")}
         </span>
       </div>
 
       <div className="rounded-lg overflow-hidden border">
         <div className="grid grid-cols-[1fr_60px_50px_70px_70px] px-3 py-1.5 bg-muted/50 text-[11px] text-muted-foreground uppercase tracking-wider">
-          <span>Símbolo</span><span>Dir.</span><span>Lotes</span><span className="text-right">P&L</span><span className="text-right">Data</span>
+          <span>{t("importPreview.colSymbol")}</span><span>{t("importPreview.colDir")}</span><span>{t("importPreview.colLots")}</span><span className="text-right">P&L</span><span className="text-right">{t("importPreview.colDate")}</span>
         </div>
         {displayed.map((t, i) => (
           <div key={i} className="grid grid-cols-[1fr_60px_50px_70px_70px] px-3 py-1.5 text-xs border-t">
@@ -75,7 +77,7 @@ export function ImportPreview({
       </div>
       {totalTrades > displayCount && (
         <p className="text-[11px] text-muted-foreground text-center mt-1.5">
-          Mostrando {displayCount} de {totalTrades} trades
+          {t("importPreview.showingOf").replace("{shown}", String(displayCount)).replace("{total}", String(totalTrades))}
         </p>
       )}
 
@@ -87,10 +89,10 @@ export function ImportPreview({
           >
             {showMapping ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             <Info size={12} />
-            <span>Mapeamento automático detectado</span>
+            <span>{t("importPreview.autoMapping")}</span>
             {skippedOpenPositions > 0 && (
               <span className="ml-auto px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                {skippedOpenPositions} posição{skippedOpenPositions > 1 ? "ões" : ""} aberta{skippedOpenPositions > 1 ? "s" : ""} ignorada{skippedOpenPositions > 1 ? "s" : ""}
+                {skippedOpenPositions} {skippedOpenPositions > 1 ? t("importPreview.openPositionsIgnoredPlural") : t("importPreview.openPositionsIgnored")}
               </span>
             )}
           </button>
@@ -121,14 +123,14 @@ export function ImportPreview({
 
       <div className="flex gap-3 justify-end mt-4">
         <button onClick={onCancel} className="text-sm px-4 py-1.5 rounded-lg border text-muted-foreground hover:bg-muted transition-colors">
-          Cancelar
+          {t("common.cancel")}
         </button>
         <button
           onClick={onConfirm}
           disabled={loading}
           className="text-sm px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
-          {loading ? "Importando..." : `Importar ${totalTrades} trades`}
+          {loading ? t("importPreview.importing") : `${t("importPreview.importCta")} ${totalTrades} trades`}
         </button>
       </div>
     </div>

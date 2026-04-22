@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
 import {
   EMOTION_TAGS,
   DISCIPLINE_TAGS,
@@ -49,6 +50,7 @@ export function PsychologySection({
   customTags,
   onCustomTagsChange,
 }: PsychologySectionProps) {
+  const t = useAppT();
   const handleAddTag = (value: string) => {
     const tag = value.trim();
     if (!tag || customTags.includes(tag)) return;
@@ -63,12 +65,12 @@ export function PsychologySection({
   return (
     <div className="space-y-4 border-t border-border/40 pt-4">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Psicologia do Trade
+        {t("psychology.title")}
       </p>
 
       {/* Emotion selector */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Emoção</Label>
+        <Label className="text-xs text-muted-foreground">{t("psychology.emotion")}</Label>
         <div className="flex flex-wrap gap-1.5">
           {EMOTION_TAGS.map((tag: EmotionTag) => (
             <button
@@ -95,7 +97,7 @@ export function PsychologySection({
 
       {/* Discipline selector */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Disciplina</Label>
+        <Label className="text-xs text-muted-foreground">{t("psychology.discipline")}</Label>
         <div className="flex flex-wrap gap-1.5">
           {DISCIPLINE_TAGS.map((tag: DisciplineTag) => (
             <button
@@ -120,7 +122,7 @@ export function PsychologySection({
 
       {/* Setup Quality radio */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Qualidade do Setup</Label>
+        <Label className="text-xs text-muted-foreground">{t("psychology.setupQuality")}</Label>
         <div className="flex gap-2">
           {SETUP_QUALITY.map((sq) => (
             <button
@@ -142,17 +144,17 @@ export function PsychologySection({
 
       {/* Sub-ratings */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Avaliacao</Label>
+        <Label className="text-xs text-muted-foreground">{t("psychology.rating")}</Label>
         <div className="grid grid-cols-3 gap-3">
-          <SubRating label="Entrada" value={entryRating} onChange={onEntryRatingChange} />
-          <SubRating label="Saida" value={exitRating} onChange={onExitRatingChange} />
-          <SubRating label="Gestao" value={managementRating} onChange={onManagementRatingChange} />
+          <SubRating label={t("psychology.entry")} value={entryRating} onChange={onEntryRatingChange} />
+          <SubRating label={t("psychology.exit")} value={exitRating} onChange={onExitRatingChange} />
+          <SubRating label={t("psychology.management")} value={managementRating} onChange={onManagementRatingChange} />
         </div>
       </div>
 
       {/* Setup Tags (preset chips) */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Setup</Label>
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("psychology.setup")}</Label>
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(SETUP_TAGS).map(([key, { label, emoji }]) => {
             const isSelected = customTags.includes(key);
@@ -182,7 +184,7 @@ export function PsychologySection({
 
       {/* Mistake Tags (preset chips) */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Erros</Label>
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("psychology.mistakes")}</Label>
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(MISTAKE_TAGS).map(([key, { label, emoji }]) => {
             const isSelected = customTags.includes(key);
@@ -212,7 +214,7 @@ export function PsychologySection({
 
       {/* Custom tags */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Tags Personalizadas ({customTags.length}/10)</Label>
+        <Label className="text-xs text-muted-foreground">{t("psychology.customTags")} ({customTags.length}/10)</Label>
         <div className="flex flex-wrap gap-1.5">
           {customTags.map((tag, i) => (
             <Badge
@@ -225,7 +227,7 @@ export function PsychologySection({
                 type="button"
                 onClick={() => handleRemoveTag(i)}
                 className="rounded-full p-0.5 hover:bg-muted"
-                aria-label="Remover tag"
+                aria-label={t("tagPicker.removeTag")}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -234,7 +236,7 @@ export function PsychologySection({
         </div>
         {customTags.length < 10 && (
           <Input
-            placeholder="Adicionar tag (Enter)..."
+            placeholder={t("psychology.addTagPlaceholder")}
             maxLength={50}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
