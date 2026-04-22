@@ -19,6 +19,7 @@ import { getAppNav, footerNavItems } from "@/lib/app-nav";
 import { useAppRoles } from "@/lib/hooks/useAppRoles";
 import { logout } from "@/lib/auth/logout";
 import { emit } from "@/lib/analytics/emit";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const easeApple = [0.16, 1, 0.3, 1] as const;
 
@@ -38,6 +39,7 @@ function UserAvatar({ name }: { name: string }) {
 // brand affordance + drawer trigger for items that don't fit in the bottom
 // tab bar (Contas, Settings, Planos, Feedback, Sair).
 export function AppHeader() {
+  const t = useAppT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -116,7 +118,7 @@ export function AppHeader() {
             size="icon"
             className="h-9 w-9"
             onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "Fechar menu" : "Abrir menu"}
+            aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={open}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -130,7 +132,7 @@ export function AppHeader() {
             {/* Backdrop */}
             <motion.button
               type="button"
-              aria-label="Fechar menu"
+              aria-label={t("nav.closeMenu")}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
