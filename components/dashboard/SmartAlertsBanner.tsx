@@ -13,7 +13,7 @@ import {
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { analyzeSmartAlerts, type TradeInput, type SmartAlert } from "@/lib/smart-alerts";
 import { supabase } from "@/lib/supabase/client";
-import { useTranslations } from "next-intl";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   AlertTriangle,
@@ -79,7 +79,7 @@ interface SmartAlertsBannerProps {
 }
 
 export function SmartAlertsBanner({ trades, dailyDdLimit, accountId }: SmartAlertsBannerProps) {
-  const t = useTranslations("smartAlerts");
+  const t = useAppT();
   const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     return new Set(getDismissedFromCache().map(dismissalKey));
@@ -201,7 +201,7 @@ export function SmartAlertsBanner({ trades, dailyDdLimit, accountId }: SmartAler
       // Rollback optimistic state + cache.
       setDismissedKeys(previousKeys);
       saveDismissedToCache(previousCache);
-      setDismissError(t("dismissFailed"));
+      setDismissError(t("smartAlerts.dismissFailed"));
       // Auto-clear error after 5s.
       setTimeout(() => setDismissError(null), 5000);
     }
