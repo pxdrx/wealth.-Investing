@@ -4,6 +4,13 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { BootstrapWarning } from "@/components/auth/BootstrapWarning";
 import { PrivacyProvider } from "@/components/context/PrivacyContext";
 import { locales, defaultLocale, type Locale } from "@/i18n";
+import ptMessages from "@/messages/pt.json";
+import enMessages from "@/messages/en.json";
+
+const MESSAGES: Record<Locale, typeof ptMessages> = {
+  pt: ptMessages,
+  en: enMessages as typeof ptMessages,
+};
 
 function resolveLocale(cookieVal: string | undefined, acceptLang: string | null): Locale {
   if (cookieVal && (locales as readonly string[]).includes(cookieVal)) {
@@ -18,17 +25,18 @@ function resolveLocale(cookieVal: string | undefined, acceptLang: string | null)
   return defaultLocale;
 }
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   // The i18n middleware only covers public landing routes, so /app/** needs
   // its own provider. Locale is read from the NEXT_LOCALE cookie (set by the
-  // LocaleSwitcher) with an Accept-Language fallback.
-  const cookieStore = await cookies();
-  const headerStore = await headers();
+  // LocaleSwitcher) with an Accept-Language fallback. Messages are imported
+  // statically so webpack can tree-shake / ship them in the server bundle.
+  const cookieStore = cookies();
+  const headerStore = headers();
   const locale = resolveLocale(
     cookieStore.get("NEXT_LOCALE")?.value,
     headerStore.get("accept-language"),
   );
-  const messages = (await import(`@/messages/${locale}.json`)).default;
+  const messages = MESSAGES[locale] ?? MESSAGES[defaultLocale];
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
