@@ -42,3 +42,11 @@ export const psychologyRateLimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(3, "60 s"),
   prefix: "ratelimit:psychology",
 });
+
+// Dexter Companion (chat tab): 30 messages per hour per user — more generous
+// than Coach because Companion is ambient/conversational, not structured.
+export const companionRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "3600 s"),
+  prefix: "ratelimit:companion",
+});

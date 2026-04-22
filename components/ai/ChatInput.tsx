@@ -7,11 +7,25 @@ interface ChatInputProps {
   onSubmit: (text: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  /**
+   * Optional callback fired whenever the current draft starts with "/".
+   * Receives the full slash query (e.g. "/coach" or "/analyst EURUSD") while
+   * the user is typing a command, or `null` once the draft no longer starts
+   * with "/". Preserves existing API — callers ignoring this prop see no
+   * behaviour change.
+   */
+  onSlash?: (query: string | null) => void;
+  value?: string;
 }
 
-export function ChatInput({ onSubmit, disabled, placeholder }: ChatInputProps) {
+export function ChatInput({ onSubmit, disabled, placeholder, onSlash, value }: ChatInputProps) {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Allow parent-controlled seeding of draft (e.g. slash command auto-clear).
+  useEffect(() => {
+    if (typeof value === "string") setText(value);
+  }, [value]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -19,6 +33,11 @@ export function ChatInput({ onSubmit, disabled, placeholder }: ChatInputProps) {
     ta.style.height = "auto";
     ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
   }, [text]);
+
+  useEffect(() => {
+    if (!onSlash) return;
+    onSlash(text.startsWith("/") ? text : null);
+  }, [text, onSlash]);
 
   const handleSubmit = useCallback(() => {
     const trimmed = text.trim();

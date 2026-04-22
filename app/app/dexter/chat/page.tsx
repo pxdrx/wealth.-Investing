@@ -1,27 +1,74 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { Suspense, useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useActiveAccount } from "@/components/context/ActiveAccountContext";
+import { useAuthEvent } from "@/components/context/AuthEventContext";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { PaywallGate } from "@/components/billing/PaywallGate";
+import { safeGetSession } from "@/lib/supabase/safe-session";
+import { CompanionClient } from "./CompanionClient";
+
+function DexterChatPageInner() {
+  const { activeAccountId } = useActiveAccount();
+  const { session: ctxSession } = useAuthEvent();
+  const { plan, isLoading } = useEntitlements();
+  const [userId, setUserId] = useState<string | null>(ctxSession?.user?.id ?? null);
+  const [checkingSession, setCheckingSession] = useState(!ctxSession);
+
+  useEffect(() => {
+    if (ctxSession?.user?.id) {
+      setUserId(ctxSession.user.id);
+      setCheckingSession(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await safeGetSession();
+      if (cancelled) return;
+      if (!session?.user?.id) {
+        window.location.href = "/login";
+        return;
+      }
+      setUserId(session.user.id);
+      setCheckingSession(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ctxSession]);
+
+  if (checkingSession || isLoading || !userId) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (plan === "free") {
+    return <PaywallGate requiredPlan="pro"><div /></PaywallGate>;
+  }
+
+  return (
+    <CompanionClient
+      plan={plan as "pro" | "ultra" | "mentor"}
+      userId={userId}
+      accountId={activeAccountId ?? null}
+    />
+  );
+}
 
 export default function DexterChatPage() {
-  const t = useTranslations("dexter");
   return (
-    <div
-      className="mx-auto flex max-w-xl flex-col items-center rounded-[22px] border border-border/60 p-10 text-center"
-      style={{ backgroundColor: "hsl(var(--card))" }}
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      }
     >
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10">
-        <MessageCircle className="h-6 w-6 text-blue-500" />
-      </div>
-      <h2 className="text-lg font-semibold tracking-tight text-foreground">Chat</h2>
-      <p className="mt-2 text-sm text-muted-foreground">{t("placeholder")}</p>
-      <p className="mt-4 text-xs text-muted-foreground/70">
-        A versão completa do chat vive em{" "}
-        <a href="/app/dexter/coach" className="underline hover:text-foreground">
-          /app/dexter/coach
-        </a>
-        .
-      </p>
-    </div>
+      <DexterChatPageInner />
+    </Suspense>
   );
 }
