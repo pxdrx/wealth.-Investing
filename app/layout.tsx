@@ -31,9 +31,9 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "wealth.Investing — Consistência baseada em dados para traders",
+  title: "wealth.Investing — Domine o Mercado com Dados e Inteligência Artificial",
   description:
-    "Plataforma de analytics, journaling e gestão de risco para traders que querem consistência, controle e evolução baseada em dados reais.",
+    "A primeira plataforma all-in-one para traders. Analytics avançado, IA preditiva e inteligência de mercado em tempo real. Opere com vantagem institucional.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -44,9 +44,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "wealth.Investing — Consistência baseada em dados para traders",
+    title: "wealth.Investing — Domine o Mercado com Dados e IA",
     description:
-      "Centralize operações, analise padrões e transforme dados em insights acionáveis para operar com disciplina.",
+      "A primeira plataforma all-in-one para traders. Analytics avançado, IA preditiva e inteligência de mercado em tempo real. Descubra sua verdadeira vantagem.",
     type: "website",
     locale: "pt_BR",
     siteName: "wealth.Investing",
@@ -62,8 +62,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "wealth.Investing — Consistência baseada em dados para traders",
-    description: "Analytics, journaling e gestão de risco para traders que querem consistência.",
+    title: "wealth.Investing — Domine o Mercado com Dados e IA",
+    description: "Analytics avançado, IA preditiva e inteligência de mercado em tempo real. Opere como uma instituição.",
     images: ["https://owealthinvesting.com/og-image.png"],
     creator: "@owealth_inv",
   },
