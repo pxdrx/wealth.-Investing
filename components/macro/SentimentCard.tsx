@@ -406,7 +406,7 @@ export function SentimentCard(_props: SentimentCardProps = {}) {
 
   return (
     <div
-      className="flex flex-col rounded-[24px] border border-border/40 p-5 shadow-soft dark:shadow-soft-dark isolate"
+      className="flex flex-col h-full rounded-[24px] border border-border/40 p-5 shadow-soft dark:shadow-soft-dark isolate"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
       <header className="mb-3 flex items-center justify-between gap-2">

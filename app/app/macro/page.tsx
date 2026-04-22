@@ -750,62 +750,53 @@ export default function MacroIntelligencePage() {
         </TabsList>
 
         {/* Tab 1: Terminal — Calendar, Rates */}
-        {/* [C-09] Terminal mode: dense 5-4-3 asymmetric grid (Bloomberg-like). */}
+        {/* Terminal mode: Calendar full → Rates+Sentiment → Headlines+SemanaNumeros → History full. */}
         <TabsContent value="terminal" className="flex-1 min-h-0 mt-0">
           <div className="flex flex-col gap-4">
-            {/* Row 1 — 5 cols: Calendar 3, Rates 2 */}
-            <div className="grid gap-4 lg:grid-cols-5">
-              <section id="macro-calendar" className="lg:col-span-3 flex flex-col rounded-[24px] border border-border/40 shadow-sm overflow-hidden relative isolate p-5 scroll-mt-24" style={{ backgroundColor: "hsl(var(--card))" }}>
-                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                  Calendário Econômico
-                </h2>
-                <div className="flex-1 min-h-[400px]">
-                  <EconomicCalendar
-                    events={filteredEvents}
-                    weekStart={calendarWeek}
-                    onWeekChange={handleWeekChange}
-                    onRefresh={handleCalendarRefresh}
-                  />
-                </div>
-              </section>
-              <section className="lg:col-span-2 flex flex-col rounded-[24px] border border-border/40 shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
+            {/* Row 1 — Calendar full width */}
+            <section id="macro-calendar" className="flex flex-col rounded-[24px] border border-border/40 shadow-sm overflow-hidden relative isolate p-5 scroll-mt-24" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                Calendário Econômico
+              </h2>
+              <div className="flex-1 min-h-[400px]">
+                <EconomicCalendar
+                  events={filteredEvents}
+                  weekStart={calendarWeek}
+                  onWeekChange={handleWeekChange}
+                  onRefresh={handleCalendarRefresh}
+                />
+              </div>
+            </section>
+
+            {/* Row 2 — Rates 2, Sentiment 1 */}
+            <div className="grid gap-4 lg:grid-cols-3 items-stretch">
+              <section className="lg:col-span-2 flex flex-col h-full rounded-[24px] border border-border/40 shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
                 <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Bancos Centrais
                 </h2>
-                <PaywallGate requiredPlan="pro" blurContent>
-                  <InterestRatesPanel rates={filteredRates} />
-                </PaywallGate>
+                <div className="flex-1">
+                  <PaywallGate requiredPlan="pro" blurContent>
+                    <InterestRatesPanel rates={filteredRates} />
+                  </PaywallGate>
+                </div>
               </section>
+              <div className="lg:col-span-1 h-full">
+                <SentimentCard sentiment={panorama?.sentiment ?? null} />
+              </div>
             </div>
 
-            {/* Row 2 — 4 cols: Headlines 3, Sentiment 1 */}
-            <div className="grid gap-4 lg:grid-cols-4">
-              <div className="lg:col-span-3">
+            {/* Row 3 — Headlines 2, Semana em Números 1 */}
+            <div className="grid gap-4 lg:grid-cols-3 items-stretch">
+              <div className="lg:col-span-2 h-full">
                 <HeadlinesFeed
                   headlines={filteredHeadlines}
                   onRefresh={handleHeadlinesRefresh}
                   refreshing={headlinesRefreshing}
                 />
               </div>
-              <div className="lg:col-span-1">
-                <SentimentCard sentiment={panorama?.sentiment ?? null} />
-              </div>
-            </div>
-
-            {/* Row 3 — 3 cols: History 2, Event counter 1 */}
-            <div className="grid gap-4 lg:grid-cols-3">
-              <section className="lg:col-span-2 flex flex-col rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
-                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-                  Histórico Macro Semanal
-                </h2>
-                <PaywallGate requiredPlan="pro" blurContent>
-                  <WeeklyHistory weeks={weeks} currentWeek={defaultWeek} />
-                </PaywallGate>
-              </section>
-              <section className="lg:col-span-1 flex flex-col rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <section className="lg:col-span-1 flex flex-col h-full rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
                 <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                   Semana em Números
@@ -816,7 +807,7 @@ export default function MacroIntelligencePage() {
                   const countries = new Set(filteredEvents.map((e) => e.country)).size;
                   const rateCount = filteredRates.length;
                   return (
-                    <dl className="grid grid-cols-2 gap-3 text-sm">
+                    <dl className="grid flex-1 grid-cols-2 gap-3 text-sm">
                       <div className="rounded-xl border border-border/40 p-3">
                         <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Alto Impacto</dt>
                         <dd className="mt-1 text-xl font-semibold text-red-500 tabular-nums">{high}</dd>
@@ -838,6 +829,17 @@ export default function MacroIntelligencePage() {
                 })()}
               </section>
             </div>
+
+            {/* Row 4 — History full width */}
+            <section className="flex flex-col rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                Histórico Macro Semanal
+              </h2>
+              <PaywallGate requiredPlan="pro" blurContent>
+                <WeeklyHistory weeks={weeks} currentWeek={defaultWeek} />
+              </PaywallGate>
+            </section>
           </div>
         </TabsContent>
 

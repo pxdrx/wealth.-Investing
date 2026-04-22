@@ -16,8 +16,8 @@ const FLAG_CODES: Record<string, string> = {
 };
 
 const ACTION_CONFIG = {
-  hike: { icon: TrendingUp, color: "text-red-500", label: "Alta" },
-  cut: { icon: TrendingDown, color: "text-emerald-500", label: "Corte" },
+  hike: { icon: TrendingUp, color: "text-emerald-500", label: "Alta" },
+  cut: { icon: TrendingDown, color: "text-red-500", label: "Corte" },
   hold: { icon: Minus, color: "text-gray-400", label: "Manteve" },
 } as const;
 
@@ -50,12 +50,13 @@ function isStale(updatedAt: string): boolean {
 }
 
 function deltaLabel(bps: number | null, action: "hold" | "cut" | "hike" | null): { text: string; color: string } {
+  if (action === "hold") return { text: "0 bps", color: "text-gray-400" };
   if (!action || bps === null || bps === 0) {
     return { text: "—", color: "text-muted-foreground" };
   }
   const abs = Math.abs(bps);
-  if (action === "cut") return { text: `-${abs}bps`, color: "text-emerald-500" };
-  if (action === "hike") return { text: `+${abs}bps`, color: "text-red-500" };
+  if (action === "cut") return { text: `-${abs} bps`, color: "text-red-500" };
+  if (action === "hike") return { text: `+${abs} bps`, color: "text-emerald-500" };
   return { text: "—", color: "text-muted-foreground" };
 }
 

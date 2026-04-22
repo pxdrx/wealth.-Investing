@@ -153,7 +153,7 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
 
   return (
     <div
-      className="rounded-[22px] border border-border/40 shadow-sm p-6 isolate"
+      className="rounded-[22px] border border-border/40 shadow-sm p-6 isolate h-full flex flex-col"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
       {/* Header */}
@@ -198,11 +198,11 @@ export function HeadlinesFeed({ headlines, onRefresh, refreshing }: HeadlinesFee
 
       {/* Headlines list */}
       {ordered.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-6 text-center">
+        <p className="flex-1 text-sm text-muted-foreground py-6 text-center">
           {t("headlines.empty")}
         </p>
       ) : (
-        <div className={expanded ? "max-h-[400px] overflow-y-auto" : ""}>
+        <div className={`flex-1 min-h-0 ${expanded ? "max-h-[400px] overflow-y-auto" : ""}`}>
           <div className="space-y-3">
             {displayItems.map((h) => {
               const isBreaking = h.impact === "breaking" || h.source === "te_breaking";
