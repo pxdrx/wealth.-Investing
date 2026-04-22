@@ -108,6 +108,10 @@ export async function GET(req: NextRequest) {
       const updatePayload: Record<string, unknown> = {
         current_rate: rate.current_rate,
         updated_at: new Date().toISOString(),
+        // Persist scraped summary + attribution. null is written when the
+        // per-bank paragraph fetch failed — never invent replacement text.
+        summary: rate.summary,
+        source_url: rate.source_url,
       };
 
       // If rate actually changed, update last_action metadata

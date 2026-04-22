@@ -15,6 +15,90 @@ interface ScrapedRate {
   last_action: "hold" | "cut" | "hike" | null;
 }
 
+/**
+ * Banks whose editorial summary we fetch from the TE country page.
+ * Matches the `VISIBLE_BANKS` set the frontend renders.
+ */
+const SUMMARY_BANKS = new Set(["BCB", "BOC", "BOE", "BOJ", "ECB", "FED"]);
+
+/**
+ * TE interest-rate page slug per bank code. Keep in sync with the URLs
+ * linked from tradingeconomics.com/country-list/interest-rate.
+ */
+const TE_RATE_PAGE_SLUG: Record<string, string> = {
+  FED: "united-states/interest-rate",
+  ECB: "euro-area/interest-rate",
+  BOE: "united-kingdom/interest-rate",
+  BOJ: "japan/interest-rate",
+  BCB: "brazil/interest-rate",
+  BOC: "canada/interest-rate",
+};
+
+/** Build the full TE URL for a bank's interest-rate page. */
+function teRateUrl(bankCode: string): string | null {
+  const slug = TE_RATE_PAGE_SLUG[bankCode];
+  return slug ? `https://tradingeconomics.com/${slug}` : null;
+}
+
+/**
+ * Fetch the first descriptive paragraph from a bank's TE interest-rate page.
+ * Returns null on any failure — callers must NOT substitute invented text.
+ */
+async function scrapeBankSummary(
+  bankCode: string
+): Promise<{ summary: string; source_url: string } | null> {
+  const url = teRateUrl(bankCode);
+  if (!url) return null;
+
+  try {
+    const { fetchWithTimeout } = await import("./utils");
+    const res = await fetchWithTimeout(url, 20_000, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+
+    if (!res.ok) {
+      console.warn(`[te-rates] summary ${bankCode} returned ${res.status}`);
+      return null;
+    }
+
+    const html = await res.text();
+    const cheerio = await import("cheerio");
+    const $ = cheerio.load(html);
+
+    // TE wraps the editorial copy in #description or .page-description.
+    // Try multiple selectors and pick the first paragraph long enough to matter.
+    const candidateSelectors = [
+      "#description p",
+      ".page-description p",
+      ".col-md-8 p",
+      "article p",
+    ];
+
+    for (const selector of candidateSelectors) {
+      const paragraphs = $(selector);
+      for (let i = 0; i < paragraphs.length; i++) {
+        const raw = $(paragraphs[i]).text().trim().replace(/\s+/g, " ");
+        if (raw.length >= 120 && raw.length <= 800) {
+          // Trim to ~400 chars without cutting mid-sentence when possible.
+          const trimmed = raw.length > 400 ? raw.slice(0, 397).replace(/\s+\S*$/, "") + "…" : raw;
+          return { summary: trimmed, source_url: url };
+        }
+      }
+    }
+
+    console.warn(`[te-rates] summary ${bankCode}: no suitable paragraph found`);
+    return null;
+  } catch (err) {
+    console.warn(`[te-rates] summary ${bankCode} failed:`, err);
+    return null;
+  }
+}
+
 /** Map TE country names to our bank codes */
 const COUNTRY_NAME_TO_BANK: Record<string, string> = {
   "united states": "FED",
@@ -154,19 +238,36 @@ export async function scrapeTradingEconomicsRates(): Promise<Omit<CentralBankRat
     console.log(`[te-rates] Scraped ${scraped.length} rates`);
     if (scraped.length === 0) return null;
 
+    // Fetch editorial summaries for the VISIBLE_BANKS only. Sequential with
+    // a small delay — we don't want to hammer TE and trigger a block.
+    const summaries = new Map<string, { summary: string; source_url: string }>();
+    for (const s of scraped) {
+      if (!SUMMARY_BANKS.has(s.bank_code)) continue;
+      const result = await scrapeBankSummary(s.bank_code);
+      if (result) summaries.set(s.bank_code, result);
+      // Gentle throttle between requests.
+      await new Promise((r) => setTimeout(r, 600));
+    }
+    console.log(`[te-rates] Fetched ${summaries.size}/${SUMMARY_BANKS.size} summaries`);
+
     // Convert to full CentralBankRate shape (without id).
     // last_change_date deliberately left null — cron handler stamps detection moment.
-    return scraped.map((s) => ({
-      bank_code: s.bank_code,
-      bank_name: s.bank_name,
-      country: s.country,
-      current_rate: s.current_rate,
-      last_action: s.last_action,
-      last_change_bps: s.last_change_bps,
-      last_change_date: null,
-      next_meeting: null,
-      updated_at: new Date().toISOString(),
-    }));
+    return scraped.map((s) => {
+      const sum = summaries.get(s.bank_code) ?? null;
+      return {
+        bank_code: s.bank_code,
+        bank_name: s.bank_name,
+        country: s.country,
+        current_rate: s.current_rate,
+        last_action: s.last_action,
+        last_change_bps: s.last_change_bps,
+        last_change_date: null,
+        next_meeting: null,
+        updated_at: new Date().toISOString(),
+        summary: sum?.summary ?? null,
+        source_url: sum?.source_url ?? null,
+      };
+    });
   } catch (err) {
     console.error("[te-rates] Scrape error:", err);
     return null;

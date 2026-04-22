@@ -107,6 +107,10 @@ export interface CentralBankRate {
   updated_at: string;
   /** 'scraped' = fresh from TE; 'fallback' = emergency hardcoded; 'manual' = human override. */
   source_confidence?: "scraped" | "fallback" | "manual" | null;
+  /** First descriptive paragraph scraped from TE. Null when scrape failed or source_confidence='fallback'. Never invented. */
+  summary: string | null;
+  /** URL of the TE page the summary was scraped from. */
+  source_url: string | null;
 }
 
 export interface AdaptiveAlert {

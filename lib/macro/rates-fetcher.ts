@@ -69,6 +69,8 @@ function mapFallbackToRate(code: string): Omit<CentralBankRate, "id"> {
       last_change_date: null,
       next_meeting: null,
       updated_at: new Date().toISOString(),
+      summary: null,
+      source_url: null,
     };
   }
   return {
@@ -83,6 +85,9 @@ function mapFallbackToRate(code: string): Omit<CentralBankRate, "id"> {
     // next_meeting rolls forward automatically after each decision.
     next_meeting: getNextMeeting(cb.code) ?? data.next_meeting,
     updated_at: new Date().toISOString(),
+    // Never invent text: emergency fallback rows have no sourced summary.
+    summary: null,
+    source_url: null,
   };
 }
 
@@ -119,6 +124,12 @@ export async function fetchCentralBankRates(): Promise<Omit<CentralBankRate, "id
           last_change_date: row.last_change_date,
           next_meeting: row.next_meeting,
           updated_at: row.updated_at,
+          // Suppress summary for non-scraped rows — we must not display stale
+          // or hand-rolled copy as if TE had said it today.
+          summary:
+            row.source_confidence === "fallback" ? null : (row.summary ?? null),
+          source_url:
+            row.source_confidence === "fallback" ? null : (row.source_url ?? null),
         }));
       }
     } catch (err) {

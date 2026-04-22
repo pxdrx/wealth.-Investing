@@ -209,6 +209,8 @@ export async function POST(req: NextRequest) {
         last_change_bps,
         last_change_date,
         next_meeting,
+        summary: scraped.summary ?? null,
+        source_url: scraped.source_url ?? null,
         source_confidence: "scraped" as const,
         updated_at: nowIso,
       };
