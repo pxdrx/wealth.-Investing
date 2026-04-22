@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
 
@@ -137,7 +138,25 @@ function Body({ state }: { state: LoadState }) {
     .filter((t) => t.offset >= 0 && t.offset <= HOURS);
 
   return (
-    <div className="overflow-x-auto">
+    <div>
+      <p className="mb-2 text-xs text-white/60">
+        Seus trades ao longo do dia (08:00–22:00 BRT). Tamanho da bolha = magnitude do PnL.
+      </p>
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-white/60">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#34d399" }} />
+          Lucro
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#f87171" }} />
+          Prejuízo
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block h-2 w-3 rounded-sm bg-white/10" />
+          Sessão de mercado (Londres / NY)
+        </span>
+      </div>
+      <div className="overflow-x-auto">
       <svg
         viewBox={`0 0 ${HOURS * 60} 80`}
         className="h-[60px] md:h-[80px] w-full min-w-[560px]"
@@ -223,6 +242,7 @@ function Body({ state }: { state: LoadState }) {
 
         {/* TODO(c-03/c-04): macro event markers once macro_events schema lands */}
       </svg>
+      </div>
     </div>
   );
 }

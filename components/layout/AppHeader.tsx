@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
@@ -238,7 +239,8 @@ export function AppHeader() {
                 </button>
               </nav>
 
-              <div className="flex items-center justify-end px-5 py-3 border-t border-border/40">
+              <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-border/40">
+                <LocaleSwitcher />
                 <ThemeToggle />
               </div>
             </motion.aside>

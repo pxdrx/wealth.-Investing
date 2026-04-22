@@ -40,7 +40,18 @@ export function MacroWidgetEvents() {
     <div className="space-y-3 rounded-[22px] p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Próximos Eventos</h3>
-        <a href="/app/macro" className="text-xs font-medium text-primary hover:underline">
+        <a
+          href="#macro-calendar"
+          onClick={(e) => {
+            e.preventDefault();
+            window.dispatchEvent(
+              new CustomEvent("macro:switch-tab", {
+                detail: { tab: "terminal", anchor: "macro-calendar" },
+              }),
+            );
+          }}
+          className="text-xs font-medium text-primary hover:underline"
+        >
           Calendário
         </a>
       </div>

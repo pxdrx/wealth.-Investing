@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb, Loader2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
@@ -88,6 +89,7 @@ function AICoachPageInner() {
   const limits = getTierLimits(plan);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const tDexter = useTranslations("dexter");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -485,7 +487,11 @@ function AICoachPageInner() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(errData.error ?? "Request failed");
+        // 402/401/429 or any non-200 — surface user-friendly state.
+        if (response.status === 402 || response.status === 401 || response.status === 429) {
+          throw new Error(errData.error ?? "unavailable");
+        }
+        throw new Error(errData.error ?? "unavailable");
       }
 
       // Read SSE stream
@@ -545,24 +551,31 @@ function AICoachPageInner() {
             return updated;
           });
         }
+        setUsageCount((prev) => prev + 1);
+      } else {
+        // Stream ended with zero tokens — Claude likely errored (credits, rate limit, etc).
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: tDexter("unavailable"),
+          };
+          return updated;
+        });
       }
-
-      setUsageCount((prev) => prev + 1);
     } catch (err) {
       if ((err as Error).name === "AbortError") {
         // User cancelled — do nothing
       } else {
         const errMsg = (err as Error).message;
         // Map known API error codes to user-facing messages
-        let displayError = "Erro ao conectar com o AI Coach. Tente novamente.";
+        let displayError = tDexter("unavailable");
         if (errMsg === "quota_exceeded") {
           displayError = "Limite mensal de analises atingido. Faca upgrade para continuar.";
         } else if (errMsg === "daily_quota_exceeded") {
           displayError = "Limite diario de analises atingido. Tente novamente amanha.";
         } else if (errMsg === "rate_limited") {
           displayError = "Muitas requisicoes. Aguarde um momento.";
-        } else if (errMsg && errMsg !== "Request failed") {
-          displayError = errMsg;
         }
         setMessages((prev) => {
           const updated = [...prev];
@@ -800,6 +813,9 @@ function AICoachPageInner() {
                            ? "Sou seu AI Coach Ultra. Analiso seus trades com contexto personalizado e respostas mais profundas."
                            : "Sou seu AI Coach. Analiso seus trades, identifico padroes e ajudo a melhorar sua performance."}
                        </p>
+                       <p className="mt-3 text-xs text-muted-foreground/80 italic">
+                         {tDexter("placeholder")}
+                       </p>
                      </div>
                      <div className="flex flex-wrap justify-center gap-2">
                        {INSIGHT_BUTTONS.map((btn, i) => {
@@ -828,12 +844,17 @@ function AICoachPageInner() {
                    <div className="space-y-6 pb-4">
                      {messages.map((msg, i) => {
                        const isAssistant = msg.role === "assistant";
+                       const isLast = i === messages.length - 1;
+                       const isEmptyStreamingPlaceholder =
+                         isAssistant && isLast && isStreaming && msg.content.length === 0;
                          return (
                           <ChatMessage
                            key={msg.id ?? `msg-${i}`}
                            role={msg.role}
-                           content={msg.content}
-                           isStreaming={isStreaming && i === messages.length - 1 && isAssistant}
+                           content={
+                             isEmptyStreamingPlaceholder ? tDexter("loading") : msg.content
+                           }
+                           isStreaming={isStreaming && isLast && isAssistant}
                          />
                         );
                       })}

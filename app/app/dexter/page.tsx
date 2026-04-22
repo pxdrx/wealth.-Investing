@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 export default function DexterIndexPage(): never {
-  // C-06: default tab = chat.
-  redirect("/app/dexter/chat");
+  // The `/chat` tab is a placeholder stub (C-07 pending). The real chat UI
+  // lives under `/coach` — redirect there so `/app/dexter` is never empty.
+  redirect("/app/dexter/coach");
 }

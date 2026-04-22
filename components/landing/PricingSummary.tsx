@@ -58,12 +58,12 @@ export function PricingSummary() {
                 className={
                   "relative rounded-[22px] border bg-card p-6 sm:p-8 flex flex-col " +
                   (tier.highlighted
-                    ? "border-amber-400/60 ring-1 ring-amber-400/70 lg:scale-[1.03]"
+                    ? "border-accent/60 ring-1 ring-accent/70 lg:scale-[1.03]"
                     : "border-border")
                 }
               >
                 {tier.highlighted && (
-                  <span className="absolute -top-3 left-6 text-[9px] uppercase tracking-[0.18em] font-mono font-semibold rounded-full px-2.5 py-1 bg-amber-500 text-white">
+                  <span className="absolute -top-3 left-6 text-[9px] uppercase tracking-[0.18em] font-mono font-semibold rounded-full px-2.5 py-1 bg-accent text-accent-foreground">
                     {t("badges.popular")}
                   </span>
                 )}
@@ -98,7 +98,7 @@ export function PricingSummary() {
                     className={
                       "inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-medium transition-colors min-h-[44px] mb-6 " +
                       (isPro
-                        ? "bg-amber-500 text-white hover:bg-amber-600"
+                        ? "bg-accent text-accent-foreground hover:brightness-95"
                         : "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90")
                     }
                   >

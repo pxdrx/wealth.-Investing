@@ -45,7 +45,18 @@ export function MacroWidgetBriefing() {
     <div className="space-y-3 rounded-[22px] border border-border/40 bg-card shadow-sm overflow-hidden h-full flex flex-col p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
       <div className="flex items-center justify-between shrink-0">
         <h3 className="text-sm font-semibold">Panorama Macro</h3>
-        <a href="/app/macro" className="text-xs font-medium text-primary hover:underline">
+        <a
+          href="#macro-panorama"
+          onClick={(e) => {
+            e.preventDefault();
+            window.dispatchEvent(
+              new CustomEvent("macro:switch-tab", {
+                detail: { tab: "report", anchor: "macro-panorama" },
+              }),
+            );
+          }}
+          className="text-xs font-medium text-primary hover:underline"
+        >
           Ver mais
         </a>
       </div>

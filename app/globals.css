@@ -62,8 +62,8 @@
     --landing-text: var(--foreground);
     --landing-text-secondary: var(--secondary-foreground);
     --landing-text-muted: var(--muted-foreground);
-    --landing-accent: var(--primary);
-    --landing-accent-secondary: var(--accent);
+    --landing-accent: var(--accent);
+    --landing-accent-secondary: var(--primary);
     --landing-accent-warning: var(--warning);
     --landing-accent-danger: var(--destructive);
     --landing-grid: var(--border);
@@ -135,8 +135,8 @@
     --landing-text: var(--foreground);
     --landing-text-secondary: var(--secondary-foreground);
     --landing-text-muted: var(--muted-foreground);
-    --landing-accent: var(--primary);
-    --landing-accent-secondary: var(--accent);
+    --landing-accent: var(--accent);
+    --landing-accent-secondary: var(--primary);
     --landing-accent-warning: var(--warning);
     --landing-accent-danger: var(--destructive);
     --landing-grid: var(--border);

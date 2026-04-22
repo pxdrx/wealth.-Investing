@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Menu, X, LayoutDashboard, Settings, LogOut, ChevronDown } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { ThemeToggle } from "./ThemeToggle";
+import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { NAV_LINKS } from "@/lib/landing-data";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile } from "@/lib/profile";
@@ -135,6 +136,7 @@ export function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          <LocaleSwitcher className="hidden md:inline-flex" />
           <ThemeToggle />
 
           {isLoading && <div className="hidden md:block w-[180px]" />}
@@ -292,6 +294,10 @@ export function Navbar() {
             className="my-2"
             style={{ borderColor: "hsl(var(--landing-border))" }}
           />
+
+          <div className="px-3 pb-2">
+            <LocaleSwitcher />
+          </div>
 
           {!isLoading && !isLoggedIn && (
             <>

@@ -13,6 +13,7 @@ import {
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { analyzeSmartAlerts, type TradeInput, type SmartAlert } from "@/lib/smart-alerts";
 import { supabase } from "@/lib/supabase/client";
+import { useTranslations } from "next-intl";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   AlertTriangle,
@@ -73,10 +74,12 @@ interface SmartAlertsBannerProps {
 }
 
 export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerProps) {
+  const t = useTranslations("smartAlerts");
   const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     return new Set(getDismissedFromCache().map(dismissalKey));
   });
+  const [dismissError, setDismissError] = useState<string | null>(null);
 
   // On mount: pull server-side dismissals and merge with local cache.
   useEffect(() => {
@@ -138,7 +141,7 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
     [allAlerts, dismissedKeys],
   );
 
-  const handleDismiss = useCallback(() => {
+  const handleDismiss = useCallback(async () => {
     if (alerts.length === 0) return;
 
     const newlyDismissed: DismissalRecord[] = alerts.map((a) => ({
@@ -146,12 +149,17 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
       signature: a.signature,
     }));
 
+    // Snapshot previous state for rollback.
+    const previousKeys = new Set(dismissedKeys);
+    const previousCache = getDismissedFromCache();
+
     // Optimistic local update.
     const nextKeys = new Set(dismissedKeys);
     for (const r of newlyDismissed) nextKeys.add(dismissalKey(r));
     setDismissedKeys(nextKeys);
+    setDismissError(null);
 
-    const cacheList = [...getDismissedFromCache()];
+    const cacheList = [...previousCache];
     for (const r of newlyDismissed) {
       if (!cacheList.some((c) => c.id === r.id && c.signature === r.signature)) {
         cacheList.push(r);
@@ -159,35 +167,40 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
     }
     saveDismissedToCache(cacheList);
 
-    // Background POST per alert — unique constraint makes it idempotent.
-    (async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-        if (!token) return;
+    // Await POST per alert — check ok, rollback on failure.
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("missing_token");
 
-        await Promise.all(
-          newlyDismissed.map((r) =>
-            fetch("/api/smart-alerts/dismissals", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                alert_id: r.id,
-                alert_signature: r.signature,
-              }),
-            }).catch((err) => {
-              console.warn("[smart-alerts] dismissal POST failed", err);
+      const results = await Promise.all(
+        newlyDismissed.map((r) =>
+          fetch("/api/smart-alerts/dismissals", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              alert_id: r.id,
+              alert_signature: r.signature,
             }),
-          ),
-        );
-      } catch (err) {
-        console.warn("[smart-alerts] dismissal sync failed", err);
-      }
-    })();
-  }, [dismissedKeys, alerts]);
+          }).catch(() => null),
+        ),
+      );
+
+      const allOk = results.every((res) => res !== null && res.ok);
+      if (!allOk) throw new Error("server_failed");
+    } catch (err) {
+      console.warn("[smart-alerts] dismissal sync failed", err);
+      // Rollback optimistic state + cache.
+      setDismissedKeys(previousKeys);
+      saveDismissedToCache(previousCache);
+      setDismissError(t("dismissFailed"));
+      // Auto-clear error after 5s.
+      setTimeout(() => setDismissError(null), 5000);
+    }
+  }, [dismissedKeys, alerts, t]);
 
   const visible = alerts.length > 0;
 
@@ -254,6 +267,16 @@ export function SmartAlertsBanner({ trades, dailyDdLimit }: SmartAlertsBannerPro
                   <X className="h-4 w-4" />
                 </button>
               </div>
+
+              {/* Dismiss error */}
+              {dismissError && (
+                <div
+                  role="alert"
+                  className="mx-5 mt-1 rounded-lg border border-red-300/60 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-500/40 dark:bg-red-950/40 dark:text-red-300"
+                >
+                  {dismissError}
+                </div>
+              )}
 
               {/* Alert rows */}
               <div className="flex flex-col gap-1 px-5 pb-4 pt-1">

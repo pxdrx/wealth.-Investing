@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import {
   LogOut,
   ChevronLeft,
@@ -12,14 +11,12 @@ import {
   Crown,
   Eye,
   EyeOff,
+  Flame,
+  Trophy,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { usePrivacy } from "@/components/context/PrivacyContext";
-
-// StreakBadge only mounts client-side (depends on supabase) — dynamic to avoid SSR cost.
-const StreakBadge = dynamic(
-  () => import("@/components/dashboard/StreakBadge").then((m) => ({ default: m.StreakBadge })),
-  { ssr: false },
-);
+import { useStreak } from "@/hooks/useStreak";
 import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { getMyProfile } from "@/lib/profile";
@@ -27,6 +24,7 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { cn } from "@/lib/utils";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { getAppNav, footerNavItems } from "@/lib/app-nav";
@@ -51,6 +49,8 @@ function AppSidebarInner() {
   const { plan, isProOrAbove } = useEntitlements();
   const { hidden: valuesHidden, toggle: togglePrivacy } = usePrivacy();
   const roles = useAppRoles();
+  const t = useTranslations("sidebar.profile");
+  const { currentStreak, longestStreak } = useStreak(userId);
 
   const navLinks = getAppNav({
     isMentor: roles.isMentor,
@@ -260,7 +260,7 @@ function AppSidebarInner() {
             className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Crown className="h-4 w-4" />
-            Seja Pro
+            {t("goPro")}
           </Link>
         </div>
       )}
@@ -268,7 +268,7 @@ function AppSidebarInner() {
         <div className="flex justify-center pb-2">
           <Link
             href="/app/pricing"
-            title="Seja Pro"
+            title={t("goPro")}
             onClick={() => emit("ultra_upgrade_clicked", { source: "sidebar", variant: "collapsed" })}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
@@ -315,59 +315,111 @@ function AppSidebarInner() {
 
           <button
             onClick={togglePrivacy}
-            title={collapsed ? (valuesHidden ? "Mostrar valores" : "Ocultar valores") : undefined}
+            title={collapsed ? (valuesHidden ? t("showValues") : t("hideValues")) : undefined}
             className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 w-full"
           >
             {valuesHidden ? <EyeOff className="h-4 w-4 shrink-0" /> : <Eye className="h-4 w-4 shrink-0" />}
             {!collapsed && (
               <span className="text-sm font-medium">
-                {valuesHidden ? "Mostrar valores" : "Ocultar valores"}
+                {valuesHidden ? t("showValues") : t("hideValues")}
               </span>
             )}
           </button>
 
           <button
             onClick={() => { emit("logout_clicked", { surface: "sidebar" }); logout(); }}
-            title={collapsed ? "Sair" : undefined}
+            title={collapsed ? t("logout") : undefined}
             className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 w-full"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="text-sm font-medium">Sair</span>}
+            {!collapsed && <span className="text-sm font-medium">{t("logout")}</span>}
           </button>
         </div>
 
-        {/* User Card */}
-        {hasSession && (
-          <div className={cn(
-            "mt-4 flex items-center gap-3 rounded-xl border border-border/30 bg-muted/20 p-2 overflow-hidden transition-all",
-            collapsed ? "justify-center" : ""
-          )}>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm">
-              {initials}
-            </div>
-            {!collapsed && (
-              <div className="flex flex-1 items-center min-w-0 gap-2">
-                <div className="flex flex-col min-w-0 flex-1 gap-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-xs font-semibold text-foreground">
-                      {profileLoading ? "Carregando..." : (displayName ?? "Operador")}
-                    </span>
-                    {!profileLoading && (
-                      <SubscriptionBadge className="text-[9px] h-4 leading-none flex items-center px-1.5" />
-                    )}
-                    <StreakBadge userId={userId} />
-                  </div>
-                  <span className="truncate text-[10px] text-muted-foreground uppercase tracking-widest">
-                    Terminal {plan === 'mentor' ? 'Mentor' : plan === 'ultra' ? 'Ultra' : plan === 'pro' ? 'Pro' : 'Free'}
-                  </span>
-                </div>
-                <div className="shrink-0">
-                  <ThemeToggle />
-                </div>
-              </div>
-            )}
+        {/* Theme + locale controls — own row, above user card */}
+        {!collapsed && (
+          <div className="mt-2 flex items-center justify-between gap-2 px-1">
+            <LocaleSwitcher />
+            <ThemeToggle />
           </div>
         )}
+        {collapsed && (
+          <div className="mt-2 flex justify-center">
+            <ThemeToggle />
+          </div>
+        )}
+
+        {/* User Card */}
+        {hasSession && (() => {
+          const tierLabel =
+            plan === "mentor"
+              ? `${t("terminal")} ${t("tier.mentor")}`
+              : plan === "ultra"
+              ? `${t("terminal")} ${t("tier.ultra")}`
+              : plan === "pro"
+              ? `${t("terminal")} ${t("tier.pro")}`
+              : `${t("terminal")} ${t("tier.free")}`;
+          const tooltipLabel = [displayName ?? t("operator"), tierLabel]
+            .filter(Boolean)
+            .join(" · ");
+          const showStreakRow = !collapsed && (currentStreak > 0 || longestStreak > 0);
+
+          return (
+            <div
+              className={cn(
+                "mt-3 rounded-xl border border-border/30 bg-muted/20 p-3 transition-all",
+                collapsed ? "flex justify-center" : "flex flex-col gap-2",
+              )}
+              title={collapsed ? tooltipLabel : undefined}
+            >
+              {/* Row 1 — avatar + nome + tier */}
+              <div className={cn("flex items-center gap-3 min-w-0", collapsed && "gap-0")}>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm">
+                  {initials}
+                </div>
+                {!collapsed && (
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {profileLoading ? t("loading") : (displayName ?? t("operator"))}
+                      </span>
+                      {!profileLoading && (
+                        <SubscriptionBadge className="shrink-0 text-[9px] h-4 leading-none flex items-center px-1.5" />
+                      )}
+                    </div>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {tierLabel}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Row 2 — streak (only when expanded and data exists) */}
+              {showStreakRow && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {currentStreak > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      <Flame className="h-3.5 w-3.5 text-orange-500" aria-hidden />
+                      <span className="tabular-nums">
+                        {currentStreak} {currentStreak === 1 ? t("dayOne") : t("dayMany")}
+                      </span>
+                    </span>
+                  )}
+                  {longestStreak > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      <Trophy className="h-3.5 w-3.5 text-amber-500" aria-hidden />
+                      <span className="tabular-nums">
+                        {t("record")}: {longestStreak}
+                        {longestStreak === 1 ? "d" : "d"}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
+
+            </div>
+          );
+        })()}
       </div>
     </aside>
   );

@@ -69,7 +69,7 @@ export function PropFirmsOverview({ cards }: { cards: PropFirmCardInput[] }) {
           {rollups.length} {rollups.length === 1 ? "firma" : "firmas"}
         </span>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
         {rollups.map((r) => {
           const netPctVsStart = r.totalStartingBalance > 0
             ? (r.totalHistorical / r.totalStartingBalance) * 100

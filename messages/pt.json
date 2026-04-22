@@ -356,5 +356,85 @@
     "cta": "Começar grátis",
     "dismissAria": "Dispensar",
     "regionAria": "Call-to-action fixo"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "journal": "Trade Journal",
+    "mentor": "Mentoria",
+    "mentorPanel": "Painel Mentor",
+    "mentorStudent": "Mentor",
+    "prop": "Contas",
+    "chart": "Gráfico",
+    "backtest": "Backtest",
+    "macro": "Inteligência Macro",
+    "dexter": "Dexter",
+    "admin": "Admin",
+    "settings": "Configurações",
+    "plans": "Planos",
+    "feedback": "Feedback",
+    "hideValues": "Ocultar valores",
+    "showValues": "Mostrar valores",
+    "logout": "Sair",
+    "menu": "Menu",
+    "close": "Fechar",
+    "open": "Abrir menu",
+    "signIn": "Entrar",
+    "signUp": "Comece grátis",
+    "goDashboard": "Ir para Dashboard",
+    "account": "Conta"
+  },
+  "sidebar": {
+    "profile": {
+      "goPro": "Seja Pro",
+      "terminal": "Terminal",
+      "tier": {
+        "free": "Free",
+        "pro": "Pro",
+        "ultra": "Ultra",
+        "mentor": "Mentor"
+      },
+      "operator": "Operador",
+      "loading": "Carregando…",
+      "dayOne": "dia",
+      "dayMany": "dias",
+      "record": "Recorde",
+      "logout": "Sair",
+      "hideValues": "Ocultar valores",
+      "showValues": "Mostrar valores"
+    }
+  },
+  "streak": {
+    "day": "{count, plural, one {# dia} other {# dias}}",
+    "record": "Recorde",
+    "recordShort": "Recorde: {count}d",
+    "lost": "Streak perdida"
+  },
+  "dayTimeline": {
+    "title": "Timeline do dia",
+    "window": "08:00–22:00 BRT",
+    "tradesCount": "{count, plural, one {# trade} other {# trades}}",
+    "subtitle": "Seus trades ao longo do dia (08:00–22:00 BRT). Tamanho da bolha = magnitude do PnL.",
+    "profit": "Lucro",
+    "loss": "Prejuízo",
+    "sessionBand": "Banda = sessão (Londres / NY)",
+    "unavailable": "Timeline indisponível no momento.",
+    "empty": "Nenhum trade hoje ainda. Hora de observar antes de agir."
+  },
+  "propFirms": {
+    "heading": "Por Firma",
+    "firmsCount": "{count, plural, one {# firma} other {# firmas}}",
+    "accountsCount": "{count, plural, one {# conta} other {# contas}}",
+    "allocated": "Alocado",
+    "pnlTotal": "PnL Total",
+    "eligiblePayout": "Elegível p/ payout",
+    "worstDrawdown": "Pior drawdown"
+  },
+  "smartAlerts": {
+    "dismissFailed": "Não foi possível salvar a dispensa do alerta. Tente novamente."
+  },
+  "dexter": {
+    "unavailable": "Coach indisponível no momento. Tente novamente em alguns minutos.",
+    "loading": "Preparando resposta do Dexter…",
+    "placeholder": "Envie sua primeira mensagem ao Dexter"
   }
 }

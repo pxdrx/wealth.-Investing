@@ -356,5 +356,13 @@
     "cta": "Start free",
     "dismissAria": "Dismiss",
     "regionAria": "Pinned call-to-action"
+  },
+  "smartAlerts": {
+    "dismissFailed": "Could not save alert dismissal. Please try again."
+  },
+  "dexter": {
+    "unavailable": "Coach unavailable right now. Please try again in a few minutes.",
+    "loading": "Preparing Dexter's response…",
+    "placeholder": "Send your first message to Dexter"
   }
 }

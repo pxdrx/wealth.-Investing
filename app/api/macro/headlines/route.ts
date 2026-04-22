@@ -1,5 +1,6 @@
 // app/api/macro/headlines/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { translateHeadlines } from "@/lib/macro/translate";
@@ -10,6 +11,42 @@ import { apiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+/**
+ * Whitelist of high-impact macro keywords used to filter breaking headlines.
+ * Case-insensitive match against title.
+ */
+const BREAKING_KEYWORDS = [
+  "fed", "fomc", "cpi", "ppi", "nfp", "nonfarm", "rate", "ecb", "boj",
+  "war", "crisis", "brics", "tariff", "sanction", "powell", "lagarde",
+  "recession", "inflation", "gdp", "unemployment",
+  "trump", "biden", "putin", "xi",
+];
+
+const BREAKING_SOURCES = new Set<string>(["te_breaking", "financial_juice"]);
+
+/**
+ * Deterministic 16-hex-char key from url + title for dismissal persistence.
+ * Stable across DB rows as long as url/title don't change.
+ */
+function buildNewsKey(url: string | null | undefined, title: string | null | undefined): string {
+  const payload = `${url ?? ""}::${title ?? ""}`;
+  return createHash("sha1").update(payload).digest("hex").slice(0, 16);
+}
+
+function matchesBreakingKeyword(title: string | null | undefined): boolean {
+  if (!title) return false;
+  const lower = title.toLowerCase();
+  return BREAKING_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+function isBreakingItem(item: { source?: string | null; impact?: string | null; title?: string | null }): boolean {
+  const source = item.source ?? "";
+  const impact = item.impact ?? "";
+  if (BREAKING_SOURCES.has(source)) return true;
+  if (impact === "breaking") return true;
+  return matchesBreakingKeyword(item.title);
+}
 
 function getSupabase() {
   return createClient(
@@ -94,12 +131,40 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
   // Parse query params
-  const limitParam = parseInt(searchParams.get("limit") || "30", 10);
-  const limit = Math.min(Math.max(1, limitParam), 100);
+  const breakingMode = searchParams.get("breaking") === "true" || searchParams.get("breaking") === "1";
+  const limitParam = parseInt(searchParams.get("limit") || (breakingMode ? "3" : "30"), 10);
+  // Breaking mode caps at 5 to stay focused; default 3.
+  const limit = breakingMode
+    ? Math.min(Math.max(1, limitParam), 5)
+    : Math.min(Math.max(1, limitParam), 100);
   const source = searchParams.get("source") as "forexlive" | "reuters" | "truth_social" | "trading_economics" | null;
   const forceLive = searchParams.get("live") === "1";
   // Extend default window to 7 days to catch more cached headlines
   const since = searchParams.get("since") || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Optional auth for dismissals filtering. Does NOT gate the endpoint.
+  const authToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
+  let dismissedKeys: Set<string> = new Set();
+  if (authToken) {
+    try {
+      const supabaseUser = createSupabaseClientForUser(authToken);
+      const { data: { user } } = await supabaseUser.auth.getUser();
+      if (user) {
+        const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: dismissals } = await supabaseUser
+          .from("macro_news_dismissals")
+          .select("news_key")
+          .gt("dismissed_at", cutoff);
+        if (dismissals) {
+          dismissedKeys = new Set(
+            (dismissals as Array<{ news_key: string }>).map((d) => d.news_key),
+          );
+        }
+      }
+    } catch {
+      // Silent: dismissal filtering is opportunistic.
+    }
+  }
 
   // If ?live=1, require auth and fetch directly from RSS feeds
   if (forceLive) {
@@ -114,8 +179,14 @@ export async function GET(req: NextRequest) {
     }
 
     const liveData = await fetchLiveHeadlines(limit);
+    const enriched = liveData
+      .map((h) => ({ ...h, news_key: buildNewsKey((h as { url?: string | null }).url, (h as { title?: string | null }).title) }))
+      .filter((h) => !dismissedKeys.has(h.news_key));
+    const filtered = breakingMode
+      ? enriched.filter(isBreakingItem).slice(0, limit)
+      : enriched;
 
-    return NextResponse.json({ ok: true, data: liveData, source: "live" });
+    return NextResponse.json({ ok: true, data: filtered, source: "live" });
   }
 
   const cacheHeaders = { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" };
@@ -156,5 +227,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Failed to fetch headlines" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, data }, { headers: cacheHeaders });
+  const withKeys = (data ?? []).map((h) => {
+    const row = h as { url?: string | null; title?: string | null };
+    return { ...h, news_key: buildNewsKey(row.url, row.title) };
+  });
+  const notDismissed = withKeys.filter((h) => !dismissedKeys.has(h.news_key));
+  const finalData = breakingMode
+    ? notDismissed.filter(isBreakingItem).slice(0, limit)
+    : notDismissed;
+
+  return NextResponse.json({ ok: true, data: finalData }, { headers: cacheHeaders });
 }
