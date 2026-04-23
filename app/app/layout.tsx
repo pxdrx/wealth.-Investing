@@ -5,7 +5,6 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { BootstrapWarning } from "@/components/auth/BootstrapWarning";
 import { PrivacyProvider } from "@/components/context/PrivacyContext";
 import { locales, defaultLocale, type Locale } from "@/i18n";
-import { providerConfig } from "@/lib/i18n/provider-config";
 import ptMessages from "@/messages/pt.json";
 import enMessages from "@/messages/en.json";
 
@@ -30,12 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const tCommon = await getTranslations({ locale, namespace: "app.common" });
 
   return (
-    <NextIntlClientProvider
-      locale={locale}
-      messages={messages}
-      onError={providerConfig.onError}
-      getMessageFallback={providerConfig.getMessageFallback}
-    >
+    <NextIntlClientProvider locale={locale} messages={messages}>
       <AuthGate>
         <PrivacyProvider>
           <div className="min-h-screen">
