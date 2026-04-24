@@ -4,8 +4,7 @@ import type { CSSProperties } from "react";
 
 import styles from "./Dexter.module.css";
 
-// 7 moods kept for API backwards-compat; 3 alias onto the 4 canonical poses
-// shipped by claude-design (default / thinking / alert / offline).
+// 7 moods, each with its own SVG in public/dexter/.
 export const DEXTER_MOODS = [
   "default",
   "thinking",
@@ -27,15 +26,15 @@ export interface DexterProps {
   title?: string;
 }
 
-type CanonicalPose = "default" | "thinking" | "alert" | "offline";
+type CanonicalPose = DexterMood;
 
 const MOOD_TO_POSE: Record<DexterMood, CanonicalPose> = {
   default: "default",
   thinking: "thinking",
   alert: "alert",
-  celebrating: "default",
-  sleeping: "offline",
-  analyzing: "thinking",
+  celebrating: "celebrating",
+  sleeping: "sleeping",
+  analyzing: "analyzing",
   offline: "offline",
 };
 
