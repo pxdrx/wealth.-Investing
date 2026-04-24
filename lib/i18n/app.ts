@@ -417,6 +417,17 @@ const PT: Dict = {
   "dashboard.dayTimeline.title": "Timeline do dia · 08:00–22:00 BRT",
   "dashboard.dayTimeline.tradesCount": "{count} trades",
   "dashboard.dayTimeline.unavailable": "Timeline indisponível no momento.",
+  // Settings page — shell (deep forms migrated in D4-05 / I10b)
+  "settings.page.title": "Configurações",
+  "settings.page.subtitle": "Gerencie seu perfil, assinatura e preferências.",
+  "settings.section.profile": "Perfil",
+  "settings.section.subscription": "Assinatura",
+  "settings.section.mentor": "Mentor",
+  "settings.section.preferences": "Preferências",
+  "settings.section.dashboard": "Dashboard",
+  "settings.section.dangerZone": "Zona de perigo",
+  "settings.preferences.theme": "Tema:",
+  "settings.preferences.language": "Idioma:",
 };
 
 const EN: Dict = {
@@ -819,6 +830,17 @@ const EN: Dict = {
   "dashboard.dayTimeline.title": "Today's timeline · 08:00–22:00 BRT",
   "dashboard.dayTimeline.tradesCount": "{count} trades",
   "dashboard.dayTimeline.unavailable": "Timeline unavailable right now.",
+  // Settings page — shell (deep forms migrated in D4-05 / I10b)
+  "settings.page.title": "Settings",
+  "settings.page.subtitle": "Manage your profile, subscription, and preferences.",
+  "settings.section.profile": "Profile",
+  "settings.section.subscription": "Subscription",
+  "settings.section.mentor": "Mentor",
+  "settings.section.preferences": "Preferences",
+  "settings.section.dashboard": "Dashboard",
+  "settings.section.dangerZone": "Danger zone",
+  "settings.preferences.theme": "Theme:",
+  "settings.preferences.language": "Language:",
 };
 
 const DICTS: Record<AppLocale, Dict> = { pt: PT, en: EN };

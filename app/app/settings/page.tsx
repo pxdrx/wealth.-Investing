@@ -10,6 +10,7 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { ChurnPreventionModal } from "@/components/billing/ChurnPreventionModal";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAppT } from "@/hooks/useAppLocale";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, upsertMyProfileDisplayName } from "@/lib/profile";
 import {
@@ -34,6 +35,7 @@ import {
 } from "@/components/dashboard/WidgetRenderer";
 
 export default function SettingsPage() {
+  const t = useAppT();
   // ── Profile state ──
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -417,15 +419,15 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden">
-      <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("settings.page.title")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Gerencie seu perfil, assinatura e preferências.
+        {t("settings.page.subtitle")}
       </p>
 
       <div className="mt-8 space-y-6">
         {/* ═══════════ 1. Perfil ═══════════ */}
         <Card className="rounded-[22px] p-6" style={cardStyle}>
-          <h2 className="text-lg font-semibold">Perfil</h2>
+          <h2 className="text-lg font-semibold">{t("settings.section.profile")}</h2>
 
           {profileLoading ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
@@ -506,7 +508,7 @@ export default function SettingsPage() {
 
         {/* ═══════════ 2. Assinatura ═══════════ */}
         <Card className="rounded-[22px] p-6" style={cardStyle}>
-          <h2 className="text-lg font-semibold">Assinatura</h2>
+          <h2 className="text-lg font-semibold">{t("settings.section.subscription")}</h2>
 
           {subLoading ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
@@ -572,7 +574,7 @@ export default function SettingsPage() {
         <Card className="rounded-[22px] p-6" style={cardStyle}>
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <GraduationCap className="h-5 w-5 text-amber-500" />
-            Mentor
+            {t("settings.section.mentor")}
           </h2>
 
           {mentorLoading ? (
@@ -660,10 +662,10 @@ export default function SettingsPage() {
 
         {/* ═══════════ 3. Preferências ═══════════ */}
         <Card className="rounded-[22px] p-6" style={cardStyle}>
-          <h2 className="text-lg font-semibold">Preferências</h2>
+          <h2 className="text-lg font-semibold">{t("settings.section.preferences")}</h2>
 
           <div className="mt-4 flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Tema:</span>
+            <span className="text-sm text-muted-foreground">{t("settings.preferences.theme")}</span>
             <ThemeToggle />
           </div>
         </Card>
@@ -672,7 +674,7 @@ export default function SettingsPage() {
         <Card className="rounded-[22px] p-6" style={cardStyle}>
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
-            Dashboard
+            {t("settings.section.dashboard")}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Marque os widgets que deseja exibir e use as setas para reordenar.
@@ -786,7 +788,7 @@ export default function SettingsPage() {
         >
           <h2 className="flex items-center gap-2 text-lg font-semibold text-red-500">
             <AlertTriangle className="h-5 w-5" />
-            Zona de perigo
+            {t("settings.section.dangerZone")}
           </h2>
 
           <div className="mt-4 space-y-4">
