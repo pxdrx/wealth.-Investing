@@ -6,7 +6,6 @@ import type { Plan, SubscriptionRow, TierLimits } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useAuthEvent } from "@/components/context/AuthEventContext";
-import { useEntitlements } from "@/hooks/use-entitlements";
 
 interface SubscriptionContextValue {
   plan: Plan;
@@ -122,12 +121,3 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   );
 }
 
-/**
- * @deprecated Use `useEntitlements` from `@/hooks/use-entitlements` instead.
- * Kept as a thin wrapper for backwards-compat during Track A/B rebases.
- * Scheduled for removal in C-11 cleanup once all consumers migrate.
- */
-export function useSubscription(): SubscriptionContextValue {
-  const { hasAccess: _hasAccess, ...rest } = useEntitlements();
-  return rest;
-}
