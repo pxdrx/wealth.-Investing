@@ -382,7 +382,19 @@ export default function JournalPage() {
         setIsImportLoading(false);
         return;
       }
-      // Map API preview response to PreviewData shape
+      // Map API preview response to PreviewData shape.
+      // When the server parsed an XLSX through the adaptive fallback
+      // (e.g. NinjaTrader PT-BR workbook that didn't match the MT5 signature),
+      // it sets needsMapping=true and returns fingerprint + column mapping.
+      // Hand the same file to the AdaptiveImportModal so the user can confirm
+      // the mapping and reuse the learned profile on future imports.
+      if (data.needsMapping === true && data.fingerprint) {
+        setAdaptiveAccessToken(session.access_token);
+        setAdaptiveCsvFile(file);
+        setIsImportLoading(false);
+        // importFlowState is already "previewing"; AdaptiveImportModal mounts.
+        return;
+      }
       const rawTrades = (data.sample ?? data.preview_trades ?? data.trades ?? []) as Array<Record<string, unknown>>;
       if (rawTrades.length === 0 && !data.trades_found) {
         setImportError("Nenhum trade encontrado no arquivo. Verifique se é um relatório MT5 válido.");

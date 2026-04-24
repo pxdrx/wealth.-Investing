@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 import { parseMt5Xlsx } from "@/lib/mt5-parser";
 import { parseMt5Html } from "@/lib/mt5-html-parser";
+import { xlsxFirstSheetToCsvBuffer } from "@/lib/xlsx-adaptive-bridge";
 import { inferCategory } from "@/lib/trading/category";
 import { checkAndDeactivateIfDdBreached } from "@/lib/dd-check";
 import { validateAccountOwnership } from "@/lib/account-validation";
@@ -261,6 +262,95 @@ export async function POST(request: Request) {
     let suggestedBy: "parser" | "claude_haiku" | "user" = "parser";
     let profileRecord: ImportProfile | null = null;
 
+    // Shared adaptive pipeline — also invoked as XLSX fallback below when
+    // parseMt5Xlsx returned zero rows (non-MT5 workbook, e.g. NinjaTrader PT-BR
+    // export converted from CSV to XLSX).
+    const runAdaptivePipeline = async (adaptiveBuffer: ArrayBuffer | Buffer) => {
+      const { parseCsvAdaptive } = await import("@/lib/csv-adaptive-parser");
+
+      // Load DB-backed alias vocabulary so broker-specific learned headers
+      // are merged on top of the static dictionary before parsing.
+      const extraAliases = await getCachedVocabulary(supabase);
+
+      const adapt = parseCsvAdaptive(adaptiveBuffer, { extraAliases });
+      trades = adapt.trades.map((t) => ({
+        external_id: t.external_id,
+        external_source: t.external_source,
+        symbol: t.symbol,
+        direction: t.direction,
+        opened_at: t.opened_at,
+        closed_at: t.closed_at,
+        pnl_usd: t.pnl_usd,
+        fees_usd: t.fees_usd,
+        lots: t.lots,
+      }));
+      balanceOps = [];
+      parserChosen = `csv_adaptive${adapt.broker_hint !== "generic" ? `_${adapt.broker_hint}` : ""}`;
+      csvSource = adapt.external_source;
+      adaptiveMapping = Object.fromEntries(
+        Object.entries(adapt.mapping).map(([k, v]) => [
+          k,
+          { header: v!.header, confidence: v!.confidence },
+        ])
+      );
+      adaptiveWarnings = adapt.warnings;
+      adaptiveSkippedOpen = adapt.rows_skipped_open_position;
+      rawHeaders = adapt.headers ?? [];
+      rawSeparator = adapt.separator ?? "";
+      rawEncoding = adapt.encoding ?? "utf-8";
+
+      // Required canonical fields that the parser could not resolve.
+      const REQUIRED: Array<keyof typeof adapt.mapping> = [
+        "symbol",
+        "pnl_usd",
+        "opened_at",
+        "closed_at",
+      ] as Array<keyof typeof adapt.mapping>;
+      adaptiveMissing = REQUIRED.filter((k) => !adapt.mapping[k]).map(String);
+
+      // Fingerprint + profile lookup (best-effort — failures don't block import).
+      try {
+        fingerprint = computeFingerprint({
+          separator: rawSeparator,
+          encoding: rawEncoding,
+          headers: rawHeaders,
+        });
+        matchedProfile = await getProfileByFingerprint(supabase, userId, fingerprint);
+      } catch (fpErr) {
+        console.warn("[import-mt5] fingerprint lookup failed:", fpErr);
+      }
+
+      // Capture a handful of sample data rows (post-header) to feed Claude if we need it.
+      if (adaptiveMissing.length > 0 && rawHeaders.length > 0 && !matchedProfile?.validated_by_user) {
+        try {
+          adaptiveSampleRows = extractSampleRowsFromBuffer(adaptiveBuffer, rawSeparator, rawHeaders);
+        } catch (sErr) {
+          console.warn("[import-mt5] sample row extract failed:", sErr);
+        }
+
+        // AI fallback only when parser left required fields unresolved AND
+        // we don't already have a validated profile for this fingerprint.
+        const suggestion = await suggestColumnMapping({
+          headers: rawHeaders,
+          sampleRows: adaptiveSampleRows,
+        });
+        if (suggestion) {
+          claudeSuggestion = suggestion;
+          aiSuggested = true;
+          suggestedBy = "claude_haiku";
+          // Merge Claude's suggestions into adaptiveMapping for UI display
+          // (only for fields the parser didn't already resolve).
+          const merged = { ...(adaptiveMapping ?? {}) };
+          for (const [canonical, header] of Object.entries(suggestion.mapping)) {
+            if (!merged[canonical]) {
+              merged[canonical] = { header, confidence: "ai" };
+            }
+          }
+          adaptiveMapping = merged;
+        }
+      }
+    };
+
     try {
       if (isCsv) {
         // Try cTrader fast-path; on failure fall back to adaptive parser.
@@ -349,95 +439,32 @@ export async function POST(request: Request) {
             console.warn("[import-mt5] cTrader header extraction failed (non-blocking):", hdrErr);
           }
         } else {
-          const { parseCsvAdaptive } = await import("@/lib/csv-adaptive-parser");
-
-          // Load DB-backed alias vocabulary so broker-specific learned headers
-          // are merged on top of the static dictionary before parsing.
-          const extraAliases = await getCachedVocabulary(supabase);
-
-          const adapt = parseCsvAdaptive(buffer, { extraAliases });
-          trades = adapt.trades.map((t) => ({
-            external_id: t.external_id,
-            external_source: t.external_source,
-            symbol: t.symbol,
-            direction: t.direction,
-            opened_at: t.opened_at,
-            closed_at: t.closed_at,
-            pnl_usd: t.pnl_usd,
-            fees_usd: t.fees_usd,
-            lots: t.lots,
-          }));
-          balanceOps = [];
-          parserChosen = `csv_adaptive${adapt.broker_hint !== "generic" ? `_${adapt.broker_hint}` : ""}`;
-          csvSource = adapt.external_source;
-          adaptiveMapping = Object.fromEntries(
-            Object.entries(adapt.mapping).map(([k, v]) => [
-              k,
-              { header: v!.header, confidence: v!.confidence },
-            ])
-          );
-          adaptiveWarnings = adapt.warnings;
-          adaptiveSkippedOpen = adapt.rows_skipped_open_position;
-          rawHeaders = adapt.headers ?? [];
-          rawSeparator = adapt.separator ?? "";
-          rawEncoding = adapt.encoding ?? "utf-8";
-
-          // Required canonical fields that the parser could not resolve.
-          const REQUIRED: Array<keyof typeof adapt.mapping> = [
-            "symbol",
-            "pnl_usd",
-            "opened_at",
-            "closed_at",
-          ] as Array<keyof typeof adapt.mapping>;
-          adaptiveMissing = REQUIRED.filter((k) => !adapt.mapping[k]).map(String);
-
-          // Fingerprint + profile lookup (best-effort — failures don't block import).
-          try {
-            fingerprint = computeFingerprint({
-              separator: rawSeparator,
-              encoding: rawEncoding,
-              headers: rawHeaders,
-            });
-            matchedProfile = await getProfileByFingerprint(supabase, userId, fingerprint);
-          } catch (fpErr) {
-            console.warn("[import-mt5] fingerprint lookup failed:", fpErr);
-          }
-
-          // Capture a handful of sample data rows (post-header) to feed Claude if we need it.
-          // We reuse the raw split produced by the parser isn't exposed — reparse cheaply here.
-          if (adaptiveMissing.length > 0 && rawHeaders.length > 0 && !matchedProfile?.validated_by_user) {
-            try {
-              adaptiveSampleRows = extractSampleRowsFromBuffer(buffer, rawSeparator, rawHeaders);
-            } catch (sErr) {
-              console.warn("[import-mt5] sample row extract failed:", sErr);
-            }
-
-            // AI fallback only when parser left required fields unresolved AND
-            // we don't already have a validated profile for this fingerprint.
-            const suggestion = await suggestColumnMapping({
-              headers: rawHeaders,
-              sampleRows: adaptiveSampleRows,
-            });
-            if (suggestion) {
-              claudeSuggestion = suggestion;
-              aiSuggested = true;
-              suggestedBy = "claude_haiku";
-              // Merge Claude's suggestions into adaptiveMapping for UI display
-              // (only for fields the parser didn't already resolve).
-              const merged = { ...(adaptiveMapping ?? {}) };
-              for (const [canonical, header] of Object.entries(suggestion.mapping)) {
-                if (!merged[canonical]) {
-                  merged[canonical] = { header, confidence: "ai" };
-                }
-              }
-              adaptiveMapping = merged;
-            }
-          }
+          await runAdaptivePipeline(buffer);
         }
-      } else {
-        const result = isHtml ? parseMt5Html(buffer) : parseMt5Xlsx(buffer);
+      } else if (isHtml) {
+        const result = parseMt5Html(buffer);
         trades = result.trades;
         balanceOps = result.balanceOps;
+      } else {
+        // XLSX branch: try the rigid MT5 parser first. If it comes back empty
+        // (non-MT5 workbook like NinjaTrader PT-BR converted from CSV), convert
+        // the first sheet into a CSV buffer and rerun through the adaptive
+        // pipeline so the UI gets column-mapping metadata + profile caching.
+        const result = parseMt5Xlsx(buffer);
+        trades = result.trades;
+        balanceOps = result.balanceOps;
+
+        if (trades.length === 0 && balanceOps.length === 0) {
+          try {
+            const { csv } = xlsxFirstSheetToCsvBuffer(buffer);
+            await runAdaptivePipeline(csv);
+          } catch (bridgeErr) {
+            console.warn(
+              "[import-mt5] xlsx→csv adaptive bridge failed:",
+              bridgeErr
+            );
+          }
+        }
       }
     } catch (parseErr) {
       const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
@@ -508,8 +535,14 @@ export async function POST(request: Request) {
       });
     }
 
+    // Adaptive pipeline ran either on the CSV path or as the XLSX fallback.
+    // Everything downstream that was historically gated on `isCsv` to decide
+    // between MT5 and CSV semantics (external_source, profile persistence,
+    // vocabulary learning) should pivot on this flag instead.
+    const usedAdaptive = parserChosen.startsWith("csv");
+
     // ── NON-PREVIEW FLOW: upsert profile before inserting rows ──
-    if (isCsv && fingerprint && rawHeaders.length > 0) {
+    if (usedAdaptive && fingerprint && rawHeaders.length > 0) {
       try {
         const profilePayload = {
           user_id: userId,
@@ -606,7 +639,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const sourceLabel = isCsv ? parserChosen : isHtml ? "mt5_html" : "mt5_xlsx";
+    const sourceLabel = usedAdaptive ? parserChosen : isHtml ? "mt5_html" : "mt5_xlsx";
 
     let imported = 0;
     let duplicates = 0;
@@ -623,7 +656,7 @@ export async function POST(request: Request) {
       .select("closed_at")
       .eq("user_id", userId)
       .eq("account_id", accountId)
-      .eq("external_source", isCsv ? csvSource : "mt5")
+      .eq("external_source", usedAdaptive ? csvSource : "mt5")
       .order("closed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -643,7 +676,7 @@ export async function POST(request: Request) {
     // computes pnl_usd + fees_usd should any row come back NULL, so omitting
     // it here is safe either way.
     // Step 1: Check for duplicates in bulk by fetching existing external_ids
-    const defaultSource = isCsv ? csvSource : "mt5";
+    const defaultSource = usedAdaptive ? csvSource : "mt5";
     const externalIds = newTrades.map((t) => t.external_id);
     const existingIdSet = new Set<string>();
 
@@ -808,7 +841,7 @@ export async function POST(request: Request) {
             .from("prop_payouts")
             .select("id")
             .eq("prop_account_id", propAccountRowId)
-            .eq("external_source", isCsv ? csvSource : "mt5")
+            .eq("external_source", usedAdaptive ? csvSource : "mt5")
             .eq("external_id", op.external_id)
             .maybeSingle();
           existing = data;
@@ -830,7 +863,7 @@ export async function POST(request: Request) {
           prop_account_id: propAccountRowId,
           paid_at: paidAt,
           amount_usd: op.amount_usd,
-          external_source: isCsv ? csvSource : "mt5",
+          external_source: usedAdaptive ? csvSource : "mt5",
           external_id: externalId,
         });
 
@@ -856,7 +889,7 @@ export async function POST(request: Request) {
       failed,
       payouts_detected: payoutsDetected,
       profile_id: profileRecord?.id ?? null,
-      suggested_by: profileRecord?.suggested_by ?? (isCsv ? suggestedBy : null),
+      suggested_by: profileRecord?.suggested_by ?? (usedAdaptive ? suggestedBy : null),
       fingerprint,
       ai_suggested: aiSuggested,
     };
@@ -875,7 +908,7 @@ export async function POST(request: Request) {
     });
 
     // Record vocabulary + profile usage on successful import (best-effort).
-    if (isCsv && imported > 0) {
+    if (usedAdaptive && imported > 0) {
       try {
         if (profileRecord?.id) {
           await recordProfileUsage(supabase, profileRecord.id);
@@ -927,9 +960,9 @@ export async function POST(request: Request) {
       mapping: adaptiveMapping,
       warnings: adaptiveWarnings,
       rows_skipped_open_position: adaptiveSkippedOpen,
-      // Adaptive-learning surface (null for non-CSV paths)
+      // Adaptive-learning surface (null when the rigid MT5 parser handled the file)
       profile_id: profileRecord?.id ?? null,
-      suggested_by: profileRecord?.suggested_by ?? (isCsv ? suggestedBy : null),
+      suggested_by: profileRecord?.suggested_by ?? (usedAdaptive ? suggestedBy : null),
       ai_suggested: aiSuggested,
       fingerprint,
     });
