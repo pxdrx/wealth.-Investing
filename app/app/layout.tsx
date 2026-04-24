@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
-import { NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { BootstrapWarning } from "@/components/auth/BootstrapWarning";
 import { PrivacyProvider } from "@/components/context/PrivacyContext";
+import { IntlProviderSafe } from "@/components/i18n/IntlProviderSafe";
 import { locales, defaultLocale, type Locale } from "@/i18n";
 import ptMessages from "@/messages/pt.json";
 import enMessages from "@/messages/en.json";
@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const tCommon = await getTranslations({ locale, namespace: "app.common" });
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <IntlProviderSafe locale={locale} messages={messages}>
       <AuthGate>
         <PrivacyProvider>
           <div className="min-h-screen">
@@ -46,6 +46,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </PrivacyProvider>
       </AuthGate>
-    </NextIntlClientProvider>
+    </IntlProviderSafe>
   );
 }

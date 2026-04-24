@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n";
+import { IntlProviderSafe } from "@/components/i18n/IntlProviderSafe";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 
@@ -75,10 +75,10 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <IntlProviderSafe locale={locale} messages={messages}>
       <Navbar />
       <main>{children}</main>
       <Footer />
-    </NextIntlClientProvider>
+    </IntlProviderSafe>
   );
 }
