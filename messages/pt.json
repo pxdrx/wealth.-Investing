@@ -706,6 +706,12 @@
     "account": {
       "title": "Conta",
       "subtitle": "Seus dados e ajustes."
+    },
+    "liveLock": {
+      "badge": "Ultra",
+      "title": "Monitoramento MT5 ao Vivo",
+      "description": "Acompanhe equity, drawdown e posições em tempo real pela MetaApi. Alertas adaptativos quando o risco sai do trilho. Exclusivo do plano Ultra.",
+      "ctaUpgrade": "Upgrade para Ultra"
     }
   }
 }

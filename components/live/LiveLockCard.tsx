@@ -4,8 +4,10 @@
 
 import Link from "next/link";
 import { Activity, Lock } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function LiveLockCard() {
+  const t = useTranslations("app.liveLock");
   return (
     <div
       className="relative overflow-hidden rounded-[22px] border border-border/60 p-6 isolate"
@@ -20,16 +22,15 @@ export function LiveLockCard() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-500">
-                Ultra
+                {t("badge")}
               </span>
               <Lock className="h-3 w-3 text-amber-500" />
             </div>
             <h3 className="text-base font-semibold tracking-tight text-foreground">
-              Monitoramento MT5 ao Vivo
+              {t("title")}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed max-w-lg">
-              Acompanhe equity, drawdown e posições em tempo real pela MetaApi.
-              Alertas adaptativos quando o risco sai do trilho. Exclusivo do plano Ultra.
+              {t("description")}
             </p>
           </div>
         </div>
@@ -37,7 +38,7 @@ export function LiveLockCard() {
           href="/app/subscription"
           className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 whitespace-nowrap"
         >
-          Upgrade para Ultra
+          {t("ctaUpgrade")}
         </Link>
       </div>
     </div>
