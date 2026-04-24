@@ -101,6 +101,89 @@
       "metricLabel": "in 30 days"
     }
   },
+  "navModals": {
+    "plataforma": {
+      "title": "A complete platform for traders",
+      "description": "Everything you need to log, analyze, and evolve as a trader.",
+      "ctaLabel": "Start free",
+      "items": {
+        "dashboard": {
+          "title": "Smart Dashboard",
+          "description": "Unified view of P&L, win rate, profit factor, and key metrics in real time."
+        },
+        "journal": {
+          "title": "Trade Journal",
+          "description": "Log every trade with context: setup, emotion, execution quality, and notes."
+        },
+        "analytics": {
+          "title": "Deep Analytics",
+          "description": "Sharpe, Sortino, MFE/MAE, equity curve, and heatmaps by hour and market session."
+        },
+        "calendar": {
+          "title": "P&L Calendar",
+          "description": "See your daily results with a color heatmap and per-day detail on click."
+        },
+        "risk": {
+          "title": "Risk Management",
+          "description": "Drawdown tracking, daily limit alerts, and per-account custom rules."
+        }
+      }
+    },
+    "recursos": {
+      "title": "Features that make the difference",
+      "description": "Exclusive tools for traders who take the craft seriously.",
+      "ctaLabel": "Explore features",
+      "items": {
+        "import": {
+          "title": "Automatic MT5/cTrader Import",
+          "description": "Import HTML or XLSX reports straight from your platform. Automatic duplicate detection."
+        },
+        "aiCoach": {
+          "title": "AI Coach",
+          "description": "An AI market analyst that cross-references your stats, macro context, and platform sentiment."
+        },
+        "mfeMae": {
+          "title": "MFE/MAE Analysis",
+          "description": "See how much profit you leave on the table and refine exits with real data."
+        },
+        "equity": {
+          "title": "Equity Curve & Drawdown",
+          "description": "Track capital growth and spot drawdown periods on interactive charts."
+        },
+        "psychology": {
+          "title": "Psychology Tags",
+          "description": "Tag emotion and discipline on every trade. Spot emotional patterns that hurt your P&L."
+        }
+      }
+    },
+    "mesas": {
+      "title": "Built for prop-firm traders",
+      "description": "Tools tailored for prop traders who need full control.",
+      "ctaLabel": "See prop-firm plans",
+      "items": {
+        "multiAccount": {
+          "title": "Multi-account",
+          "description": "Manage multiple prop-firm accounts on a single panel with a consolidated view."
+        },
+        "drawdown": {
+          "title": "Drawdown Tracking",
+          "description": "Track daily and total drawdown in real time. Alerts before you breach firm rules."
+        },
+        "riskAlerts": {
+          "title": "Risk Alerts",
+          "description": "Get notified when you approach daily loss limits, max drawdown, or trade count caps."
+        },
+        "reports": {
+          "title": "Performance Reports",
+          "description": "Metrics prop firms ask for: profit factor, consistency score, max drawdown, and more."
+        },
+        "payouts": {
+          "title": "Payout Tracking",
+          "description": "Record and follow your payouts per account. Know exactly how much you've withdrawn."
+        }
+      }
+    }
+  },
   "faq": {
     "eyebrow": "Questions you've already asked",
     "heading": "What holds you back before you start.",

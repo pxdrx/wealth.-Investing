@@ -101,6 +101,89 @@
       "metricLabel": "em 30 dias"
     }
   },
+  "navModals": {
+    "plataforma": {
+      "title": "Uma plataforma completa para traders",
+      "description": "Tudo que você precisa para registrar, analisar e evoluir como trader.",
+      "ctaLabel": "Comece grátis",
+      "items": {
+        "dashboard": {
+          "title": "Dashboard Inteligente",
+          "description": "Visão consolidada de P&L, win rate, profit factor e métricas-chave em tempo real."
+        },
+        "journal": {
+          "title": "Journal de Trades",
+          "description": "Registre cada operação com contexto: setup, emoção, qualidade de execução e notas."
+        },
+        "analytics": {
+          "title": "Analytics Profundo",
+          "description": "Sharpe, Sortino, MFE/MAE, equity curve, heatmaps por hora e sessão de mercado."
+        },
+        "calendar": {
+          "title": "Calendário P&L",
+          "description": "Visualize seus resultados dia a dia com heatmap de cores e detalhes por clique."
+        },
+        "risk": {
+          "title": "Gestão de Risco",
+          "description": "Drawdown tracking, alertas de limite diário e regras personalizadas por conta."
+        }
+      }
+    },
+    "recursos": {
+      "title": "Recursos que fazem a diferença",
+      "description": "Ferramentas exclusivas para quem leva trading a sério.",
+      "ctaLabel": "Explorar recursos",
+      "items": {
+        "import": {
+          "title": "Import Automático MT5/cTrader",
+          "description": "Importe relatórios HTML ou XLSX direto da plataforma. Detecção automática de duplicatas."
+        },
+        "aiCoach": {
+          "title": "AI Coach",
+          "description": "Analista de mercado com IA que cruza suas estatísticas, contexto macro e sentimento da plataforma."
+        },
+        "mfeMae": {
+          "title": "Análise MFE/MAE",
+          "description": "Descubra quanto lucro você deixa na mesa e otimize seus pontos de saída com dados reais."
+        },
+        "equity": {
+          "title": "Equity Curve e Drawdown",
+          "description": "Acompanhe a evolução do seu capital e identifique períodos de drawdown em gráficos interativos."
+        },
+        "psychology": {
+          "title": "Psychology Tags",
+          "description": "Marque emoção e disciplina em cada trade. Identifique padrões emocionais que afetam seu P&L."
+        }
+      }
+    },
+    "mesas": {
+      "title": "Feito para quem opera mesa proprietária",
+      "description": "Ferramentas específicas para prop traders que precisam de controle total.",
+      "ctaLabel": "Ver planos para mesas",
+      "items": {
+        "multiAccount": {
+          "title": "Multi-conta",
+          "description": "Gerencie múltiplas contas de mesa proprietária no mesmo painel com visão consolidada."
+        },
+        "drawdown": {
+          "title": "Drawdown Tracking",
+          "description": "Acompanhe drawdown diário e total em tempo real. Alertas antes de violar regras da mesa."
+        },
+        "riskAlerts": {
+          "title": "Alertas de Risco",
+          "description": "Notificações quando se aproximar de limites de perda diária, drawdown máximo ou número de trades."
+        },
+        "reports": {
+          "title": "Relatórios de Performance",
+          "description": "Métricas exigidas pelas mesas: profit factor, consistency score, max drawdown e mais."
+        },
+        "payouts": {
+          "title": "Payouts Tracking",
+          "description": "Registre e acompanhe seus payouts por conta. Saiba exatamente quanto já sacou de cada mesa."
+        }
+      }
+    }
+  },
   "faq": {
     "eyebrow": "Perguntas que você já fez",
     "heading": "O que trava você antes de começar.",
