@@ -442,6 +442,66 @@
     "dismissAria": "Dispensar",
     "regionAria": "Call-to-action fixo"
   },
+  "announcement": {
+    "text": "CONSISTÊNCIA SE CONSTRÓI COM DADOS — COMECE AGORA",
+    "dismissAria": "Fechar banner"
+  },
+  "footer": {
+    "headings": {
+      "platform": "PLATAFORMA",
+      "resources": "RECURSOS",
+      "contact": "CONTATO",
+      "connect": "CONECTE"
+    },
+    "product": {
+      "dashboard": "Dashboard",
+      "journal": "Journal",
+      "calendar": "Calendário",
+      "multiAccount": "Multi-conta",
+      "pricing": "Preços"
+    },
+    "resources": {
+      "blog": "Blog",
+      "changelog": "Changelog",
+      "academy": "Academy",
+      "manifesto": "Nosso Manifesto"
+    },
+    "contact": {
+      "community": "Comunidade",
+      "email": "Fale conosco"
+    },
+    "social": {
+      "instagram": "Instagram",
+      "discord": "Discord"
+    },
+    "manifesto": {
+      "title": "O trader consistente: disciplina, dados e processo",
+      "subtitle": "Nosso manifesto"
+    },
+    "legal": {
+      "cookies": "Cookies",
+      "privacy": "Privacidade",
+      "terms": "Termos de uso"
+    },
+    "copyright": "© 2026"
+  },
+  "legal": {
+    "cookies": {
+      "title": "Política de Cookies",
+      "description": "Como a wealth.Investing utiliza cookies no seu navegador.",
+      "acknowledge": "Entendi"
+    },
+    "privacy": {
+      "title": "Política de Privacidade",
+      "description": "Como protegemos seus dados e sua privacidade.",
+      "close": "Fechar"
+    },
+    "terms": {
+      "title": "Termos de Uso",
+      "description": "Termos e condições de uso da plataforma wealth.Investing.",
+      "close": "Fechar"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "journal": "Trade Journal",

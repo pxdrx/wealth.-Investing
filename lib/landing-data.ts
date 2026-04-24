@@ -20,8 +20,8 @@ export const NAV_LINKS_AUTH = [
 ] as const;
 
 /* ── Announcement bar ───────────────────────────────────────── */
+// text label resolved via next-intl "announcement.text" in AnnouncementBar.
 export const ANNOUNCEMENT = {
-  text: "CONSISTÊNCIA SE CONSTRÓI COM DADOS — COMECE AGORA",
   href: "/login",
   platforms: ["MT4", "MT5", "cTrader", "Binance", "B3", "TradingView"],
 } as const;
@@ -382,44 +382,49 @@ export const ENTERPRISE = {
 
 /** Product links: when logged in, point to app pages; when logged out, scroll to pricing */
 export interface FooterProductLink {
-  label: string;
+  labelKey: string;
   hrefAuth: string;
   hrefGuest: string;
 }
 
+// label resolved via next-intl namespace "footer.product" in Footer.tsx.
 export const FOOTER_PRODUCT_LINKS: FooterProductLink[] = [
-  { label: "Dashboard", hrefAuth: "/app", hrefGuest: "/login" },
-  { label: "Journal", hrefAuth: "/app/journal", hrefGuest: "/login" },
-  { label: "Calendário", hrefAuth: "/app/journal?tab=calendar", hrefGuest: "/login" },
-  { label: "Multi-conta", hrefAuth: "/app/manage-accounts", hrefGuest: "/login" },
-  { label: "Preços", hrefAuth: "/app/pricing", hrefGuest: "/pricing" },
+  { labelKey: "dashboard", hrefAuth: "/app", hrefGuest: "/login" },
+  { labelKey: "journal", hrefAuth: "/app/journal", hrefGuest: "/login" },
+  { labelKey: "calendar", hrefAuth: "/app/journal?tab=calendar", hrefGuest: "/login" },
+  { labelKey: "multiAccount", hrefAuth: "/app/manage-accounts", hrefGuest: "/login" },
+  { labelKey: "pricing", hrefAuth: "/app/pricing", hrefGuest: "/pricing" },
 ];
 
+// label keys resolved via next-intl namespace "footer.resources".
 export const FOOTER_RESOURCE_LINKS = [
-  { label: "Blog", href: "/blog" },
-  { label: "Changelog", href: "/changelog" },
-  { label: "Academy", href: "/academy" },
-  { label: "Nosso Manifesto", href: "/manifesto" },
+  { labelKey: "blog", href: "/blog" },
+  { labelKey: "changelog", href: "/changelog" },
+  { labelKey: "academy", href: "/academy" },
+  { labelKey: "manifesto", href: "/manifesto" },
 ] as const;
 
+// label keys resolved via next-intl namespace "footer.contact".
 export const FOOTER_CONTACT_LINKS = [
-  { label: "Comunidade", href: "https://discord.gg/smlab", external: true },
-  { label: "Fale conosco", href: "mailto:wealth.investing@outlook.com", external: true },
+  { labelKey: "community", href: "https://discord.gg/smlab", external: true },
+  { labelKey: "email", href: "mailto:wealth.investing@outlook.com", external: true },
 ] as const;
 
+// label keys resolved via next-intl namespace "footer.social".
 export const FOOTER_SOCIAL_LINKS = [
-  { label: "Instagram", href: "https://instagram.com/owealth.investing" },
-  { label: "Discord", href: "https://discord.gg/smlab" },
+  { labelKey: "instagram", href: "https://instagram.com/owealth.investing" },
+  { labelKey: "discord", href: "https://discord.gg/smlab" },
 ] as const;
 
+// title/subtitle resolved via next-intl namespace "footer.manifesto".
 export const FOOTER_MANIFESTO = {
-  title: "O trader consistente: disciplina, dados e processo",
-  subtitle: "Nosso manifesto",
   href: "/manifesto",
 } as const;
 
+// label keys resolved via next-intl namespace "footer.legal"; the legal modal
+// routing still uses the key name directly (matches LegalModal union).
 export const FOOTER_LEGAL = [
-  { label: "Cookies", href: "#" },
-  { label: "Privacidade", href: "#" },
-  { label: "Termos de uso", href: "#" },
+  { labelKey: "cookies", modal: "cookies" as const },
+  { labelKey: "privacy", modal: "privacy" as const },
+  { labelKey: "terms", modal: "terms" as const },
 ] as const;

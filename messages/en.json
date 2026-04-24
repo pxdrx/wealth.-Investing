@@ -442,6 +442,66 @@
     "dismissAria": "Dismiss",
     "regionAria": "Pinned call-to-action"
   },
+  "announcement": {
+    "text": "CONSISTENCY IS BUILT ON DATA — START NOW",
+    "dismissAria": "Dismiss banner"
+  },
+  "footer": {
+    "headings": {
+      "platform": "PLATFORM",
+      "resources": "RESOURCES",
+      "contact": "CONTACT",
+      "connect": "CONNECT"
+    },
+    "product": {
+      "dashboard": "Dashboard",
+      "journal": "Journal",
+      "calendar": "Calendar",
+      "multiAccount": "Multi-account",
+      "pricing": "Pricing"
+    },
+    "resources": {
+      "blog": "Blog",
+      "changelog": "Changelog",
+      "academy": "Academy",
+      "manifesto": "Our Manifesto"
+    },
+    "contact": {
+      "community": "Community",
+      "email": "Contact us"
+    },
+    "social": {
+      "instagram": "Instagram",
+      "discord": "Discord"
+    },
+    "manifesto": {
+      "title": "The consistent trader: discipline, data, and process",
+      "subtitle": "Our manifesto"
+    },
+    "legal": {
+      "cookies": "Cookies",
+      "privacy": "Privacy",
+      "terms": "Terms of use"
+    },
+    "copyright": "© 2026"
+  },
+  "legal": {
+    "cookies": {
+      "title": "Cookie Policy",
+      "description": "How wealth.Investing uses cookies in your browser.",
+      "acknowledge": "Got it"
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "How we protect your data and your privacy.",
+      "close": "Close"
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "description": "Terms and conditions for using the wealth.Investing platform.",
+      "close": "Close"
+    }
+  },
   "smartAlerts": {
     "dismissFailed": "Could not save alert dismissal. Please try again."
   },

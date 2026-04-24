@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BrandMark } from "@/components/brand/BrandMark";
 import {
   FOOTER_PRODUCT_LINKS,
@@ -13,13 +14,15 @@ import {
 import { supabase } from "@/lib/supabase/client";
 import { LegalModals, type LegalModal } from "./LegalModals";
 
-const LEGAL_MAP: Record<string, LegalModal> = {
-  "Cookies": "cookies",
-  "Privacidade": "privacy",
-  "Termos de uso": "terms",
-};
-
 export function Footer() {
+  const t = useTranslations("footer");
+  const tHeadings = useTranslations("footer.headings");
+  const tProduct = useTranslations("footer.product");
+  const tResources = useTranslations("footer.resources");
+  const tContact = useTranslations("footer.contact");
+  const tSocial = useTranslations("footer.social");
+  const tManifesto = useTranslations("footer.manifesto");
+  const tLegal = useTranslations("footer.legal");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openModal, setOpenModal] = useState<LegalModal>(null);
 
@@ -45,16 +48,16 @@ export function Footer() {
           {/* Column 1: Plataforma */}
           <div>
             <h4 className="font-mono text-[11px] tracking-[0.15em] uppercase text-l-text-muted mb-4">
-              PLATAFORMA
+              {tHeadings("platform")}
             </h4>
             <ul className="space-y-2.5">
               {FOOTER_PRODUCT_LINKS.map((link) => (
-                <li key={link.label}>
+                <li key={link.labelKey}>
                   <a
                     href={isLoggedIn ? link.hrefAuth : link.hrefGuest}
                     className="text-sm text-l-text-secondary hover:text-l-text transition-colors py-1 inline-block"
                   >
-                    {link.label}
+                    {tProduct(link.labelKey)}
                   </a>
                 </li>
               ))}
@@ -64,16 +67,16 @@ export function Footer() {
           {/* Column 2: Recursos */}
           <div>
             <h4 className="font-mono text-[11px] tracking-[0.15em] uppercase text-l-text-muted mb-4">
-              RECURSOS
+              {tHeadings("resources")}
             </h4>
             <ul className="space-y-2.5">
               {FOOTER_RESOURCE_LINKS.map((link) => (
-                <li key={link.label}>
+                <li key={link.labelKey}>
                   <a
                     href={link.href}
                     className="text-sm text-l-text-secondary hover:text-l-text transition-colors py-1 inline-block"
                   >
-                    {link.label}
+                    {tResources(link.labelKey)}
                   </a>
                 </li>
               ))}
@@ -83,36 +86,36 @@ export function Footer() {
           {/* Column 3: Contato + Social */}
           <div>
             <h4 className="font-mono text-[11px] tracking-[0.15em] uppercase text-l-text-muted mb-4">
-              CONTATO
+              {tHeadings("contact")}
             </h4>
             <ul className="space-y-2.5">
               {FOOTER_CONTACT_LINKS.map((link) => (
-                <li key={link.label}>
+                <li key={link.labelKey}>
                   <a
                     href={link.href}
                     target={link.external ? "_blank" : undefined}
                     rel={link.external ? "noopener noreferrer" : undefined}
                     className="text-sm text-l-text-secondary hover:text-l-text transition-colors py-1 inline-block"
                   >
-                    {link.label}
+                    {tContact(link.labelKey)}
                   </a>
                 </li>
               ))}
             </ul>
 
             <h4 className="font-mono text-[11px] tracking-[0.15em] uppercase text-l-text-muted mt-6 mb-4">
-              CONECTE
+              {tHeadings("connect")}
             </h4>
             <ul className="space-y-2.5">
               {FOOTER_SOCIAL_LINKS.map((link) => (
-                <li key={link.label}>
+                <li key={link.labelKey}>
                   <a
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-l-text-secondary hover:text-l-text transition-colors py-1 inline-block"
                   >
-                    {link.label}
+                    {tSocial(link.labelKey)}
                   </a>
                 </li>
               ))}
@@ -138,10 +141,10 @@ export function Footer() {
               </div>
               <div className="p-6">
                 <h4 className="text-sm font-semibold text-l-text mb-1">
-                  {FOOTER_MANIFESTO.title}
+                  {tManifesto("title")}
                 </h4>
                 <p className="text-xs text-l-text-muted">
-                  {FOOTER_MANIFESTO.subtitle}
+                  {tManifesto("subtitle")}
                 </p>
               </div>
             </a>
@@ -156,18 +159,18 @@ export function Footer() {
           <div className="flex items-center gap-2.5">
             <BrandMark className="text-xs" />
             <span className="text-xs text-l-text-muted">
-              © 2026
+              {t("copyright")}
             </span>
           </div>
           <div className="flex items-center gap-4">
             {FOOTER_LEGAL.map((link) => (
               <button
-                key={link.label}
+                key={link.labelKey}
                 type="button"
-                onClick={() => setOpenModal(LEGAL_MAP[link.label] ?? null)}
+                onClick={() => setOpenModal(link.modal)}
                 className="text-xs text-l-text-muted hover:text-l-text-secondary transition-colors cursor-pointer"
               >
-                {link.label}
+                {tLegal(link.labelKey)}
               </button>
             ))}
           </div>
