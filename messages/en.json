@@ -391,7 +391,13 @@
     "signIn": "Sign in",
     "signUp": "Start free",
     "goDashboard": "Go to Dashboard",
-    "account": "Account"
+    "account": "Account",
+    "links": {
+      "platform": "Platform",
+      "features": "Features",
+      "desks": "For Desks",
+      "pricing": "Pricing"
+    }
   },
   "sidebar": {
     "profile": {

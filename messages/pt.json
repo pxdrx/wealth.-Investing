@@ -383,7 +383,13 @@
     "signIn": "Entrar",
     "signUp": "Comece grátis",
     "goDashboard": "Ir para Dashboard",
-    "account": "Conta"
+    "account": "Conta",
+    "links": {
+      "platform": "Plataforma",
+      "features": "Recursos",
+      "desks": "Para Mesas",
+      "pricing": "Preços"
+    }
   },
   "sidebar": {
     "profile": {

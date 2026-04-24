@@ -3,11 +3,12 @@
    ──────────────────────────────────────────────────────────── */
 
 /* ── Navigation ─────────────────────────────────────────────── */
+// labelKey resolves via next-intl namespace "nav.links" in Navbar.tsx.
 export const NAV_LINKS = [
-  { label: "Plataforma", href: "#plataforma", modal: "plataforma" as const },
-  { label: "Recursos", href: "#registre", modal: "recursos" as const },
-  { label: "Para Mesas", href: "#mesas", modal: "mesas" as const },
-  { label: "Preços", href: "/pricing", modal: null },
+  { labelKey: "platform", href: "#plataforma", modal: "plataforma" as const },
+  { labelKey: "features", href: "#registre", modal: "recursos" as const },
+  { labelKey: "desks", href: "#mesas", modal: "mesas" as const },
+  { labelKey: "pricing", href: "/pricing", modal: null },
 ] as const;
 
 /** Nav links shown when the user is authenticated */
