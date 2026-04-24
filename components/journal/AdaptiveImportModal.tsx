@@ -303,18 +303,22 @@ export function AdaptiveImportModal({
       // Optionally persist "validated by user" on the profile so future imports skip preview.
       if (saveProfile && data.profile_id) {
         try {
-          await fetch(`/api/journal/import-profiles/${data.profile_id}`, {
+          const res = await fetch(`/api/journal/import-profiles/${data.profile_id}`, {
             method: "PATCH",
             headers: {
               Authorization: `Bearer ${accessToken}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({ validated_by_user: true }),
-          }).catch(() => {
-            // TODO: backend agent may ship this PATCH endpoint later; ignore silently.
           });
-        } catch {
-          /* no-op */
+          if (!res.ok) {
+            console.warn(
+              "[adaptive-import] mark profile validated failed:",
+              res.status
+            );
+          }
+        } catch (err) {
+          console.warn("[adaptive-import] mark profile validated threw:", err);
         }
       }
 

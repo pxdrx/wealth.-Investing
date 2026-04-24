@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { locales, defaultLocale, type Locale } from "@/i18n";
 import { isLandingRoute } from "@/lib/i18n/landing-routes";
+import { updateMyPreferredLocale } from "@/lib/profile";
 
 interface LocaleSwitcherProps {
   className?: string;
@@ -50,6 +51,11 @@ export function LocaleSwitcher({ className, compact = false }: LocaleSwitcherPro
     if (typeof document !== "undefined") {
       document.cookie = `NEXT_LOCALE=${next};path=/;max-age=31536000;samesite=lax`;
     }
+
+    // Persist to profile in the background. Fire-and-forget: navigation must
+    // never block on network. updateMyPreferredLocale already swallows errors
+    // (including the column-missing case during migration rollouts).
+    void updateMyPreferredLocale(next);
 
     startTransition(() => {
       if (isLandingRoute(pathname)) {

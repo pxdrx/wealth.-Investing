@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Cookie, Shield, FileText, Lock, Database, CreditCard, Globe, Mail } from "lucide-react";
+
+// Note: the dialog shell (title, description, CTA) is bilingual via the
+// legal.* namespace. The dense legal/privacy prose inside Cookies/Privacy/
+// Terms remains in Portuguese — the PT copy is the canonical legal text;
+// translating legal wording without review would risk misstatement. Shell
+// chrome flips with the language toggle; body copy is a scoped follow-up.
 
 /* ── Types ─────────────────────────────────────────────────────── */
 type LegalModal = "cookies" | "privacy" | "terms" | null;
@@ -357,6 +364,9 @@ function TermsContent() {
 export type { LegalModal };
 
 export function LegalModals({ open, onOpenChange }: LegalModalsProps) {
+  const tCookies = useTranslations("legal.cookies");
+  const tPrivacy = useTranslations("legal.privacy");
+  const tTerms = useTranslations("legal.terms");
   const handleClose = () => onOpenChange(null);
 
   return (
@@ -370,18 +380,16 @@ export function LegalModals({ open, onOpenChange }: LegalModalsProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Cookie className="h-5 w-5" />
-              Política de Cookies
+              {tCookies("title")}
             </DialogTitle>
-            <DialogDescription>
-              Como a wealth.Investing utiliza cookies no seu navegador.
-            </DialogDescription>
+            <DialogDescription>{tCookies("description")}</DialogDescription>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 pr-2 -mr-2">
             <CookiesContent />
           </div>
           <DialogFooter>
             <Button onClick={handleClose} className="w-full sm:w-auto">
-              Entendi
+              {tCookies("acknowledge")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -396,18 +404,16 @@ export function LegalModals({ open, onOpenChange }: LegalModalsProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Política de Privacidade
+              {tPrivacy("title")}
             </DialogTitle>
-            <DialogDescription>
-              Como protegemos seus dados e sua privacidade.
-            </DialogDescription>
+            <DialogDescription>{tPrivacy("description")}</DialogDescription>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 pr-2 -mr-2">
             <PrivacyContent />
           </div>
           <DialogFooter>
             <Button onClick={handleClose} className="w-full sm:w-auto">
-              Fechar
+              {tPrivacy("close")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -422,18 +428,16 @@ export function LegalModals({ open, onOpenChange }: LegalModalsProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Termos de Uso
+              {tTerms("title")}
             </DialogTitle>
-            <DialogDescription>
-              Termos e condições de uso da plataforma wealth.Investing.
-            </DialogDescription>
+            <DialogDescription>{tTerms("description")}</DialogDescription>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 pr-2 -mr-2">
             <TermsContent />
           </div>
           <DialogFooter>
             <Button onClick={handleClose} className="w-full sm:w-auto">
-              Fechar
+              {tTerms("close")}
             </Button>
           </DialogFooter>
         </DialogContent>
