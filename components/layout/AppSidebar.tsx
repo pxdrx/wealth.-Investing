@@ -199,7 +199,7 @@ function AppSidebarInner() {
             <div key={link.href}>
             <Link
               href={link.href}
-              title={collapsed ? link.label : undefined}
+              title={collapsed ? (link.labelKey ? t(link.labelKey) : link.label) : undefined}
               data-tour-id={`sidebar-${link.id === "dashboard" ? "dashboard" : link.id}`}
               onClick={() => emit("nav_clicked", { id: link.id, surface: "sidebar" })}
               className={cn(
@@ -217,7 +217,7 @@ function AppSidebarInner() {
 
               {!collapsed && (
                 <span className="text-sm tracking-wide truncate">
-                  {link.label}
+                  {link.labelKey ? t(link.labelKey) : link.label}
                   {link.highlight && (
                     <Sparkles className="inline-block ml-1.5 h-3 w-3 text-indigo-400 animate-pulse" />
                   )}
@@ -288,12 +288,12 @@ function AppSidebarInner() {
                   key={item.id}
                   trigger={
                     <span
-                      title={collapsed ? item.label : undefined}
+                      title={collapsed ? (item.labelKey ? t(item.labelKey) : item.label) : undefined}
                       onClick={() => emit("nav_clicked", { id: item.id, surface: "sidebar-footer" })}
                       className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 cursor-pointer"
                     >
                       <Icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+                      {!collapsed && <span className="text-sm font-medium">{item.labelKey ? t(item.labelKey) : item.label}</span>}
                     </span>
                   }
                 />
@@ -303,12 +303,12 @@ function AppSidebarInner() {
               <Link
                 key={item.id}
                 href={item.href}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? (item.labelKey ? t(item.labelKey) : item.label) : undefined}
                 onClick={() => emit("nav_clicked", { id: item.id, surface: "sidebar-footer" })}
                 className="flex items-center gap-3 rounded-xl px-3 py-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200"
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+                {!collapsed && <span className="text-sm font-medium">{item.labelKey ? t(item.labelKey) : item.label}</span>}
               </Link>
             );
           })}

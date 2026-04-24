@@ -13,13 +13,20 @@ import {
   Shield,
   Wallet,
 } from "lucide-react";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
 export interface AppNavItem {
   id: string;
   href: string;
+  /** PT fallback string — rendered if no active locale / labelKey missing. */
   label: string;
+  /** i18n key in `lib/i18n/app.ts` for the full label. Consumers should
+   *  prefer `labelKey` (via `useAppT`) over `label` for display. */
+  labelKey?: AppMessageKey;
   // Compact label for the mobile bottom tab bar. Falls back to `label`.
   shortLabel?: string;
+  /** i18n key for the compact label used in the mobile bottom tab bar. */
+  shortLabelKey?: AppMessageKey;
   icon: LucideIcon;
   // Appears on the mobile bottom tab bar. Items without this flag still
   // render on the desktop rail and inside the mobile drawer.
@@ -46,20 +53,25 @@ export function getAppNav(ctx: AppNavContext): AppNavItem[] {
     : ctx.isLinkedStudent
     ? "Mentor"
     : "Mentoria";
+  const mentorLabelKey: AppMessageKey = ctx.isMentor
+    ? "sidebar.nav.mentorPanel"
+    : ctx.isLinkedStudent
+    ? "sidebar.nav.mentorStudent"
+    : "sidebar.nav.mentor";
 
   const items: AppNavItem[] = [
-    { id: "dashboard", href: "/app", label: "Dashboard", icon: LayoutDashboard, mobileBar: true },
-    { id: "journal", href: "/app/journal", label: "Trade Journal", shortLabel: "Journal", icon: BookOpen, mobileBar: true },
-    { id: "mentor", href: "/app/mentor", label: mentorLabel, shortLabel: ctx.isMentor ? "Painel" : "Mentor", icon: GraduationCap, mobileBar: true },
-    { id: "prop", href: "/app/prop", label: "Contas", icon: Wallet },
-    { id: "chart", href: "/app/chart", label: "Gráfico", icon: CandlestickChart },
-    { id: "backtest", href: "/app/backtest", label: "Backtest", icon: FlaskConical },
-    { id: "macro", href: "/app/macro", label: "Inteligência Macro", shortLabel: "Macro", icon: LineChart, mobileBar: true, highlight: true },
-    { id: "dexter", href: "/app/dexter", label: "Dexter", icon: Bot, mobileBar: true, highlight: true },
+    { id: "dashboard", href: "/app", label: "Dashboard", labelKey: "sidebar.nav.dashboard", icon: LayoutDashboard, mobileBar: true },
+    { id: "journal", href: "/app/journal", label: "Trade Journal", labelKey: "sidebar.nav.journal", shortLabel: "Journal", shortLabelKey: "sidebar.nav.short.journal", icon: BookOpen, mobileBar: true },
+    { id: "mentor", href: "/app/mentor", label: mentorLabel, labelKey: mentorLabelKey, shortLabel: ctx.isMentor ? "Painel" : "Mentor", shortLabelKey: ctx.isMentor ? "sidebar.nav.short.mentorPanel" : "sidebar.nav.short.mentor", icon: GraduationCap, mobileBar: true },
+    { id: "prop", href: "/app/prop", label: "Contas", labelKey: "sidebar.nav.prop", icon: Wallet },
+    { id: "chart", href: "/app/chart", label: "Gráfico", labelKey: "sidebar.nav.chart", icon: CandlestickChart },
+    { id: "backtest", href: "/app/backtest", label: "Backtest", labelKey: "sidebar.nav.backtest", icon: FlaskConical },
+    { id: "macro", href: "/app/macro", label: "Inteligência Macro", labelKey: "sidebar.nav.macro", shortLabel: "Macro", shortLabelKey: "sidebar.nav.short.macro", icon: LineChart, mobileBar: true, highlight: true },
+    { id: "dexter", href: "/app/dexter", label: "Dexter", labelKey: "sidebar.nav.dexter", icon: Bot, mobileBar: true, highlight: true },
   ];
 
   if (ctx.isAdmin) {
-    items.push({ id: "admin", href: "/app/admin", label: "Admin", icon: Shield, mobileBar: true });
+    items.push({ id: "admin", href: "/app/admin", label: "Admin", labelKey: "sidebar.nav.admin", icon: Shield, mobileBar: true });
   }
 
   return items;
@@ -71,12 +83,14 @@ export function getAppNav(ctx: AppNavContext): AppNavItem[] {
 export interface AppFooterItem {
   id: string;
   href: string;
+  /** PT fallback string — consumers should resolve `labelKey` first. */
   label: string;
+  labelKey?: AppMessageKey;
   icon: LucideIcon;
 }
 
 export const footerNavItems: AppFooterItem[] = [
-  { id: "settings", href: "/app/settings", label: "Configurações", icon: Settings },
-  { id: "pricing", href: "/app/pricing", label: "Planos", icon: CreditCard },
-  { id: "feedback", href: "#feedback", label: "Feedback", icon: MessageSquare },
+  { id: "settings", href: "/app/settings", label: "Configurações", labelKey: "sidebar.nav.settings", icon: Settings },
+  { id: "pricing", href: "/app/pricing", label: "Planos", labelKey: "sidebar.nav.plans", icon: CreditCard },
+  { id: "feedback", href: "#feedback", label: "Feedback", labelKey: "sidebar.nav.feedback", icon: MessageSquare },
 ];

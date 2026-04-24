@@ -7,10 +7,12 @@ import { cn } from "@/lib/utils";
 import { getAppNav } from "@/lib/app-nav";
 import { useAppRoles } from "@/lib/hooks/useAppRoles";
 import { emit } from "@/lib/analytics/emit";
+import { useAppT } from "@/hooks/useAppLocale";
 
 export function AppMobileNav() {
   const pathname = usePathname();
   const roles = useAppRoles();
+  const t = useAppT();
 
   const navItems = getAppNav({
     isMentor: roles.isMentor,
@@ -36,7 +38,11 @@ export function AppMobileNav() {
               ? pathname === "/app"
               : pathname === item.href || pathname?.startsWith(item.href + "/");
           const Icon = item.icon;
-          const label = item.shortLabel ?? item.label;
+          const label = item.shortLabelKey
+            ? t(item.shortLabelKey)
+            : item.labelKey
+            ? t(item.labelKey)
+            : item.shortLabel ?? item.label;
 
           return (
             <Link

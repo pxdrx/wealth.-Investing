@@ -193,7 +193,7 @@ export function AppHeader() {
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate">{item.labelKey ? t(item.labelKey) : item.label}</span>
                     </Link>
                   );
                 })}
@@ -212,7 +212,7 @@ export function AppHeader() {
                             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors cursor-pointer"
                           >
                             <Icon className="h-4 w-4 shrink-0" />
-                            <span className="truncate">{item.label}</span>
+                            <span className="truncate">{item.labelKey ? t(item.labelKey) : item.label}</span>
                           </span>
                         }
                       />
@@ -226,7 +226,7 @@ export function AppHeader() {
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
                     >
                       <Icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate">{item.labelKey ? t(item.labelKey) : item.label}</span>
                     </Link>
                   );
                 })}

@@ -380,6 +380,25 @@ const PT: Dict = {
   "sidebar.logout": "Sair",
   "sidebar.hideValues": "Ocultar valores",
   "sidebar.showValues": "Mostrar valores",
+  // Sidebar / Header / MobileNav nav item labels (canonical — short variants in sidebar.nav.short.*)
+  "sidebar.nav.dashboard": "Dashboard",
+  "sidebar.nav.journal": "Trade Journal",
+  "sidebar.nav.mentor": "Mentoria",
+  "sidebar.nav.mentorPanel": "Painel Mentor",
+  "sidebar.nav.mentorStudent": "Mentor",
+  "sidebar.nav.prop": "Contas",
+  "sidebar.nav.chart": "Gráfico",
+  "sidebar.nav.backtest": "Backtest",
+  "sidebar.nav.macro": "Inteligência Macro",
+  "sidebar.nav.dexter": "Dexter",
+  "sidebar.nav.admin": "Admin",
+  "sidebar.nav.settings": "Configurações",
+  "sidebar.nav.plans": "Planos",
+  "sidebar.nav.feedback": "Feedback",
+  "sidebar.nav.short.journal": "Journal",
+  "sidebar.nav.short.macro": "Macro",
+  "sidebar.nav.short.mentor": "Mentor",
+  "sidebar.nav.short.mentorPanel": "Painel",
 };
 
 const EN: Dict = {
@@ -745,6 +764,25 @@ const EN: Dict = {
   "sidebar.logout": "Sign out",
   "sidebar.hideValues": "Hide values",
   "sidebar.showValues": "Show values",
+  // Sidebar / Header / MobileNav nav item labels
+  "sidebar.nav.dashboard": "Dashboard",
+  "sidebar.nav.journal": "Trade Journal",
+  "sidebar.nav.mentor": "Mentorship",
+  "sidebar.nav.mentorPanel": "Mentor Panel",
+  "sidebar.nav.mentorStudent": "Mentor",
+  "sidebar.nav.prop": "Accounts",
+  "sidebar.nav.chart": "Chart",
+  "sidebar.nav.backtest": "Backtest",
+  "sidebar.nav.macro": "Macro Intelligence",
+  "sidebar.nav.dexter": "Dexter",
+  "sidebar.nav.admin": "Admin",
+  "sidebar.nav.settings": "Settings",
+  "sidebar.nav.plans": "Plans",
+  "sidebar.nav.feedback": "Feedback",
+  "sidebar.nav.short.journal": "Journal",
+  "sidebar.nav.short.macro": "Macro",
+  "sidebar.nav.short.mentor": "Mentor",
+  "sidebar.nav.short.mentorPanel": "Panel",
 };
 
 const DICTS: Record<AppLocale, Dict> = { pt: PT, en: EN };
