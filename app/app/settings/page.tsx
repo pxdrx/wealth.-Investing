@@ -10,6 +10,7 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { ChurnPreventionModal } from "@/components/billing/ChurnPreventionModal";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguagePreference } from "@/components/settings/LanguagePreference";
 import { useAppT } from "@/hooks/useAppLocale";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, upsertMyProfileDisplayName } from "@/lib/profile";
@@ -664,9 +665,12 @@ export default function SettingsPage() {
         <Card className="rounded-[22px] p-6" style={cardStyle}>
           <h2 className="text-lg font-semibold">{t("settings.section.preferences")}</h2>
 
-          <div className="mt-4 flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{t("settings.preferences.theme")}</span>
-            <ThemeToggle />
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">{t("settings.preferences.theme")}</span>
+              <ThemeToggle />
+            </div>
+            <LanguagePreference />
           </div>
         </Card>
 

@@ -24,7 +24,6 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { cn } from "@/lib/utils";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { getAppNav, footerNavItems } from "@/lib/app-nav";
@@ -336,10 +335,10 @@ function AppSidebarInner() {
           </button>
         </div>
 
-        {/* Theme + locale controls — own row, above user card */}
+        {/* Theme control — own row, above user card.
+            Locale switcher moved to /app/settings > Preferências (D2-04 / [H1]). */}
         {!collapsed && (
-          <div className="mt-2 flex items-center justify-between gap-2 px-1">
-            <LocaleSwitcher />
+          <div className="mt-2 flex items-center justify-end gap-2 px-1">
             <ThemeToggle />
           </div>
         )}
