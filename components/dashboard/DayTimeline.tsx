@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useAppT } from "@/hooks/useAppLocale";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
@@ -94,10 +93,12 @@ export function DayTimeline() {
     >
       <div className="mb-3 flex items-center justify-between">
         <p className="text-xs uppercase tracking-wider text-white/50">
-          Timeline do dia · 08:00–22:00 BRT
+          {t("dashboard.dayTimeline.title")}
         </p>
         <p className="text-[11px] text-white/30">
-          {state.kind === "success" ? `${state.data.trades.length} trades` : ""}
+          {state.kind === "success"
+            ? t("dashboard.dayTimeline.tradesCount").replace("{count}", String(state.data.trades.length))
+            : ""}
         </p>
       </div>
       <Body state={state} t={t} />
@@ -114,7 +115,7 @@ function Body({ state, t }: { state: LoadState; t: (key: import("@/lib/i18n/app"
     return (
       <p className="py-6 text-center text-sm text-white/50">
         {/* TODO(A-02): replace with voice.ts copy */}
-        Timeline indisponível no momento.
+        {t("dashboard.dayTimeline.unavailable")}
       </p>
     );
   }

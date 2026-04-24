@@ -399,6 +399,24 @@ const PT: Dict = {
   "sidebar.nav.short.macro": "Macro",
   "sidebar.nav.short.mentor": "Mentor",
   "sidebar.nav.short.mentorPanel": "Painel",
+  // Dashboard — DayKpis widget
+  "dashboard.dayKpis.pnlToday": "PnL hoje",
+  "dashboard.dayKpis.drawdownTitle": "Daily drawdown",
+  "dashboard.dayKpis.moodTitle": "Estado",
+  "dashboard.dayKpis.noActiveAccount": "Sem conta ativa",
+  "dashboard.dayKpis.configurePropFirm": "Configure uma prop firm pra habilitar regra de risco.",
+  "dashboard.dayKpis.propFirmFallback": "Prop firm",
+  "dashboard.dayKpis.basedOnTrades": "Baseado em {count} trade{plural} de hoje",
+  "dashboard.dayKpis.tradesWinRate": "{count} trade{plural} · {winRate}% win rate",
+  "dashboard.dayKpis.mood.calm": "Calmo",
+  "dashboard.dayKpis.mood.focused": "Focado",
+  "dashboard.dayKpis.mood.flow": "Em flow",
+  "dashboard.dayKpis.mood.accelerated": "Acelerado",
+  "dashboard.dayKpis.mood.drifting": "Em deriva",
+  // Dashboard — DayTimeline widget
+  "dashboard.dayTimeline.title": "Timeline do dia · 08:00–22:00 BRT",
+  "dashboard.dayTimeline.tradesCount": "{count} trades",
+  "dashboard.dayTimeline.unavailable": "Timeline indisponível no momento.",
 };
 
 const EN: Dict = {
@@ -783,6 +801,24 @@ const EN: Dict = {
   "sidebar.nav.short.macro": "Macro",
   "sidebar.nav.short.mentor": "Mentor",
   "sidebar.nav.short.mentorPanel": "Panel",
+  // Dashboard — DayKpis widget
+  "dashboard.dayKpis.pnlToday": "PnL today",
+  "dashboard.dayKpis.drawdownTitle": "Daily drawdown",
+  "dashboard.dayKpis.moodTitle": "State",
+  "dashboard.dayKpis.noActiveAccount": "No active account",
+  "dashboard.dayKpis.configurePropFirm": "Configure a prop firm to enable risk rules.",
+  "dashboard.dayKpis.propFirmFallback": "Prop firm",
+  "dashboard.dayKpis.basedOnTrades": "Based on {count} trade{plural} today",
+  "dashboard.dayKpis.tradesWinRate": "{count} trade{plural} · {winRate}% win rate",
+  "dashboard.dayKpis.mood.calm": "Calm",
+  "dashboard.dayKpis.mood.focused": "Focused",
+  "dashboard.dayKpis.mood.flow": "In flow",
+  "dashboard.dayKpis.mood.accelerated": "Accelerated",
+  "dashboard.dayKpis.mood.drifting": "Drifting",
+  // Dashboard — DayTimeline widget
+  "dashboard.dayTimeline.title": "Today's timeline · 08:00–22:00 BRT",
+  "dashboard.dayTimeline.tradesCount": "{count} trades",
+  "dashboard.dayTimeline.unavailable": "Timeline unavailable right now.",
 };
 
 const DICTS: Record<AppLocale, Dict> = { pt: PT, en: EN };

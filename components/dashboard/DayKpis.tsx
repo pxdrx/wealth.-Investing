@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
 type Mood = "calm" | "focused" | "accelerated" | "drifting" | "flow";
+
+type AppT = (key: AppMessageKey) => string;
 
 interface TodayStats {
   pnl: { amount: number; currency: string; trades: number; winRate: number; sparkline: number[] };
@@ -21,12 +25,12 @@ type LoadState =
   | { kind: "error" }
   | { kind: "idle" }; // no active account
 
-const MOOD_LABEL_PT: Record<Mood, string> = {
-  calm: "Calmo",
-  focused: "Focado",
-  flow: "Em flow",
-  accelerated: "Acelerado",
-  drifting: "Em deriva",
+const MOOD_LABEL_KEYS: Record<Mood, AppMessageKey> = {
+  calm: "dashboard.dayKpis.mood.calm",
+  focused: "dashboard.dayKpis.mood.focused",
+  flow: "dashboard.dayKpis.mood.flow",
+  accelerated: "dashboard.dayKpis.mood.accelerated",
+  drifting: "dashboard.dayKpis.mood.drifting",
 };
 
 const MOOD_TONE: Record<Mood, string> = {
@@ -45,6 +49,7 @@ function fmtCurrency(n: number): string {
 
 // Fetches /api/dashboard/today-stats for the active account.
 export function DayKpis() {
+  const t = useAppT();
   const { activeAccountId } = useActiveAccount();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
@@ -87,14 +92,14 @@ export function DayKpis() {
   }, [activeAccountId]);
 
   if (state.kind === "loading") return <KpisSkeleton />;
-  if (state.kind === "error" || state.kind === "idle") return <KpisFallback />;
+  if (state.kind === "error" || state.kind === "idle") return <KpisFallback t={t} />;
 
   const { pnl, drawdown, mood } = state.data;
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      <PnlCard pnl={pnl} />
-      <DrawdownCard drawdown={drawdown} />
-      <MoodCard mood={mood} tradesCount={pnl.trades} />
+      <PnlCard pnl={pnl} t={t} />
+      <DrawdownCard drawdown={drawdown} t={t} />
+      <MoodCard mood={mood} tradesCount={pnl.trades} t={t} />
     </div>
   );
 }
@@ -127,48 +132,51 @@ function KpisSkeleton() {
   );
 }
 
-function KpisFallback() {
+function KpisFallback({ t }: { t: AppT }) {
+  const noAccount = t("dashboard.dayKpis.noActiveAccount");
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       <CardShell>
-        <p className="text-xs uppercase tracking-wider text-white/50">PnL hoje</p>
+        <p className="text-xs uppercase tracking-wider text-white/50">{t("dashboard.dayKpis.pnlToday")}</p>
         <p className="mt-2 text-3xl font-semibold tabular-nums text-white/70">—</p>
-        <p className="mt-2 text-xs text-white/40">Sem conta ativa</p>
+        <p className="mt-2 text-xs text-white/40">{noAccount}</p>
       </CardShell>
       <CardShell>
-        <p className="text-xs uppercase tracking-wider text-white/50">Daily drawdown</p>
+        <p className="text-xs uppercase tracking-wider text-white/50">{t("dashboard.dayKpis.drawdownTitle")}</p>
         <p className="mt-2 text-3xl font-semibold tabular-nums text-white/70">—</p>
-        <p className="mt-2 text-xs text-white/40">Sem conta ativa</p>
+        <p className="mt-2 text-xs text-white/40">{noAccount}</p>
       </CardShell>
       <CardShell>
-        <p className="text-xs uppercase tracking-wider text-white/50">Estado</p>
+        <p className="text-xs uppercase tracking-wider text-white/50">{t("dashboard.dayKpis.moodTitle")}</p>
         <p className="mt-2 text-2xl font-semibold text-white/70">—</p>
-        <p className="mt-2 text-xs text-white/40">Sem conta ativa</p>
+        <p className="mt-2 text-xs text-white/40">{noAccount}</p>
       </CardShell>
     </div>
   );
 }
 
-function PnlCard({ pnl }: { pnl: TodayStats["pnl"] }) {
+function PnlCard({ pnl, t }: { pnl: TodayStats["pnl"]; t: AppT }) {
   const color = pnl.amount > 0 ? "#34d399" : pnl.amount < 0 ? "#f87171" : "#e5e7eb";
   const winRatePct = Math.round(pnl.winRate * 100);
+  const tradesLine = t("dashboard.dayKpis.tradesWinRate")
+    .replace("{count}", String(pnl.trades))
+    .replace("{plural}", pnl.trades === 1 ? "" : "s")
+    .replace("{winRate}", String(winRatePct));
   return (
     <CardShell>
-      <p className="text-xs uppercase tracking-wider text-white/50">PnL hoje</p>
+      <p className="text-xs uppercase tracking-wider text-white/50">{t("dashboard.dayKpis.pnlToday")}</p>
       <div className="mt-2 flex items-end justify-between gap-3">
         <p className="text-3xl font-semibold tabular-nums" style={{ color }}>
           {fmtCurrency(pnl.amount)}
         </p>
         <Sparkline values={pnl.sparkline} stroke={color} />
       </div>
-      <p className="mt-3 text-xs text-white/50 tabular-nums">
-        {pnl.trades} trade{pnl.trades === 1 ? "" : "s"} · {winRatePct}% win rate
-      </p>
+      <p className="mt-3 text-xs text-white/50 tabular-nums">{tradesLine}</p>
     </CardShell>
   );
 }
 
-function DrawdownCard({ drawdown }: { drawdown: TodayStats["drawdown"] }) {
+function DrawdownCard({ drawdown, t }: { drawdown: TodayStats["drawdown"]; t: AppT }) {
   const hasLimit = drawdown.limit !== null && drawdown.limit > 0;
   const current = drawdown.current ?? 0;
   const pct = hasLimit ? Math.min(1, Math.abs(current) / (drawdown.limit as number)) : 0;
@@ -178,12 +186,12 @@ function DrawdownCard({ drawdown }: { drawdown: TodayStats["drawdown"] }) {
 
   return (
     <CardShell>
-      <p className="text-xs uppercase tracking-wider text-white/50">Daily drawdown</p>
+      <p className="text-xs uppercase tracking-wider text-white/50">{t("dashboard.dayKpis.drawdownTitle")}</p>
       {!hasLimit ? (
         <>
           <p className="mt-2 text-3xl font-semibold tabular-nums text-white/70">—</p>
           <p className="mt-3 text-xs text-white/40">
-            Configure uma prop firm pra habilitar regra de risco.
+            {t("dashboard.dayKpis.configurePropFirm")}
           </p>
         </>
       ) : (
@@ -201,7 +209,7 @@ function DrawdownCard({ drawdown }: { drawdown: TodayStats["drawdown"] }) {
             />
           </div>
           <p className="mt-3 text-xs text-white/50">
-            {drawdown.propFirmName ?? "Prop firm"}
+            {drawdown.propFirmName ?? t("dashboard.dayKpis.propFirmFallback")}
           </p>
         </>
       )}
@@ -209,20 +217,23 @@ function DrawdownCard({ drawdown }: { drawdown: TodayStats["drawdown"] }) {
   );
 }
 
-function MoodCard({ mood, tradesCount }: { mood: TodayStats["mood"]; tradesCount: number }) {
+function MoodCard({ mood, tradesCount, t }: { mood: TodayStats["mood"]; tradesCount: number; t: AppT }) {
+  const basedLine = t("dashboard.dayKpis.basedOnTrades")
+    .replace("{count}", String(tradesCount))
+    .replace("{plural}", tradesCount === 1 ? "" : "s");
   return (
     <CardShell>
-      <p className="text-xs uppercase tracking-wider text-white/50">Estado</p>
+      <p className="text-xs uppercase tracking-wider text-white/50">{t("dashboard.dayKpis.moodTitle")}</p>
       <div className="mt-2">
         <span
           className={`inline-flex items-center rounded-full px-4 py-1.5 text-lg font-semibold ${MOOD_TONE[mood.state]}`}
         >
-          {MOOD_LABEL_PT[mood.state]}
+          {t(MOOD_LABEL_KEYS[mood.state])}
         </span>
       </div>
       <p className="mt-3 text-xs text-white/50">
         {/* TODO(A-02): replace with voice.ts copy */}
-        Baseado em {tradesCount} trade{tradesCount === 1 ? "" : "s"} de hoje
+        {basedLine}
       </p>
     </CardShell>
   );
