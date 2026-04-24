@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { ensureDefaultAccounts, BOOTSTRAP_FAILED_KEY } from "@/lib/bootstrap";
 import { useAuthEvent } from "@/components/context/AuthEventContext";
+import { syncLocaleFromProfile } from "@/lib/i18n/sync";
 
 /** Five minutes in milliseconds */
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
@@ -172,6 +173,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
               }
             });
+            void syncLocaleFromProfile();
           }
           return;
         }
@@ -239,6 +241,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               sessionStorage.setItem(BOOTSTRAP_FAILED_KEY, "1");
             }
           });
+          void syncLocaleFromProfile();
         }
       } catch {
         if (!mounted) return;

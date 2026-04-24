@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Menu, X, LayoutDashboard, Settings, LogOut, ChevronDown } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { ThemeToggle } from "./ThemeToggle";
@@ -43,6 +44,8 @@ function logout() {
 }
 
 export function Navbar() {
+  const t = useTranslations("nav");
+  const tLinks = useTranslations("nav.links");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [navModal, setNavModal] = useState<NavModal>(null);
   const [authState, setAuthState] = useState<boolean | null>(null);
@@ -111,24 +114,25 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-1">
           {links.map((link) => {
             const modal = link.modal;
+            const label = tLinks(link.labelKey);
             if (modal) {
               return (
                 <button
-                  key={link.label}
+                  key={link.labelKey}
                   onClick={() => setNavModal(modal)}
                   className="px-3.5 py-2 text-sm text-l-text-secondary hover:text-l-text transition-colors rounded-lg"
                 >
-                  {link.label}
+                  {label}
                 </button>
               );
             }
             return (
               <a
-                key={link.label}
+                key={link.labelKey}
                 href={link.href}
                 className="px-3.5 py-2 text-sm text-l-text-secondary hover:text-l-text transition-colors rounded-lg"
               >
-                {link.label}
+                {label}
               </a>
             );
           })}
@@ -148,7 +152,7 @@ export function Navbar() {
                 href="/login"
                 className="hidden md:inline-flex px-4 py-2 text-sm text-l-text-secondary hover:text-l-text transition-colors"
               >
-                Entrar
+                {t("signIn")}
               </a>
               <a
                 href="/login"
@@ -158,7 +162,7 @@ export function Navbar() {
                   color: "hsl(var(--landing-bg-elevated))",
                 }}
               >
-                Comece grátis
+                {t("signUp")}
               </a>
             </>
           )}
@@ -176,7 +180,7 @@ export function Navbar() {
                 >
                   <UserAvatar name={displayName ?? "U"} />
                   <span className="text-sm font-medium text-l-text truncate max-w-[120px]">
-                    {displayName ?? "Conta"}
+                    {displayName ?? t("account")}
                   </span>
                   <SubscriptionBadge />
                   <ChevronDown
@@ -199,7 +203,7 @@ export function Navbar() {
                       style={{ width: "calc(100% - 8px)" }}
                     >
                       <Settings className="h-3.5 w-3.5 text-l-text-secondary" />
-                      Configurações
+                      {t("settings")}
                     </a>
                     <div
                       className="my-1 h-px mx-2"
@@ -215,7 +219,7 @@ export function Navbar() {
                       style={{ width: "calc(100% - 8px)" }}
                     >
                       <LogOut className="h-3.5 w-3.5" />
-                      Sair
+                      {t("logout")}
                     </button>
                   </div>
                 )}
@@ -230,7 +234,7 @@ export function Navbar() {
                 }}
               >
                 <LayoutDashboard className="h-3.5 w-3.5" />
-                Dashboard
+                {t("dashboard")}
               </a>
             </>
           )}
@@ -239,7 +243,7 @@ export function Navbar() {
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg"
-            aria-label="Menu"
+            aria-label={t("menu")}
           >
             {mobileOpen ? (
               <X className="h-5 w-5 text-l-text" />
@@ -265,28 +269,29 @@ export function Navbar() {
         <div className="flex flex-col gap-1 p-4">
           {links.map((link) => {
             const modal = link.modal;
+            const label = tLinks(link.labelKey);
             if (modal) {
               return (
                 <button
-                  key={link.label}
+                  key={link.labelKey}
                   onClick={() => {
                     setMobileOpen(false);
                     setNavModal(modal);
                   }}
                   className="px-3 py-2.5 text-sm text-l-text-secondary hover:text-l-text rounded-lg text-left"
                 >
-                  {link.label}
+                  {label}
                 </button>
               );
             }
             return (
               <a
-                key={link.label}
+                key={link.labelKey}
                 href={link.href}
                 className="px-3 py-2.5 text-sm text-l-text-secondary hover:text-l-text rounded-lg"
                 onClick={() => setMobileOpen(false)}
               >
-                {link.label}
+                {label}
               </a>
             );
           })}
@@ -305,7 +310,7 @@ export function Navbar() {
                 href="/login"
                 className="px-3 py-2.5 text-sm text-l-text-secondary"
               >
-                Entrar
+                {t("signIn")}
               </a>
               <a
                 href="/login"
@@ -315,7 +320,7 @@ export function Navbar() {
                   color: "hsl(var(--landing-bg))",
                 }}
               >
-                Comece grátis
+                {t("signUp")}
               </a>
             </>
           )}
@@ -325,7 +330,7 @@ export function Navbar() {
               <div className="flex items-center gap-2 px-3 py-2">
                 <UserAvatar name={displayName ?? "U"} />
                 <span className="text-sm font-medium text-l-text">
-                  {displayName ?? "Conta"}
+                  {displayName ?? t("account")}
                 </span>
                 <SubscriptionBadge />
               </div>
@@ -335,7 +340,7 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
               >
                 <Settings className="h-4 w-4" />
-                Configurações
+                {t("settings")}
               </a>
               <button
                 type="button"
@@ -346,7 +351,7 @@ export function Navbar() {
                 className="flex items-center gap-2 px-3 py-2.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg text-left"
               >
                 <LogOut className="h-4 w-4" />
-                Sair
+                {t("logout")}
               </button>
               <a
                 href="/app"
@@ -357,7 +362,7 @@ export function Navbar() {
                 }}
               >
                 <LayoutDashboard className="h-3.5 w-3.5" />
-                Ir para Dashboard
+                {t("goDashboard")}
               </a>
             </>
           )}
