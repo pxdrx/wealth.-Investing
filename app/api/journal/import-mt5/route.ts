@@ -203,8 +203,9 @@ export async function POST(request: Request) {
     const isCsv = /\.csv$/i.test(fileName);
     const isHtml = /\.html?$/i.test(fileName) || (file.type && file.type.toLowerCase().includes("html"));
     const isXlsx = /\.xlsx?$/i.test(fileName);
+    const isPdf = /\.pdf$/i.test(fileName) || file.type === "application/pdf";
 
-    if (!isCsv && !isHtml && !isXlsx) {
+    if (!isCsv && !isHtml && !isXlsx && !isPdf) {
       return NextResponse.json({ ok: false, error: "Formato não suportado" }, { status: 400 });
     }
 
@@ -213,6 +214,8 @@ export async function POST(request: Request) {
       parserChosen = "ctrader_csv";
     } else if (isHtml) {
       parserChosen = "html";
+    } else if (isPdf) {
+      parserChosen = "pdf_position_history";
     } else {
       parserChosen = "xlsx";
     }
@@ -244,7 +247,7 @@ export async function POST(request: Request) {
     let balanceOps: Array<{ type: string; amount_usd: number; at?: string | null; external_id?: string | null }> = [];
 
     // CSV-specific metadata surfaced when adaptive parser runs (optional)
-    let csvSource: string = isCsv ? "ctrader" : "mt5";
+    let csvSource: string = isCsv ? "ctrader" : isPdf ? "pdf_position_history" : "mt5";
     let adaptiveMapping: Record<string, { header: string; confidence: string }> | null = null;
     let adaptiveWarnings: string[] = [];
     let adaptiveSkippedOpen = 0;
@@ -445,6 +448,15 @@ export async function POST(request: Request) {
         const result = parseMt5Html(buffer);
         trades = result.trades;
         balanceOps = result.balanceOps;
+      } else if (isPdf) {
+        const { parsePositionHistoryPdf } = await import(
+          "@/lib/pdf-position-history-parser"
+        );
+        const result = await parsePositionHistoryPdf(buffer);
+        trades = result.trades;
+        balanceOps = result.balanceOps;
+        parserChosen = "pdf_position_history";
+        csvSource = "pdf_position_history";
       } else {
         // XLSX branch: try the rigid MT5 parser first. If it comes back empty
         // (non-MT5 workbook like NinjaTrader PT-BR converted from CSV), convert
@@ -468,7 +480,11 @@ export async function POST(request: Request) {
       }
     } catch (parseErr) {
       const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-      if (msg.startsWith("MT5 HTML parse failed") || msg.startsWith("CSV adaptativo:")) {
+      if (
+        msg.startsWith("MT5 HTML parse failed") ||
+        msg.startsWith("CSV adaptativo:") ||
+        msg.startsWith("PDF não reconhecido")
+      ) {
         return NextResponse.json({ error: msg }, { status: 400 });
       }
       throw parseErr;

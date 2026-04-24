@@ -15,11 +15,12 @@ export function ImportDropZone({ onFileSelected, compact = false, disabled = fal
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const ACCEPTED = ".xlsx,.html,.htm,.csv";
+  const ACCEPTED = ".xlsx,.html,.htm,.csv,.pdf,application/pdf";
   const FORMATS = [
     { label: "MT5 XLSX", enabled: true },
     { label: "MT5 HTML", enabled: true },
     { label: "cTrader CSV", enabled: true },
+    { label: "Position History PDF", enabled: true },
   ];
 
   const handleDrag = useCallback((e: React.DragEvent) => {

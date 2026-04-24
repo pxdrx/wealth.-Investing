@@ -130,6 +130,41 @@ function parseNumber(v: unknown): number | null {
   return neg ? -n : n;
 }
 
+// ─── futures contract multipliers (used only when pnl_usd is missing) ──────
+//
+// Subset covering the contracts NinjaTrader users on prop firms (Bulenox,
+// Topstep, Apex, etc.) trade most. Values are USD per 1.0 price-point move
+// per contract. Symbol matching is prefix-based on the alpha root so that
+// "MGC 06-26", "MGCM6", "MGC!" all hit the same row. Returns null when the
+// symbol isn't recognized — caller must skip the trade in that case.
+const FUTURES_MULTIPLIERS: Record<string, number> = {
+  // Metals
+  GC: 100, MGC: 10, SI: 5000, SIL: 1000, HG: 25000, MHG: 2500, PL: 50,
+  // Energy
+  CL: 1000, MCL: 100, NG: 10000, QM: 500, RB: 42000, HO: 42000,
+  // Equity index
+  ES: 50, MES: 5, NQ: 20, MNQ: 2, RTY: 50, M2K: 5, YM: 5, MYM: 0.5,
+  // Treasuries
+  ZB: 1000, ZN: 1000, ZF: 1000, ZT: 2000,
+  // FX futures
+  "6E": 125000, "6B": 62500, "6J": 12500000, "6A": 100000, "6C": 100000,
+  // Agricultural
+  ZC: 50, ZS: 50, ZW: 50, ZL: 600, ZM: 100,
+};
+
+function lookupFuturesMultiplier(symbol: string): number | null {
+  const sym = symbol.trim().toUpperCase();
+  // Strip everything after first space, dash, dot, or contract month code.
+  const root = sym.split(/[\s\-.!]/)[0];
+  if (FUTURES_MULTIPLIERS[root] !== undefined) return FUTURES_MULTIPLIERS[root];
+  // Try progressively shorter prefixes (handles "MGCM26"-style codes).
+  for (let len = root.length; len >= 2; len--) {
+    const prefix = root.slice(0, len);
+    if (FUTURES_MULTIPLIERS[prefix] !== undefined) return FUTURES_MULTIPLIERS[prefix];
+  }
+  return null;
+}
+
 // ─── CSV splitting (quote-aware) ────────────────────────────────────────────
 
 function splitCsvLine(line: string, delim: string): string[] {
@@ -321,7 +356,11 @@ const ALIASES: Record<CanonicalField, string[]> = {
     "net pos",
     "net position",
     "position qty",
-    "open qty",
+    // "open qty" intentionally removed — it fuzzy-matched "open_price" via
+    // single-token overlap (open/qty vs open/price = 0.5) and stole the
+    // entry-price column on generic exports like teste_v3.csv, then
+    // every row got flagged as an open position and skipped. Callers
+    // who emit "Open Qty" headers should add it via extraAliases.
     "posicao aberta",
   ],
   currency: ["currency", "ccy", "moeda", "divisa"],
@@ -492,8 +531,13 @@ function profileColumn(values: string[]): ColumnProfile {
     nonEmpty++;
     uniqueVals.add(v);
 
+    // Accept 2- or 4-digit years. NinjaTrader's XLSX export rendered via
+    // sheet_to_csv emits "4/17/26 6:45" because Excel formats serials with
+    // the locale's short-year pattern. Two-digit years are interpreted in
+    // parseFlexDate as 20YY (good through 2099, when this code is presumably
+    // long retired).
     const mdy = v.match(
-      /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})([ T]\d{1,2}:\d{2}(:\d{2})?)?$/
+      /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2}|\d{4})([ T]\d{1,2}:\d{2}(:\d{2})?)?$/
     );
     const ymd = v.match(
       /^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})([ T]\d{1,2}:\d{2}(:\d{2})?)?$/
@@ -608,8 +652,10 @@ function resolveField(
     }
   }
 
-  // Camada 2 — fuzzy por tokens (sem substring bruto; evita "type" casar em "priceformattype")
-  if (candidates.length === 0) {
+  // Camada 2 — fuzzy por tokens (sem substring bruto; evita "type" casar em "priceformattype").
+  // net_pos is alias-only: a false positive here flags every row as "open
+  // position" and silently produces 0 trades — far worse than an honest miss.
+  if (candidates.length === 0 && field !== "net_pos") {
     for (let c = 0; c < headers.length; c++) {
       if (used.has(c)) continue;
       const nh = normalizedHeaders[c];
@@ -747,12 +793,13 @@ function parseFlexDate(v: string, format: ColumnProfile["dateFormat"]): string {
   }
 
   const m = s.match(
-    /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+    /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2}|\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
   );
   if (m) {
     const a = parseInt(m[1], 10);
     const b = parseInt(m[2], 10);
-    const y = parseInt(m[3], 10);
+    let y = parseInt(m[3], 10);
+    if (m[3].length === 2) y += 2000; // "26" → 2026
     const h = parseInt(m[4] ?? "0", 10);
     const mi = parseInt(m[5] ?? "0", 10);
     const se = parseInt(m[6] ?? "0", 10);
@@ -938,9 +985,17 @@ export function parseCsvAdaptive(
       ? "ninjatrader"
       : "generic";
 
-  // required fields check
+  // required fields check.
+  // pnl_usd may be DERIVED when missing if (price_open + price_close +
+  // direction + volume) are all present and the symbol is a known futures
+  // contract. NinjaTrader users frequently export only the first 10
+  // columns (Núm.Neg.→Hora saída) which omits Profit — derivation lets
+  // those reports import instead of failing at the door.
+  const canDerivePnl = Boolean(
+    mapping.price_open && mapping.price_close && mapping.direction && mapping.volume
+  );
   const missing: string[] = [];
-  if (!mapping.pnl_usd) missing.push("pnl_usd");
+  if (!mapping.pnl_usd && !canDerivePnl) missing.push("pnl_usd");
   if (!mapping.symbol) missing.push("symbol");
   const hasCloseSlot =
     mapping.closed_at || (mapping.bought_ts && mapping.sold_ts);
@@ -953,6 +1008,11 @@ export function parseCsvAdaptive(
       `CSV adaptativo: não foi possível resolver campo(s) obrigatório(s): ${missing.join(
         ", "
       )}. Colunas detectadas: ${headers.filter(Boolean).join(", ")}`
+    );
+  }
+  if (!mapping.pnl_usd && canDerivePnl) {
+    warnings.push(
+      "Coluna 'Profit' ausente — PnL derivado de (preço saída − preço entrada) × multiplicador × qtd. Reexporte com a coluna Profit para precisão broker-exact."
     );
   }
 
@@ -1023,7 +1083,7 @@ export function parseCsvAdaptive(
   let skippedInvalid = 0;
 
   const symbolCol = mapping.symbol!;
-  const pnlCol = mapping.pnl_usd!;
+  const pnlCol = mapping.pnl_usd;
   const dirCol = mapping.direction;
   const openAtCol = mapping.opened_at;
   const closeAtCol = mapping.closed_at;
@@ -1034,6 +1094,8 @@ export function parseCsvAdaptive(
   const commCol = mapping.commission;
   const swapCol = mapping.swap;
   const netPosCol = mapping.net_pos;
+  const priceOpenCol = mapping.price_open;
+  const priceCloseCol = mapping.price_close;
 
   for (const r of dataRows) {
     const symbol = (r[symbolCol.column] ?? "").trim();
@@ -1077,12 +1139,6 @@ export function parseCsvAdaptive(
       continue;
     }
 
-    const pnl = parseNumber(r[pnlCol.column] ?? "");
-    if (pnl === null) {
-      skippedInvalid++;
-      continue;
-    }
-
     let direction: "buy" | "sell" = "buy";
     if (dirCol) {
       const raw = (r[dirCol.column] ?? "").trim().toLowerCase();
@@ -1090,6 +1146,36 @@ export function parseCsvAdaptive(
       else if (/^(buy|long|compra|b|l)$/.test(raw)) direction = "buy";
     } else if (bDate && sDate) {
       direction = new Date(bDate).getTime() <= new Date(sDate).getTime() ? "buy" : "sell";
+    }
+
+    // Resolve PnL: prefer the broker-reported value; fall back to deriving
+    // it from (entry, exit, direction, qty, multiplier) when the Profit
+    // column is absent. Derivation is only attempted for known futures
+    // contracts — unknown symbols still skip the row as invalid.
+    let pnl: number | null = null;
+    if (pnlCol) {
+      pnl = parseNumber(r[pnlCol.column] ?? "");
+    } else if (priceOpenCol && priceCloseCol && volCol) {
+      const entry = parseNumber(r[priceOpenCol.column] ?? "");
+      const exit = parseNumber(r[priceCloseCol.column] ?? "");
+      const qty = parseNumber(r[volCol.column] ?? "");
+      const mult = lookupFuturesMultiplier(symbol);
+      if (
+        entry !== null &&
+        exit !== null &&
+        qty !== null &&
+        qty > 0 &&
+        mult !== null
+      ) {
+        const points = direction === "sell" ? entry - exit : exit - entry;
+        // Round to 2dp — float arithmetic on 4814.8 - 4826.2 yields
+        // -11.39999... which would persist into journal_trades.pnl_usd.
+        pnl = Math.round(points * mult * qty * 100) / 100;
+      }
+    }
+    if (pnl === null) {
+      skippedInvalid++;
+      continue;
     }
 
     const commission = commCol ? parseNumber(r[commCol.column] ?? "") ?? 0 : 0;
