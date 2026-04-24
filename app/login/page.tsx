@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, toFriendlyMessage } from "@/lib/profile";
@@ -21,13 +22,8 @@ function GoogleIcon() {
   );
 }
 
-const MODES: { key: Mode; label: string }[] = [
-  { key: "signin", label: "Entrar" },
-  { key: "signup", label: "Criar conta" },
-  { key: "magic",  label: "Link mágico" },
-];
-
 export default function LoginPage() {
+  const t = useTranslations("app.auth");
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -44,6 +40,12 @@ export default function LoginPage() {
   const [info, setInfo] = useState<string | null>(null);
   const redirectToRef = useRef<"/app" | "/onboarding">("/app");
 
+  const MODES: { key: Mode; label: string }[] = [
+    { key: "signin", label: t("signIn") },
+    { key: "signup", label: t("signUp") },
+    { key: "magic", label: t("magicLink") },
+  ];
+
   const callbackError = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("error")
     : null;
@@ -52,17 +54,17 @@ export default function LoginPage() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("info") === "password-updated") {
-      setInfo("Senha atualizada com sucesso. Entre com a nova senha.");
+      setInfo(t("infoPasswordUpdated"));
     }
     if (params.get("error") === "callback") {
-      setError("Falha ao autenticar. Tente novamente.");
+      setError(t("errCallback"));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!isExiting) return;
-    const t = setTimeout(() => { window.location.href = redirectToRef.current; }, 150);
-    return () => clearTimeout(t);
+    const to = setTimeout(() => { window.location.href = redirectToRef.current; }, 150);
+    return () => clearTimeout(to);
   }, [isExiting]);
 
   async function finishLogin() {
@@ -77,7 +79,7 @@ export default function LoginPage() {
     e.preventDefault(); setError(null); setLoading(true);
     try {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err || !data.session) { setError(err?.message ?? "Falha ao entrar."); return; }
+      if (err || !data.session) { setError(err?.message ?? t("errSignInFailed")); return; }
       await finishLogin();
     } catch (err) { setError(toFriendlyMessage(err)); }
     finally { setLoading(false); }
@@ -86,10 +88,10 @@ export default function LoginPage() {
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault(); setError(null);
     const name = signupName.trim();
-    if (name.length < 2) { setError("Nome deve ter pelo menos 2 caracteres."); return; }
-    if (!signupEmail.trim()) { setError("Informe um e-mail válido."); return; }
-    if (signupPassword.length < 8) { setError("A senha deve ter no mínimo 8 caracteres."); return; }
-    if (signupPassword !== signupConfirm) { setError("As senhas não coincidem."); return; }
+    if (name.length < 2) { setError(t("errNameTooShort")); return; }
+    if (!signupEmail.trim()) { setError(t("errInvalidEmail")); return; }
+    if (signupPassword.length < 8) { setError(t("errPasswordTooShort")); return; }
+    if (signupPassword !== signupConfirm) { setError(t("errPasswordsMismatch")); return; }
     setLoading(true);
     try {
       const { data, error: err } = await supabase.auth.signUp({
@@ -97,14 +99,14 @@ export default function LoginPage() {
         options: { emailRedirectTo: `${window.location.origin}/auth/callback`, data: { display_name: name } },
       });
       if (err) { setError(err.message); return; }
-      if (data.session) { await finishLogin(); } else { setInfo("Conta criada! Verifique seu e-mail."); }
+      if (data.session) { await finishLogin(); } else { setInfo(t("infoSignupCreated")); }
     } catch (err) { setError(toFriendlyMessage(err)); }
     finally { setLoading(false); }
   }
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault(); setError(null);
-    if (!magicEmail.trim()) { setError("Informe o e-mail."); return; }
+    if (!magicEmail.trim()) { setError(t("errEmailRequired")); return; }
     setLoading(true);
     try {
       const { error: err } = await supabase.auth.signInWithOtp({
@@ -112,21 +114,21 @@ export default function LoginPage() {
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
       if (err) { setError(err.message); return; }
-      setInfo("Link enviado! Verifique seu e-mail.");
+      setInfo(t("infoMagicSent"));
     } catch (err) { setError(toFriendlyMessage(err)); }
     finally { setLoading(false); }
   }
 
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault(); setError(null); setInfo(null);
-    if (!forgotEmail.trim()) { setError("Informe o e-mail."); return; }
+    if (!forgotEmail.trim()) { setError(t("errEmailRequired")); return; }
     setLoading(true);
     try {
       const { error: err } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (err) { setError(err.message); return; }
-      setInfo("Se existir uma conta com este e-mail, enviamos um link para redefinir a senha.");
+      setInfo(t("infoForgotSent"));
     } catch (err) { setError(toFriendlyMessage(err)); }
     finally { setLoading(false); }
   }
@@ -167,7 +169,7 @@ export default function LoginPage() {
       </nav>
 
       {/* Left Side: Editorial Content */}
-      <section 
+      <section
         className="hidden md:flex flex-1 flex-col justify-center p-12 lg:p-24 relative overflow-hidden"
         style={{ backgroundImage: "radial-gradient(hsl(var(--border)) 1px, transparent 0)", backgroundSize: "24px 24px" }}
       >
@@ -176,36 +178,36 @@ export default function LoginPage() {
         </div>
 
         <div className="max-w-xl z-10 w-full">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: easeApple }}
           >
             <div className="inline-flex items-center gap-2 mb-8 px-3 py-1.5 bg-card/50 backdrop-blur border border-border/60 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse cursor-help" title="Sistema online e operacional"></span>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-foreground">Terminal Pro</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse cursor-help" title={t("statusOnline")}></span>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-foreground">{t("terminalPro")}</span>
             </div>
 
             <h1 className="text-5xl lg:text-6xl font-extrabold text-foreground leading-[1.05] mb-6 tracking-tight">
-              Tenha clareza total sobre cada operação
+              {t("heroTitle")}
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-md">
-              Gerencie sua carteira com precisão. Uma interface limpa, desenhada para decisões rápidas e insights automatizados pelo AI Coach.
+              {t("heroSubtitle")}
             </p>
 
             <div className="mt-16 grid grid-cols-2 gap-8">
               <div className="flex flex-col gap-2">
-                <span className="font-bold text-2xl text-foreground">Smart</span>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Métricas &amp; Journaling</p>
+                <span className="font-bold text-2xl text-foreground">{t("heroFeature1Title")}</span>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("heroFeature1Sub")}</p>
               </div>
               <div className="flex flex-col gap-2">
-                <span className="font-bold text-2xl text-foreground">Ao vivo</span>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inteligência Macro</p>
+                <span className="font-bold text-2xl text-foreground">{t("heroFeature2Title")}</span>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("heroFeature2Sub")}</p>
               </div>
             </div>
           </motion.div>
         </div>
-        
+
         {/* Soft elegant background shape */}
         <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-foreground/5 rounded-full blur-[120px] pointer-events-none"></div>
       </section>
@@ -214,11 +216,11 @@ export default function LoginPage() {
       <section className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-24 z-10 pt-24 md:pt-12">
         <div className="w-full max-w-[420px]">
           <div className="md:hidden mb-8 text-center px-2">
-            <h2 className="text-3xl font-extrabold text-foreground mb-2 tracking-tight">Acessar Terminal</h2>
-            <p className="text-muted-foreground text-sm">Insira suas credenciais de acesso</p>
+            <h2 className="text-3xl font-extrabold text-foreground mb-2 tracking-tight">{t("mobileTitle")}</h2>
+            <p className="text-muted-foreground text-sm">{t("mobileSubtitle")}</p>
           </div>
 
-          <motion.div 
+          <motion.div
             className="bg-card p-8 md:p-10 rounded-[24px] shadow-[0px_12px_48px_rgba(26,26,26,0.04)] border border-border/40 relative overflow-hidden"
             style={{ backgroundColor: "hsl(var(--card))" }}
             initial={{ opacity: 0, y: 16 }}
@@ -276,11 +278,11 @@ export default function LoginPage() {
                     <button type="button" onClick={handleGoogle} disabled={loading}
                       className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-border bg-card py-3.5 text-[14px] font-semibold text-foreground transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98]">
                       <GoogleIcon />
-                      Continuar com Google
+                      {t("continueWithGoogle")}
                     </button>
                     <div className="my-6 relative flex items-center">
                       <div className="w-full border-t border-border"></div>
-                      <div className="absolute left-1/2 -translate-x-1/2 bg-card px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">ou</div>
+                      <div className="absolute left-1/2 -translate-x-1/2 bg-card px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">{t("or")}</div>
                     </div>
                   </>
                 )}
@@ -289,24 +291,24 @@ export default function LoginPage() {
                 {mode === "signin" && (
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label htmlFor="signin-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">E-mail</label>
+                      <label htmlFor="signin-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">{t("email")}</label>
                       <input id="signin-email"
-                        type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seu@email.com" 
-                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
+                        type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder={t("emailPlaceholder")}
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center px-1">
-                        <label htmlFor="signin-password" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Senha</label>
-                        <a href="#" className="text-[11px] font-bold text-foreground hover:underline" onClick={(e) => { e.preventDefault(); setForgotEmail(email); switchMode("forgot"); }}>Esqueceu a senha?</a>
+                        <label htmlFor="signin-password" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">{t("password")}</label>
+                        <a href="#" className="text-[11px] font-bold text-foreground hover:underline" onClick={(e) => { e.preventDefault(); setForgotEmail(email); switchMode("forgot"); }}>{t("forgotPassword")}</a>
                       </div>
                       <input id="signin-password"
-                        type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" 
-                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
+                        type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm"
                       />
                     </div>
                     <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
-                      {loading ? "Acessando..." : "Entrar no Terminal"}
+                      {loading ? t("signinLoading") : t("signinSubmit")}
                     </button>
                   </form>
                 )}
@@ -315,35 +317,35 @@ export default function LoginPage() {
                 {mode === "signup" && (
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label htmlFor="signup-name" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">Nome</label>
+                      <label htmlFor="signup-name" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">{t("name")}</label>
                       <input id="signup-name"
-                        type="text" value={signupName} onChange={e => setSignupName(e.target.value)} required placeholder="Como quer ser chamado" 
-                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
+                        type="text" value={signupName} onChange={e => setSignupName(e.target.value)} required placeholder={t("namePlaceholder")}
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="signup-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">E-mail</label>
+                      <label htmlFor="signup-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">{t("email")}</label>
                       <input id="signup-email"
-                        type="email" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required placeholder="seu@email.com" 
-                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
+                        type="email" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required placeholder={t("emailPlaceholder")}
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="signup-password" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">Senha <span className="text-muted-foreground/70 normal-case tracking-normal">(mín. 8)</span></label>
+                      <label htmlFor="signup-password" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">{t("password")} <span className="text-muted-foreground/70 normal-case tracking-normal">{t("passwordHintMin8")}</span></label>
                       <input id="signup-password"
-                        type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required placeholder="••••••••" 
-                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
+                        type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required placeholder="••••••••"
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="signup-confirm" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">Confirmar senha</label>
+                      <label htmlFor="signup-confirm" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">{t("confirmPassword")}</label>
                       <input id="signup-confirm"
-                        type="password" value={signupConfirm} onChange={e => setSignupConfirm(e.target.value)} required placeholder="••••••••" 
-                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
+                        type="password" value={signupConfirm} onChange={e => setSignupConfirm(e.target.value)} required placeholder="••••••••"
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm"
                       />
                     </div>
                     <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
-                      {loading ? "Criando conta..." : "Criar conta"}
+                      {loading ? t("signupLoading") : t("signUp")}
                     </button>
                   </form>
                 )}
@@ -352,17 +354,17 @@ export default function LoginPage() {
                 {mode === "magic" && (
                   <form onSubmit={handleMagicLink} className="space-y-5">
                     <p className="text-[14px] text-muted-foreground leading-relaxed">
-                      Digite seu e-mail para receber um link de acesso instantâneo. Sem necessidade de senha.
+                      {t("magicDescription")}
                     </p>
                     <div className="space-y-1.5">
-                      <label htmlFor="magic-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">E-mail</label>
+                      <label htmlFor="magic-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">{t("email")}</label>
                       <input id="magic-email"
-                        type="email" value={magicEmail} onChange={e => setMagicEmail(e.target.value)} required placeholder="seu@email.com" 
-                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" 
+                        type="email" value={magicEmail} onChange={e => setMagicEmail(e.target.value)} required placeholder={t("emailPlaceholder")}
+                        className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm"
                       />
                     </div>
                     <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
-                      {loading ? "Enviando e-mail..." : "Enviar link mágico"}
+                      {loading ? t("magicLoading") : t("sendMagicLink")}
                     </button>
                   </form>
                 )}
@@ -371,35 +373,35 @@ export default function LoginPage() {
                 {mode === "forgot" && (
                   <form onSubmit={handleForgotPassword} className="space-y-5">
                     <div className="space-y-1">
-                      <h3 className="text-xl font-extrabold text-foreground tracking-tight">Redefinir senha</h3>
+                      <h3 className="text-xl font-extrabold text-foreground tracking-tight">{t("resetPassword")}</h3>
                       <p className="text-[14px] text-muted-foreground leading-relaxed">
-                        Digite seu e-mail e enviaremos um link para você criar uma nova senha.
+                        {t("forgotDescription")}
                       </p>
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="forgot-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">E-mail</label>
-                      <input id="forgot-email" type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder="seu@email.com"
+                      <label htmlFor="forgot-email" className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider ml-1">{t("email")}</label>
+                      <input id="forgot-email" type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder={t("emailPlaceholder")}
                         className="w-full h-12 px-4 bg-muted/50 border border-border rounded-[14px] focus:ring-2 focus:ring-foreground/20 focus:border-foreground transition-all outline-none text-foreground placeholder:text-muted-foreground/60 text-sm" />
                     </div>
                     <button type="submit" disabled={loading} className="w-full h-12 mt-2 bg-primary text-primary-foreground text-[14px] font-semibold rounded-full hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
-                      {loading ? "Enviando..." : "Enviar link de redefinição"}
+                      {loading ? t("forgotLoading") : t("sendResetLink")}
                     </button>
                     <button type="button" onClick={() => switchMode("signin")} className="w-full text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                      ← Voltar para entrar
+                      {t("forgotBack")}
                     </button>
                   </form>
                 )}
               </motion.div>
             </AnimatePresence>
-            
+
             {/* Subtle trust signals */}
             <div className="mt-8 flex items-center justify-center gap-6 opacity-40 grayscale">
               <div className="flex items-center gap-1.5">
                 <svg className="w-4 h-4 text-foreground" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-                <span className="text-[10px] font-bold tracking-tight text-foreground">ENCRYPTED</span>
+                <span className="text-[10px] font-bold tracking-tight text-foreground">{t("trustEncrypted")}</span>
               </div>
             </div>
-            
+
           </motion.div>
         </div>
       </section>
