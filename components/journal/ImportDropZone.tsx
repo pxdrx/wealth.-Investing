@@ -73,7 +73,7 @@ export function ImportDropZone({ onFileSelected, compact = false, disabled = fal
           Arraste seu relatório aqui
         </p>
         <p className="text-xs text-muted-foreground/60 mb-3">
-          Formatos aceitos: .xlsx, .html, .htm, .csv
+          Formatos aceitos: .xlsx, .html, .htm, .csv, .pdf
         </p>
         <button
           type="button"

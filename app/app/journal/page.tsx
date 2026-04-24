@@ -623,9 +623,9 @@ export default function JournalPage() {
               style={{ backgroundColor: "hsl(var(--card))" }}
             >
               <div>
-                <p className="text-sm font-semibold text-foreground">Importar MT5</p>
+                <p className="text-sm font-semibold text-foreground">Importar histórico</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Envie o relatório do MetaTrader 5 (.html ou .xlsx). A conta ativa será usada.
+                  MT5 (.html/.xlsx), cTrader/NinjaTrader (.csv) ou Position History (.pdf). A conta ativa será usada.
                 </p>
               </div>
 
