@@ -90,7 +90,7 @@ export function aggregateByDay(
 export function cellColor(pnl: number | null): string {
   if (pnl === null) return "transparent";
   if (pnl > 0) return "hsl(var(--pnl-cell-win))";
-  if (pnl === 0) return "hsl(var(--landing-border))";
+  if (pnl === 0) return "hsl(var(--border))";
   return "hsl(var(--pnl-cell-loss))";
 }
 

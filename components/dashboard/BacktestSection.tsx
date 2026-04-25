@@ -494,7 +494,7 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
   }, [filteredTrades]);
 
   const pnlColor = (v: number) =>
-    v > 0 ? "hsl(var(--pnl-positive))" : v < 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))";
+    v > 0 ? "hsl(var(--pnl-positive))" : v < 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--muted-foreground))";
 
   const selectedAccount = selectedAccountId ? activeAccounts.find((a) => a.id === selectedAccountId) : null;
   const currentAccountId = selectedAccountId ?? activeAccounts[0]?.id ?? "";
@@ -627,10 +627,10 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5 pt-2 pb-3">
               {[
                 { label: "P&L", value: mask(`$${Math.abs(stats.totalPnl).toFixed(0)}`), color: pnlColor(stats.totalPnl), prefix: stats.totalPnl >= 0 ? "+" : "-" },
-                { label: t("backtest.kpiWinRate"), value: stats.totalTrades > 0 ? formatPercent(stats.winRate) : "—", color: stats.winRate >= 50 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
-                { label: "PF", value: stats.profitFactor === Infinity ? "∞" : stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : "—", color: stats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
-                { label: "TRADES", value: `${stats.wins}W / ${stats.losses}L`, color: "hsl(var(--landing-text))" },
-                { label: t("backtest.kpiMaxDd"), value: stats.maxDD > 0 ? mask(`-$${stats.maxDD.toFixed(0)}`) : "—", color: stats.maxDD > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))" },
+                { label: t("backtest.kpiWinRate"), value: stats.totalTrades > 0 ? formatPercent(stats.winRate) : "—", color: stats.winRate >= 50 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--muted-foreground))" },
+                { label: "PF", value: stats.profitFactor === Infinity ? "∞" : stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : "—", color: stats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : stats.totalTrades > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--muted-foreground))" },
+                { label: "TRADES", value: `${stats.wins}W / ${stats.losses}L`, color: "hsl(var(--foreground))" },
+                { label: t("backtest.kpiMaxDd"), value: stats.maxDD > 0 ? mask(`-$${stats.maxDD.toFixed(0)}`) : "—", color: stats.maxDD > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--muted-foreground))" },
                 {
                   label: t("backtest.kpiAvgRr"),
                   value:
@@ -639,10 +639,10 @@ export function BacktestSection({ accounts, trades, userId, onTradeAdded }: Back
                       : stats.avgRR > 0
                         ? stats.avgRR.toFixed(2)
                         : "—",
-                  color: "hsl(var(--landing-text))",
+                  color: "hsl(var(--foreground))",
                 },
               ].map((kpi) => (
-                <div key={kpi.label} className="rounded-lg px-2.5 py-2" style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}>
+                <div key={kpi.label} className="rounded-lg px-2.5 py-2" style={{ backgroundColor: "hsl(var(--secondary))" }}>
                   <p className="text-[8px] uppercase tracking-wider mb-0.5 text-muted-foreground">{kpi.label}</p>
                   <p className="text-xs font-semibold tabular-nums" style={{ color: kpi.color }}>
                     {"prefix" in kpi && kpi.prefix ? `${kpi.prefix}${kpi.value}` : kpi.value}

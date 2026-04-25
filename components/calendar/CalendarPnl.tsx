@@ -165,7 +165,7 @@ export function CalendarPnl({
       ? "hsl(var(--pnl-positive))"
       : value < 0
         ? "hsl(var(--pnl-negative))"
-        : "hsl(var(--landing-text-muted))";
+        : "hsl(var(--muted-foreground))";
 
   const { mask } = usePrivacy();
   const title = customTitle ?? (accounts ? "Consolidado de Contas" : "Calendário P&L");
@@ -174,7 +174,7 @@ export function CalendarPnl({
     ? "hsl(var(--pnl-positive))"
     : monthStats.winRate > 0
       ? "hsl(var(--pnl-negative))"
-      : "hsl(var(--landing-text-muted))";
+      : "hsl(var(--muted-foreground))";
 
   const kpis = [
     {
@@ -190,7 +190,7 @@ export function CalendarPnl({
     {
       label: "PROFIT FACTOR",
       value: monthStats.profitFactor === Infinity ? "∞" : monthStats.profitFactor > 0 ? monthStats.profitFactor.toFixed(2) : "—",
-      color: monthStats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : monthStats.profitFactor > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))",
+      color: monthStats.profitFactor >= 1 ? "hsl(var(--pnl-positive))" : monthStats.profitFactor > 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--muted-foreground))",
     },
     {
       label: "RR MÉDIO",
@@ -200,17 +200,17 @@ export function CalendarPnl({
           : monthStats.avgRR > 0
             ? monthStats.avgRR.toFixed(2)
             : "—",
-      color: "hsl(var(--landing-text))",
+      color: "hsl(var(--foreground))",
     },
     {
       label: "TRADES",
       value: monthStats.totalTrades > 0 ? `${monthStats.totalWins}W / ${monthStats.totalLosses}L` : "0",
-      color: "hsl(var(--landing-text))",
+      color: "hsl(var(--foreground))",
     },
     {
       label: "DIAS OPERADOS",
       value: monthStats.daysOperated.toString(),
-      color: "hsl(var(--landing-text))",
+      color: "hsl(var(--foreground))",
     },
   ];
 
@@ -222,7 +222,7 @@ export function CalendarPnl({
           <div className="flex items-baseline justify-between mb-3">
             <h3
               className="text-sm font-semibold tracking-tight"
-              style={{ color: "hsl(var(--landing-text))" }}
+              style={{ color: "hsl(var(--foreground))" }}
             >
               {title}
             </h3>
@@ -239,7 +239,7 @@ export function CalendarPnl({
                 key={kpi.label}
                 className="rounded-lg px-3 py-2.5"
                 style={{
-                  backgroundColor: "hsl(var(--landing-bg-tertiary))",
+                  backgroundColor: "hsl(var(--secondary))",
                 }}
               >
                 <p
@@ -294,7 +294,7 @@ export function CalendarPnl({
       {compact && (
         <div className="px-3 pt-3 pb-2">
           <div className="flex items-baseline justify-between mb-2">
-            <h3 className="text-xs font-semibold tracking-tight" style={{ color: "hsl(var(--landing-text))" }}>{title}</h3>
+            <h3 className="text-xs font-semibold tracking-tight" style={{ color: "hsl(var(--foreground))" }}>{title}</h3>
             <span className="text-[10px] text-muted-foreground">{MONTH_NAMES[displayMonth]} {displayYear}</span>
           </div>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-1">
@@ -302,7 +302,7 @@ export function CalendarPnl({
               <div
                 key={kpi.label}
                 className="rounded-lg px-2 py-1.5"
-                style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
+                style={{ backgroundColor: "hsl(var(--secondary))" }}
               >
                 <p className="text-[8px] uppercase tracking-wider mb-0.5 text-muted-foreground">{kpi.label}</p>
                 <p className="text-[11px] font-semibold tabular-nums" style={{ color: kpi.color }}>{mask(kpi.value)}</p>
@@ -346,7 +346,7 @@ export function CalendarPnl({
       {/* Calendar — full width, no sidebar */}
       <div
         className={cn(!compact && "border-t")}
-        style={{ borderColor: "hsl(var(--landing-border))" }}
+        style={{ borderColor: "hsl(var(--border))" }}
       >
         <div className={cn(compact ? "p-1" : "p-4 md:p-5")}>
           <CalendarGrid

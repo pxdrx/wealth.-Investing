@@ -185,13 +185,13 @@ export function DayDetailPanel({
       ? "hsl(var(--pnl-positive))"
       : value < 0
         ? "hsl(var(--pnl-negative))"
-        : "hsl(var(--landing-text-muted))";
+        : "hsl(var(--muted-foreground))";
 
   if (!selectedDate) {
     return (
       <div
         className="lg:w-[280px] border-t lg:border-t-0 lg:border-l p-4 md:p-5 flex items-center justify-center"
-        style={{ borderColor: "hsl(var(--landing-border))" }}
+        style={{ borderColor: "hsl(var(--border))" }}
       >
         <p className="text-xs text-center text-muted-foreground">
           Selecione um dia para ver detalhes.
@@ -203,7 +203,7 @@ export function DayDetailPanel({
   return (
     <div
       className="lg:w-[280px] border-t lg:border-t-0 lg:border-l p-4 md:p-5 flex flex-col gap-4 overflow-y-auto"
-      style={{ borderColor: "hsl(var(--landing-border))" }}
+      style={{ borderColor: "hsl(var(--border))" }}
     >
       {/* Header */}
       <div className="flex items-baseline justify-between">
@@ -213,7 +213,7 @@ export function DayDetailPanel({
         <span
           className="text-base font-semibold tabular-nums"
           style={{
-            color: dayData ? pnlColor(dayData.totalPnl) : "hsl(var(--landing-text-muted))",
+            color: dayData ? pnlColor(dayData.totalPnl) : "hsl(var(--muted-foreground))",
           }}
         >
           {mask(dayData ? formatPnl(dayData.totalPnl) : "$0")}
@@ -226,7 +226,7 @@ export function DayDetailPanel({
           {
             label: "Trades",
             value: dayData?.tradeCount?.toString() ?? "0",
-            color: "hsl(var(--landing-text))",
+            color: "hsl(var(--foreground))",
           },
           {
             label: "RR Médio",
@@ -236,24 +236,24 @@ export function DayDetailPanel({
                 : rrStats.avgRR > 0
                   ? rrStats.avgRR.toFixed(2)
                   : "—",
-            color: "hsl(var(--landing-text))",
+            color: "hsl(var(--foreground))",
           },
           {
             label: "Melhor",
             value: dayData && dayData.bestTrade !== 0 ? formatPnl(dayData.bestTrade) : "$0",
-            color: dayData && dayData.bestTrade > 0 ? "hsl(var(--pnl-positive))" : "hsl(var(--landing-text-muted))",
+            color: dayData && dayData.bestTrade > 0 ? "hsl(var(--pnl-positive))" : "hsl(var(--muted-foreground))",
           },
           {
             label: "Pior",
             value: dayData && dayData.worstTrade !== 0 ? formatPnl(dayData.worstTrade) : "$0",
-            color: dayData && dayData.worstTrade < 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--landing-text-muted))",
+            color: dayData && dayData.worstTrade < 0 ? "hsl(var(--pnl-negative))" : "hsl(var(--muted-foreground))",
           },
         ].map((kpi) => (
           <div
             key={kpi.label}
             className="rounded-lg p-2.5"
             style={{
-              backgroundColor: "hsl(var(--landing-bg-tertiary))",
+              backgroundColor: "hsl(var(--secondary))",
             }}
           >
             <p className="text-[9px] uppercase tracking-wider mb-1 text-muted-foreground">
@@ -289,7 +289,7 @@ export function DayDetailPanel({
             placeholder="Como foi o dia? Licoes aprendidas..."
             rows={3}
             className="w-full rounded-lg border border-border/40 bg-transparent px-2.5 py-2 text-[11px] leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-            style={{ color: "hsl(var(--landing-text))" }}
+            style={{ color: "hsl(var(--foreground))" }}
           />
         </div>
       ) : (
@@ -300,7 +300,7 @@ export function DayDetailPanel({
             </p>
             <p
               className="text-[11px] leading-relaxed"
-              style={{ color: "hsl(var(--landing-text))" }}
+              style={{ color: "hsl(var(--foreground))" }}
             >
               {dayNote.observation}
             </p>
@@ -320,7 +320,7 @@ export function DayDetailPanel({
                 <span
                   key={tag}
                   className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                  style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))", color: "hsl(var(--landing-text))" }}
+                  style={{ backgroundColor: "hsl(var(--secondary))", color: "hsl(var(--foreground))" }}
                 >
                   {tag}
                   <button
@@ -341,13 +341,13 @@ export function DayDetailPanel({
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
               placeholder="Adicionar tag..."
               className="flex-1 rounded-lg border border-border/40 bg-transparent px-2.5 py-1.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring"
-              style={{ color: "hsl(var(--landing-text))" }}
+              style={{ color: "hsl(var(--foreground))" }}
             />
             <button
               onClick={addTag}
               disabled={!tagInput.trim()}
-              className="rounded-lg border border-border/40 px-2 py-1.5 text-[11px] hover:bg-[hsl(var(--landing-bg-tertiary))] transition-colors disabled:opacity-40"
-              style={{ color: "hsl(var(--landing-text))" }}
+              className="rounded-lg border border-border/40 px-2 py-1.5 text-[11px] hover:bg-[hsl(var(--secondary))] transition-colors disabled:opacity-40"
+              style={{ color: "hsl(var(--foreground))" }}
             >
               +
             </button>
@@ -362,8 +362,8 @@ export function DayDetailPanel({
           disabled={saving}
           className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 text-[11px] font-medium transition-all"
           style={{
-            backgroundColor: saved ? "hsl(var(--pnl-positive))" : "hsl(var(--landing-text))",
-            color: "hsl(var(--landing-bg))",
+            backgroundColor: saved ? "hsl(var(--pnl-positive))" : "hsl(var(--foreground))",
+            color: "hsl(var(--background))",
             opacity: saving ? 0.6 : 1,
           }}
         >
@@ -384,13 +384,13 @@ export function DayDetailPanel({
                 key={accId}
                 className="flex items-center justify-between rounded-lg p-2.5"
                 style={{
-                  backgroundColor: "hsl(var(--landing-bg-tertiary))",
+                  backgroundColor: "hsl(var(--secondary))",
                 }}
               >
                 <div>
                   <p
                     className="text-[11px] font-medium"
-                    style={{ color: "hsl(var(--landing-text))" }}
+                    style={{ color: "hsl(var(--foreground))" }}
                   >
                     {acc.accountName}
                   </p>
@@ -422,7 +422,7 @@ export function DayDetailPanel({
               <div
                 key={trade.id}
                 className="flex items-center gap-2 rounded-lg p-2"
-                style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))" }}
+                style={{ backgroundColor: "hsl(var(--secondary))" }}
               >
                 {trade.direction === "buy" ? (
                   <TrendingUp className="h-3 w-3 shrink-0 text-green-500" />
@@ -430,7 +430,7 @@ export function DayDetailPanel({
                   <TrendingDown className="h-3 w-3 shrink-0 text-red-500" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold" style={{ color: "hsl(var(--landing-text))" }}>
+                  <p className="text-[11px] font-semibold" style={{ color: "hsl(var(--foreground))" }}>
                     {trade.symbol}
                   </p>
                   {trade.notes && (
@@ -460,7 +460,7 @@ export function DayDetailPanel({
               <span
                 key={tag}
                 className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                style={{ backgroundColor: "hsl(var(--landing-bg-tertiary))", color: "hsl(var(--landing-text))" }}
+                style={{ backgroundColor: "hsl(var(--secondary))", color: "hsl(var(--foreground))" }}
               >
                 {tag}
               </span>

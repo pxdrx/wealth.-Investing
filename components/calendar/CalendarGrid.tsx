@@ -57,20 +57,20 @@ export function CalendarGrid({
         <div className="flex items-center gap-2">
           <button
             onClick={onPrevMonth}
-            className="rounded-full p-1 transition-colors hover:bg-[hsl(var(--landing-border))]"
+            className="rounded-full p-1 transition-colors hover:bg-[hsl(var(--border))]"
             aria-label="Mês anterior"
           >
-            <ChevronLeft className="h-4 w-4" style={{ color: "hsl(var(--landing-text))" }} />
+            <ChevronLeft className="h-4 w-4" style={{ color: "hsl(var(--foreground))" }} />
           </button>
-          <span className="text-sm font-semibold tracking-tight" style={{ color: "hsl(var(--landing-text))" }}>
+          <span className="text-sm font-semibold tracking-tight" style={{ color: "hsl(var(--foreground))" }}>
             {MONTH_NAMES[month]} {year}
           </span>
           <button
             onClick={onNextMonth}
-            className="rounded-full p-1 transition-colors hover:bg-[hsl(var(--landing-border))]"
+            className="rounded-full p-1 transition-colors hover:bg-[hsl(var(--border))]"
             aria-label="Próximo mês"
           >
-            <ChevronRight className="h-4 w-4" style={{ color: "hsl(var(--landing-text))" }} />
+            <ChevronRight className="h-4 w-4" style={{ color: "hsl(var(--foreground))" }} />
           </button>
         </div>
         <span
@@ -81,7 +81,7 @@ export function CalendarGrid({
                 ? "hsl(var(--pnl-positive))"
                 : monthPnl < 0
                   ? "hsl(var(--pnl-negative))"
-                  : "hsl(var(--landing-text-muted))",
+                  : "hsl(var(--muted-foreground))",
           }}
         >
           P&L: {mask(formatPnl(monthPnl))}
@@ -94,7 +94,7 @@ export function CalendarGrid({
           <div
             key={i}
             className="py-1.5 text-[10px] font-semibold uppercase tracking-wider text-center border-b"
-            style={{ color: "hsl(var(--landing-text-muted))", borderColor: "hsl(var(--landing-border))" }}
+            style={{ color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--border))" }}
           >
             {label}
           </div>
@@ -119,12 +119,12 @@ export function CalendarGrid({
               key={`${cell.year}-${cell.month}-${cell.day}`}
               onClick={() => onSelectDate(dateStr)}
               disabled={!cell.isCurrentMonth}
-              className="relative flex min-h-[52px] md:min-h-[68px] flex-col items-start justify-start p-1 md:p-1.5 border-b border-r transition-colors hover:bg-[hsl(var(--landing-border)/0.3)] overflow-hidden"
+              className="relative flex min-h-[52px] md:min-h-[68px] flex-col items-start justify-start p-1 md:p-1.5 border-b border-r transition-colors hover:bg-[hsl(var(--border)/0.3)] overflow-hidden"
               style={{
                 backgroundColor: hasTrades ? cellColor(pnl) : "transparent",
-                borderColor: "hsl(var(--landing-border) / 0.5)",
+                borderColor: "hsl(var(--border) / 0.5)",
                 opacity: !cell.isCurrentMonth ? 0.3 : (!hasTrades && isWeekend ? 0.5 : 1),
-                outline: isSelected ? "2px solid hsl(var(--landing-text) / 0.4)" : "none",
+                outline: isSelected ? "2px solid hsl(var(--foreground) / 0.4)" : "none",
                 outlineOffset: "-2px",
               }}
             >
@@ -133,8 +133,8 @@ export function CalendarGrid({
                 className="text-xs tabular-nums"
                 style={{
                   color: hasTrades
-                    ? "hsl(var(--landing-text))"
-                    : "hsl(var(--landing-text-muted))",
+                    ? "hsl(var(--foreground))"
+                    : "hsl(var(--muted-foreground))",
                   fontWeight: isSelected ? 700 : 500,
                 }}
               >
@@ -145,7 +145,7 @@ export function CalendarGrid({
               {hasTrades && (
                 <span
                   className="text-[9px] mt-auto"
-                  style={{ color: "hsl(var(--landing-text-muted))" }}
+                  style={{ color: "hsl(var(--muted-foreground))" }}
                 >
                   {data!.tradeCount} trade{data!.tradeCount !== 1 ? "s" : ""}
                 </span>
@@ -161,7 +161,7 @@ export function CalendarGrid({
                         ? "hsl(var(--pnl-text-positive))"
                         : pnl < 0
                           ? "hsl(var(--pnl-text-negative))"
-                          : "hsl(var(--landing-text-muted))",
+                          : "hsl(var(--muted-foreground))",
                   }}
                 >
                   {mask(formatPnl(pnl))}
