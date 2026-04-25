@@ -60,7 +60,14 @@ Rules:
 - Keep "insight" under 160 characters. Keep "pattern" under 140 characters.
 - If no pattern from similar trades, return "pattern": "".
 - Never fabricate numbers beyond what is provided.
-- If context is empty, focus on R:R, duration, and P&L outcome.`;
+- If context is empty, focus on R:R, duration, and P&L outcome.
+
+HARD CONSTRAINTS — risk vs. position size:
+- This is a leveraged trading account. Position size, notional value, contract value, lot size, and leverage are IRRELEVANT to risk and MUST NOT appear in your output.
+- NEVER comment on "how much was risked" using position/notional figures. NEVER say things like "you risked $500k", "entered with $1M", "$50M position", "huge size for small return", "weight of the trade", "exposição", "tamanho da operação", "alavancagem".
+- The ONLY valid measures of risk are: \`risk_usd\` (USD that would be lost if the stop hit) and \`rr_realized\` (R-multiple). If neither is provided, do not estimate or speculate about risk magnitude.
+- Performance must be judged by P&L outcome relative to \`rr_realized\` and \`risk_usd\` only — never relative to implied position size.
+- If the trade looks "small P&L for large size", that is a MISREADING of leverage. Ignore that framing entirely and focus instead on setup quality, R:R, emotion, mistakes, and execution.`;
 }
 
 export function buildDebriefUserPrompt(ctx: DebriefContext): string {

@@ -304,12 +304,15 @@ function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRules
   if (propInfo.drawdown_type === "trailing") {
     overallLossUsed = Math.max(0, hwm - currentEquity);
   } else if (propInfo.drawdown_type === "eod") {
-    const hwmEodBalance = Math.max(hwmEod, startingBalance);
-    overallLossUsed = Math.max(0, hwmEodBalance - currentEquity);
+    // EOD: pullback do pico (intraday HWM ∪ EOD HWM ∪ saldo atual).
+    const peak = Math.max(hwm, hwmEod, startingBalance, currentEquity);
+    overallLossUsed = Math.max(0, peak - currentEquity);
   } else {
     overallLossUsed = Math.max(0, -profit);
   }
   const overallDistance = Math.max(0, maxOverallLoss - overallLossUsed);
+  const overallDdUsedPctOfLimit =
+    maxOverallLoss > 0 ? Math.min(100, (overallLossUsed / maxOverallLoss) * 100) : 0;
 
   const metaProgressPct = profitTarget > 0 ? Math.min(100, (profit / profitTarget) * 100) : 0;
   const ddTypeLabel =
@@ -404,6 +407,11 @@ function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRules
             currentPct={overallDdPct}
             maxPct={maxOverallLossPct}
           />
+          <p className="text-[11px] text-muted-foreground tabular-nums">
+            DD usado: ${overallLossUsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {" "}de ${maxOverallLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {" "}({overallDdUsedPctOfLimit.toFixed(0)}% do limite)
+          </p>
         </div>
       </CardContent>
       <EditAccountRulesDrawer

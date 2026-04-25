@@ -1,10 +1,16 @@
 import { JournalTradeRow, getNetPnl } from "@/components/journal/types";
 
 // ── Session helper (shared with ai-stats) ──────────────────────────
+// Session windows mapped from BRT (UTC-3) to UTC:
+//   Tokyo (Asian):   23:00–08:00 UTC = 20:00–05:00 BRT
+//   London (Europe): 07:00–16:00 UTC = 04:00–13:00 BRT
+//   New York:        11:00–21:00 UTC = 08:00–18:00 BRT (07:00–17:00 NY EDT)
+// Classification = primary session, non-overlapping, NY wins overlap.
 export function getSession(utcHour: number): string {
-  if (utcHour >= 0 && utcHour < 8) return "Tokyo";
-  if (utcHour >= 8 && utcHour < 14) return "London";
-  if (utcHour >= 14 && utcHour < 21) return "New York";
+  if (utcHour >= 0 && utcHour < 7) return "Tokyo";
+  if (utcHour >= 7 && utcHour < 11) return "London";
+  if (utcHour >= 11 && utcHour < 21) return "New York";
+  if (utcHour >= 21) return "Tokyo";
   return "Other";
 }
 

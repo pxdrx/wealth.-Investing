@@ -91,20 +91,22 @@ export async function getDrawdownStats(
       trailLockedFloorUsd != null &&
       hwmEodBalance >= trailLockThresholdUsd;
     eodLocked = lockEngaged;
-    // Floor: trava permanente se lock engajado; senão trail HWM_EOD - dd_limit
-    // (nunca menor que starting - dd_limit, pois o floor só sobe)
+    // Floor (breach line): trava permanente se lock engajado; senão trail HWM_EOD - dd_limit.
     const floorNonLocked = Math.max(
       hwmEodBalance - ddLimitUsd,
       startingBalance - ddLimitUsd
     );
     eodFloorUsd = lockEngaged ? (trailLockedFloorUsd as number) : floorNonLocked;
-    // Ceiling = floor + limite → ponto em que o bar está em 0% consumido
-    const safeCeiling = eodFloorUsd + ddLimitUsd;
-    const distanceBelow = Math.max(0, safeCeiling - currentBalance);
+    // DD consumido = pullback do PICO (intraday HWM ∪ EOD HWM ∪ saldo atual).
+    // Reflete a perspectiva do trader: "comeu X mil do meu colchão" mesmo que
+    // saldo atual ainda esteja acima do floor — porque parte do lucro foi devolvida.
+    const peak = Math.max(highWaterMark, hwmEodBalance, currentBalance);
+    const ddConsumedUsd = Math.max(0, peak - currentBalance);
     overallDdPct = Math.min(
       maxOverallLossPct,
-      (distanceBelow / startingBalance) * 100
+      (ddConsumedUsd / startingBalance) * 100
     );
+    // Breach absoluto: se cruzou o floor, força 100% do limite.
     if (currentBalance <= eodFloorUsd) overallDdPct = maxOverallLossPct;
   } else if (drawdownType === "trailing") {
     const denom = highWaterMark > 0 ? highWaterMark : startingBalance;

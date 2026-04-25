@@ -95,14 +95,13 @@ export function EditAccountRulesDrawer({
         max_daily_loss_percent: noDailyLimit ? 0 : Number(dailyLoss) || 0,
         max_overall_loss_percent: Number(overallLoss) || 0,
         drawdown_type: drawdownType,
+        // Trail-lock fields persist regardless of drawdown_type. User futures-table
+        // values (HWM, floor) are kept across type toggles so a wrong click doesn't
+        // wipe them. Empty input → null (clear), filled → number.
         trail_lock_threshold_usd:
-          drawdownType === "eod" && trailLockThreshold.trim() !== ""
-            ? Number(trailLockThreshold) || null
-            : null,
+          trailLockThreshold.trim() !== "" ? Number(trailLockThreshold) || null : null,
         trail_locked_floor_usd:
-          drawdownType === "eod" && trailLockedFloor.trim() !== ""
-            ? Number(trailLockedFloor) || null
-            : null,
+          trailLockedFloor.trim() !== "" ? Number(trailLockedFloor) || null : null,
         reset_timezone: resetTimezone,
         reset_rule: resetRule,
       };
@@ -121,7 +120,9 @@ export function EditAccountRulesDrawer({
       await onSaved?.();
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar");
+      const msg = e instanceof Error ? e.message : "Erro ao salvar";
+      console.error("[EditAccountRulesDrawer] save failed:", e);
+      setError(msg);
     } finally {
       setSaving(false);
     }
@@ -290,33 +291,35 @@ export function EditAccountRulesDrawer({
             </div>
           </div>
 
-          {drawdownType === "eod" && (
-            <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/60 p-3" style={{ backgroundColor: "hsl(var(--muted) / 0.15)" }}>
-              <div className="col-span-2">
-                <p className="text-[11px] text-muted-foreground">
-                  Trail lock (opcional): quando o balance EOD atinge o threshold, o floor trava permanentemente.
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[11px]">Threshold (USD)</Label>
-                <Input
-                  type="number"
-                  value={trailLockThreshold}
-                  onChange={(e) => setTrailLockThreshold(e.target.value)}
-                  placeholder="deixe em branco = sem lock"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[11px]">Floor travado (USD)</Label>
-                <Input
-                  type="number"
-                  value={trailLockedFloor}
-                  onChange={(e) => setTrailLockedFloor(e.target.value)}
-                  placeholder="valor permanente do floor"
-                />
-              </div>
+          <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/60 p-3" style={{ backgroundColor: "hsl(var(--muted) / 0.15)" }}>
+            <div className="col-span-2">
+              <p className="text-[11px] text-muted-foreground">
+                {drawdownType === "eod"
+                  ? "Trail lock (opcional, futures): quando o balance EOD atinge o threshold, o floor (mínimo de balanço) trava permanentemente."
+                  : "Mínimo de balanço (opcional): valor abaixo do qual a conta breach-a. Use se a corretora informa um piso fixo ou se você quer ancorar o cálculo de DD."}
+              </p>
             </div>
-          )}
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">
+                {drawdownType === "eod" ? "Threshold de lock (USD)" : "Threshold (USD, opcional)"}
+              </Label>
+              <Input
+                type="number"
+                value={trailLockThreshold}
+                onChange={(e) => setTrailLockThreshold(e.target.value)}
+                placeholder="deixe em branco = sem lock"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px]">Mínimo de balanço (USD)</Label>
+              <Input
+                type="number"
+                value={trailLockedFloor}
+                onChange={(e) => setTrailLockedFloor(e.target.value)}
+                placeholder="ex: 98020 (piso da conta)"
+              />
+            </div>
+          </div>
 
           <details className="rounded-xl border border-border/60 p-3 text-xs">
             <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Avançado: timezone e reset</summary>

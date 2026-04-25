@@ -16,13 +16,17 @@ interface SessionStats {
   wins: number;
 }
 
+// Session windows mapped from BRT (UTC-3, year-round) to UTC:
+//   Tóquio (Asian, Sydney+Tokyo): 20:00–05:00 BRT = 23:00–08:00 UTC
+//   Londres (European):           04:00–13:00 BRT = 07:00–16:00 UTC
+//   Nova York (American):         08:00–18:00 BRT = 11:00–21:00 UTC (07:00–17:00 NY EDT)
+// Classification = primary session (non-overlapping), NY wins overlap (highest volume).
 function classifySession(utcHour: number): "tokyo" | "london" | "new-york" | null {
-  // Tokyo: 00:00-08:00 UTC
-  if (utcHour >= 0 && utcHour < 8) return "tokyo";
-  // London: 07:00-15:00 UTC (overlap with Tokyo 07-08)
-  if (utcHour >= 7 && utcHour < 15) return "london";
-  // New York: 13:00-21:00 UTC (overlap with London 13-15)
-  if (utcHour >= 13 && utcHour < 21) return "new-york";
+  if (utcHour >= 0 && utcHour < 7) return "tokyo";
+  if (utcHour >= 7 && utcHour < 11) return "london";
+  if (utcHour >= 11 && utcHour < 21) return "new-york";
+  // 21:00–24:00 UTC: late Sydney/Tokyo open — Asian session.
+  if (utcHour >= 21) return "tokyo";
   return null;
 }
 
@@ -52,9 +56,9 @@ export function SessionHeatmap({ trades }: SessionHeatmapProps) {
     }
 
     const result: SessionStats[] = [
-      { name: "Tóquio", hours: "00:00–08:00 UTC", ...stats.tokyo },
-      { name: "Londres", hours: "07:00–15:00 UTC", ...stats.london },
-      { name: "Nova York", hours: "13:00–21:00 UTC", ...stats["new-york"] },
+      { name: "Tóquio", hours: "23:00–08:00 UTC", ...stats.tokyo },
+      { name: "Londres", hours: "07:00–16:00 UTC", ...stats.london },
+      { name: "Nova York", hours: "11:00–21:00 UTC", ...stats["new-york"] },
     ];
 
     return result;
