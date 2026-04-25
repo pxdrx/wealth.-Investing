@@ -17,6 +17,7 @@ interface Props {
 
 interface Preflight {
   starting_balance_usd: number;
+  starting_balance_source: "accounts" | "prop_accounts" | "missing";
   gross_pnl_usd: number;
   total_contracts: number;
   fee_less_trades: number;
@@ -74,6 +75,12 @@ export function FeeCalibrationBanner({
         if (res.ok && data?.ok !== false) {
           setPreflight({
             starting_balance_usd: Number(data.starting_balance_usd ?? 0),
+            starting_balance_source:
+              data.starting_balance_source === "prop_accounts"
+                ? "prop_accounts"
+                : data.starting_balance_source === "missing"
+                  ? "missing"
+                  : "accounts",
             gross_pnl_usd: Number(data.gross_pnl_usd ?? 0),
             total_contracts: Number(data.total_contracts ?? 0),
             fee_less_trades: Number(data.fee_less_trades ?? 0),
@@ -253,36 +260,53 @@ export function FeeCalibrationBanner({
           </p>
 
           {preflight && (
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border/60 bg-background/50 p-2 text-[11px] text-muted-foreground">
-              <span>Saldo inicial da conta</span>
-              <span className="text-right tabular-nums text-foreground">
-                ${fmtUsd(preflight.starting_balance_usd)}
-              </span>
-              <span>PnL bruto importado</span>
-              <span className="text-right tabular-nums text-foreground">
-                ${fmtUsd(preflight.gross_pnl_usd)}
-              </span>
-              <span>Saldo atual no app (sem taxas)</span>
-              <span className="text-right tabular-nums text-foreground">
-                ${fmtUsd(preflight.current_balance_estimate_usd)}
-              </span>
-              <span>
-                Trades / contratos round-turn
-              </span>
-              <span className="text-right tabular-nums text-foreground">
-                {preflight.fee_less_trades} / {preflight.total_contracts}
-              </span>
-              {preflight.fee_per_contract_round_turn !== null && (
-                <>
-                  <span className="text-amber-600 dark:text-amber-400">
-                    Taxa atual já calibrada
-                  </span>
-                  <span className="text-right tabular-nums text-amber-600 dark:text-amber-400">
-                    ${fmtUsd(preflight.fee_per_contract_round_turn)}
-                  </span>
-                </>
+            <>
+              {preflight.starting_balance_source === "missing" && (
+                <div className="mt-3 rounded-md border border-[hsl(var(--pnl-negative)/0.4)] bg-[hsl(var(--pnl-negative)/0.08)] p-2 text-[11px] text-[hsl(var(--pnl-negative))]">
+                  Esta conta não tem saldo inicial configurado (nem em
+                  <code className="mx-1">accounts.starting_balance_usd</code>
+                  nem em
+                  <code className="mx-1">prop_accounts.starting_balance_usd</code>
+                  ). A calibração precisa desse valor — defina o saldo inicial
+                  da conta antes de continuar.
+                </div>
               )}
-            </div>
+              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border/60 bg-background/50 p-2 text-[11px] text-muted-foreground">
+                <span>
+                  Saldo inicial da conta
+                  {preflight.starting_balance_source === "prop_accounts" && (
+                    <span className="ml-1 text-[10px] opacity-60">
+                      (prop)
+                    </span>
+                  )}
+                </span>
+                <span className="text-right tabular-nums text-foreground">
+                  ${fmtUsd(preflight.starting_balance_usd)}
+                </span>
+                <span>PnL bruto importado</span>
+                <span className="text-right tabular-nums text-foreground">
+                  ${fmtUsd(preflight.gross_pnl_usd)}
+                </span>
+                <span>Saldo atual no app (sem taxas)</span>
+                <span className="text-right tabular-nums text-foreground">
+                  ${fmtUsd(preflight.current_balance_estimate_usd)}
+                </span>
+                <span>Trades / contratos round-turn</span>
+                <span className="text-right tabular-nums text-foreground">
+                  {preflight.fee_less_trades} / {preflight.total_contracts}
+                </span>
+                {preflight.fee_per_contract_round_turn !== null && (
+                  <>
+                    <span className="text-amber-600 dark:text-amber-400">
+                      Taxa atual já calibrada
+                    </span>
+                    <span className="text-right tabular-nums text-amber-600 dark:text-amber-400">
+                      ${fmtUsd(preflight.fee_per_contract_round_turn)}
+                    </span>
+                  </>
+                )}
+              </div>
+            </>
           )}
 
           <div className="mt-3 flex items-center gap-2">

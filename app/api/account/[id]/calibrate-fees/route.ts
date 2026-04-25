@@ -16,6 +16,46 @@ const UUID_RE =
 
 const FEE_LESS_SOURCES = ["csv_tradovate", "csv_generic"];
 
+/**
+ * Resolves the effective starting balance for an account.
+ *
+ * For prop-firm accounts the starting balance lives on `prop_accounts.starting_balance_usd`,
+ * not on the parent `accounts` row — which is left as NULL by the AddAccountModal flow
+ * (see components/account/AddAccountModal.tsx:316). The fee-calibration math depends on
+ * this value, so falling back blindly to 0 breaks the entire calibration: target -
+ * starting - grossPnl ends up being a target like $100,682 instead of an offset like
+ * $-235, and the back-solved fee/contract comes out three orders of magnitude wrong.
+ *
+ * Order: account.starting_balance_usd → prop_accounts.starting_balance_usd → null.
+ */
+async function resolveStartingBalance(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  accountId: string
+): Promise<{ startingBalance: number; source: "accounts" | "prop_accounts" | "missing" }> {
+  const { data: acc } = await supabase
+    .from("accounts")
+    .select("starting_balance_usd")
+    .eq("id", accountId)
+    .maybeSingle();
+  const accVal = (acc as { starting_balance_usd?: number | null } | null)?.starting_balance_usd;
+  if (typeof accVal === "number" && accVal > 0) {
+    return { startingBalance: accVal, source: "accounts" };
+  }
+  // Fallback to prop_accounts (where AddAccountModal stores starting_balance_usd
+  // for prop-firm accounts).
+  const { data: prop } = await supabase
+    .from("prop_accounts")
+    .select("starting_balance_usd")
+    .eq("account_id", accountId)
+    .maybeSingle();
+  const propVal = (prop as { starting_balance_usd?: number | null } | null)?.starting_balance_usd;
+  if (typeof propVal === "number" && propVal > 0) {
+    return { startingBalance: propVal, source: "prop_accounts" };
+  }
+  return { startingBalance: 0, source: "missing" };
+}
+
 /** Aggregates the inputs the calibration math depends on, so the UI can show
  *  a pre-flight summary ("starting $100k, gross PnL $917, 24 trades, 228
  *  contracts → tell me the broker balance"). Helps the user catch obvious
@@ -42,7 +82,7 @@ export async function GET(
   const supabase = createSupabaseClientForUser(token);
   const { data: account } = await supabase
     .from("accounts")
-    .select("id, starting_balance_usd, fee_per_contract_round_turn, name")
+    .select("id, fee_per_contract_round_turn, name")
     .eq("id", accountId)
     .maybeSingle();
   if (!account) {
@@ -51,6 +91,8 @@ export async function GET(
       { status: 404 }
     );
   }
+  const { startingBalance, source: startingBalanceSource } =
+    await resolveStartingBalance(supabase, accountId);
   const { data: rows } = await supabase
     .from("journal_trades")
     .select("pnl_usd, volume, external_source")
@@ -67,11 +109,11 @@ export async function GET(
     (s, t) => s + Math.abs(Number(t.volume ?? 0)),
     0
   );
-  const startingBalance = Number(account.starting_balance_usd ?? 0);
   return NextResponse.json({
     ok: true,
     account_name: (account as { name?: string }).name ?? null,
     starting_balance_usd: startingBalance,
+    starting_balance_source: startingBalanceSource,
     fee_per_contract_round_turn:
       (account as { fee_per_contract_round_turn?: number | null })
         .fee_per_contract_round_turn ?? null,
@@ -194,10 +236,10 @@ export async function POST(
 
   const supabase = createSupabaseClientForUser(token);
 
-  // Owner check + starting balance.
+  // Owner check.
   const { data: account, error: accErr } = await supabase
     .from("accounts")
-    .select("id, user_id, starting_balance_usd")
+    .select("id, user_id")
     .eq("id", accountId)
     .maybeSingle();
   if (accErr) {
@@ -212,7 +254,18 @@ export async function POST(
       { status: 404 }
     );
   }
-  const startingBalance = Number(account.starting_balance_usd ?? 0);
+  const { startingBalance, source: startingBalanceSource } =
+    await resolveStartingBalance(supabase, accountId);
+  if (startingBalanceSource === "missing") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Conta sem saldo inicial configurado. Defina starting_balance_usd em accounts ou prop_accounts antes de calibrar.",
+      },
+      { status: 422 }
+    );
+  }
 
   // Pull every futures-style trade to compute the implicit fee/contract.
   // We restrict to imports that lack a commission column (csv_tradovate,
@@ -401,6 +454,7 @@ export async function POST(
     estimated_fees_total: -feeMagnitude,
     debug: {
       starting_balance_usd: startingBalance,
+      starting_balance_source: startingBalanceSource,
       gross_pnl_usd: grossPnl,
       target_balance_usd: target,
       total_trades: list.length,
