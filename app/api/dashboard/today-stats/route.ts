@@ -54,15 +54,16 @@ function brtDayBounds(): { dateStr: string; startUtc: string; endUtc: string } {
 
 // Produces session bands anchored to today in BRT, returned as UTC ISO.
 // Session windows mapped to BRT (UTC-3, year-round):
-//   Tóquio (Asian):   20:00–05:00 BRT (23:00–08:00 UTC). Spans midnight — emitted as
-//                     two segments per day: 00:00–05:00 and 20:00–23:59 BRT.
-//   Londres:          04:00–13:00 BRT (07:00–16:00 UTC).
-//   Nova York:        08:00–18:00 BRT (11:00–21:00 UTC, = 07:00–17:00 NY EDT).
+//   Tóquio (Asiática, Sydney+Tokyo): 18:00–05:00 BRT (21:00–08:00 UTC). Spans midnight —
+//                                    emitted as two segments per day: 00:00–05:00
+//                                    and 18:00–23:59 BRT.
+//   Londres (Europeia):              04:00–13:00 BRT (07:00–16:00 UTC).
+//   Nova York (Americana):           08:00–18:00 BRT (11:00–21:00 UTC, = 07:00–17:00 NY EDT).
 function todaySessions(dateStr: string): TodayStatsPayload["sessions"] {
   const toUtc = (hhmm: string) => new Date(`${dateStr}T${hhmm}-03:00`).toISOString();
   return [
     { market: "Tokyo",     openUtc: toUtc("00:00"), closeUtc: toUtc("05:00") },
-    { market: "Tokyo",     openUtc: toUtc("20:00"), closeUtc: toUtc("23:59") },
+    { market: "Tokyo",     openUtc: toUtc("18:00"), closeUtc: toUtc("23:59") },
     { market: "Londres",   openUtc: toUtc("04:00"), closeUtc: toUtc("13:00") },
     { market: "Nova York", openUtc: toUtc("08:00"), closeUtc: toUtc("18:00") },
   ];

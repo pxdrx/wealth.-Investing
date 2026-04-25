@@ -17,16 +17,19 @@ interface SessionStats {
 }
 
 // Session windows mapped from BRT (UTC-3, year-round) to UTC:
-//   Tóquio (Asian, Sydney+Tokyo): 20:00–05:00 BRT = 23:00–08:00 UTC
-//   Londres (European):           04:00–13:00 BRT = 07:00–16:00 UTC
-//   Nova York (American):         08:00–18:00 BRT = 11:00–21:00 UTC (07:00–17:00 NY EDT)
+//   Tóquio (Asiática, Sydney+Tokyo): 18:00–05:00 BRT = 21:00–08:00 UTC
+//   Londres (Europeia):              04:00–13:00 BRT = 07:00–16:00 UTC
+//   Nova York (Americana):           08:00–18:00 BRT = 11:00–21:00 UTC (07:00–17:00 NY EDT)
 // Classification = primary session (non-overlapping), NY wins overlap (highest volume).
 function classifySession(utcHour: number): "tokyo" | "london" | "new-york" | null {
-  if (utcHour >= 0 && utcHour < 7) return "tokyo";
-  if (utcHour >= 7 && utcHour < 11) return "london";
-  if (utcHour >= 11 && utcHour < 21) return "new-york";
-  // 21:00–24:00 UTC: late Sydney/Tokyo open — Asian session.
+  // 21:00–24:00 UTC: Sydney open (Asian session start).
   if (utcHour >= 21) return "tokyo";
+  // 00:00–07:00 UTC: Tokyo + Sydney overlap (Asian session core).
+  if (utcHour >= 0 && utcHour < 7) return "tokyo";
+  // 07:00–11:00 UTC: London-only window (post-Asian, pre-NY).
+  if (utcHour >= 7 && utcHour < 11) return "london";
+  // 11:00–21:00 UTC: NY-priority window. London-NY overlap (11–16 UTC) goes to NY.
+  if (utcHour >= 11 && utcHour < 21) return "new-york";
   return null;
 }
 
@@ -56,9 +59,9 @@ export function SessionHeatmap({ trades }: SessionHeatmapProps) {
     }
 
     const result: SessionStats[] = [
-      { name: "Tóquio", hours: "23:00–08:00 UTC", ...stats.tokyo },
-      { name: "Londres", hours: "07:00–16:00 UTC", ...stats.london },
-      { name: "Nova York", hours: "11:00–21:00 UTC", ...stats["new-york"] },
+      { name: "Tóquio", hours: "18:00–05:00 BRT", ...stats.tokyo },
+      { name: "Londres", hours: "04:00–13:00 BRT", ...stats.london },
+      { name: "Nova York", hours: "08:00–18:00 BRT", ...stats["new-york"] },
     ];
 
     return result;
