@@ -1023,10 +1023,15 @@ export async function POST(request: Request) {
       // surface the calibration banner so the user can paste their broker
       // statement balance and we back-solve fee/contract.
       fee_calibration: {
+        // Always surface the banner for fee-less broker imports (Tradovate
+        // Position History, csv_generic). Even when the account already has
+        // a saved fee, the user may want to re-check or recalibrate — the
+        // banner shows the saved fee and offers a Reset button. Hiding it
+        // post-calibration meant any wrong calibration silently locked the
+        // user out of fixing it without SQL.
         needs_calibration:
           usedAdaptive &&
-          (csvSource === "csv_tradovate" || csvSource === "csv_generic") &&
-          !effectiveFeePerContract,
+          (csvSource === "csv_tradovate" || csvSource === "csv_generic"),
         applied_fee_per_contract: effectiveFeePerContract ?? null,
         external_source: usedAdaptive ? csvSource : null,
       },
