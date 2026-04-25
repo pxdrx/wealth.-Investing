@@ -74,6 +74,11 @@ interface ImportResultData {
     details?: string;
     data?: string;
   }>;
+  /** Server flagged that this import used a fee-less broker export and the
+   * account hasn't been calibrated yet — render the calibration banner. */
+  needsFeeCalibration?: boolean;
+  accountId?: string;
+  accessToken?: string;
 }
 
 const SECTION_OVERVIEW = 0;
@@ -495,6 +500,9 @@ export default function JournalPage() {
         reason: String(s.reason ?? ""),
         data: s.data != null ? String(s.data) : undefined,
       }));
+      const feeCal = data.fee_calibration as
+        | { needs_calibration?: boolean }
+        | undefined;
       setImportResultData({
         fileName: pendingFile.name,
         imported: data.trades_imported ?? 0,
@@ -504,6 +512,9 @@ export default function JournalPage() {
         duration,
         duplicateDetails,
         skippedDetails,
+        needsFeeCalibration: feeCal?.needs_calibration === true,
+        accountId: activeAccountId ?? undefined,
+        accessToken: session.access_token,
       });
       setImportFlowState("done");
       // Check for DD breach
@@ -668,6 +679,9 @@ export default function JournalPage() {
                       duration,
                       duplicateDetails: result.duplicateDetails,
                       skippedDetails: result.skippedDetails,
+                      needsFeeCalibration: result.needsFeeCalibration,
+                      accountId: activeAccountId ?? undefined,
+                      accessToken: adaptiveAccessToken,
                     });
                     setImportFlowState("done");
                     await loadTrades();
@@ -739,6 +753,10 @@ export default function JournalPage() {
                   duration={importResultData.duration}
                   duplicateDetails={importResultData.duplicateDetails}
                   skippedDetails={importResultData.skippedDetails}
+                  needsFeeCalibration={importResultData.needsFeeCalibration}
+                  accountId={importResultData.accountId}
+                  accessToken={importResultData.accessToken}
+                  onCalibrated={() => { void loadTrades(); }}
                   onReset={handleImportReset}
                 />
               )}

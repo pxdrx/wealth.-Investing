@@ -776,6 +776,32 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
                 Sua conta já está selecionada e pronta para uso. Importe um relatório MT5 no Journal para começar.
               </p>
             </div>
+
+            {/* One-time futures import notice — only appears for prop / futures
+                style accounts because their broker exports (Tradovate Position
+                History, etc.) typically ship gross PnL with no fee column.
+                The user sees this once on account creation; the calibration
+                banner in ImportResult resolves the actual delta after import. */}
+            {(accountKind === "prop" || cryptoSubKind === "prop") && (
+              <div
+                className="rounded-lg border border-amber-400/40 p-3 text-left"
+                style={{ backgroundColor: "hsl(40 95% 55% / 0.06)" }}
+              >
+                <p className="text-xs leading-relaxed text-foreground">
+                  <strong>Atenção sobre saldos de contas de futuros:</strong>{" "}
+                  Brokers como Tradovate e NinjaTrader exportam apenas o lucro
+                  bruto, sem as taxas (corretagem, exchange, clearing). Por
+                  isso, na primeira importação o saldo pode ficar acima do
+                  valor real.
+                </p>
+                <p className="text-xs leading-relaxed text-muted-foreground mt-2">
+                  Não se preocupe: depois do primeiro import, vai aparecer um
+                  banner pedindo para você colar o saldo real do broker. O
+                  sistema calcula a taxa por contrato sozinho e aplica
+                  automaticamente nas próximas importações desta conta.
+                </p>
+              </div>
+            )}
             <Button onClick={() => setStep("rename")} className="w-full">
               Personalizar nome
             </Button>

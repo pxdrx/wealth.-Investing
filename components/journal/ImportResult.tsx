@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckCircle, Brain } from "lucide-react";
 import { DiscrepancyModal } from "./DiscrepancyModal";
+import { FeeCalibrationBanner } from "./FeeCalibrationBanner";
 import Link from "next/link";
 
 interface ImportResultProps {
@@ -22,13 +23,26 @@ interface ImportResultProps {
     data?: string;
   }>;
   showAiCoach?: boolean;
+  /** When true, the broker export skipped fees and the user has not yet
+   * calibrated this account — show the FeeCalibrationBanner. */
+  needsFeeCalibration?: boolean;
+  /** Required when needsFeeCalibration is true. */
+  accountId?: string;
+  accessToken?: string;
+  /** Reload trades after calibration completes. */
+  onCalibrated?: () => void;
   onReset: () => void;
 }
 
 export function ImportResult({
   fileName, imported, duplicates, failed,
   importedAt, duration, duplicateDetails, skippedDetails,
-  showAiCoach = false, onReset,
+  showAiCoach = false,
+  needsFeeCalibration = false,
+  accountId,
+  accessToken,
+  onCalibrated,
+  onReset,
 }: ImportResultProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -76,6 +90,14 @@ export function ImportResult({
           Novo import
         </button>
       </div>
+
+      {needsFeeCalibration && accountId && accessToken && (
+        <FeeCalibrationBanner
+          accountId={accountId}
+          accessToken={accessToken}
+          onCalibrated={() => onCalibrated?.()}
+        />
+      )}
 
       <DiscrepancyModal
         open={modalOpen}
