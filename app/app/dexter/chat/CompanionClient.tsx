@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAppT } from "@/hooks/useAppLocale";
 import { ChatInput } from "@/components/ai/ChatInput";
+import { CommandHint } from "@/components/dexter/CommandHint";
 import { ChatMessage } from "@/components/ai/ChatMessage";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import { safeGetSession } from "@/lib/supabase/safe-session";
@@ -327,6 +328,10 @@ export function CompanionClient({ plan, userId, accountId }: CompanionClientProp
           onSlash={handleSlashChange}
           value={inputDraft}
         />
+        {/* [D5-03] First-visit slash-command discoverability hint. */}
+        <div className="flex justify-center">
+          <CommandHint />
+        </div>
       </div>
     </div>
   );
