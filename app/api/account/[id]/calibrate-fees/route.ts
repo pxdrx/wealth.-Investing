@@ -122,23 +122,11 @@ export async function POST(
     (s, t) => s + Math.abs(Number(t.volume ?? 0)),
     0
   );
-  if (totalContracts <= 0) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Não foi possível calibrar: nenhuma trade importada tem volume > 0.",
-      },
-      { status: 422 }
-    );
-  }
 
   // Solve: starting + gross + estimated_fees = target
   //   estimated_fees = target - starting - gross  (negative if fees > 0)
-  //   fee_per_contract = -estimated_fees / totalContracts  (positive USD)
   const estimatedFees = target - startingBalance - grossPnl;
-  const feePerContract = -estimatedFees / totalContracts;
-  if (feePerContract <= 0) {
+  if (estimatedFees >= 0) {
     return NextResponse.json(
       {
         ok: false,
@@ -149,24 +137,45 @@ export async function POST(
       { status: 422 }
     );
   }
-  if (feePerContract > 50) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Fee/contrato calculado é absurdamente alto (>$50/RT). Verifique se o saldo informado está correto.",
-        debug: { startingBalance, grossPnl, target, totalContracts, feePerContract },
-      },
-      { status: 422 }
-    );
-  }
+  const feeMagnitude = -estimatedFees; // positive USD
 
-  // Apply fees to every trade in the affected sources. We REPLACE fees_usd
-  // (not add) so calibrating twice doesn't double-charge.
-  const updates = list.map((t) => ({
-    id: t.id,
-    fees_usd: -Math.abs(Number(t.volume ?? 0)) * feePerContract,
-  }));
+  // Two ways to distribute the fee delta:
+  //   1. Per contract (preferred): scales with size of each trade. Requires
+  //      every trade to have volume populated.
+  //   2. Per trade (fallback): split equally across N trades. Used when the
+  //      legacy import path (pre-fix) saved trades without `volume`. Less
+  //      precise but better than failing — the dashboard balance still
+  //      matches after calibration.
+  let feePerContract: number | null = null;
+  let updates: Array<{ id: string; fees_usd: number }>;
+  let mode: "per_contract" | "per_trade";
+
+  if (totalContracts > 0) {
+    feePerContract = feeMagnitude / totalContracts;
+    if (feePerContract > 50) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Fee/contrato calculado é absurdamente alto (>$50/RT). Verifique se o saldo informado está correto.",
+          debug: { startingBalance, grossPnl, target, totalContracts, feePerContract },
+        },
+        { status: 422 }
+      );
+    }
+    updates = list.map((t) => ({
+      id: t.id,
+      fees_usd: -Math.abs(Number(t.volume ?? 0)) * feePerContract!,
+    }));
+    mode = "per_contract";
+  } else {
+    // Per-trade fallback: divide the fee delta uniformly across trades. This
+    // matches the dashboard balance even when no volume is recorded — the
+    // user still gets a correct total balance, just not size-weighted fees.
+    const perTradeFee = feeMagnitude / list.length;
+    updates = list.map((t) => ({ id: t.id, fees_usd: -perTradeFee }));
+    mode = "per_trade";
+  }
   // Supabase has no batch UPDATE WITH per-row values via the client, so we
   // run individual updates in parallel chunks. For typical futures accounts
   // (< 500 trades) this is fast enough.
@@ -191,10 +200,17 @@ export async function POST(
     }
   }
 
-  // Persist on the account so future imports auto-apply.
+  // Persist on the account so future imports auto-apply — but only when we
+  // actually solved a per-contract fee. The per-trade fallback can't be
+  // generalized to future imports (different trade counts), so leave the
+  // account flag null and the user re-runs calibration after each import
+  // until they re-import with the volume-aware path.
   const { error: saveErr } = await supabase
     .from("accounts")
-    .update({ fee_per_contract_round_turn: feePerContract })
+    .update({
+      fee_per_contract_round_turn:
+        mode === "per_contract" ? feePerContract : null,
+    })
     .eq("id", accountId);
   if (saveErr) {
     console.warn(
@@ -206,9 +222,10 @@ export async function POST(
 
   return NextResponse.json({
     ok: true,
+    mode,
     fee_per_contract_round_turn: feePerContract,
     trades_updated: updates.length,
     total_contracts: totalContracts,
-    estimated_fees_total: -feePerContract * totalContracts,
+    estimated_fees_total: -feeMagnitude,
   });
 }

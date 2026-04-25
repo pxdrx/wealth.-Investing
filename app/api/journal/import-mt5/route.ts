@@ -316,7 +316,12 @@ export async function POST(request: Request) {
         closed_at: t.closed_at,
         pnl_usd: t.pnl_usd,
         fees_usd: t.fees_usd,
+        // Adaptive parser exports the per-trade contract count as `lots`, but
+        // the journal_trades insert (and downstream fee calibration which
+        // needs to know how many contracts each trade had) reads from
+        // `volume`. Mirror lots → volume so neither side ends up null.
         lots: t.lots,
+        volume: t.lots ?? null,
       }));
       balanceOps = [];
       parserChosen = `csv_adaptive${adapt.broker_hint !== "generic" ? `_${adapt.broker_hint}` : ""}`;

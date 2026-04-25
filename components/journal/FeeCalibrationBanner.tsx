@@ -8,9 +8,10 @@ interface Props {
   accessToken: string;
   /** Called after a successful calibration so the parent can reload trades. */
   onCalibrated: (info: {
-    feePerContractRoundTurn: number;
+    feePerContractRoundTurn: number | null;
     tradesUpdated: number;
     estimatedFeesTotal: number;
+    mode: "per_contract" | "per_trade";
   }) => void;
 }
 
@@ -34,9 +35,10 @@ export function FeeCalibrationBanner({
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<{
-    feePerContractRoundTurn: number;
+    feePerContractRoundTurn: number | null;
     tradesUpdated: number;
     estimatedFeesTotal: number;
+    mode: "per_contract" | "per_trade";
   } | null>(null);
 
   async function submit() {
@@ -67,9 +69,15 @@ export function FeeCalibrationBanner({
         return;
       }
       const info = {
-        feePerContractRoundTurn: Number(data.fee_per_contract_round_turn ?? 0),
+        feePerContractRoundTurn:
+          typeof data.fee_per_contract_round_turn === "number"
+            ? data.fee_per_contract_round_turn
+            : null,
         tradesUpdated: Number(data.trades_updated ?? 0),
         estimatedFeesTotal: Number(data.estimated_fees_total ?? 0),
+        mode: (data.mode === "per_trade"
+          ? "per_trade"
+          : "per_contract") as "per_contract" | "per_trade",
       };
       setResult(info);
       setPhase("done");
@@ -95,18 +103,37 @@ export function FeeCalibrationBanner({
             <p className="font-medium text-foreground">
               Calibração aplicada — saldo agora bate com o broker.
             </p>
-            <p className="text-muted-foreground mt-1">
-              Taxa por contrato (round-turn):{" "}
-              <strong>
-                ${result.feePerContractRoundTurn.toFixed(4)}
-              </strong>{" "}
-              · {result.tradesUpdated} trades ajustadas · taxa total
-              estimada: ${Math.abs(result.estimatedFeesTotal).toFixed(2)}
-            </p>
-            <p className="text-muted-foreground mt-1">
-              Próximas importações desta conta vão aplicar essa taxa
-              automaticamente.
-            </p>
+            {result.mode === "per_contract" &&
+            result.feePerContractRoundTurn !== null ? (
+              <>
+                <p className="text-muted-foreground mt-1">
+                  Taxa por contrato (round-turn):{" "}
+                  <strong>
+                    ${result.feePerContractRoundTurn.toFixed(4)}
+                  </strong>{" "}
+                  · {result.tradesUpdated} trades ajustadas · taxa total
+                  estimada: ${Math.abs(result.estimatedFeesTotal).toFixed(2)}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  Próximas importações desta conta vão aplicar essa taxa
+                  automaticamente.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground mt-1">
+                  {result.tradesUpdated} trades ajustadas · taxa total
+                  estimada: ${Math.abs(result.estimatedFeesTotal).toFixed(2)}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  Como as trades importadas anteriormente não têm volume
+                  registrado, a taxa foi distribuída uniformemente entre as
+                  trades. Para que próximas importações apliquem a taxa
+                  automaticamente por contrato, apague essas trades e
+                  re-importe o relatório.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
