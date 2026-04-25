@@ -310,6 +310,14 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
       // If crypto account is being created as a prop sub-kind, store as "prop" in DB
       const effectiveKind = (accountKind === "crypto" && cryptoSubKind === "prop") ? "prop" : accountKind;
 
+      // Prop accounts: the firm-funded balance IS the starting balance, so
+      // mirror it onto accounts.starting_balance_usd up-front. The DB trigger
+      // (20260426_sync_prop_starting_balance.sql) also syncs after the
+      // prop_accounts insert below — this just avoids a window where the
+      // accounts row exists with NULL starting_balance.
+      const startingBalanceForAccount =
+        isPropFlow && finalBalance > 0 ? finalBalance : null;
+
       // Create account
       const { data: accountData, error: accountError } = await supabase
         .from("accounts")
@@ -318,6 +326,7 @@ export function AddAccountModal({ open, onOpenChange, onAccountCreated, onRefres
           name,
           kind: effectiveKind,
           is_active: true,
+          starting_balance_usd: startingBalanceForAccount,
         })
         .select("id")
         .maybeSingle();

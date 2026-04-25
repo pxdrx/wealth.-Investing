@@ -7,6 +7,7 @@
 // account apply it automatically.
 
 import { NextRequest, NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseClientForUser } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -29,8 +30,7 @@ const FEE_LESS_SOURCES = ["csv_tradovate", "csv_generic"];
  * Order: account.starting_balance_usd → prop_accounts.starting_balance_usd → null.
  */
 async function resolveStartingBalance(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient,
   accountId: string
 ): Promise<{ startingBalance: number; source: "accounts" | "prop_accounts" | "missing" }> {
   const { data: acc } = await supabase
