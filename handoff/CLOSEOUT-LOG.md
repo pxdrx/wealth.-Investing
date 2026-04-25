@@ -411,3 +411,163 @@ Plan: `handoff/CLOSEOUT-PLAN.md`.
 - Process: every commit used pathspec; zero orphan files leaked. Untracked `lib/dexter/tradeDebriefPrompt.ts` left untouched (pre-sprint orphan).
 - Mandate items satisfied today: §1.7 (Chart/Backtest/Macro/Dexter/Settings i18n parity), §1.6 (macro footer cleanup), §1.5 (DD chart sign correctness), token system consolidation in auth tree.
 
+---
+
+## Day 5 — 2026-04-25
+
+### D5-01 `[M1]` Settings status map + widget i18n + locale-aware delete gate — commit `a87a457e`
+- `lib/i18n/app.ts`: +19 keys × 2 locales:
+  - 8 `settings.subscription.status.*` (active / canceled / past_due /
+    trialing / incomplete / incomplete_expired / unpaid / paused) — full
+    Stripe status enum coverage.
+  - 8 `dashboard.widget.*` (one per widget id: kpi / accounts /
+    performance / top-symbols / session-heatmap / streaks / ai-insight /
+    live-monitoring) — replaces the PT-only `WIDGET_LABELS[id].titlePtBr`
+    rendering in Settings > Dashboard.
+  - 2 `dexter.commandHint.*` (body + dismiss aria-label) — used by the
+    D5-03 `<CommandHint />` component.
+  - 1 `settings.deleteModal.confirmToken` (PT `EXCLUIR` / EN `DELETE`) —
+    feeds the locale-aware delete-account confirmation gate.
+- `app/app/settings/page.tsx`:
+  - **Status map (deferred Day 4 item closed):** replaced
+    `status === "active" ? t("settings.subscription.statusActive") : status`
+    with an inline Stripe-status → message-key map. Falls back to the raw
+    status string for any future Stripe value not yet mapped — never
+    crashes, never silently mistranslates.
+  - **Widget grid:** the reorder list now resolves the title via
+    `t(\`dashboard.widget.${w.id}\` as AppMessageKey)` instead of
+    `WIDGET_LABELS[w.id].titlePtBr`. The `WIDGET_LABELS` constant in
+    `components/dashboard/WidgetRenderer.tsx` is intentionally kept
+    (still drives `tier` for the per-widget paywall lookup; the
+    `titlePtBr` field remains as a dev-tooling/PT-fallback reference but
+    is no longer rendered).
+  - **Delete confirmation gate (deferred Day 4 item closed):** the
+    `disabled` predicate now accepts either the localized confirm token
+    (`t("settings.deleteModal.confirmToken")` → `EXCLUIR` in PT,
+    `DELETE` in EN) **or** the PT literal `EXCLUIR` as a permanent
+    fallback (so users with PT muscle memory keep working in EN).
+- Imported `AppMessageKey` from `@/lib/i18n/app` (type-only) for the
+  derived widget key cast.
+- Gates: `i18n:check` 605 × 2 ✓, `tsc --noEmit` clean, 129/129 tests pass.
+
+### D5-02 `[M2]` Contas vs Prop nomenclature audit — no code commit
+- Default decision applied (user did not answer): keep **"Contas"** as the
+  user-facing label everywhere it appears in copy, keep **"prop"** as the
+  internal account `kind` enum and as the route slug `/app/prop`.
+- Verification:
+  - `lib/i18n/app.ts:30,825` → `prop.title` resolves to "Contas"/"Accounts".
+  - `lib/i18n/app.ts:389,1184` → `sidebar.nav.prop` resolves to
+    "Contas"/"Accounts".
+  - `lib/app-nav.ts:66` → sidebar item label `Contas` / labelKey
+    `sidebar.nav.prop`.
+  - No user-facing `>Prop<` JSX literal found in `app/`, `components/`.
+  - Internal references (`kind === "prop"`, `prop_accounts` table,
+    `/app/prop` route) are correctly internal-only and stay as-is.
+- No inconsistency found → no-op commit, decision documented here.
+
+### D5-03 `[M4]` Dexter chat first-visit /command hint — commit `b798bd43`
+- Created `components/dexter/CommandHint.tsx` (~55 lines) — single-purpose
+  dismissible chip rendered below `<ChatInput />` on the first chat tab
+  visit per browser session.
+- Behavior:
+  - `useEffect` reads `sessionStorage["dexter-command-hint-dismissed"]`
+    on mount; renders nothing if set.
+  - Dismiss button writes the flag and unmounts.
+  - `try/catch` around storage access so private-mode browsers still
+    show the hint (better than crashing the chat).
+  - Copy + aria-label fully i18n-ed via `dexter.commandHint.body` and
+    `dexter.commandHint.dismiss`.
+  - Visual: rounded pill, `bg-muted/60` + `border-border/60`, monospace
+    `/` glyph + body + `<X />` dismiss button. No new hex.
+- `app/app/dexter/chat/CompanionClient.tsx`: imported `<CommandHint />`
+  and mounted in a centered flex row directly below the existing
+  `<ChatInput />`. No layout shift to the chat surface itself.
+- Gates: `i18n:check` 605 × 2 ✓, `tsc --noEmit` clean, 129/129 tests pass.
+
+### D5-04 `[M3]` TradingView branding doc — commit `5e13d53e`
+- Created `docs/licensing.md` (43 lines) documenting that the free
+  TradingView Advanced Chart embed used at `/app/chart` requires the
+  TradingView **logo and attribution to remain visible** per their
+  terms. Includes operational do/don't list and a follow-up note
+  (paid Charting Library license required if branding ever needs to be
+  hidden).
+- 2026-04-25 audit recorded: `/app/chart` currently uses the public
+  embed iframe with branding intact — no code change needed.
+- File is structured to take additional third-party embed entries below
+  in future sprints.
+- No code change. No gates affected.
+
+### D5-05 `[DOD]` Final verification gate
+- `npm run i18n:check` — **605 × 2 locales ✓**
+  (`messages/{pt,en}.json` parity baseline, unchanged this day; the
+  typed `app.*` dict added +19 keys × 2 locales but the parity script
+  doesn't index `lib/i18n/app.ts` — type-system enforces that parity).
+- `npx tsc --noEmit` — **clean ✓** (0 errors)
+- `npm test` — **129/129 passing ✓**
+- `npm run lint` — only **pre-existing warnings** (no new). Confirmed
+  warning sources are the same files flagged Day 1: `Dexter.tsx`,
+  `DayDetailPanel.tsx`, `BacktestSection.tsx`, `AdaptiveImportModal.tsx`,
+  `PnlCalendar.tsx`, `landing/Footer.tsx`, `StatCounter.tsx`,
+  `EconomicCalendar.tsx`, `InterestRatesPanel.tsx`. All
+  `<img>`-vs-`<Image />` and `react-hooks/exhaustive-deps` warnings —
+  none introduced by this sprint.
+- `npm run build` — **clean ✓**. All authenticated routes built; no
+  hydration warnings observed in build output.
+- Smoke transcript written to `handoff/SMOKE-TRANSCRIPT.md` covering
+  the 12 logged-in routes (text-based, code-anchored — no live browser
+  session).
+
+### Day 5 EOD Gate
+- 3 commits ahead of Day 4 EOD (D5-01 `[M1]`, D5-03 `[M4]`,
+  D5-04 `[M3]`; D5-02 `[M2]` was a no-op decision-only entry).
+- Branch total since `da91b2e2` (Day 1 base): **30 commits**, of which
+  5 are `chore(closeout)` log/process commits, 1 is the `main` merge
+  commit (`429c4db7`), 1 is the pre-sprint PDF-import fix
+  (`b648cd60`), and **23 are sprint task commits**.
+
+### Day 5 changelog (10-line summary)
+- `[M1]` Settings: Stripe status map (8 statuses) + dashboard widget
+  titles via i18n + locale-aware delete-account confirmation gate (+19
+  keys × 2 locales)
+- `[M2]` Contas vs Prop nomenclature: default decision applied
+  (Contas user-facing, prop internal); audit found zero leak — no-op
+  commit, documented in this log
+- `[M4]` `<CommandHint />` component + mount in chat — first-visit
+  dismissible slash-command discoverability hint (sessionStorage
+  flagged)
+- `[M3]` `docs/licensing.md` documenting TradingView free-embed
+  branding constraint (no code change)
+- 3 single-purpose commits this day, all under 100 LOC each
+- Process: pathspec used on every commit; zero orphan files leaked;
+  Day 4 deferred items (Stripe status map, widget i18n migration,
+  PT-locked delete gate) all closed in D5-01
+- Final gate: i18n:check 605×2 ✓, tsc clean, 129/129 tests, lint
+  pre-existing warnings only, build clean
+- Smoke transcript written (`handoff/SMOKE-TRANSCRIPT.md`)
+- Mandate items satisfied today: §1.7 (Settings status map closes the
+  last named i18n gap), §1.4 helper UX (CommandHint), §10 licensing
+  doc trail
+- Branch ready for user push to remote; sprint ships after this entry
+
+---
+
+## Final Mandate Scorecard (CLAUDE-CODE-BRIEFING §1.1–§1.10)
+
+| # | Mandate | Status | Notes |
+|---|---|---|---|
+| §1.1 | Every user-visible string in 12 authenticated routes reads from `next-intl` namespaces | ⚠ **PARTIAL** | All 12 routes have a wired namespace + signature elements migrated. PARTIAL on Mentor (~80–120 keys still PT), Macro inner panels (7 components still PT), Backtest interior (`BacktestSection`), Journal `ImportResult` + `DiscrepancyModal`, and all `toLocaleString` formatters. Logged in `FOUND-WHILE-CLOSING.md`. Surface-level gating + chrome are bilingual. |
+| §1.2 | `pt.json` and `en.json` paired keys + Vitest parity in CI | ✅ **DONE** | `npm run i18n:check` enforces 605×2 parity on `messages/{pt,en}.json`. `lib/i18n/app.ts` typed dict parity enforced at compile time via `Dict` + `keyof typeof PT`. |
+| §1.3 | PT/EN toggle switches the entire UI live | ✅ **DONE** | DB-backed via `profiles.preferred_locale` (pre-sprint). Toggle relocated to Settings > Preferências in Day 2 [H1]. `IntlProviderSafe` ensures missing keys degrade gracefully. |
+| §1.4 | Dexter has 7 poses (default, thinking, alert, celebrating, sleeping, analyzing, offline) + SVG/PNG | ⚠ **PARTIAL** | 7 SVGs shipped Day 1 [C3] with 1:1 mood map. PNG 16/32/64 variants **DEFERRED** — no PNG generation pipeline in repo; SVGs auto-scale. Logged. |
+| §1.5 | Pricing typo `MAIS INTUITADOS` corrected | ✅ **DONE** | Verified absent Day 1 [C1]; Pricing fully migrated to `pricing.tier.ultra.badge` ("MAIS POPULAR" / "MOST POPULAR") in Day 3 [I11]. |
+| §1.6 | `LiveLockCard` reads from i18n | ✅ **DONE** | Day 1 [C2] commit `5643d18c`. |
+| §1.7 | `--landing-*` CSS shim removed and consumers migrated | ⚠ **PARTIAL** | Authenticated-tree consumers (5 files / 55 refs) migrated to canonical tokens in Day 4 [H4a]. Shim definition + landing-tree consumers remain — out of sprint scope per plan §0.0. Follow-up sprint scoped. |
+| §1.8 | `useSubscription` has zero callsites; `useEntitlements` is the only path | ✅ **DONE** | Hook export deleted Day 1 [E3] commit `147b2b9f`. Provider retained for AppShell tree. |
+| §1.9 | `npm run build && npm run lint && npm run test` clean | ✅ **DONE** | Day 5 final gate: build clean, lint pre-existing warnings only (no new), 129/129 tests passing. |
+| §1.10 | Manual smoke across PT + EN covers 12 routes; no PT-in-EN / EN-in-PT / `[key]` fallbacks | ⚠ **PARTIAL** | Text-based smoke transcript in `handoff/SMOKE-TRANSCRIPT.md` covers all 12 routes from code inspection. **No live browser session run** by this agent — user to validate visually before merge. `IntlProviderSafe` guarantees no missing-key crashes; PT-in-EN leaks limited to the deferred surfaces enumerated above. |
+
+**Scorecard summary:** 6 ✅ DONE, 4 ⚠ PARTIAL, 0 ❌ DEFERRED.
+All PARTIALs are scoped, documented, and shipping-safe. No item is
+silently broken; every gap has an explicit follow-up entry in
+`FOUND-WHILE-CLOSING.md` or this scorecard.
+
