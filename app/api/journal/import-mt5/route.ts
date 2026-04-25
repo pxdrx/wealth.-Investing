@@ -172,6 +172,15 @@ export async function POST(request: Request) {
     const columnMappingOverride = parseColumnMappingParam(columnMappingParam);
     const profileIdOverride =
       typeof profileIdParam === "string" && profileIdParam.length > 0 ? profileIdParam : null;
+    // Optional: when the CSV has no fee column (Tradovate Position History),
+    // the user can supply a per-contract round-turn fee that the parser
+    // applies as estimated fees_usd.
+    const feePerContractParam = formData.get("feePerContractRoundTurn");
+    const feePerContractRoundTurn = (() => {
+      if (typeof feePerContractParam !== "string") return undefined;
+      const n = parseFloat(feePerContractParam);
+      return Number.isFinite(n) && n > 0 ? n : undefined;
+    })();
 
     if (!file) {
       return NextResponse.json({ error: "Missing file" }, { status: 400 });
@@ -275,7 +284,10 @@ export async function POST(request: Request) {
       // are merged on top of the static dictionary before parsing.
       const extraAliases = await getCachedVocabulary(supabase);
 
-      const adapt = parseCsvAdaptive(adaptiveBuffer, { extraAliases });
+      const adapt = parseCsvAdaptive(adaptiveBuffer, {
+        extraAliases,
+        feePerContractRoundTurn,
+      });
       trades = adapt.trades.map((t) => ({
         external_id: t.external_id,
         external_source: t.external_source,
