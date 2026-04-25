@@ -76,14 +76,6 @@ interface ImportResultData {
   }>;
 }
 
-const tabs = [
-  { title: "Visão Geral", icon: LayoutDashboard },
-  { title: "Trades", icon: TrendingUp },
-  { title: "Relatórios", icon: BarChart3 },
-  { type: "separator" as const },
-  { title: "Importar MT5", icon: Upload },
-];
-
 const SECTION_OVERVIEW = 0;
 const SECTION_TRADES = 1;
 const SECTION_REPORTS = 2;
@@ -94,6 +86,13 @@ const PAGE_SIZE = 100;
 
 export default function JournalPage() {
   const t = useAppT();
+  const tabs = [
+    { title: t("journal.tab.overview"), icon: LayoutDashboard },
+    { title: t("journal.tab.trades"), icon: TrendingUp },
+    { title: t("journal.tab.reports"), icon: BarChart3 },
+    { type: "separator" as const },
+    { title: t("journal.tab.importMt5"), icon: Upload },
+  ];
   const { activeAccountId, accounts, isLoading: accountsLoading } = useActiveAccount();
   const [activeTab, setActiveTab] = useState(0);
   const [importFlowState, setImportFlowState] = useState<ImportFlowState>("idle");
@@ -312,7 +311,7 @@ export default function JournalPage() {
   async function handleFileSelected(file: File) {
     if (!activeAccountId) return;
     if (!file || file.size === 0) {
-      setImportError("Arquivo inválido ou vazio.");
+      setImportError(t("journal.import.errInvalidFile"));
       return;
     }
     setImportError(null);
@@ -325,7 +324,7 @@ export default function JournalPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
-          setImportError("Sessão inválida. Faça login novamente.");
+          setImportError(t("journal.import.errSession"));
           return;
         }
         setAdaptiveAccessToken(session.access_token);
@@ -348,7 +347,7 @@ export default function JournalPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        setImportError("Sessão inválida. Faça login novamente.");
+        setImportError(t("journal.import.errSession"));
         setImportFlowState("idle");
         setIsImportLoading(false);
         return;
@@ -397,7 +396,7 @@ export default function JournalPage() {
       }
       const rawTrades = (data.sample ?? data.preview_trades ?? data.trades ?? []) as Array<Record<string, unknown>>;
       if (rawTrades.length === 0 && !data.trades_found) {
-        setImportError("Nenhum trade encontrado no arquivo. Verifique se é um relatório MT5 válido.");
+        setImportError(t("journal.import.errNoTrades"));
         setImportFlowState("idle");
         setIsImportLoading(false);
         return;
@@ -443,7 +442,7 @@ export default function JournalPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        setImportError("Sessão inválida. Faça login novamente.");
+        setImportError(t("journal.import.errSession"));
         setImportFlowState("idle");
         return;
       }
@@ -463,7 +462,7 @@ export default function JournalPage() {
       } catch (fetchErr) {
         clearTimeout(timeoutId);
         if (fetchErr instanceof DOMException && fetchErr.name === "AbortError") {
-          setImportError("Importação excedeu o tempo limite. Tente com um arquivo menor.");
+          setImportError(t("journal.import.errTimeout"));
           setImportFlowState("idle");
           return;
         }
@@ -609,15 +608,15 @@ export default function JournalPage() {
           className="flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-2 text-xs font-medium hover:opacity-90 transition-opacity"
         >
           <Plus className="h-3.5 w-3.5" />
-          Adicionar Trade
+          {t("journal.action.addTrade")}
         </button>
         <button
           onClick={toggleValues}
           className="flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
-          title={valuesHidden ? "Mostrar valores sensíveis" : "Ocultar valores sensíveis"}
+          title={valuesHidden ? t("journal.action.showSensitive") : t("journal.action.hideSensitive")}
         >
           {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          <span>{valuesHidden ? "Mostrar" : "Ocultar"}</span>
+          <span>{valuesHidden ? t("journal.action.showValues") : t("journal.action.hideValues")}</span>
         </button>
       </div>
 
@@ -635,9 +634,9 @@ export default function JournalPage() {
               style={{ backgroundColor: "hsl(var(--card))" }}
             >
               <div>
-                <p className="text-sm font-semibold text-foreground">Importar histórico</p>
+                <p className="text-sm font-semibold text-foreground">{t("journal.import.panelTitle")}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  MT5 (.html/.xlsx), cTrader/NinjaTrader (.csv) ou Position History (.pdf). A conta ativa será usada.
+                  {t("journal.import.panelSubtitle")}
                 </p>
               </div>
 
@@ -698,17 +697,17 @@ export default function JournalPage() {
                   {isImportLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      Analisando arquivo...
+                      {t("journal.import.analyzing")}
                     </div>
                   ) : (
                     /* Fallback: stuck in previewing without data — reset to idle */
                     <div className="text-center py-4 space-y-2">
-                      <p className="text-sm text-muted-foreground">Não foi possível gerar o preview.</p>
+                      <p className="text-sm text-muted-foreground">{t("journal.import.previewFailed")}</p>
                       <button
                         onClick={handleImportReset}
                         className="text-xs px-4 py-1.5 rounded-lg border border-primary/30 text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
                       >
-                        Tentar novamente
+                        {t("journal.import.tryAgain")}
                       </button>
                     </div>
                   )}

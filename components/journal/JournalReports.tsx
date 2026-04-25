@@ -10,6 +10,8 @@ import { computeTradeAnalytics } from "@/lib/trade-analytics";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import { TrendingUp, PieChart, Brain, Globe, Printer } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
 const DrawdownChart = dynamic(() => import("@/components/reports/DrawdownChart").then(mod => mod.DrawdownChart), { ssr: false });
 const PnlDistribution = dynamic(() => import("@/components/reports/PnlDistribution").then(mod => mod.PnlDistribution), { ssr: false });
@@ -42,18 +44,18 @@ function getStoredTimezone(): string {
 type PeriodKey = "7d" | "30d" | "90d" | "ytd" | "all";
 type ReportsTabKey = "overview" | "breakdowns" | "psicologia";
 
-const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
-  { key: "7d", label: "7 dias" },
-  { key: "30d", label: "30 dias" },
-  { key: "90d", label: "90 dias" },
-  { key: "ytd", label: "YTD" },
-  { key: "all", label: "Tudo" },
+const PERIOD_OPTIONS: { key: PeriodKey; labelKey: AppMessageKey }[] = [
+  { key: "7d", labelKey: "reports.period.7d" },
+  { key: "30d", labelKey: "reports.period.30d" },
+  { key: "90d", labelKey: "reports.period.90d" },
+  { key: "ytd", labelKey: "reports.period.ytd" },
+  { key: "all", labelKey: "reports.period.all" },
 ];
 
-const TAB_OPTIONS: { key: ReportsTabKey; label: string; icon: React.ReactNode }[] = [
-  { key: "overview", label: "Visão Geral", icon: <TrendingUp className="w-4 h-4" /> },
-  { key: "breakdowns", label: "Detalhamento", icon: <PieChart className="w-4 h-4" /> },
-  { key: "psicologia", label: "Psicologia", icon: <Brain className="w-4 h-4" /> },
+const TAB_OPTIONS: { key: ReportsTabKey; labelKey: AppMessageKey; icon: React.ReactNode }[] = [
+  { key: "overview", labelKey: "reports.tab.overview", icon: <TrendingUp className="w-4 h-4" /> },
+  { key: "breakdowns", labelKey: "reports.tab.breakdowns", icon: <PieChart className="w-4 h-4" /> },
+  { key: "psicologia", labelKey: "reports.tab.psicologia", icon: <Brain className="w-4 h-4" /> },
 ];
 
 function filterByPeriod(trades: JournalTradeRow[], period: PeriodKey): JournalTradeRow[] {
@@ -84,6 +86,7 @@ function filterByPeriod(trades: JournalTradeRow[], period: PeriodKey): JournalTr
 }
 
 export function JournalReports() {
+  const t = useAppT();
   const { activeAccountId } = useActiveAccount();
   const [trades, setTrades] = useState<JournalTradeRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,10 +165,10 @@ export function JournalReports() {
           wealth<span className="mx-[1px]">.</span>Investing
         </p>
         <h1 className="mt-1 text-xl font-semibold tracking-tight">
-          Relatório de Performance · Journal
+          {t("reports.print.title")}
         </h1>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          Gerado em {new Date().toLocaleString("pt-BR")}
+          {t("reports.print.generatedAt").replace("{when}", new Date().toLocaleString("pt-BR"))}
         </p>
       </div>
 
@@ -174,18 +177,18 @@ export function JournalReports() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Sub-tabs */}
           <div className="flex gap-1 rounded-full p-1 w-fit" style={{ backgroundColor: "hsl(var(--muted))" }}>
-            {TAB_OPTIONS.map((t) => (
+            {TAB_OPTIONS.map((opt) => (
               <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
+                key={opt.key}
+                onClick={() => setTab(opt.key)}
                 className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-full transition-colors ${
-                  tab === t.key
+                  tab === opt.key
                     ? "bg-white dark:bg-zinc-800 shadow-sm"
                     : "hover:bg-white/50 dark:hover:bg-zinc-700/50"
                 }`}
               >
-                {t.icon}
-                {t.label}
+                {opt.icon}
+                {t(opt.labelKey)}
               </button>
             ))}
           </div>
@@ -203,7 +206,7 @@ export function JournalReports() {
                       : "hover:bg-white/50 dark:hover:bg-zinc-700/50"
                   }`}
                 >
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </button>
               ))}
             </div>
@@ -228,16 +231,16 @@ export function JournalReports() {
                 if (typeof window !== "undefined") window.print();
               }}
               className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted"
-              title="Exportar PDF via diálogo de impressão"
+              title={t("reports.exportPdf.title")}
             >
               <Printer className="h-3.5 w-3.5" />
-              Exportar PDF
+              {t("reports.export-pdf")}
             </button>
           </div>
         </div>
 
         <p className="text-sm text-muted-foreground">
-          {analytics.totalTrades} trades analisados
+          {t("reports.tradesAnalyzed").replace("{count}", String(analytics.totalTrades))}
         </p>
       </div>
 
@@ -247,7 +250,7 @@ export function JournalReports() {
           style={{ backgroundColor: "hsl(var(--card))" }}
         >
           <TrendingUp className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">Nenhum trade encontrado para o período selecionado.</p>
+          <p className="text-muted-foreground">{t("reports.empty")}</p>
         </div>
       ) : (
         <>
@@ -256,33 +259,33 @@ export function JournalReports() {
             <div className="space-y-6">
               {/* KPI Grid */}
               <div>
-                <h3 className="text-sm font-semibold">Métricas Principais</h3>
-                <p className="text-xs text-muted-foreground mb-3">Indicadores-chave da sua performance no período</p>
+                <h3 className="text-sm font-semibold">{t("reports.section.metrics")}</h3>
+                <p className="text-xs text-muted-foreground mb-3">{t("reports.section.metricsHint")}</p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard label="P&L Líquido" value={analytics.netPnl} format="currency" colorize />
-                <MetricCard label="Win Rate" value={analytics.winRate} format="percent" />
-                <MetricCard label="Profit Factor" value={analytics.profitFactor === Infinity ? null : analytics.profitFactor} format="ratio" description={analytics.profitFactor === Infinity ? "Sem perdas" : undefined} />
-                <MetricCard label="Expectancy" value={analytics.expectancy} format="currency" colorize />
-                <MetricCard label="Média Ganho" value={analytics.avgWin} format="currency" />
-                <MetricCard label="Média Perda" value={-analytics.avgLoss} format="currency" colorize />
-                <MetricCard label="Payoff Ratio" value={analytics.payoffRatio} format="ratio" />
-                <MetricCard label="Max Drawdown" value={-analytics.maxDrawdown} format="percent" colorize />
-                <MetricCard label="Melhor Dia" value={analytics.bestDay?.pnl ?? null} format="currency" colorize description={analytics.bestDay?.date} />
-                <MetricCard label="Pior Dia" value={analytics.worstDay?.pnl ?? null} format="currency" colorize description={analytics.worstDay?.date} />
-                <MetricCard label="Duração Média" value={analytics.avgTradeDuration} format="duration" />
-                <MetricCard label="Trades/Semana" value={analytics.tradesPerWeek} format="number" />
+                <MetricCard label={t("reports.kpi.netPnl")} value={analytics.netPnl} format="currency" colorize />
+                <MetricCard label={t("reports.kpi.winRate")} value={analytics.winRate} format="percent" />
+                <MetricCard label={t("reports.kpi.profitFactor")} value={analytics.profitFactor === Infinity ? null : analytics.profitFactor} format="ratio" description={analytics.profitFactor === Infinity ? t("reports.kpi.profitFactorNoLoss") : undefined} />
+                <MetricCard label={t("reports.kpi.expectancy")} value={analytics.expectancy} format="currency" colorize />
+                <MetricCard label={t("reports.kpi.avgWin")} value={analytics.avgWin} format="currency" />
+                <MetricCard label={t("reports.kpi.avgLoss")} value={-analytics.avgLoss} format="currency" colorize />
+                <MetricCard label={t("reports.kpi.payoffRatio")} value={analytics.payoffRatio} format="ratio" />
+                <MetricCard label={t("reports.kpi.maxDrawdown")} value={-analytics.maxDrawdown} format="percent" colorize />
+                <MetricCard label={t("reports.kpi.bestDay")} value={analytics.bestDay?.pnl ?? null} format="currency" colorize description={analytics.bestDay?.date} />
+                <MetricCard label={t("reports.kpi.worstDay")} value={analytics.worstDay?.pnl ?? null} format="currency" colorize description={analytics.worstDay?.date} />
+                <MetricCard label={t("reports.kpi.avgDuration")} value={analytics.avgTradeDuration} format="duration" />
+                <MetricCard label={t("reports.kpi.tradesPerWeek")} value={analytics.tradesPerWeek} format="number" />
               </div>
 
               {/* Streaks */}
               <div>
-                <h3 className="text-sm font-semibold">Sequências</h3>
-                <p className="text-xs text-muted-foreground mb-3">Série atual e recordes de vitórias e derrotas consecutivas</p>
+                <h3 className="text-sm font-semibold">{t("reports.section.streaks")}</h3>
+                <p className="text-xs text-muted-foreground mb-3">{t("reports.section.streaksHint")}</p>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <MetricCard label="Streak Atual" value={analytics.streaks.current} format="number" colorize />
-                <MetricCard label="Maior Sequência Wins" value={analytics.streaks.longestWin} format="number" />
-                <MetricCard label="Maior Sequência Losses" value={-analytics.streaks.longestLoss} format="number" colorize />
+                <MetricCard label={t("reports.kpi.streakCurrent")} value={analytics.streaks.current} format="number" colorize />
+                <MetricCard label={t("reports.kpi.streakWins")} value={analytics.streaks.longestWin} format="number" />
+                <MetricCard label={t("reports.kpi.streakLosses")} value={-analytics.streaks.longestLoss} format="number" colorize />
               </div>
 
               {/* Charts */}

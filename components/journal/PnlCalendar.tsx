@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { toForexDateKey, forexMonthBoundsUtc } from "@/lib/trading/forex-day";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
 interface PnlCalendarProps {
   accountId: string | null;
@@ -29,12 +31,18 @@ interface TradeRow {
   fees_usd: number | null;
 }
 
-const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+const MONTH_KEYS: AppMessageKey[] = [
+  "pnlCalendar.month.1", "pnlCalendar.month.2", "pnlCalendar.month.3",
+  "pnlCalendar.month.4", "pnlCalendar.month.5", "pnlCalendar.month.6",
+  "pnlCalendar.month.7", "pnlCalendar.month.8", "pnlCalendar.month.9",
+  "pnlCalendar.month.10", "pnlCalendar.month.11", "pnlCalendar.month.12",
 ];
 
-const DAY_HEADERS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+const DAY_KEYS: AppMessageKey[] = [
+  "pnlCalendar.day.sun", "pnlCalendar.day.mon", "pnlCalendar.day.tue",
+  "pnlCalendar.day.wed", "pnlCalendar.day.thu", "pnlCalendar.day.fri",
+  "pnlCalendar.day.sat",
+];
 
 function getNet(r: TradeRow): number {
   if (typeof r.net_pnl_usd === "number" && !Number.isNaN(r.net_pnl_usd)) return r.net_pnl_usd;
@@ -42,6 +50,9 @@ function getNet(r: TradeRow): number {
 }
 
 export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick, refreshKey = 0 }: PnlCalendarProps) {
+  const t = useAppT();
+  const MONTH_NAMES = useMemo(() => MONTH_KEYS.map((k) => t(k)), [t]);
+  const DAY_HEADERS = useMemo(() => DAY_KEYS.map((k) => t(k)), [t]);
   const now = new Date();
   const [displayMonth, setDisplayMonth] = useState(now.getMonth());
   const [displayYear, setDisplayYear] = useState(now.getFullYear());
@@ -182,6 +193,8 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
         const dd = dailyData[key];
         if (dd) { pnl += dd.pnl; days += 1; trades += dd.trades; }
       }
+      // Weekly summary label kept locale-neutral ("S1"/"S2"/...) so it works in
+      // both PT (Semana 1) and EN (Week 1) without a per-row t() call.
       return { label: `S${wi + 1}`, pnl, days, trades };
     });
   }, [weeks, dailyData, displayMonth, displayYear]);
@@ -201,7 +214,9 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
     onDayClick?.(key, dd ? { pnl: dd.pnl, trades: dd.trades, avgRr: null } : { pnl: 0, trades: 0, avgRr: null });
   };
 
-  const monthTitle = `${MONTH_NAMES[displayMonth]} De ${displayYear}`;
+  const monthTitle = t("pnlCalendar.monthLabel")
+    .replace("{month}", MONTH_NAMES[displayMonth])
+    .replace("{year}", String(displayYear));
 
   const formatPnl = (v: number) => {
     const abs = Math.abs(v);
@@ -215,29 +230,29 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
         {/* Month summary bar */}
         <div className="px-5 pt-5 pb-4" style={{ backgroundColor: "hsl(var(--card))" }}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-semibold tracking-tight text-foreground">Resumo do Mês</h3>
+            <h3 className="text-base font-semibold tracking-tight text-foreground">{t("pnlCalendar.title")}</h3>
             <span className={cn(
               "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
               monthStats.totalPnl >= 0
                 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                 : "bg-red-500/15 text-red-600 dark:text-red-400"
             )}>
-              {monthStats.totalPnl >= 0 ? "Positivo" : "Negativo"}
+              {monthStats.totalPnl >= 0 ? t("pnlCalendar.positive") : t("pnlCalendar.negative")}
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
-              { label: "Operações", value: String(monthStats.totalTrades) },
-              { label: "Taxa de Acerto", value: monthStats.totalTrades > 0 ? `${((monthStats.totalWins / monthStats.totalTrades) * 100).toFixed(0)}%` : "—" },
+              { label: t("pnlCalendar.kpi.operations"), value: String(monthStats.totalTrades) },
+              { label: t("pnlCalendar.kpi.winRate"), value: monthStats.totalTrades > 0 ? `${((monthStats.totalWins / monthStats.totalTrades) * 100).toFixed(0)}%` : "—" },
               {
-                label: "Resultado Total",
+                label: t("pnlCalendar.kpi.totalResult"),
                 value: monthStats.totalPnl !== 0 ? `$ ${Math.abs(monthStats.totalPnl).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
                 color: monthStats.totalPnl > 0 ? "text-emerald-600 dark:text-emerald-400" : monthStats.totalPnl < 0 ? "text-red-600 dark:text-red-400" : undefined,
               },
-              { label: "Dias Operados", value: String(monthStats.tradingDays) },
+              { label: t("pnlCalendar.kpi.tradingDays"), value: String(monthStats.tradingDays) },
               {
-                label: "Média / Op.",
+                label: t("pnlCalendar.kpi.avgPerOp"),
                 value: monthStats.totalTrades > 0
                   ? `$ ${Math.abs(monthStats.totalPnl / monthStats.totalTrades).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : "—",
@@ -257,13 +272,13 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
 
           <div className="flex items-center justify-center gap-5 mt-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Wins: {monthStats.totalWins}
+              <span className="h-2 w-2 rounded-full bg-emerald-500" /> {t("pnlCalendar.legend.wins")}: {monthStats.totalWins}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-red-500" /> Losses: {monthStats.totalLosses}
+              <span className="h-2 w-2 rounded-full bg-red-500" /> {t("pnlCalendar.legend.losses")}: {monthStats.totalLosses}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-zinc-400 dark:bg-zinc-600" /> BE: {monthStats.totalTrades - monthStats.totalWins - monthStats.totalLosses}
+              <span className="h-2 w-2 rounded-full bg-zinc-400 dark:bg-zinc-600" /> {t("pnlCalendar.legend.be")}: {monthStats.totalTrades - monthStats.totalWins - monthStats.totalLosses}
             </span>
           </div>
         </div>
@@ -272,14 +287,14 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
         <div className="px-5 pb-5 pt-3" style={{ backgroundColor: "hsl(var(--card))" }}>
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-3">
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goPrev} aria-label="Mês anterior">
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goPrev} aria-label={t("pnlCalendar.prevMonth")}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="text-center">
               <h2 className="text-lg font-bold tracking-tight text-foreground">{monthTitle}</h2>
               <div className="mx-auto mt-1 h-[2px] w-8 rounded-full bg-blue-500" />
             </div>
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goNext} aria-label="Próximo mês">
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goNext} aria-label={t("pnlCalendar.nextMonth")}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -289,7 +304,7 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
               {DAY_HEADERS.map((h) => (
                 <div key={h} className="text-center text-[10px] font-semibold text-muted-foreground py-1.5">{h}</div>
               ))}
-              <div className="text-center text-[10px] font-semibold text-muted-foreground py-1.5">RESUMO</div>
+              <div className="text-center text-[10px] font-semibold text-muted-foreground py-1.5">{t("pnlCalendar.summaryHeader")}</div>
               {Array.from({ length: 35 }).map((_, i) => (
                 <div key={`skel-${i}`} className="h-[72px] rounded-md bg-muted/20 animate-pulse" />
               ))}
@@ -304,7 +319,7 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
                 </div>
               ))}
               <div className="text-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground py-1.5">
-                RESUMO
+                {t("pnlCalendar.summaryHeader")}
               </div>
 
               {weeks.map((week, wi) => (
@@ -356,7 +371,7 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
                               {formatPnl(pnl)}
                             </p>
                             <p className="text-[9px] text-muted-foreground mt-0.5">
-                              {dd.trades} trade{dd.trades !== 1 ? "s" : ""}
+                              {dd.trades} {dd.trades !== 1 ? t("pnlCalendar.tradesShortPlural") : t("pnlCalendar.tradesShort")}
                             </p>
                           </div>
                         )}
@@ -389,7 +404,7 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
                     </p>
                     {weeklySummaries[wi].trades > 0 && (
                       <p className="text-[9px] text-muted-foreground">
-                        {weeklySummaries[wi].days}d · {weeklySummaries[wi].trades} ops
+                        {weeklySummaries[wi].days}d · {weeklySummaries[wi].trades} {t("pnlCalendar.opsShort")}
                       </p>
                     )}
                   </div>
@@ -400,7 +415,7 @@ export function PnlCalendar({ accountId, allAccounts = false, userId, onDayClick
 
           {!loading && !allAccounts && !accountId && (
             <p className="text-sm text-muted-foreground text-center py-6">
-              Selecione uma conta para ver o calendário PnL.
+              {t("pnlCalendar.selectAccount")}
             </p>
           )}
         </div>

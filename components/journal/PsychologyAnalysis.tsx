@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { PsychologyLoadingAnimation } from "./PsychologyLoadingAnimation";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
 interface PsychologyAnalysisData {
   profile: string;
@@ -18,11 +20,11 @@ interface PsychologyAnalysisData {
 
 type PeriodKey = "7d" | "30d" | "90d" | "all";
 
-const PERIODS: { key: PeriodKey; label: string }[] = [
-  { key: "7d", label: "7 dias" },
-  { key: "30d", label: "30 dias" },
-  { key: "90d", label: "90 dias" },
-  { key: "all", label: "Tudo" },
+const PERIODS: { key: PeriodKey; labelKey: AppMessageKey }[] = [
+  { key: "7d", labelKey: "psychologyAnalysis.period.7d" },
+  { key: "30d", labelKey: "psychologyAnalysis.period.30d" },
+  { key: "90d", labelKey: "psychologyAnalysis.period.90d" },
+  { key: "all", labelKey: "psychologyAnalysis.period.all" },
 ];
 
 interface PsychologyAnalysisProps {
@@ -30,6 +32,7 @@ interface PsychologyAnalysisProps {
 }
 
 export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
+  const t = useAppT();
   const [analysis, setAnalysis] = useState<PsychologyAnalysisData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +50,7 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        setError("Sessão expirada.");
+        setError(t("psychologyAnalysis.errSession"));
         return;
       }
 
@@ -62,18 +65,18 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
 
       const json = await res.json();
       if (!json.ok) {
-        setError(json.error || "Erro ao gerar análise.");
+        setError(json.error || t("psychologyAnalysis.errGeneration"));
         return;
       }
 
       setAnalysis(json.data);
       setGeneratedAt(json.generated_at || null);
     } catch {
-      setError("Erro de conexão. Tente novamente.");
+      setError(t("psychologyAnalysis.errConnection"));
     } finally {
       setLoading(false);
     }
-  }, [accountId]);
+  }, [accountId, t]);
 
   // Auto-load ao montar e quando account/período mudar
   const lastLoadKey = useRef("");
@@ -94,18 +97,18 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
   const formatGeneratedAt = (iso: string): string => {
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Agora";
-    if (mins < 60) return `Há ${mins}min`;
+    if (mins < 1) return t("psychologyAnalysis.relativeNow");
+    if (mins < 60) return t("psychologyAnalysis.relativeMin").replace("{n}", String(mins));
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `Há ${hours}h`;
+    if (hours < 24) return t("psychologyAnalysis.relativeHour").replace("{n}", String(hours));
     const days = Math.floor(hours / 24);
-    return `Há ${days}d`;
+    return t("psychologyAnalysis.relativeDay").replace("{n}", String(days));
   };
 
   if (!accountId) {
     return (
       <div className="text-center py-12 text-muted-foreground text-sm">
-        Selecione uma conta para ver a análise psicológica.
+        {t("psychologyAnalysis.selectAccount")}
       </div>
     );
   }
@@ -117,7 +120,7 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
         <div className="flex items-center gap-2">
           <Brain className="h-5 w-5 text-indigo-500" />
           <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Análise Psicológica
+            {t("psychologyAnalysis.heading")}
           </h3>
         </div>
         <div className="flex items-center gap-2">
@@ -134,7 +137,7 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
                 loading && "opacity-50 cursor-not-allowed"
               )}
             >
-              {p.label}
+              {t(p.labelKey)}
             </button>
           ))}
         </div>
@@ -154,7 +157,7 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
             className="gap-1.5 text-xs"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            Tentar novamente
+            {t("psychologyAnalysis.retry")}
           </Button>
         </div>
       )}
@@ -164,32 +167,32 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
         <>
           {generatedAt && (
             <div className="text-[11px] text-muted-foreground">
-              Análise do dia · {formatGeneratedAt(generatedAt)}
+              {t("psychologyAnalysis.dayCaption").replace("{when}", formatGeneratedAt(generatedAt))}
             </div>
           )}
 
           <div className="space-y-4">
             <AnalysisCard
               icon={<Brain className="h-4 w-4 text-indigo-500" />}
-              title="Perfil Psicológico"
+              title={t("psychologyAnalysis.card.profile")}
               content={analysis.profile}
             />
 
             <AnalysisCard
               icon={<Clock className="h-4 w-4 text-amber-500" />}
-              title="Horários Críticos"
+              title={t("psychologyAnalysis.card.criticalHours")}
               content={analysis.critical_hours}
             />
 
             <AnalysisCard
               icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
-              title="Revenge Trading"
+              title={t("psychologyAnalysis.card.revenge")}
               content={analysis.revenge_analysis}
             />
 
             <AnalysisCard
               icon={<TrendingUp className="h-4 w-4 text-blue-500" />}
-              title="Consistência"
+              title={t("psychologyAnalysis.card.consistency")}
               content={analysis.consistency}
             />
 
@@ -201,7 +204,7 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                   <h4 className="text-xs font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
-                    Alertas
+                    {t("psychologyAnalysis.card.alerts")}
                   </h4>
                 </div>
                 <ul className="space-y-2">
@@ -217,7 +220,7 @@ export function PsychologyAnalysis({ accountId }: PsychologyAnalysisProps) {
 
             <AnalysisCard
               icon={<Shield className="h-4 w-4 text-emerald-500" />}
-              title="Ponto Forte"
+              title={t("psychologyAnalysis.card.strength")}
               content={analysis.strength}
               accent="emerald"
             />

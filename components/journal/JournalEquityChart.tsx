@@ -17,6 +17,7 @@ import { toForexDateKey } from "@/lib/trading/forex-day";
 import { filterTradesByPeriod, getNetPnl } from "./types";
 import type { JournalTradeRow } from "./types";
 import type { PeriodFilter } from "./types";
+import { useAppT } from "@/hooks/useAppLocale";
 
 interface JournalEquityChartProps {
   trades: JournalTradeRow[];
@@ -27,6 +28,7 @@ interface JournalEquityChartProps {
 }
 
 export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOverallLossPercent, profitTargetPercent }: JournalEquityChartProps) {
+  const t = useAppT();
   const { hidden, mask } = usePrivacy();
   const filtered = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
   const start = startingBalanceUsd ?? 0;
@@ -39,7 +41,7 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
     const points: { date: string; equity: number; fullDate: string }[] = [];
     let cum = start;
     points.push({
-      date: "Início",
+      date: t("equity.start"),
       fullDate: "—",
       equity: cum,
     });
@@ -57,7 +59,7 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
       });
     }
     return points;
-  }, [filtered, start]);
+  }, [filtered, start, t]);
 
   const currentEquity = data.length > 0 ? data[data.length - 1].equity : start;
   const lineColor = currentEquity >= start ? "#059669" : "#dc2626"; // emerald-600 / red-600
@@ -65,12 +67,12 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">Curva de equity</CardTitle>
+        <CardTitle className="text-base font-medium">{t("equity.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length <= 1 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
-            Nenhum trade no período. Equity: {mask(`${start.toFixed(2)} USD`)}
+            {t("equity.empty").replace("{value}", mask(`${start.toFixed(2)} USD`))}
           </p>
         ) : (
           <div className="h-[280px] w-full">
@@ -91,7 +93,7 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
                     return (
                       <div className="rounded-input border border-border bg-card px-3 py-2 text-sm shadow-sm">
                         <p className="text-muted-foreground">{p.fullDate}</p>
-                        <p className="font-semibold text-foreground">Equity: {mask(`${p.equity.toFixed(2)} USD`)}</p>
+                        <p className="font-semibold text-foreground">{t("equity.tooltipLabel").replace("{value}", mask(`${p.equity.toFixed(2)} USD`))}</p>
                       </div>
                     );
                   }}
@@ -110,7 +112,7 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
                     stroke="#dc2626"
                     strokeDasharray="6 3"
                     strokeWidth={1.5}
-                    label={{ value: `DD ${maxOverallLossPercent}%`, position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }}
+                    label={{ value: t("equity.refDd").replace("{pct}", String(maxOverallLossPercent)), position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }}
                   />
                 )}
                 {isPropAccount && targetLimit != null && (
@@ -119,7 +121,7 @@ export function JournalEquityChart({ trades, period, startingBalanceUsd, maxOver
                     stroke="#059669"
                     strokeDasharray="6 3"
                     strokeWidth={1.5}
-                    label={{ value: `Meta ${profitTargetPercent}%`, position: "insideTopRight", fontSize: 10, fill: "#059669" }}
+                    label={{ value: t("equity.refTarget").replace("{pct}", String(profitTargetPercent)), position: "insideTopRight", fontSize: 10, fill: "#059669" }}
                   />
                 )}
                 {isPropAccount && (

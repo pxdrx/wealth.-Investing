@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CpuArchitecture } from "@/components/ui/cpu-architecture";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
-const STEPS = [
-  "Decifrando seu comportamento",
-  "Mapeando padrões emocionais",
-  "Identificando vieses cognitivos",
-  "Analisando disciplina operacional",
-  "Detectando sinais de tilt",
-  "Traçando perfil psicológico",
+const STEP_KEYS: AppMessageKey[] = [
+  "psychologyLoading.step1",
+  "psychologyLoading.step2",
+  "psychologyLoading.step3",
+  "psychologyLoading.step4",
+  "psychologyLoading.step5",
+  "psychologyLoading.step6",
 ];
 
 const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -20,6 +22,8 @@ const easeApple: [number, number, number, number] = [0.16, 1, 0.3, 1];
  * que preenche o card + mensagens rotativas + barra de progresso assintótica.
  */
 export function PsychologyLoadingAnimation() {
+  const t = useAppT();
+  const STEPS = useMemo(() => STEP_KEYS.map((k) => t(k)), [t]);
   const [stepIdx, setStepIdx] = useState(0);
   const [pct, setPct] = useState(5);
 
@@ -36,7 +40,7 @@ export function PsychologyLoadingAnimation() {
       clearInterval(stepTimer);
       clearInterval(pctTimer);
     };
-  }, []);
+  }, [STEPS.length]);
 
   return (
     <div
@@ -48,7 +52,7 @@ export function PsychologyLoadingAnimation() {
           <CpuArchitecture
             width="320"
             height="220"
-            text="PSICOLOGIA"
+            text={t("psychologyLoading.cpuLabel")}
             animateMarkers
             animateLines
             animateText
@@ -80,7 +84,7 @@ export function PsychologyLoadingAnimation() {
           </div>
 
           <p className="text-[11px] text-muted-foreground text-center">
-            Primeira análise do dia — a próxima visita hoje mostra esta mesma instantaneamente.
+            {t("psychologyLoading.firstHint")}
           </p>
         </div>
       </div>

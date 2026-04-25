@@ -1,6 +1,7 @@
 "use client";
 
 import { LayoutGrid, Rows3 } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
 
 export type JournalView = "cards" | "table";
 
@@ -10,10 +11,11 @@ interface Props {
 }
 
 export function JournalViewToggle({ value, onChange }: Props) {
+  const t = useAppT();
   return (
     <div
       role="radiogroup"
-      aria-label="Modo de visualização"
+      aria-label={t("journalView.aria")}
       className="inline-flex items-center rounded-full border border-border/70 p-0.5"
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
@@ -21,13 +23,13 @@ export function JournalViewToggle({ value, onChange }: Props) {
         active={value === "cards"}
         onClick={() => onChange("cards")}
         icon={<LayoutGrid className="h-3.5 w-3.5" aria-hidden />}
-        label="Cards"
+        label={t("journalView.cards")}
       />
       <Button
         active={value === "table"}
         onClick={() => onChange("table")}
         icon={<Rows3 className="h-3.5 w-3.5" aria-hidden />}
-        label="Tabela"
+        label={t("journalView.table")}
       />
     </div>
   );

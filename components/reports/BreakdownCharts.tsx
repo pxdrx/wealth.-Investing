@@ -19,6 +19,7 @@ import {
   SessionBreakdownItem,
   HourBreakdownItem,
 } from "@/lib/trade-analytics";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const cardStyle = {
   backgroundColor: "hsl(var(--card))",
@@ -33,18 +34,19 @@ interface SymbolBreakdownProps {
 }
 
 export function SymbolBreakdown({ data }: SymbolBreakdownProps) {
-  if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados.</p>;
+  const t = useAppT();
+  if (data.length === 0) return <p className="text-sm text-muted-foreground">{t("breakdowns.empty")}</p>;
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold">Por Ativo</h3>
-      <p className="text-xs text-muted-foreground mb-4">P&L e win rate agrupados por instrumento</p>
+      <h3 className="text-sm font-semibold">{t("breakdowns.symbol.title")}</h3>
+      <p className="text-xs text-muted-foreground mb-4">{t("breakdowns.symbol.hint")}</p>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={data.slice(0, 10)} layout="vertical">
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
           <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
           <YAxis type="category" dataKey="symbol" tick={{ fontSize: 11 }} width={80} />
-          <Tooltip formatter={(v: number) => [`$${Number(v).toFixed(2)}`, "P&L Total"]} />
+          <Tooltip formatter={(v: number) => [`$${Number(v).toFixed(2)}`, t("breakdowns.symbol.tooltip")]} />
           <Bar dataKey="totalPnl">
             {data.slice(0, 10).map((entry, index) => (
               <Cell key={index} fill={entry.totalPnl >= 0 ? "#10b981" : "#ef4444"} />
@@ -63,7 +65,8 @@ interface DirectionBreakdownProps {
 }
 
 export function DirectionBreakdown({ data }: DirectionBreakdownProps) {
-  if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados.</p>;
+  const t = useAppT();
+  if (data.length === 0) return <p className="text-sm text-muted-foreground">{t("breakdowns.empty")}</p>;
 
   const pieData = data.map((d, i) => ({
     name: d.direction === "buy" ? "Long" : "Short",
@@ -73,8 +76,8 @@ export function DirectionBreakdown({ data }: DirectionBreakdownProps) {
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold">Por Direção</h3>
-      <p className="text-xs text-muted-foreground mb-4">Comparativo de performance entre compras e vendas</p>
+      <h3 className="text-sm font-semibold">{t("breakdowns.direction.title")}</h3>
+      <p className="text-xs text-muted-foreground mb-4">{t("breakdowns.direction.hint")}</p>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie
@@ -106,18 +109,19 @@ interface DayOfWeekBreakdownProps {
 }
 
 export function DayOfWeekBreakdown({ data }: DayOfWeekBreakdownProps) {
-  if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados.</p>;
+  const t = useAppT();
+  if (data.length === 0) return <p className="text-sm text-muted-foreground">{t("breakdowns.empty")}</p>;
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold">Por Dia da Semana</h3>
-      <p className="text-xs text-muted-foreground mb-2">P&L de ganhos e perdas por dia da semana</p>
+      <h3 className="text-sm font-semibold">{t("breakdowns.dayOfWeek.title")}</h3>
+      <p className="text-xs text-muted-foreground mb-2">{t("breakdowns.dayOfWeek.hint")}</p>
       <div className="flex items-center gap-3 mb-3">
         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Ganhos
+          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> {t("breakdowns.dayOfWeek.gains")}
         </span>
         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Perdas
+          <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> {t("breakdowns.dayOfWeek.losses")}
         </span>
       </div>
       <ResponsiveContainer width="100%" height={250}>
@@ -153,18 +157,19 @@ interface SessionBreakdownProps {
 }
 
 export function SessionBreakdown({ data }: SessionBreakdownProps) {
-  if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados.</p>;
+  const t = useAppT();
+  if (data.length === 0) return <p className="text-sm text-muted-foreground">{t("breakdowns.empty")}</p>;
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold">Por Sessão</h3>
-      <p className="text-xs text-muted-foreground mb-4">Performance por sessão de mercado (Tokyo, London, NY)</p>
+      <h3 className="text-sm font-semibold">{t("breakdowns.session.title")}</h3>
+      <p className="text-xs text-muted-foreground mb-4">{t("breakdowns.session.hint")}</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
           <XAxis dataKey="session" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
-          <Tooltip formatter={(v: number) => [`$${Number(v).toFixed(2)}`, "P&L Total"]} />
+          <Tooltip formatter={(v: number) => [`$${Number(v).toFixed(2)}`, t("breakdowns.symbol.tooltip")]} />
           <Bar dataKey="totalPnl">
             {data.map((entry, index) => (
               <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -183,20 +188,21 @@ interface HourHeatmapProps {
 }
 
 export function HourHeatmap({ data }: HourHeatmapProps) {
-  if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados.</p>;
+  const t = useAppT();
+  if (data.length === 0) return <p className="text-sm text-muted-foreground">{t("breakdowns.empty")}</p>;
 
   const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.netPnl ?? d.totalPnl)), 1);
 
   return (
     <div className="rounded-[22px] p-5 shadow-soft dark:shadow-soft-dark isolate" style={cardStyle}>
-      <h3 className="text-sm font-semibold">Por Hora</h3>
-      <p className="text-xs text-muted-foreground mb-2">Distribuição de trades, ganhos e perdas por hora do dia</p>
+      <h3 className="text-sm font-semibold">{t("breakdowns.hour.title")}</h3>
+      <p className="text-xs text-muted-foreground mb-2">{t("breakdowns.hour.hint")}</p>
       <div className="flex items-center gap-3 mb-3">
         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> P&L positivo
+          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> {t("breakdowns.hour.positive")}
         </span>
         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> P&L negativo
+          <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> {t("breakdowns.hour.negative")}
         </span>
       </div>
       <div className="flex flex-wrap gap-1">
