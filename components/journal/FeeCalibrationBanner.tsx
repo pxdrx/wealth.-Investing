@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
 
 interface Props {
   accountId: string;
@@ -15,14 +15,30 @@ interface Props {
   }) => void;
 }
 
+interface Preflight {
+  starting_balance_usd: number;
+  gross_pnl_usd: number;
+  total_contracts: number;
+  fee_less_trades: number;
+  current_balance_estimate_usd: number;
+  fee_per_contract_round_turn: number | null;
+}
+
+const fmtUsd = (n: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+
 /**
  * Surface for back-solving per-contract fees from a fee-less broker export
  * (Tradovate Position History etc.). Asks the user for the broker statement
  * balance, calls /api/account/[id]/calibrate-fees, and reports back.
  *
- * The user never has to compute fees themselves — they just paste what their
- * broker shows. The API back-solves fee/contract from the imported gross PnL
- * and saves it on the account so subsequent imports reuse it automatically.
+ * Shows a pre-flight summary (starting balance, gross PnL, total contracts)
+ * so the user can spot data issues — duplicate trades, wrong account
+ * selected, etc — before calibrating. Lets them undo the calibration if the
+ * solved fee looks wrong.
  */
 export function FeeCalibrationBanner({
   accountId,
@@ -30,16 +46,56 @@ export function FeeCalibrationBanner({
   onCalibrated,
 }: Props) {
   const [value, setValue] = useState("");
-  const [phase, setPhase] = useState<"idle" | "saving" | "done" | "error">(
-    "idle"
-  );
+  const [phase, setPhase] = useState<
+    "loading" | "idle" | "saving" | "done" | "error"
+  >("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [preflight, setPreflight] = useState<Preflight | null>(null);
   const [result, setResult] = useState<{
     feePerContractRoundTurn: number | null;
     tradesUpdated: number;
     estimatedFeesTotal: number;
     mode: "per_contract" | "per_trade";
   } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/account/${accountId}/calibrate-fees`,
+          {
+            method: "GET",
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data?.ok !== false) {
+          setPreflight({
+            starting_balance_usd: Number(data.starting_balance_usd ?? 0),
+            gross_pnl_usd: Number(data.gross_pnl_usd ?? 0),
+            total_contracts: Number(data.total_contracts ?? 0),
+            fee_less_trades: Number(data.fee_less_trades ?? 0),
+            current_balance_estimate_usd: Number(
+              data.current_balance_estimate_usd ?? 0
+            ),
+            fee_per_contract_round_turn:
+              typeof data.fee_per_contract_round_turn === "number"
+                ? data.fee_per_contract_round_turn
+                : null,
+          });
+        }
+      } catch {
+        /* preflight is informational — silent failure is OK */
+      } finally {
+        if (!cancelled) setPhase("idle");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountId, accessToken]);
 
   async function submit() {
     const num = parseFloat(value.replace(/\./g, "").replace(",", "."));
@@ -88,6 +144,38 @@ export function FeeCalibrationBanner({
     }
   }
 
+  async function undo() {
+    setPhase("saving");
+    setErrorMsg(null);
+    try {
+      const res = await fetch(
+        `/api/account/${accountId}/calibrate-fees`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data?.error || `Erro ${res.status}`);
+        setPhase("error");
+        return;
+      }
+      setResult(null);
+      setValue("");
+      onCalibrated({
+        feePerContractRoundTurn: null,
+        tradesUpdated: 0,
+        estimatedFeesTotal: 0,
+        mode: "per_contract",
+      });
+      setPhase("idle");
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Falha de rede");
+      setPhase("error");
+    }
+  }
+
   if (phase === "done" && result) {
     return (
       <div
@@ -109,10 +197,10 @@ export function FeeCalibrationBanner({
                 <p className="text-muted-foreground mt-1">
                   Taxa por contrato (round-turn):{" "}
                   <strong>
-                    ${result.feePerContractRoundTurn.toFixed(4)}
+                    ${fmtUsd(result.feePerContractRoundTurn)}
                   </strong>{" "}
                   · {result.tradesUpdated} trades ajustadas · taxa total
-                  estimada: ${Math.abs(result.estimatedFeesTotal).toFixed(2)}
+                  estimada: ${fmtUsd(Math.abs(result.estimatedFeesTotal))}
                 </p>
                 <p className="text-muted-foreground mt-1">
                   Próximas importações desta conta vão aplicar essa taxa
@@ -123,7 +211,7 @@ export function FeeCalibrationBanner({
               <>
                 <p className="text-muted-foreground mt-1">
                   {result.tradesUpdated} trades ajustadas · taxa total
-                  estimada: ${Math.abs(result.estimatedFeesTotal).toFixed(2)}
+                  estimada: ${fmtUsd(Math.abs(result.estimatedFeesTotal))}
                 </p>
                 <p className="text-muted-foreground mt-1">
                   Como as trades importadas anteriormente não têm volume
@@ -134,6 +222,13 @@ export function FeeCalibrationBanner({
                 </p>
               </>
             )}
+            <button
+              onClick={undo}
+              className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <RotateCcw size={11} />
+              Desfazer calibração
+            </button>
           </div>
         </div>
       </div>
@@ -152,10 +247,44 @@ export function FeeCalibrationBanner({
         />
         <div className="flex-1">
           <p className="text-xs font-medium text-foreground leading-relaxed">
-            O Position History do seu broker (Tradovate / similar) não
-            exporta taxas. Para o saldo bater, informe o saldo total da sua
-            conta no broker e o sistema calibra a taxa por contrato sozinho.
+            O Position History do seu broker (Tradovate / similar) não exporta
+            taxas. Para o saldo bater, informe o saldo total da sua conta no
+            broker e o sistema calibra a taxa por contrato sozinho.
           </p>
+
+          {preflight && (
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border/60 bg-background/50 p-2 text-[11px] text-muted-foreground">
+              <span>Saldo inicial da conta</span>
+              <span className="text-right tabular-nums text-foreground">
+                ${fmtUsd(preflight.starting_balance_usd)}
+              </span>
+              <span>PnL bruto importado</span>
+              <span className="text-right tabular-nums text-foreground">
+                ${fmtUsd(preflight.gross_pnl_usd)}
+              </span>
+              <span>Saldo atual no app (sem taxas)</span>
+              <span className="text-right tabular-nums text-foreground">
+                ${fmtUsd(preflight.current_balance_estimate_usd)}
+              </span>
+              <span>
+                Trades / contratos round-turn
+              </span>
+              <span className="text-right tabular-nums text-foreground">
+                {preflight.fee_less_trades} / {preflight.total_contracts}
+              </span>
+              {preflight.fee_per_contract_round_turn !== null && (
+                <>
+                  <span className="text-amber-600 dark:text-amber-400">
+                    Taxa atual já calibrada
+                  </span>
+                  <span className="text-right tabular-nums text-amber-600 dark:text-amber-400">
+                    ${fmtUsd(preflight.fee_per_contract_round_turn)}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="mt-3 flex items-center gap-2">
             <span className="text-sm text-muted-foreground">USD</span>
             <input
@@ -165,11 +294,13 @@ export function FeeCalibrationBanner({
               onChange={(e) => setValue(e.target.value)}
               placeholder="100.682,25"
               className="flex-1 max-w-[180px] rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
-              disabled={phase === "saving"}
+              disabled={phase === "saving" || phase === "loading"}
             />
             <button
               onClick={submit}
-              disabled={phase === "saving" || !value}
+              disabled={
+                phase === "saving" || phase === "loading" || !value
+              }
               className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 inline-flex items-center gap-1.5"
             >
               {phase === "saving" ? (
@@ -181,6 +312,18 @@ export function FeeCalibrationBanner({
                 "Calibrar"
               )}
             </button>
+            {preflight?.fee_per_contract_round_turn !== null &&
+              preflight?.fee_per_contract_round_turn !== undefined && (
+                <button
+                  onClick={undo}
+                  disabled={phase === "saving"}
+                  title="Reseta os fees salvos para tentar de novo"
+                  className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50 inline-flex items-center gap-1"
+                >
+                  <RotateCcw size={11} />
+                  Resetar
+                </button>
+              )}
           </div>
           {errorMsg && (
             <p className="mt-2 text-[11px] text-[hsl(var(--pnl-negative))]">
