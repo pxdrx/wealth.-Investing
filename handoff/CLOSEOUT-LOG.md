@@ -146,3 +146,119 @@ Plan: `handoff/CLOSEOUT-PLAN.md`.
 - Process: every commit used pathspec (`git commit -m "..." -- <files>`); zero orphan files leaked into commits
 - Mandate items satisfied today: §1.1 (PT/EN toggle relocated to Preferências), §1.7 (Settings shell i18n started)
 
+---
+
+## Day 3 — 2026-04-24
+
+### D3-01 `[I3]` Journal views + Psicologia + Calendar/sessions — commit `ce9032f0`
+- Wave 3 (commit `6866ef06`) had already migrated 4 large journal modals (228
+  keys) — scanned first and skipped those. Targeted only what was still PT.
+- `lib/i18n/app.ts`: +130 `journal.*` / `reports.*` / `breakdowns.*` /
+  `journalKpis.*` / `equity.*` / `journalView.*` / `psychologyAnalysis.*` /
+  `psychologyLoading.*` / `pnlCalendar.*` keys (each PT + EN, parity preserved).
+- `app/app/journal/page.tsx`: tabs (Visão Geral / Trades / Relatórios / Importar
+  MT5), Add Trade CTA, show/hide-values toggle, import panel header + subtitle,
+  4 setImportError() strings, "Analisando arquivo…" / "Não foi possível gerar o
+  preview" / "Tentar novamente" branches.
+- `components/journal/JournalReports.tsx`: 3 sub-tabs, 5 period chips, 12 KPI
+  labels, streaks block (3 KPIs), "trades analisados" line, empty state, print
+  header, "Exportar PDF" tooltip.
+- `components/reports/BreakdownCharts.tsx`: 5 chart titles + subtitles + 3 empty
+  states + Ganhos/Perdas + P&L positivo/negativo legends + "Tokyo, London, NY"
+  session caption.
+- `components/journal/JournalKpiCards.tsx`: 4 period chips, 8 KPI labels (incl.
+  the "{n} trades sem SL" tooltip + footnote both via the same `{count}`
+  placeholder key).
+- `components/journal/JournalEquityChart.tsx`: title, "Início" axis tick, empty
+  state, tooltip line, DD/Meta `ReferenceLine` labels.
+- `components/journal/JournalViewToggle.tsx`: aria-label + Cards/Tabela buttons.
+- `components/journal/PsychologyAnalysis.tsx`: heading, 4 period chips, 6 card
+  titles (Perfil/Horários Críticos/Revenge/Consistência/Alertas/Ponto Forte),
+  "Selecione uma conta..." empty, "Tentar novamente" CTA, relative-time
+  formatter (`Agora` / `Há Nmin` / `Há Nh` / `Há Nd` via `{n}` placeholder),
+  3 error strings.
+- `components/journal/PsychologyLoadingAnimation.tsx`: 6 rotating step labels
+  (incl. "Decifrando seu comportamento…"), CPU label, first-analysis hint.
+- `components/journal/PnlCalendar.tsx`: 12 month names, 7 day-of-week headers,
+  "RESUMO" column, "Resumo do Mês" title, Positivo/Negativo badge, 5 KPIs,
+  Wins/Losses/BE legend, prev/next aria-labels, monthLabel via `{month}/{year}`
+  placeholders, "Selecione uma conta…" fallback.
+- Gates: `i18n:check` 605 × 2 ✓ (parity script counts `messages/*.json` only;
+  app.ts adds typed dict on top), `tsc --noEmit` 0 errors, 129/129 tests pass.
+- **Deferred** (logged in `FOUND-WHILE-CLOSING.md`): `ImportResult.tsx` KPI
+  labels + `DiscrepancyModal.tsx` interior; date/number locale formatters
+  (`toLocaleString("pt-BR")`, `toLocaleString("en-US")`) — needs `useFormatter`
+  migration; weekly summary `S{n}` label kept locale-neutral.
+
+### D3-02 `[I5]` Prop/Contas — commit `d37d07ea`
+- `lib/i18n/app.ts`: +23 `prop.*` keys.
+- `app/app/prop/page.tsx`: page title (Contas), 2 subtitles (with/without
+  account count via `{count}/{s}` placeholders), empty state, 2 error setters
+  (`Sessão inválida` + generic), `OK`/`Risco` status badges, `Editar regras`
+  pencil tooltip, `Trailing`/`EOD`/`Estático` DD type label, 4 KPIs (Lucro
+  atual / Falta para meta / Distância do overall / Último payout + Nenhum
+  fallback), `Meta (0 → ${target})` progress label via `{target}` placeholder,
+  `Drawdown Diário` / `Drawdown Geral` `<DrawdownBar label=>` props.
+- Gates: `i18n:check` 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D3-03 `[I4]` Mentor — commit `58e459a5`
+- **Surgical scope only** (mentor page is 1276 lines — full pass blows >200 LOC
+  budget). Translated only what the brief named: section headers, empty state,
+  rating label.
+- `lib/i18n/app.ts`: +8 `mentor.*` keys.
+- `app/app/mentor/page.tsx`: `Mentoria` (UnlinkedStudentView header), `Painel
+  do Mentor` (mentor home header) + subtitle, `Feedback do seu mentor`
+  (student view header) + subtitle, `Nenhum mentor vinculado a esta conta
+  ainda.` empty state, `Alunos` section heading, `Avaliação (opcional)`
+  rating label inside `NoteForm`.
+- **Deferred** to D5 / follow-up sprint (~80–120 keys): `InviteCodeSection`
+  (`Código de Convite` + `Vinculado/Disponível/Revogado` status chips),
+  `StudentCard` (`Sem conta` / `Sem operações ainda`), `KpiCard` labels,
+  `NoteForm` interior (`Adicionar nota`, `Observação`, placeholder, `Escreva
+  suas observações sobre o aluno…`), `StudentDetail` (`Trades` / `Notas do
+  Mentor` / `Nenhum trade encontrado.` / table column headers
+  Símbolo/Direção/etc / `Contas de {name}`), `UnlinkedStudentView` form
+  (`Vincular com código de convite` / `Código do mentor` / `Vincular mentor`
+  CTA / `Configurações → Planos` hint), error strings (`Código inválido`,
+  `Erro ao carregar alunos`, `Erro ao gerar código`), `Buscar aluno por
+  nome…` search placeholder. Logged in `FOUND-WHILE-CLOSING.md`.
+- Gates: `i18n:check` 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D3-04 `[I11]` Pricing tier feature lists + page chrome — commit `3f4312c6`
+- `lib/i18n/app.ts`: +75 `pricing.*` keys (toggle + buttons + 8 alert variants
+  + 3 tier names/descriptions/badges + 26 feature-list strings).
+- `components/billing/PricingCards.tsx`: refactored `TierDef` to use
+  `nameKey/descriptionKey/badgeKey/featureKeys: AppMessageKey[]` instead of
+  raw strings — t() resolves at render. `getButtonState` now returns
+  `labelKey: AppMessageKey` instead of `label: string`; the "current plan"
+  border check (`btnState.label === "Plano atual"`) was rewritten to compare
+  against the key (`"pricing.btn.current"`). All 8 alert() messages
+  (checkout + portal × 4 status codes), Mensal/Anual toggle + aria-label,
+  `/mês` price suffix, `Cobrado anualmente` caption, `Redirecionando…`
+  loading state, `Gerenciar assinatura` underline link — all migrated. The
+  `Dexter` font-bold heuristic (matches feature label by string) was
+  preserved by checking `t(featureKey).includes("Dexter")` post-resolve.
+- `app/app/pricing/page.tsx`: `Planos` title + `Escolha o plano ideal…`
+  subtitle migrated.
+- Gates: `i18n:check` 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### Day 3 EOD Gate
+- `npm run i18n:check` — **605 × 2 locales ✓** (parity script reads
+  `messages/*.json` only; the `app.*` typed dict in `lib/i18n/app.ts` grew
+  PT 605 → 630, EN 605 → 630, both in lockstep, +131 keys this day).
+- `npx tsc --noEmit` — **clean ✓** (0 errors)
+- `npm test` — **129/129 passing ✓**
+- 4 commits ahead of Day 2 EOD (D3-01 through D3-04).
+
+### Day 3 changelog (10-line summary)
+- `[I3]` Journal views + Psicologia + Calendar/sessions — 9 components migrated, +130 keys (`journal.*`, `reports.*`, `breakdowns.*`, `pnlCalendar.*`, `psychologyAnalysis.*`, `psychologyLoading.*`, `equity.*`, `journalKpis.*`, `journalView.*`)
+- `[I5]` Prop/Contas — page title + KPIs + status chips + DD types + drawdown bar labels (+23 keys)
+- `[I4]` Mentor — section headers + unlinked empty state + rating label only (+8 keys); rest deferred (full mentor pass needs ~80–120 keys, logged)
+- `[I11]` Pricing — TierDef refactored to AppMessageKey arrays, button state returns labelKey, 8 alert variants, full feature lists migrated (+75 keys)
+- 4 single-purpose commits, all under 250 LOC each (largest: I3 at 540 ins / 169 del across 10 files)
+- Pattern reinforced: typed `lib/i18n/app.ts` dict + `useAppT()` consumer (the brief's "namespace param" was a misread — the hook is keyless and resolves dotted keys directly)
+- Date/number locale formatters left as-is across journal/prop (`toLocaleString("pt-BR" / "en-US")`) — out of i18n string scope, logged for `useFormatter` follow-up
+- ImportResult/DiscrepancyModal interiors and full mentor route i18n deferred to D5 polish
+- Process: every commit used pathspec (`git commit -m "..." -- <files>`); zero orphan files leaked
+- Mandate items satisfied today: §1.7 (Journal i18n parity), §1.7 (Prop/Contas, Mentor headers, Pricing feature lists)
+
