@@ -686,6 +686,16 @@ const PT: Dict = {
   "pricing.feature.ultra.exportPdf": "Export PDF",
   "pricing.feature.ultra.dexterUnlimited": "Dexter ilimitado",
   "pricing.feature.ultra.prioritySupport": "Suporte prioritário",
+  "chart.title": "Gráfico",
+  "chart.subtitle": "Ticker + chart avançado em tempo real.",
+  "chart.loading": "Carregando gráfico…",
+  "chart.asset.eurusd": "EUR/USD",
+  "chart.asset.gold": "Ouro",
+  "chart.asset.btc": "BTC",
+  "chart.asset.oil": "Petróleo",
+  "chart.asset.brent": "Brent",
+  "chart.asset.nasdaq": "Nasdaq",
+  "chart.asset.dxy": "DXY",
 };
 
 const EN: Dict = {
@@ -1357,6 +1367,16 @@ const EN: Dict = {
   "pricing.feature.ultra.exportPdf": "PDF export",
   "pricing.feature.ultra.dexterUnlimited": "Unlimited Dexter",
   "pricing.feature.ultra.prioritySupport": "Priority support",
+  "chart.title": "Chart",
+  "chart.subtitle": "Ticker tape + advanced real-time chart.",
+  "chart.loading": "Loading chart…",
+  "chart.asset.eurusd": "EUR/USD",
+  "chart.asset.gold": "Gold",
+  "chart.asset.btc": "BTC",
+  "chart.asset.oil": "Oil",
+  "chart.asset.brent": "Brent",
+  "chart.asset.nasdaq": "Nasdaq",
+  "chart.asset.dxy": "DXY",
 };
 
 const DICTS: Record<AppLocale, Dict> = { pt: PT, en: EN };

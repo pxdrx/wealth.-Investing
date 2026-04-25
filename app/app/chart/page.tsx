@@ -10,18 +10,25 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
-const QUICK_ASSETS = [
-  { label: "EUR/USD", symbol: "FX:EURUSD", icon: CircleDollarSign },
-  { label: "Ouro", symbol: "TVC:GOLD", icon: Gem },
-  { label: "BTC", symbol: "BITSTAMP:BTCUSD", icon: Bitcoin },
-  { label: "Petróleo", symbol: "TVC:USOIL", icon: Flame },
-  { label: "Brent", symbol: "TVC:UKOIL", icon: Flame },
-  { label: "Nasdaq", symbol: "PEPPERSTONE:NAS100", icon: BarChart3 },
-  { label: "DXY", symbol: "CAPITALCOM:DXY", icon: CircleDollarSign },
-] as const;
+const QUICK_ASSETS: ReadonlyArray<{
+  labelKey: AppMessageKey;
+  symbol: string;
+  icon: typeof CircleDollarSign;
+}> = [
+  { labelKey: "chart.asset.eurusd", symbol: "FX:EURUSD", icon: CircleDollarSign },
+  { labelKey: "chart.asset.gold", symbol: "TVC:GOLD", icon: Gem },
+  { labelKey: "chart.asset.btc", symbol: "BITSTAMP:BTCUSD", icon: Bitcoin },
+  { labelKey: "chart.asset.oil", symbol: "TVC:USOIL", icon: Flame },
+  { labelKey: "chart.asset.brent", symbol: "TVC:UKOIL", icon: Flame },
+  { labelKey: "chart.asset.nasdaq", symbol: "PEPPERSTONE:NAS100", icon: BarChart3 },
+  { labelKey: "chart.asset.dxy", symbol: "CAPITALCOM:DXY", icon: CircleDollarSign },
+];
 
 export default function ChartPage() {
+  const t = useAppT();
   const { resolvedTheme } = useTheme();
   const tvTheme = resolvedTheme === "dark" ? "dark" : "light";
   const [chartSymbol, setChartSymbol] = useState<string>("FX:EURUSD");
@@ -47,9 +54,9 @@ export default function ChartPage() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Gráfico</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t("chart.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Ticker + chart avançado em tempo real.
+          {t("chart.subtitle")}
         </p>
       </div>
 
@@ -106,7 +113,7 @@ export default function ChartPage() {
               )}
             >
               <Icon className="h-3 w-3" />
-              {asset.label}
+              {t(asset.labelKey)}
             </button>
           );
         })}
@@ -141,7 +148,7 @@ export default function ChartPage() {
             className="flex items-center justify-center animate-pulse"
             style={{ height: "640px", backgroundColor: "hsl(var(--card))" }}
           >
-            <p className="text-sm text-muted-foreground">Carregando gráfico…</p>
+            <p className="text-sm text-muted-foreground">{t("chart.loading")}</p>
           </div>
         )}
       </div>
