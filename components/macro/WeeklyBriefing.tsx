@@ -279,19 +279,7 @@ export function WeeklyBriefing({ panorama, onRegenerate, isRegenerating: externa
               </h3>
               <AssetImpactCards impacts={panorama.asset_impacts || null} />
             </div>
-
-            {/* Source tags */}
-            <div className="mt-8 flex items-center gap-2 border-t border-border/30 pt-4">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mr-2">Powered By</span>
-              <span className="rounded-md bg-blue-500/10 px-2 py-1 text-[10px] font-bold tracking-wide text-blue-500">
-                Claude AI
-              </span>
-              {panorama.te_briefing_raw && (
-                <span className="rounded-md bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground">
-                  TradingEconomics Data
-                </span>
-              )}
-            </div>
+            {/* [H2] Removed "Powered by Claude AI + TradingEconomics Data" source tags per closeout sprint mandate. */}
           </div>
         </div>
       </div>
