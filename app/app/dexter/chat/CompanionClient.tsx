@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
 import { ChatInput } from "@/components/ai/ChatInput";
 import { ChatMessage } from "@/components/ai/ChatMessage";
 import { PaywallGate } from "@/components/billing/PaywallGate";
@@ -26,6 +27,7 @@ interface Message {
 }
 
 export function CompanionClient({ plan, userId, accountId }: CompanionClientProps) {
+  const t = useAppT();
   const router = useRouter();
   const { briefing, loading: briefingLoading, shown: briefingShown, markShown } =
     useCompanionContext(userId, accountId);
@@ -321,7 +323,7 @@ export function CompanionClient({ plan, userId, accountId }: CompanionClientProp
         <ChatInput
           onSubmit={handleSubmit}
           disabled={streaming}
-          placeholder="Fala com o Ticker — digite / para comandos..."
+          placeholder={t("dexter.chat.placeholder")}
           onSlash={handleSlashChange}
           value={inputDraft}
         />

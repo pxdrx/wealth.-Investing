@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useAppT } from "@/hooks/useAppLocale";
 import { BarChart3, Calendar, MessageCircle, Brain, Users, Newspaper, Sparkles, TrendingUp, Clock, Shield, FileText, Lightbulb, Loader2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useActiveAccount } from "@/components/context/ActiveAccountContext";
@@ -90,6 +91,7 @@ function AICoachPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tDexter = useTranslations("dexter");
+  const t = useAppT();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -619,7 +621,7 @@ function AICoachPageInner() {
           <div className="flex flex-col gap-6">
             {/* Quick Actions Bento */}
             <div className="flex flex-col gap-3">
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ações Rápidas</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("dexter.coach.section.quickActions")}</h2>
               <div className="grid grid-cols-1 gap-3">
                 {QUICK_ACTIONS.map((action, i) => {
                   const Icon = action.icon;
@@ -657,17 +659,17 @@ function AICoachPageInner() {
             {/* Context Data Source */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Contexto de Dados</h2>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("dexter.coach.section.contextData")}</h2>
                 {!dataMode ? (
                   <button
                     onClick={() => setDataMode(true)}
                     className="text-[10px] font-bold uppercase tracking-wider text-blue-500 hover:text-blue-400 transition-colors"
                   >
-                    Ativar Analytics
+                    {t("dexter.coach.enableAnalytics")}
                   </button>
                 ) : (
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
-                    Sincronizado
+                    {t("dexter.coach.synced")}
                   </span>
                 )}
               </div>
@@ -691,7 +693,7 @@ function AICoachPageInner() {
             {/* Deep Insights */}
             {dataMode && tradesLoaded && (
                <div className="flex flex-col gap-3">
-                 <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Insights Profundos</h2>
+                 <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("dexter.coach.section.deepInsights")}</h2>
                  <div className="flex flex-wrap gap-2">
                    {INSIGHT_BUTTONS.map((btn, i) => {
                      const Icon = btn.icon;
@@ -875,7 +877,7 @@ function AICoachPageInner() {
                  <ChatInput
                    onSubmit={(text) => sendMessage(text)}
                    disabled={quotaExhausted || isStreaming}
-                   placeholder={quotaExhausted ? "Limite bloqueado" : "Comande a análise..."}
+                   placeholder={quotaExhausted ? t("dexter.coach.placeholderBlocked") : t("dexter.coach.placeholderActive")}
                  />
                </div>
              </>

@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/lib/supabase/client";
 import { CpuArchitecture } from "@/components/ui/cpu-architecture";
 import { PaywallGate } from "@/components/billing/PaywallGate";
+import { useAppT } from "@/hooks/useAppLocale";
 
 interface AnalysisSectionData {
   title: string;
@@ -576,6 +577,7 @@ function ReportDisplay({ report }: { report: AnalysisReport }) {
 }
 
 export default function AnalystPage() {
+  const t = useAppT();
   const [ticker, setTicker] = useState("");
   const [suggestions, setSuggestions] = useState<Array<{ name: string; ticker: string; type: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -789,7 +791,7 @@ export default function AnalystPage() {
               }}
               onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              placeholder="Bitcoin, Ouro, EURUSD, Apple, S&P 500..."
+              placeholder={t("dexter.analyst.searchPlaceholder")}
               className="w-full rounded-xl border border-border/60 bg-transparent pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               disabled={loading}
             />
@@ -825,7 +827,7 @@ export default function AnalystPage() {
             ) : (
               <BarChart3 className="h-4 w-4" />
             )}
-            {loading ? "Analisando..." : "Analisar"}
+            {loading ? t("dexter.analyst.analyzing") : t("dexter.analyst.analyze")}
           </button>
         </div>
 
@@ -835,7 +837,7 @@ export default function AnalystPage() {
             <CpuArchitecture width="480" height="240" text="DXT" className="opacity-80" />
             <div className="flex items-center gap-2.5 text-base font-medium text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
-              {status || "Iniciando analise..."}
+              {status || t("dexter.analyst.starting")}
             </div>
           </div>
         )}
@@ -854,7 +856,7 @@ export default function AnalystPage() {
             className="mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Voltar as analises
+            {t("dexter.analyst.back")}
           </button>
         )}
 
@@ -868,7 +870,7 @@ export default function AnalystPage() {
           <div className="mb-8">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
-              Análises recentes
+              {t("dexter.analyst.recent")}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {history.map((item) => (
@@ -881,8 +883,8 @@ export default function AnalystPage() {
                   <button
                     onClick={(e) => handleDeleteReport(item.id, e)}
                     className="absolute top-1.5 right-1.5 inline-flex h-9 w-9 items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 rounded-full hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all"
-                    title="Excluir análise"
-                    aria-label="Excluir análise"
+                    title={t("dexter.analyst.deleteTooltip")}
+                    aria-label={t("dexter.analyst.deleteTooltip")}
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>

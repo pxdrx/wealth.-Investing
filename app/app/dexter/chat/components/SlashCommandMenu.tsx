@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, Hash, MessageSquareHeart, RefreshCw, Search, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 
 export type SlashCommandId = "coach" | "analyst" | "trade" | "mood" | "reset";
 
@@ -11,16 +13,17 @@ export interface SlashCommand {
   id: SlashCommandId;
   name: string;
   description: string;
+  descriptionKey?: AppMessageKey;
   icon: LucideIcon;
   takesArg?: boolean;
 }
 
 const COMMANDS: readonly SlashCommand[] = [
-  { id: "coach",   name: "coach",   description: "Abrir reflexão profunda no Coach",         icon: BarChart3 },
-  { id: "analyst", name: "analyst", description: "Pesquisar um ticker no Analyst",            icon: Search, takesArg: true },
-  { id: "trade",   name: "trade",   description: "Registrar um novo trade",                   icon: TrendingUp },
-  { id: "mood",    name: "mood",    description: "Ticker avalia seu mood atual",              icon: MessageSquareHeart },
-  { id: "reset",   name: "reset",   description: "Limpar esta conversa",                      icon: RefreshCw },
+  { id: "coach",   name: "coach",   description: "Abrir reflexão profunda no Coach",         descriptionKey: "dexter.chat.cmd.coach",   icon: BarChart3 },
+  { id: "analyst", name: "analyst", description: "Pesquisar um ticker no Analyst",            descriptionKey: "dexter.chat.cmd.analyst", icon: Search, takesArg: true },
+  { id: "trade",   name: "trade",   description: "Registrar um novo trade",                   descriptionKey: "dexter.chat.cmd.trade",   icon: TrendingUp },
+  { id: "mood",    name: "mood",    description: "Ticker avalia seu mood atual",              descriptionKey: "dexter.chat.cmd.mood",    icon: MessageSquareHeart },
+  { id: "reset",   name: "reset",   description: "Limpar esta conversa",                      descriptionKey: "dexter.chat.cmd.reset",   icon: RefreshCw },
 ];
 
 export interface SlashCommandMenuProps {
@@ -30,6 +33,7 @@ export interface SlashCommandMenuProps {
 }
 
 export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuProps) {
+  const t = useAppT();
   const { prefix, arg } = useMemo(() => {
     const raw = query.replace(/^\//, "").trimStart();
     const [first, ...rest] = raw.split(/\s+/);
@@ -78,7 +82,7 @@ export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuP
       >
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Hash className="h-3.5 w-3.5" />
-          Nenhum comando corresponde a <span className="font-medium text-foreground">/{prefix}</span>
+          {t("dexter.chat.menu.empty")} <span className="font-medium text-foreground">/{prefix}</span>
         </p>
       </div>
     );
@@ -92,8 +96,8 @@ export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuP
       style={{ backgroundColor: "hsl(var(--card))" }}
     >
       <div className="flex items-center justify-between border-b border-border/40 px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        <span>Comandos</span>
-        <span>↑↓ navegar · Enter selecionar · Esc fechar</span>
+        <span>{t("dexter.chat.menu.title")}</span>
+        <span>{t("dexter.chat.menu.hint")}</span>
       </div>
       <div className="max-h-[260px] overflow-y-auto">
         {filtered.map((cmd, idx) => {
@@ -127,7 +131,7 @@ export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuP
                     <span className="ml-1 font-normal text-muted-foreground">&lt;arg&gt;</span>
                   )}
                 </p>
-                <p className="truncate text-xs text-muted-foreground">{cmd.description}</p>
+                <p className="truncate text-xs text-muted-foreground">{cmd.descriptionKey ? t(cmd.descriptionKey) : cmd.description}</p>
               </div>
             </button>
           );
