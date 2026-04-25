@@ -12,6 +12,7 @@ import { ChurnPreventionModal } from "@/components/billing/ChurnPreventionModal"
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguagePreference } from "@/components/settings/LanguagePreference";
 import { useAppT } from "@/hooks/useAppLocale";
+import type { AppMessageKey } from "@/lib/i18n/app";
 import { supabase } from "@/lib/supabase/client";
 import { getMyProfile, upsertMyProfileDisplayName } from "@/lib/profile";
 import {
@@ -528,7 +529,22 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">{t("settings.subscription.status")}</span>
                 <span className="text-sm font-medium capitalize">
-                  {status === "active" ? t("settings.subscription.statusActive") : status}
+                  {(() => {
+                    // [M1] Stripe status → locale-aware label.
+                    // Falls back to raw status string for unknown future values.
+                    const STATUS_KEYS: Record<string, AppMessageKey> = {
+                      active: "settings.subscription.status.active",
+                      canceled: "settings.subscription.status.canceled",
+                      past_due: "settings.subscription.status.past_due",
+                      trialing: "settings.subscription.status.trialing",
+                      incomplete: "settings.subscription.status.incomplete",
+                      incomplete_expired: "settings.subscription.status.incomplete_expired",
+                      unpaid: "settings.subscription.status.unpaid",
+                      paused: "settings.subscription.status.paused",
+                    };
+                    const key = status ? STATUS_KEYS[status] : undefined;
+                    return key ? t(key) : status;
+                  })()}
                 </span>
               </div>
 
@@ -705,6 +721,9 @@ export default function SettingsPage() {
               .map((w, idx, arr) => {
                 const label = WIDGET_LABELS[w.id];
                 if (!label) return null;
+                // [M1] Widget title via i18n key derived from widget id; tier label kept
+                // as a literal "free|pro|ultra" — uppercase rendering already locale-neutral.
+                const titleKey = `dashboard.widget.${w.id}` as AppMessageKey;
                 return (
                   <div
                     key={w.id}
@@ -717,7 +736,7 @@ export default function SettingsPage() {
                       className="h-4 w-4 rounded border-border accent-blue-600"
                     />
                     <span className="flex-1 text-sm font-medium text-foreground">
-                      {label.titlePtBr}
+                      {t(titleKey)}
                     </span>
                     <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">
                       {label.tier}
@@ -896,7 +915,15 @@ export default function SettingsPage() {
               <Button
                 variant="destructive"
                 className="rounded-full"
-                disabled={deleteConfirm !== "EXCLUIR" || deleting}
+                disabled={
+                  // [M1] Locale-aware delete confirmation gate — accepts the
+                  // localized token (EXCLUIR / DELETE) per active locale, plus
+                  // the PT literal as a permanent fallback so existing PT muscle
+                  // memory keeps working in either locale.
+                  (deleteConfirm !== t("settings.deleteModal.confirmToken") &&
+                    deleteConfirm !== "EXCLUIR") ||
+                  deleting
+                }
                 onClick={async () => {
                   setDeleting(true);
                   try {
