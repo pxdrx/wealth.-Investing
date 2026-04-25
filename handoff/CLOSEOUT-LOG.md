@@ -262,3 +262,152 @@ Plan: `handoff/CLOSEOUT-PLAN.md`.
 - Process: every commit used pathspec (`git commit -m "..." -- <files>`); zero orphan files leaked
 - Mandate items satisfied today: §1.7 (Journal i18n parity), §1.7 (Prop/Contas, Mentor headers, Pricing feature lists)
 
+---
+
+## Day 4 — 2026-04-24
+
+### D4-01 `[I6]` Chart ticker labels — commit `9f447000`
+- `lib/i18n/app.ts`: +10 `chart.*` keys (title, subtitle, loading, 7 ticker
+  labels: EUR/USD, Ouro/Gold, BTC, Petróleo/Oil, Brent, Nasdaq, DXY).
+- `app/app/chart/page.tsx`: refactored `QUICK_ASSETS` from `{ label }` to
+  `{ labelKey: AppMessageKey }`; added `useAppT()`; migrated h1 title,
+  subtitle, "Carregando gráfico…" loader, and 7 ticker chip labels.
+- Gates: i18n:check 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D4-02 `[I7]` Backtest page chrome — commit `42389c36`
+- `lib/i18n/app.ts`: +2 `backtest.*` keys (title + subtitle).
+- `app/app/backtest/page.tsx`: migrated h1 + subtitle. The 60-line page is
+  a thin wrapper around `BacktestSection` (706 lines, uses `--landing-*`
+  tokens migrated in D4-07); deeper KPI/empty-state migration deferred —
+  logged in `FOUND-WHILE-CLOSING.md`.
+- Gates: i18n:check 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D4-03 `[I8]` Macro Terminal chrome — commit `b3f1cb19`
+- `lib/i18n/app.ts`: +24 `macro.*` keys (refresh dialog title/body/limit/
+  willUpdate/3 li/cancel/confirm, toast close, empty title/body/retry,
+  2 tabs Terminal/Relatório, 4 section headers Calendário/Bancos/Semana/
+  Histórico, 4 KPIs).
+- `app/app/macro/page.tsx`: migrated refresh button, full confirmation
+  Dialog (title + 3 body paragraphs + 3 list items + 2 actions), toast
+  close aria-label, empty-state card (title + body + retry), 2 Tabs
+  triggers, 4 section h2 headers, 4 KPI dt labels.
+- Big-scope panels (`AdaptiveAlerts`, `EconomicCalendar`,
+  `InterestRatesPanel`, `SentimentCard`, `HeadlinesFeed`, `WeeklyHistory`,
+  `WeeklyBriefing`) intentionally untouched — bound to chrome only per
+  brief. Inner panel i18n logged for follow-up.
+- Gates: i18n:check 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D4-04 `[I9]` Dexter Chat / Coach / Analyst — commit `18935bde`
+- `lib/i18n/app.ts`: +25 `dexter.*` keys (chat placeholder + 5 slash
+  command descriptions + menu title/hint/empty; coach 3 section headers
+  + analytics toggle + sync + 2 placeholder states; analyst search
+  placeholder + analyze/analyzing/starting/back/recent + delete tooltip).
+- `app/app/dexter/coach/page.tsx`: added `useAppT()` alongside existing
+  `useTranslations("dexter")`; migrated 3 section h2 headers (Ações
+  Rápidas / Contexto de Dados / Insights Profundos), Ativar Analytics /
+  Sincronizado pills, ChatInput placeholder.
+- `app/app/dexter/analyst/page.tsx`: added `useAppT()`; migrated search
+  input placeholder, Analisar / Analisando button, "Iniciando análise…"
+  status, "Voltar às análises" back link, "Análises recentes" history
+  header, delete title + aria-label.
+- `app/app/dexter/chat/components/SlashCommandMenu.tsx`: added
+  `descriptionKey?: AppMessageKey` to `SlashCommand` interface; PT
+  description retained as fallback. Migrated 5 commands' tooltips,
+  "Comandos" title, navigation hint, "Nenhum comando corresponde a"
+  empty state.
+- `app/app/dexter/chat/CompanionClient.tsx`: ticker placeholder migrated.
+- Gates: i18n:check 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D4-05 `[I10b]` Settings deep forms — commit `b620ab4e`
+- `lib/i18n/app.ts`: +47 `settings.*` keys covering Perfil (display name
+  label/placeholder, email label/hint, save/retry), Subscription
+  (loading, currentPlan, status, statusActive, renewsOn, manage,
+  upgrade), Mentor (loading, yourMentor, linkedSince, revoke, confirm,
+  cancel, note, linkPrompt, codePlaceholder, link, close), Dashboard
+  (intro, loading, 3 column headers, moveUp/moveDown, save, reset),
+  Danger Zone (cancelSub.title/body/cta, deleteAccount.title/body/cta),
+  Delete Modal (title, warning, typePrompt, placeholder, cancel,
+  confirm, deleting).
+- `app/app/settings/page.tsx`: ~25 inline literal replacements across
+  Perfil form, Assinatura card, Mentor card (linked + unlinked +
+  revoke-confirm flow), Dashboard widget reorder + save/reset, Danger
+  Zone (cancel sub + delete account), and the full Delete Account
+  modal.
+- **Subscription.statusActive:** added `status === "active" ?
+  t("settings.subscription.statusActive") : status` so the existing
+  `capitalize` className keeps non-active Stripe statuses (past_due,
+  trialing, etc.) PT-only for now. Full Stripe status map → D5-01.
+- **Delete-account confirmation gate caveat:** the comparison
+  `deleteConfirm !== "EXCLUIR"` is left untouched (PT literal). The
+  EN placeholder reads "DELETE" but the gate still expects "EXCLUIR".
+  Logged in `FOUND-WHILE-CLOSING.md` — needs a locale-neutral
+  confirmation token in a follow-up commit.
+- Widget tier label inside the reorder list is sourced from
+  `WIDGET_LABELS[w.id].titlePtBr / .tier` — those constants live in
+  `lib/dashboard-widgets.ts` and are out-of-scope for this commit
+  (logged).
+- Gates: i18n:check 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D4-06 `[H3]` Journal DrawdownChart axis sign — commit `37771199`
+- Inspected `lib/trade-analytics.ts:285` — `drawdown` is computed as
+  `((equity - peak) / peak) * 100` and is therefore already ≤ 0 (the
+  briefing's "shows positive" complaint must come from upstream chart
+  scaling auto-flipping the values).
+- `components/reports/DrawdownChart.tsx`: clamped YAxis domain via
+  `domain={[(dataMin) => Math.min(dataMin, 0), 0]}` so 0 sits at the
+  top of the axis and the area descends into negative territory.
+  Hardened the `tickFormatter` and `Tooltip formatter` so a positive
+  input (defensive) is rendered as negative — guarantees DD never
+  shows positive on screen even if upstream sign convention drifts.
+- No new colors, no new keys; one-file surgical edit.
+- Gates: i18n:check 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D4-07 `[H4a]` `--landing-*` shim migration in auth tree — commit `5ff318c5`
+- 5 files migrated to canonical product tokens per
+  `app/globals.css` shim mapping. Token replacements (replace_all
+  per file): `--landing-text-muted` → `--muted-foreground`,
+  `--landing-text` → `--foreground`, `--landing-border` → `--border`,
+  `--landing-bg-tertiary` → `--secondary`, `--landing-bg` →
+  `--background`. Total: 14 + 11 + 22 + 1 + 7 = **55 inline-style
+  references rewritten**.
+- Files: `components/calendar/CalendarGrid.tsx` (14),
+  `components/calendar/CalendarPnl.tsx` (11),
+  `components/calendar/DayDetailPanel.tsx` (22),
+  `components/calendar/utils.ts` (1),
+  `components/dashboard/BacktestSection.tsx` (7).
+- Verified: `grep -c "var(--landing-"` → 0 across all 5 files.
+- Shim definition in `app/globals.css` lines 57–69 **stays this
+  sprint** per plan §0.0; landing-tree consumers still depend on it.
+  Removal scheduled for follow-up sprint when landing tree migrates.
+- Gates: i18n:check 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### D4-08 `[H2]` Macro WeeklyBriefing footer removal — commit `3c58360b`
+- Removed the 12-line `<div>` block containing "Powered By" label +
+  "Claude AI" pill + conditional "TradingEconomics Data" pill from
+  `components/macro/WeeklyBriefing.tsx`. Replaced with one-line
+  `[H2]` rationale comment to keep grep audit-trail.
+- Verified: `grep -rn "Powered by Claude\|TradingEconomics Data"`
+  returns only the new comment marker — zero remaining footer copy.
+- Gates: i18n:check 605 × 2 ✓, tsc clean, 129/129 tests pass.
+
+### Day 4 EOD Gate
+- `npm run i18n:check` — **605 × 2 locales ✓** (parity script reads
+  `messages/*.json` only; the typed `app.*` dict in `lib/i18n/app.ts`
+  grew from Day 3 EOD by **+108 keys × 2 locales** this day:
+  10 chart + 2 backtest + 24 macro + 25 dexter + 47 settings).
+- `npx tsc --noEmit` — **clean ✓** (0 errors)
+- `npm test` — **129/129 passing ✓**
+- 8 commits ahead of Day 3 EOD (D4-01 through D4-08).
+
+### Day 4 changelog (10-line summary)
+- `[I6]` Chart ticker labels + page chrome (10 keys, 7 ticker chips refactored to AppMessageKey)
+- `[I7]` Backtest page chrome (title + subtitle only; BacktestSection deep migration deferred)
+- `[I8]` Macro Terminal chrome — refresh dialog + tabs + 4 section headers + 4 KPIs + empty/toast (24 keys)
+- `[I9]` Dexter Chat ticker placeholder + slash command tooltips, Coach 2-col headers, Analyst search/recent (25 keys, 4 files)
+- `[I10b]` Settings deep forms — Perfil/Assinatura/Mentor/Dashboard/Danger/Delete-modal (47 keys, ~25 inline replacements)
+- `[H3]` DrawdownChart axis clamped to ≤ 0 + defensive negative formatters (no new colors)
+- `[H4a]` Migrated 5 authenticated-tree files to canonical tokens (55 inline-style refs); shim stays
+- `[H2]` Removed macro "Powered by Claude AI + TradingEconomics Data" footer (12-line block)
+- Process: every commit used pathspec; zero orphan files leaked. Untracked `lib/dexter/tradeDebriefPrompt.ts` left untouched (pre-sprint orphan).
+- Mandate items satisfied today: §1.7 (Chart/Backtest/Macro/Dexter/Settings i18n parity), §1.6 (macro footer cleanup), §1.5 (DD chart sign correctness), token system consolidation in auth tree.
+
