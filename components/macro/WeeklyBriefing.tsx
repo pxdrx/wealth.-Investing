@@ -242,7 +242,7 @@ export function WeeklyBriefing({ panorama, onRegenerate, isRegenerating: externa
                   Este relatório está no formato antigo.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Clique em <strong className="text-foreground">Regenerar</strong> acima para gerar o novo formato com viés semanal + atualização diária.
+                  Será reescrito automaticamente no próximo update semanal (sábado).
                 </p>
               </div>
             ) : (

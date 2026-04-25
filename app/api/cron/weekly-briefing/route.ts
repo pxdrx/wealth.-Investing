@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { generateWeeklyNarrative } from "@/lib/macro/narrative-generator";
+import { runDailyAdjustment } from "@/lib/macro/daily-adjustment";
 import { getWeekStart, getWeekEnd } from "@/lib/macro/constants";
 import { fetchWeekAheadViaApify } from "@/lib/macro/apify/week-ahead-fetcher";
 import { scrapeForexFactoryCalendar } from "@/lib/macro/scrapers/ff-calendar";
@@ -155,16 +156,14 @@ export async function POST(req: NextRequest) {
     });
 
     // 6. Upsert panorama
+    // Daily delta now lives in `daily_adjustments`; the weekly cron writes
+    // only the static thesis + per-asset bias.
     const panoramaData = {
       week_start: weekStart,
       week_end: weekEnd,
       te_briefing_raw: weekAheadEditorial,
       narrative: narrative.weekly_bias,
-      asset_impacts: {
-        ...narrative.asset_impacts,
-        daily_update: narrative.daily_update,
-        daily_update_at: new Date().toISOString(),
-      },
+      asset_impacts: narrative.asset_impacts,
       regional_analysis: null,
       market_impacts: null,
       decision_intelligence: null,
@@ -192,6 +191,21 @@ export async function POST(req: NextRequest) {
     // 7. Invalidate panorama cache so frontend picks up new data immediately
     await invalidateCache("macro:panorama");
 
+    // 8. Kick a fresh daily adjustment so the Daily card is non-empty when
+    // users return Monday. Best-effort — failures don't roll back the weekly.
+    let dailyKicked: boolean | string = false;
+    try {
+      const dailyResult = await runDailyAdjustment(supabase, {
+        source: "cron",
+        ignoreCooldown: true,
+        allowFallback: true,
+      });
+      dailyKicked = dailyResult.ok ? true : `skipped:${dailyResult.reason || "unknown"}`;
+    } catch (err) {
+      console.warn("[weekly-briefing] daily adjustment kick failed:", err);
+      dailyKicked = "error";
+    }
+
     return NextResponse.json({
       ok: true,
       weekStart,
@@ -200,6 +214,7 @@ export async function POST(req: NextRequest) {
       headlinesCount: liveHeadlines.length,
       hasWeekAhead: !!weekAheadEditorial,
       narrativeLength: narrative.weekly_bias?.length || 0,
+      dailyKicked,
     });
   } catch (error) {
     console.error("[weekly-briefing] Error:", error);

@@ -190,105 +190,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Cascade: check if we should regenerate panorama
-    let cascadeTriggered = false;
-    const highImpactCount = allHeadlines.filter(
-      (h) => h.impact === "breaking" || h.impact === "high"
-    ).length;
-
-    if (highImpactCount >= 3) {
-      try {
-        const { data: lastPanorama } = await supabase
-          .from("weekly_panoramas")
-          .select("updated_at")
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const lastUpdate = lastPanorama?.updated_at
-          ? new Date(lastPanorama.updated_at)
-          : new Date(0);
-        const hoursSinceUpdate =
-          (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
-
-        if (hoursSinceUpdate >= 2) {
-          const { generateWeeklyNarrative } = await import(
-            "@/lib/macro/narrative-generator"
-          );
-          const { getWeekEnd } = await import("@/lib/macro/constants");
-
-          const weekStart = getWeekStart();
-          const weekEnd = getWeekEnd(new Date(weekStart + "T12:00:00"));
-
-          // Fetch events for context
-          const { data: events } = await supabase
-            .from("economic_events")
-            .select("*")
-            .filter("week_start", "eq", weekStart)
-            .order("date", { ascending: true })
-            .order("time", { ascending: true });
-
-          // Fetch recent headlines for context
-          const { data: recentHeadlines } = await supabase
-            .from("macro_headlines")
-            .select("*")
-            .gte(
-              "fetched_at",
-              new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-            )
-            .order("published_at", { ascending: false, nullsFirst: false })
-            .limit(20);
-
-          const narrative = await generateWeeklyNarrative({
-            events: (events || []) as import("@/lib/macro/types").EconomicEvent[],
-            teBriefing: null,
-            weekStart,
-            weekEnd,
-            liveHeadlines: (recentHeadlines || []) as import("@/lib/macro/types").MacroHeadline[],
-          });
-
-          const assetImpactsWithDaily = {
-            ...narrative.asset_impacts,
-            daily_update: narrative.daily_update,
-            daily_update_at: new Date().toISOString(),
-          };
-
-          const panoramaData = {
-            week_start: weekStart,
-            week_end: weekEnd,
-            narrative: narrative.weekly_bias,
-            asset_impacts: assetImpactsWithDaily,
-            regional_analysis: null,
-            market_impacts: null,
-            decision_intelligence: null,
-            sentiment: null,
-            updated_at: new Date().toISOString(),
-          };
-
-          // Check if panorama exists for this week
-          const { data: existingPan } = await supabase
-            .from("weekly_panoramas")
-            .select("id, is_frozen")
-            .filter("week_start", "eq", weekStart)
-            .maybeSingle();
-
-          if (existingPan && !existingPan.is_frozen) {
-            await supabase
-              .from("weekly_panoramas")
-              .update(panoramaData)
-              .eq("id", existingPan.id);
-            cascadeTriggered = true;
-          } else if (!existingPan) {
-            await supabase.from("weekly_panoramas").insert(panoramaData);
-            cascadeTriggered = true;
-          }
-
-          // cascade panorama regeneration complete
-        }
-      } catch (err) {
-        console.error("[headlines-sync] Cascade regen failed:", err);
-      }
-    }
+    // 5. (removed) Weekly panorama cascade. The weekly thesis is now static
+    //    by design — only the Saturday cron (/api/cron/weekly-briefing) writes
+    //    `weekly_panoramas`. Live headline shifts surface via the daily
+    //    adjustment cascade below, not by rewriting the weekly bias.
+    const cascadeTriggered = false;
 
     // 6. Cascade daily adjustment — internal cooldown (1h) guards against spam.
     //    Returns early if no red lines backfilled or no weekly panorama.

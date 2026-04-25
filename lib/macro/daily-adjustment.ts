@@ -6,7 +6,12 @@ import type {
   AssetImpacts,
   DailyAdjustment,
   DailyAdjustmentEvent,
+  DailyAdjustmentHeadline,
+  DailyAdjustmentItem,
   EconomicEvent,
+  HeadlineSource,
+  HeadlineTier,
+  MacroHeadline,
 } from "./types";
 
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
@@ -38,6 +43,7 @@ function eventReleasedAt(e: EconomicEvent): string | null {
 
 function toAdjustmentEvent(e: EconomicEvent): DailyAdjustmentEvent {
   return {
+    kind: "event",
     event_uid: e.event_uid,
     country: e.country,
     title: e.title,
@@ -47,6 +53,19 @@ function toAdjustmentEvent(e: EconomicEvent): DailyAdjustmentEvent {
     released_at: eventReleasedAt(e),
   };
 }
+
+function toAdjustmentHeadline(h: MacroHeadline): DailyAdjustmentHeadline {
+  return {
+    kind: "headline",
+    source: h.source as HeadlineSource,
+    headline: h.headline,
+    summary: h.summary,
+    published_at: h.published_at,
+    impact: (h.impact ?? "medium") as HeadlineTier,
+  };
+}
+
+const HEADLINE_NOISE_TIERS: HeadlineTier[] = ["breaking", "high", "medium"];
 
 export interface RunDailyAdjustmentOptions {
   source: "manual" | "cascade" | "cron";
@@ -129,7 +148,28 @@ export async function runDailyAdjustment(
     .filter((e: EconomicEvent) => e.actual && e.actual.trim().length > 0)
     .map(toAdjustmentEvent);
 
-  if (redLines.length === 0) {
+  // 3b) Fetch fresh headlines (last 48h, non-low impact, deduped by external_id).
+  const fortyEightHAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const { data: rawHeadlines } = await supabase
+    .from("macro_headlines")
+    .select("id, source, headline, summary, impact, published_at, fetched_at, external_id, author, url")
+    .gte("published_at", fortyEightHAgo)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(40);
+
+  const seenExternalIds = new Set<string>();
+  const headlines: DailyAdjustmentHeadline[] = [];
+  for (const raw of (rawHeadlines || []) as MacroHeadline[]) {
+    const tier = (raw.impact ?? "medium") as HeadlineTier;
+    if (!HEADLINE_NOISE_TIERS.includes(tier)) continue;
+    const dedupeKey = raw.external_id || `${raw.source}::${raw.headline.slice(0, 80)}`;
+    if (seenExternalIds.has(dedupeKey)) continue;
+    seenExternalIds.add(dedupeKey);
+    headlines.push(toAdjustmentHeadline(raw));
+    if (headlines.length >= 12) break;
+  }
+
+  if (redLines.length === 0 && headlines.length === 0) {
     // Cron cascades opt out of fallback to avoid hourly weekly_fallback churn.
     if (opts.allowFallback === false) {
       return { ok: false, reason: "no_red_lines" };
@@ -147,7 +187,7 @@ export async function runDailyAdjustment(
       return {
         ok: true,
         adjustment: lastAdj as DailyAdjustment,
-        notice: "Sem red lines novas nas últimas 24h — mantendo o ajuste anterior.",
+        notice: "Sem red lines nem headlines novas — mantendo o ajuste anterior.",
         fallbackReason: "previous",
       };
     }
@@ -157,7 +197,7 @@ export async function runDailyAdjustment(
     const row = {
       week_start: weekStart,
       narrative: weeklyOnlyNarrative,
-      based_on_events: [],
+      based_on_events: [] as DailyAdjustmentItem[],
       asset_updates: {},
       source: "weekly_fallback",
       model: "none",
@@ -174,7 +214,7 @@ export async function runDailyAdjustment(
     return {
       ok: true,
       adjustment: inserted as DailyAdjustment,
-      notice: "Sem red lines novas nas últimas 24h — baseado no panorama semanal vigente.",
+      notice: "Sem red lines nem headlines novas — baseado no panorama semanal vigente.",
       fallbackReason: "weekly_only",
     };
   }
@@ -197,6 +237,7 @@ export async function runDailyAdjustment(
     output = await generateDailyAdjustment({
       weeklyBias: panorama.narrative,
       redLines,
+      headlines,
       currentAssetBias,
     });
   } catch (err) {
@@ -204,11 +245,12 @@ export async function runDailyAdjustment(
     return { ok: false, reason: "error", error: (err as Error).message };
   }
 
-  // 6) Persist.
+  // 6) Persist — tagged-union array preserves both events and headlines.
+  const basedOnItems: DailyAdjustmentItem[] = [...redLines, ...headlines];
   const row = {
     week_start: weekStart,
     narrative: output.narrative,
-    based_on_events: redLines,
+    based_on_events: basedOnItems,
     asset_updates: output.asset_updates,
     source: opts.source,
     model: "claude-sonnet-4-6",

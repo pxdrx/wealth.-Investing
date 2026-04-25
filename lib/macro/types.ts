@@ -181,6 +181,8 @@ export type HeadlineSource =
 export type HeadlineTier = "breaking" | "high" | "medium" | "low";
 
 export interface DailyAdjustmentEvent {
+  /** Optional discriminator for tagged-union arrays. Missing = event (legacy rows). */
+  kind?: "event";
   event_uid: string;
   country: string;
   title: string;
@@ -190,9 +192,26 @@ export interface DailyAdjustmentEvent {
   released_at: string | null;
 }
 
+export interface DailyAdjustmentHeadline {
+  kind: "headline";
+  source: HeadlineSource;
+  headline: string;
+  summary: string | null;
+  published_at: string | null;
+  impact: HeadlineTier;
+}
+
+export type DailyAdjustmentItem = DailyAdjustmentEvent | DailyAdjustmentHeadline;
+
+export function isHeadlineItem(x: DailyAdjustmentItem): x is DailyAdjustmentHeadline {
+  return (x as { kind?: string }).kind === "headline";
+}
+
 export interface DailyAdjustmentAssetUpdate {
   direction: "bullish" | "bearish" | "neutral";
   delta_note: string;
+  /** What drove the change vs the weekly thesis. Optional for backward compat. */
+  triggered_by?: "event" | "headline" | "mixed";
 }
 
 export interface DailyAdjustment {
@@ -200,7 +219,8 @@ export interface DailyAdjustment {
   week_start: string;
   generated_at: string;
   narrative: string;
-  based_on_events: DailyAdjustmentEvent[];
+  /** Tagged-union array. Legacy rows contain only events without `kind`. */
+  based_on_events: DailyAdjustmentItem[];
   asset_updates: Partial<Record<"indices" | "gold" | "btc" | "dollar", DailyAdjustmentAssetUpdate>>;
   source: "manual" | "cascade" | "cron" | "weekly_fallback";
   model: string;

@@ -336,104 +336,9 @@ export default function MacroIntelligencePage() {
     );
   }, [loading, events.length, calendarWeek, defaultWeek, handleCalendarRefresh]);
 
-  // Track if regeneration is in progress (shared between manual + auto)
-  const regeneratingRef = useRef(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-
-  // Reset regeneration guard on mount (prevents stuck state from previous page load)
-  useEffect(() => {
-    regeneratingRef.current = false;
-  }, []);
-
-  // Regenerate weekly report via Claude
-  const handleRegenerate = useCallback(async () => {
-    // Prevent concurrent regenerations
-    if (regeneratingRef.current) {
-      console.log("[macro] Regeneration already in progress, skipping");
-      return;
-    }
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      console.warn("[macro] No session found, cannot regenerate");
-      setToastMsg("Sessão expirada. Faça login novamente.");
-      return;
-    }
-
-    regeneratingRef.current = true;
-    setIsRegenerating(true);
-    console.log("[macro] Starting regeneration for week:", defaultWeek);
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s client timeout
-
-      const res = await fetch("/api/macro/regenerate-report", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ week: defaultWeek }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({ error: `Erro HTTP ${res.status}` }));
-        console.error("[macro] Regenerate failed:", res.status, json);
-        setToastMsg(json.error || "Erro ao regenerar relatório");
-        return;
-      }
-
-      const json = await res.json();
-      if (!json.ok) {
-        console.error("[macro] Regenerate returned not ok:", json);
-        setToastMsg(json.error || "Erro ao regenerar relatório");
-        return;
-      }
-
-      console.log("[macro] Regeneration succeeded:", json);
-    } catch (err) {
-      const error = err as Error;
-      if (error.name === "AbortError") {
-        console.error("[macro] Regeneration timed out after 55s");
-        setToastMsg("Timeout — a geração demorou mais de 55 segundos. Tente novamente.");
-      } else {
-        console.error("[macro] Regeneration error:", error);
-        setToastMsg("Erro de conexão ao regenerar. Tente novamente.");
-      }
-      return;
-    } finally {
-      regeneratingRef.current = false;
-      setIsRegenerating(false);
-    }
-
-    // Refetch panorama to show updated data
-    try {
-      const panRes = await fetch(`/api/macro/panorama?week=${defaultWeek}`);
-      const panJson = await panRes.json();
-      if (panJson.ok && panJson.data) {
-        const pan = panJson.data;
-        if (typeof pan.regional_analysis === "string") {
-          try { pan.regional_analysis = JSON.parse(pan.regional_analysis); } catch { pan.regional_analysis = null; }
-        }
-        if (typeof pan.decision_intelligence === "string") {
-          try { pan.decision_intelligence = JSON.parse(pan.decision_intelligence); } catch { pan.decision_intelligence = null; }
-        }
-        if (typeof pan.sentiment === "string") {
-          try { pan.sentiment = JSON.parse(pan.sentiment); } catch { pan.sentiment = null; }
-        }
-        if (typeof pan.market_impacts === "string") {
-          try { pan.market_impacts = JSON.parse(pan.market_impacts); } catch { pan.market_impacts = null; }
-        }
-        if (typeof pan.asset_impacts === "string") {
-          try { pan.asset_impacts = JSON.parse(pan.asset_impacts); } catch { pan.asset_impacts = null; }
-        }
-        setPanorama(pan);
-      }
-    } catch { /* ignore */ }
-  }, [defaultWeek]);
+  // Weekly briefing is now a static thesis — refreshed only by the Saturday cron
+  // (/api/cron/weekly-briefing). No user-facing regenerate button, no silent
+  // auto-refresh. The Daily Adjustment card handles all on-demand re-analysis.
 
   // Headlines manual refresh — force live fetch to bypass stale DB cache
   const handleHeadlinesRefresh = useCallback(async () => {
@@ -484,70 +389,6 @@ export default function MacroIntelligencePage() {
       setEvents([]);
     }
   }, []);
-
-  // Silent regenerate for auto-refresh (no alerts, no blocking manual clicks)
-  const silentRegenerate = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 55000);
-
-      const res = await fetch("/api/macro/regenerate-report", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ week: defaultWeek }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        console.warn("[macro] Auto-regenerate failed:", res.status);
-        return;
-      }
-
-      const json = await res.json();
-      if (!json.ok) {
-        console.warn("[macro] Auto-regenerate returned not ok:", json.error);
-        return;
-      }
-
-      console.log("[macro] Auto-regenerate succeeded, refreshing panorama...");
-      // Refetch panorama silently
-      const panRes = await fetch(`/api/macro/panorama?week=${defaultWeek}`);
-      const panJson = await panRes.json();
-      if (panJson.ok && panJson.data) {
-        const pan = panJson.data;
-        if (typeof pan.asset_impacts === "string") {
-          try { pan.asset_impacts = JSON.parse(pan.asset_impacts); } catch { pan.asset_impacts = null; }
-        }
-        setPanorama(pan);
-      }
-    } catch (err) {
-      console.warn("[macro] Auto-regenerate error:", err);
-    }
-  }, [defaultWeek]);
-
-  // Auto-refresh daily update if stale (>4 hours old)
-  const dailyRefreshTriggered = useRef(false);
-  useEffect(() => {
-    if (!panorama?.asset_impacts?.daily_update_at || dailyRefreshTriggered.current) return;
-
-    const lastUpdate = new Date(panorama.asset_impacts.daily_update_at);
-    const hoursSince = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
-
-    if (hoursSince >= 4) {
-      dailyRefreshTriggered.current = true;
-      console.log(`[macro] Daily update is ${Math.round(hoursSince)}h old, auto-regenerating silently...`);
-      silentRegenerate().catch((err) =>
-        console.warn("[macro] Auto daily update failed:", err)
-      );
-    }
-  }, [panorama?.asset_impacts?.daily_update_at, silentRegenerate]);
 
   // Auto-poll headlines every 30 minutes (PERF-005: skip when tab is hidden)
   useEffect(() => {
@@ -848,7 +689,7 @@ export default function MacroIntelligencePage() {
           <div className="flex flex-col gap-6">
             {/* Weekly Briefing — expanded, no collapse */}
             <section id="macro-panorama" className="w-full rounded-[28px] border border-border/40 bg-card shadow-sm overflow-hidden relative isolate px-4 sm:px-6 py-5 scroll-mt-24" style={{ backgroundColor: "hsl(var(--card))" }}>
-              <WeeklyBriefing panorama={panorama} onRegenerate={handleRegenerate} isRegenerating={isRegenerating} defaultExpanded />
+              <WeeklyBriefing panorama={panorama} defaultExpanded />
             </section>
 
           </div>

@@ -6,6 +6,7 @@ import type {
   MacroHeadline,
   DailyAdjustmentEvent,
   DailyAdjustmentAssetUpdate,
+  DailyAdjustmentHeadline,
 } from "./types";
 
 const WEEKLY_MODEL = "claude-sonnet-4-6";
@@ -183,11 +184,11 @@ function validateAssetBias(impacts: AssetImpacts, input: NarrativeInput): void {
 }
 
 /**
- * Generate the daily adjustment: what changed since the weekly thesis based on
- * red lines (high-impact events with actuals filled in the last 24h).
+ * Generate the daily adjustment: comparative re-analysis of the weekly thesis
+ * against new red-line releases AND fresh headlines from the last ~48h.
  *
- * Keep it SHORT — 2 paragraphs, under 500 tokens. Compares directly against
- * the existing weekly bias and flags per-asset deltas.
+ * The model is asked to, per asset, declare confirma | inflete | inverte vs
+ * the weekly bias, citing the specific event/headline that drove the change.
  */
 export interface DailyAdjustmentOutput {
   narrative: string;
@@ -197,26 +198,45 @@ export interface DailyAdjustmentOutput {
 export async function generateDailyAdjustment(params: {
   weeklyBias: string;
   redLines: DailyAdjustmentEvent[];
+  headlines: DailyAdjustmentHeadline[];
   currentAssetBias: AssetImpacts | null;
 }): Promise<DailyAdjustmentOutput> {
-  if (params.redLines.length === 0) {
+  // Caller is responsible for ensuring at least one input exists; here we just
+  // surface a hard fallback if both are empty (defensive — not the primary path).
+  if (params.redLines.length === 0 && params.headlines.length === 0) {
     return {
       narrative:
-        "Sem red lines novas nas últimas 24h. O cenário segue conforme o viés semanal.",
+        "Sem red lines novas nem headlines relevantes nas últimas 24h. O cenário segue conforme o viés semanal.",
       asset_updates: {},
     };
   }
 
-  const redLinesBlock = params.redLines
-    .slice(0, 10)
-    .map(
-      (e) =>
-        `- ${e.country} | ${e.title} | Fcst: ${e.forecast || "N/A"} | Actual: ${e.actual || "—"} | Prev: ${e.previous || "N/A"}`
-    )
-    .join("\n");
+  const redLinesBlock = params.redLines.length > 0
+    ? `RED LINES (${params.redLines.length}):
+${params.redLines
+  .slice(0, 10)
+  .map(
+    (e) =>
+      `- ${e.country} | ${e.title} | Fcst: ${e.forecast || "N/A"} | Actual: ${e.actual || "—"} | Prev: ${e.previous || "N/A"}`
+  )
+  .join("\n")}`
+    : "RED LINES: nenhuma nas últimas 24h.";
+
+  const headlinesBlock = params.headlines.length > 0
+    ? `HEADLINES AO VIVO (${params.headlines.length}, últimas 48h):
+${params.headlines
+  .slice(0, 12)
+  .map((h, i) => {
+    const src = h.source === "truth_social" ? "TRUMP" : h.source.toUpperCase();
+    const ts = h.published_at ? ` (${h.published_at.slice(0, 16).replace("T", " ")})` : "";
+    const summary = h.summary ? ` — ${h.summary.slice(0, 140)}` : "";
+    return `${i + 1}. [${h.impact.toUpperCase()}|${src}]${ts} ${h.headline.slice(0, 180)}${summary}`;
+  })
+  .join("\n")}`
+    : "HEADLINES: nenhuma relevante nas últimas 48h.";
 
   const currentBiasBlock = params.currentAssetBias
-    ? `VIÉS ATUAL POR ATIVO:
+    ? `VIÉS ATUAL POR ATIVO (da tese semanal):
 - Índices: ${params.currentAssetBias.indices.bias} (${params.currentAssetBias.indices.confidence})
 - Ouro: ${params.currentAssetBias.gold.bias} (${params.currentAssetBias.gold.confidence})
 - BTC: ${params.currentAssetBias.btc.bias} (${params.currentAssetBias.btc.confidence})
@@ -224,30 +244,35 @@ export async function generateDailyAdjustment(params: {
 `
     : "";
 
-  const userPrompt = `AJUSTE DIÁRIO — red lines que saíram nas últimas 24h.
+  const userPrompt = `AJUSTE DIÁRIO — re-análise da tese semanal à luz de novas releases e headlines.
 
-TESE SEMANAL VIGENTE (resumo):
-${params.weeklyBias.slice(0, 800)}
+TESE SEMANAL VIGENTE (texto integral, fixo até sábado):
+${params.weeklyBias.slice(0, 1500)}
 
 ${currentBiasBlock}
-
-RED LINES (${params.redLines.length}):
 ${redLinesBlock}
 
-Gere JSON exato com:
-- "narrative" (2 parágrafos curtos, 100-200 palavras total, PT-BR):
-    §1 O que mudou vs a tese semanal — cite os resultados reais vs esperados.
-    §2 Implicações por ativo — ajustes táticos para os próximos dias.
-- "asset_updates": para cada ativo que MUDOU de convicção/direção em relação ao viés atual, inclua { "direction": "bullish"|"bearish"|"neutral", "delta_note": "curto, 1 frase, PT-BR" }. Se não mudou, omita o ativo.
+${headlinesBlock}
 
-Tom: direto, técnico, sem redundância com a tese semanal. Foque só no que as red lines revelaram.
+Sua tarefa: ponderar os novos dados (red lines + headlines) contra a tese semanal e dizer, por ativo, se ela CONFIRMA, INFLETE ou INVERTE — citando o gatilho específico (release/headline). Não é resumo da semana; é delta vs a tese.
+
+Gere JSON exato:
+- "narrative" (2-3 parágrafos curtos, 120-260 palavras, PT-BR):
+    §1 O que saiu de novo vs o cenário base da tese semanal — cite resultados reais e/ou headlines de maior impacto.
+    §2 Implicação por ativo — para cada ativo que mudou de viés, explique o porquê citando o gatilho. Para ativos que seguem alinhados à tese, diga "viés [X] mantido" e o porquê em uma linha (não omita ativos sem mudança no parágrafo — mas mantenha curto).
+    §3 (opcional) Próximos gatilhos a vigiar nos próximos 1-2 dias.
+- "asset_updates": para cada ativo que MUDOU de direção/convicção em relação ao viés atual, inclua { "direction": "bullish"|"bearish"|"neutral", "delta_note": "1 frase curta PT-BR citando o gatilho", "triggered_by": "event"|"headline"|"mixed" }. Se um ativo não mudou, omita-o do objeto.
+
+Tom: direto, técnico, sem redundância com a tese semanal. Foque no que as novas releases e headlines revelaram. Se uma headline mexer no viés (ex: Fed dovish surprise via Powell), trate-a com o mesmo peso de uma red line.
+
+Importante: NÃO diga "sem headlines relevantes" se há itens listados acima — pondere cada um. Se julgar que nada move a tese, diga isso explicitamente por ativo, mas explique o porquê.
 
 JSON exato (exemplo — omita ativos sem mudança):
-{"narrative":"...","asset_updates":{"dollar":{"direction":"bullish","delta_note":"CPI acima do consenso reforça Fed hawkish; DXY deve testar 106."}}}`;
+{"narrative":"...","asset_updates":{"dollar":{"direction":"bearish","delta_note":"Powell sinaliza pivô dovish; DXY perde 104.","triggered_by":"headline"}}}`;
 
   const response = await getAnthropic().messages.create({
     model: DAILY_ADJUSTMENT_MODEL,
-    max_tokens: 500,
+    max_tokens: 800,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userPrompt }],
   });

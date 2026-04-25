@@ -44,6 +44,20 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabaseAdmin();
 
+  // Admin-only: weekly thesis is now refreshed by the Saturday cron, not by users.
+  // This endpoint stays as a manual rescue tool for admins.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!profile?.is_admin) {
+    return NextResponse.json(
+      { ok: false, error: "Briefing semanal é regerado automaticamente aos sábados." },
+      { status: 403 }
+    );
+  }
+
   try {
     // Parse optional week parameter
     const body = await req.json().catch(() => ({}));
@@ -146,19 +160,15 @@ export async function POST(req: NextRequest) {
     });
 
     // 4. Upsert panorama
-    // Store daily_update and timestamp inside asset_impacts JSONB
-    const assetImpactsWithDaily = {
-      ...narrative.asset_impacts,
-      daily_update: narrative.daily_update,
-      daily_update_at: new Date().toISOString(),
-    };
-
+    // Daily updates now live in `daily_adjustments` (per-asset deltas vs the
+    // weekly thesis). The weekly path no longer writes daily_update/daily_update_at
+    // into asset_impacts — they're stale-by-design from this writer.
     const panoramaData = {
       week_start: weekStart,
       week_end: weekEnd,
       te_briefing_raw: teBriefingRaw,
       narrative: narrative.weekly_bias,
-      asset_impacts: assetImpactsWithDaily,
+      asset_impacts: narrative.asset_impacts,
       // Clear legacy fields on regeneration
       regional_analysis: null,
       market_impacts: null,

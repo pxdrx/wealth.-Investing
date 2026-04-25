@@ -5,7 +5,14 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, AlertCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { DailyAdjustment, DailyAdjustmentAssetUpdate } from "@/lib/macro/types";
+import type {
+  DailyAdjustment,
+  DailyAdjustmentAssetUpdate,
+  DailyAdjustmentEvent,
+  DailyAdjustmentHeadline,
+  DailyAdjustmentItem,
+} from "@/lib/macro/types";
+import { isHeadlineItem } from "@/lib/macro/types";
 
 interface DailyAdjustmentCardProps {
   weekStart: string;
@@ -79,8 +86,8 @@ export function DailyAdjustmentCard({ weekStart, onRegenerated }: DailyAdjustmen
     if (isWeeklyFallback && !notice) {
       setNotice(
         adjustment.source === "weekly_fallback"
-          ? "Sem red lines novas nas últimas 24h — baseado no panorama semanal vigente."
-          : "Sem red lines novas nas últimas 24h — mantendo o ajuste anterior.",
+          ? "Sem red lines nem headlines novas — baseado no panorama semanal vigente."
+          : "Sem red lines nem headlines novas — mantendo o ajuste anterior.",
       );
     }
   }, [adjustment, notice]);
@@ -147,7 +154,7 @@ export function DailyAdjustmentCard({ weekStart, onRegenerated }: DailyAdjustmen
           <RefreshCw className="h-4 w-4" />
           Ajuste Diário
           <span className="text-[10px] font-medium normal-case tracking-normal text-muted-foreground/70">
-            — comparado com as red lines de 24h
+            — releases e headlines vs viés semanal
           </span>
         </h3>
         <div className="flex items-center gap-3">
@@ -190,18 +197,36 @@ export function DailyAdjustmentCard({ weekStart, onRegenerated }: DailyAdjustmen
         <>
           {adjustment.based_on_events && adjustment.based_on_events.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-1.5">
-              {adjustment.based_on_events.slice(0, 8).map((e) => (
-                <span
-                  key={e.event_uid}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/5 px-2.5 py-1 text-[10px] font-medium text-red-600 dark:text-red-400"
-                  title={`${e.title} — Forecast: ${e.forecast || "N/A"} | Actual: ${e.actual || "—"}`}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                  <span className="font-semibold">{e.country}</span>
-                  <span className="truncate max-w-[140px]">{e.title}</span>
-                  <span className="text-foreground/80">{e.actual || "—"}</span>
-                </span>
-              ))}
+              {(adjustment.based_on_events as DailyAdjustmentItem[]).slice(0, 10).map((item, idx) => {
+                if (isHeadlineItem(item)) {
+                  const h = item as DailyAdjustmentHeadline;
+                  const src = h.source === "truth_social" ? "TRUMP" : h.source.toUpperCase();
+                  return (
+                    <span
+                      key={`h-${idx}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 px-2.5 py-1 text-[10px] font-medium text-blue-600 dark:text-blue-400"
+                      title={h.summary || h.headline}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      <span className="font-semibold">{src}</span>
+                      <span className="truncate max-w-[200px]">{h.headline}</span>
+                    </span>
+                  );
+                }
+                const e = item as DailyAdjustmentEvent;
+                return (
+                  <span
+                    key={`e-${e.event_uid || idx}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/5 px-2.5 py-1 text-[10px] font-medium text-red-600 dark:text-red-400"
+                    title={`${e.title} — Forecast: ${e.forecast || "N/A"} | Actual: ${e.actual || "—"}`}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                    <span className="font-semibold">{e.country}</span>
+                    <span className="truncate max-w-[140px]">{e.title}</span>
+                    <span className="text-foreground/80">{e.actual || "—"}</span>
+                  </span>
+                );
+              })}
             </div>
           )}
 
