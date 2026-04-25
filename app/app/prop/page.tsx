@@ -31,6 +31,7 @@ import { EditAccountRulesDrawer } from "@/components/account/EditAccountRulesDra
 import { PropFirmsOverview } from "@/components/prop/PropFirmsOverview";
 import { supabase } from "@/lib/supabase/client";
 import { AlertCircle, TrendingUp, Pencil } from "lucide-react";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const RISCO_THRESHOLD_PCT = 70;
 
@@ -44,6 +45,7 @@ interface PropCardData {
 }
 
 export default function PropPage() {
+  const t = useAppT();
   const { accounts, refreshAccounts } = useActiveAccount();
   const propAccounts = accounts.filter((a) => a.kind === "prop" && a.is_active);
 
@@ -93,7 +95,7 @@ export default function PropPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
-        setError("Sessão inválida");
+        setError(t("prop.errSession"));
         setLoading(false);
         return;
       }
@@ -145,7 +147,7 @@ export default function PropPage() {
       setCardsData(results.filter((r): r is PropCardData => r !== null));
       setLoading(false);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar dados.");
+      setError(err instanceof Error ? err.message : t("prop.errGeneric"));
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,17 +163,17 @@ export default function PropPage() {
       <div className="mx-auto max-w-7xl px-6 py-12">
         <div className="mb-10">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Contas
+            {t("prop.page.title")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Visão geral de todas as suas contas prop.
+            {t("prop.page.subtitle")}
           </p>
         </div>
         <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <TrendingUp className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
-              Nenhuma conta prop ativa encontrada. Crie uma conta prop para ver o painel.
+              {t("prop.empty")}
             </p>
           </CardContent>
         </Card>
@@ -185,10 +187,10 @@ export default function PropPage() {
       <div className="mx-auto max-w-7xl px-6 py-12">
         <div className="mb-10">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Contas
+            {t("prop.page.title")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Visão geral de todas as suas contas prop.
+            {t("prop.page.subtitle")}
           </p>
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
@@ -222,7 +224,7 @@ export default function PropPage() {
       <div className="mx-auto max-w-7xl px-6 py-12">
         <div className="mb-10">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Contas
+            {t("prop.page.title")}
           </h1>
         </div>
         <Card className="rounded-[22px]" style={{ backgroundColor: "hsl(var(--card))" }}>
@@ -239,10 +241,12 @@ export default function PropPage() {
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 overflow-x-hidden">
       <div className="mb-10">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Contas
+          {t("prop.page.title")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Visão geral de todas as suas contas prop · {cardsData.length} conta{cardsData.length !== 1 ? "s" : ""} ativa{cardsData.length !== 1 ? "s" : ""}
+          {t("prop.page.subtitleWithCount")
+            .replace("{count}", String(cardsData.length))
+            .replace(/\{s\}/g, cardsData.length !== 1 ? "s" : "")}
         </p>
       </div>
 
@@ -276,6 +280,7 @@ export default function PropPage() {
 }
 
 function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRulesChanged: () => Promise<void> }) {
+  const t = useAppT();
   const { propInfo, cycleStats, drawdownStats, accountName, lastTradeAt, accountId } = data;
   const [drawerOpen, setDrawerOpen] = useState(false);
   const startingBalance = propInfo.starting_balance_usd;
@@ -309,10 +314,10 @@ function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRules
   const metaProgressPct = profitTarget > 0 ? Math.min(100, (profit / profitTarget) * 100) : 0;
   const ddTypeLabel =
     propInfo.drawdown_type === "trailing"
-      ? "Trailing"
+      ? t("prop.dd.trailing")
       : propInfo.drawdown_type === "eod"
-      ? "EOD"
-      : "Estático";
+      ? t("prop.dd.eod")
+      : t("prop.dd.static");
 
   const status: "ok" | "risco" = overallDdPct >= RISCO_THRESHOLD_PCT ? "risco" : "ok";
 
@@ -328,15 +333,15 @@ function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRules
         <div className="flex items-center gap-2">
           <StaleBadge lastTradeAt={lastTradeAt} />
           {status === "ok" ? (
-            <Badge variant="success">OK</Badge>
+            <Badge variant="success">{t("prop.status.ok")}</Badge>
           ) : (
-            <Badge variant="warning">Risco</Badge>
+            <Badge variant="warning">{t("prop.status.risk")}</Badge>
           )}
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
             className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            title="Editar regras"
+            title={t("prop.editRules")}
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
@@ -346,22 +351,22 @@ function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRules
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              Lucro atual (ciclo)
+              {t("prop.kpi.profitCurrent")}
             </p>
             <p className={`text-lg font-bold tabular-nums ${profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
               {profit >= 0 ? "+" : ""}${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Falta para meta</p>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{t("prop.kpi.toTarget")}</p>
             <p className="text-lg font-bold tabular-nums">${remainingToTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Distância do overall</p>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{t("prop.kpi.overallDistance")}</p>
             <p className="text-lg font-bold tabular-nums">${overallDistance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Último payout</p>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{t("prop.kpi.lastPayout")}</p>
             <p className="text-lg font-bold">
               {cycleStats.lastPayoutAt
                 ? new Date(cycleStats.lastPayoutAt).toLocaleDateString("pt-BR", {
@@ -369,7 +374,7 @@ function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRules
                     month: "short",
                     year: "numeric",
                   })
-                : "Nenhum"}
+                : t("prop.kpi.lastPayoutNone")}
             </p>
           </div>
         </div>
@@ -378,7 +383,7 @@ function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRules
 
         <div>
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Meta (0 → ${profitTarget.toLocaleString()})</span>
+            <span className="text-muted-foreground">{t("prop.target.label").replace("{target}", profitTarget.toLocaleString())}</span>
             <span className="font-medium tabular-nums">
               ${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${profitTarget.toLocaleString()}
             </span>
@@ -390,12 +395,12 @@ function PropAccountCard({ data, onRulesChanged }: { data: PropCardData; onRules
 
         <div className="space-y-3">
           <DrawdownBar
-            label="Drawdown Diário"
+            label={t("prop.dd.daily")}
             currentPct={dailyDdPct}
             maxPct={maxDailyLossPct}
           />
           <DrawdownBar
-            label="Drawdown Geral"
+            label={t("prop.dd.overall")}
             currentPct={overallDdPct}
             maxPct={maxOverallLossPct}
           />
