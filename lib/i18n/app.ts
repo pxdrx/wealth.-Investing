@@ -696,6 +696,8 @@ const PT: Dict = {
   "chart.asset.brent": "Brent",
   "chart.asset.nasdaq": "Nasdaq",
   "chart.asset.dxy": "DXY",
+  "backtest.title": "Backtest",
+  "backtest.subtitle": "Contas de simulação e registro de estratégias sendo testadas.",
 };
 
 const EN: Dict = {
@@ -1377,6 +1379,8 @@ const EN: Dict = {
   "chart.asset.brent": "Brent",
   "chart.asset.nasdaq": "Nasdaq",
   "chart.asset.dxy": "DXY",
+  "backtest.title": "Backtest",
+  "backtest.subtitle": "Simulation accounts and a log of strategies being tested.",
 };
 
 const DICTS: Record<AppLocale, Dict> = { pt: PT, en: EN };

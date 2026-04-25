@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useAppT } from "@/hooks/useAppLocale";
 
 const BacktestSection = dynamic(
   () =>
@@ -12,6 +13,7 @@ const BacktestSection = dynamic(
 );
 
 export default function BacktestPage() {
+  const t = useAppT();
   const { journalTrades, accountsById, userId, refreshData } = useDashboardData();
 
   const backtestAccounts = Array.from(accountsById.values())
@@ -43,9 +45,9 @@ export default function BacktestPage() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Backtest</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t("backtest.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Contas de simulação e registro de estratégias sendo testadas.
+          {t("backtest.subtitle")}
         </p>
       </div>
 
