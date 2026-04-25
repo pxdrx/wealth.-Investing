@@ -218,4 +218,39 @@ describe("parseCsvAdaptive — Tradovate multi-fill positions", () => {
     expect(pos012).toBeDefined();
     expect(pos012!.pnl_usd).toBe(945);
   });
+
+  it("applies feePerContractRoundTurn as fees_usd when CSV has no commission column", () => {
+    const result = parseCsvAdaptive(Buffer.from(TRADOVATE_CSV, "utf-8"), {
+      feePerContractRoundTurn: 1.03,
+    });
+
+    // Sum of contracts (Bought column) across all 24 rows = 228
+    // (14+1+7+1+12+10+5+18+18+11+1+11+4+5+4+9+6+13+18+13+15+14+6+12).
+    // Each row gets fees_usd = -volume × 1.03; sum should be -228 × 1.03.
+    const totalFees = result.trades.reduce((s, t) => s + t.fees_usd, 0);
+    expect(totalFees).toBeCloseTo(-228 * 1.03, 2);
+
+    // Net PnL after estimated fees = 917.75 - 234.84 ≈ 682.91 — within
+    // pennies of the broker statement balance ($682.25 lucro real).
+    const totalPnl = result.trades.reduce((s, t) => s + t.pnl_usd, 0);
+    const totalNet = totalPnl + totalFees;
+    expect(totalNet).toBeCloseTo(682.91, 1);
+
+    // Warning surfaced so the user knows fees were estimated.
+    expect(result.warnings.some((w) => /Taxas estimadas/i.test(w))).toBe(true);
+  });
+
+  it("does NOT apply fee estimate when CSV already has a commission column", () => {
+    // NinjaTrader has Corretagem + Clearing/Exchange/IP/NFA Fee columns —
+    // estimated fees must NOT double-count on top of those.
+    const NT_CSV = `Núm. Neg.;Ativo;Conta;Estratégia;Pos mercado.;Qtd;Preço entrada;Preço saída;Hora entrada;Hora saída;Entrada;Sáída;Profit;Acu lucro líquido;Corretagem;Clearing Fee;Exchange Fee;IP Fee;NFA Fee;MAE;MFE;ETD;Barras
+1;MGC 06-26;Acct;01;Venda;1;4814,8;4826,2;17/04/2026 06:45:15;17/04/2026 08:45:42;Entry;Stop1;-$ 114,00;-$ 114,00;$ 0,00;$ 0,00;$ 0,00;$ 0,00;$ 0,00;-$ 120,00;$ 10,00;$ 0,00;40
+`;
+    const result = parseCsvAdaptive(Buffer.from(NT_CSV, "utf-8"), {
+      feePerContractRoundTurn: 5.0, // would be -5 if applied
+    });
+    expect(result.trades).toHaveLength(1);
+    expect(result.trades[0].fees_usd).toBe(0); // all 5 fee columns are zero, no estimate
+    expect(result.warnings.some((w) => /Taxas estimadas/i.test(w))).toBe(false);
+  });
 });

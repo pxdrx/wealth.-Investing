@@ -75,6 +75,20 @@ export interface ParseCsvAdaptiveOptions {
    * parser slowly learns broker-specific header variants without code changes.
    */
   extraAliases?: Record<string, string[]>;
+  /**
+   * Estimated fee charged per contract round-turn (open + close together).
+   * Tradovate's Position History export does NOT include broker / exchange
+   * fees, so importing it raw produces a balance higher than what the broker
+   * statement shows. When provided, the parser subtracts
+   * `feePerContractRoundTurn × volume` from each trade's fees_usd so the net
+   * PnL matches reality. Negative number convention: fees are stored as a
+   * negative addend to PnL (`net = pnl + fees`), matching how MT5 commissions
+   * are stored elsewhere in the schema.
+   *
+   * Only applied when no commission column was detected in the CSV (so
+   * brokers that DO export fees stay on the explicit value).
+   */
+  feePerContractRoundTurn?: number;
 }
 
 // ─── normalização ───────────────────────────────────────────────────────────
@@ -1077,6 +1091,19 @@ export function parseCsvAdaptive(
       `${extraFeeCols.length} coluna(s) de taxas adicionais somadas a fees_usd: ${extraFeeCols.map((e) => e.header).join(", ")}`
     );
   }
+  const willEstimateFees =
+    !mapping.commission &&
+    !mapping.swap &&
+    extraFeeCols.length === 0 &&
+    typeof opts?.feePerContractRoundTurn === "number" &&
+    opts.feePerContractRoundTurn > 0;
+  if (willEstimateFees) {
+    warnings.push(
+      `Taxas estimadas em $${opts!.feePerContractRoundTurn!.toFixed(
+        2
+      )} por contrato (round-turn). O CSV não traz coluna de comissão.`
+    );
+  }
 
   const trades: CsvAdaptiveTrade[] = [];
   let skippedOpen = 0;
@@ -1207,7 +1234,25 @@ export function parseCsvAdaptive(
       const v = parseNumber(r[fc.column] ?? "") ?? 0;
       extraFees += v;
     }
-    const fees_usd = commission + swap + extraFees;
+    // Fallback fee estimate when the CSV has no commission/fee columns
+    // anywhere — applies to Tradovate Position History and similar exports
+    // that carry only gross PnL. Stored as a negative addend so
+    // `net_pnl = pnl + fees` works the same way it does for MT5.
+    let estimatedFee = 0;
+    const csvHasAnyFeeColumn =
+      Boolean(commCol) || Boolean(swapCol) || extraFeeCols.length > 0;
+    if (
+      !csvHasAnyFeeColumn &&
+      typeof opts?.feePerContractRoundTurn === "number" &&
+      opts.feePerContractRoundTurn > 0 &&
+      volCol
+    ) {
+      const contracts = Math.abs(parseNumber(r[volCol.column] ?? "") ?? 0);
+      if (contracts > 0) {
+        estimatedFee = -contracts * opts.feePerContractRoundTurn;
+      }
+    }
+    const fees_usd = commission + swap + extraFees + estimatedFee;
 
     let external_id = idCol ? (r[idCol.column] ?? "").trim() : "";
     // When the same Position ID appears in multiple rows (multi-fill positions
