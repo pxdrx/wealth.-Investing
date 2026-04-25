@@ -21,6 +21,30 @@ const TTL_SECONDS: Record<Plan, number> = {
 
 type Mood = "default" | "thinking" | "alert" | "celebrating";
 
+// In-app routes the CTA may point to. Anything else is coerced to /app/journal.
+const ALLOWED_CTA_HREFS = new Set<string>([
+  "/app",
+  "/app/journal",
+  "/app/macro",
+  "/app/dexter",
+  "/app/prop",
+  "/app/reports",
+  "/app/backtest",
+  "/app/chart",
+  "/app/mentor",
+  "/app/news",
+  "/app/account",
+  "/app/settings",
+  "/app/pricing",
+]);
+
+function normalizeCtaHref(href: string): string {
+  // Strip query/hash for the allowlist check.
+  const base = href.split(/[?#]/)[0];
+  if (ALLOWED_CTA_HREFS.has(base)) return href;
+  return "/app/journal";
+}
+
 interface DexterInsight {
   insight: string;
   context: string;
@@ -76,7 +100,8 @@ Rules:
 - Pick mood by state: "alert" on tilt/drawdown/loss streak; "celebrating" on clean win streak or milestone; "thinking" on ambiguous data; "default" otherwise.
 - If the user has no trades yet, guide them to connect MT5 (cta.href = "/app/settings").
 - Never fabricate numbers. If data is missing, make the insight about process, not P&L.
-- Keep "insight" under 180 characters. Keep "context" under 120 characters.`;
+- Keep "insight" under 180 characters. Keep "context" under 120 characters.
+- cta.href MUST be one of these exact values, no other paths allowed: "/app/journal", "/app/macro", "/app/dexter", "/app/prop", "/app/reports", "/app/backtest", "/app/chart", "/app/mentor", "/app/news", "/app/account", "/app/settings", "/app/pricing". When in doubt, use "/app/journal".`;
 }
 
 interface TraderSnapshot {
@@ -156,7 +181,7 @@ function parseModelJson(raw: string): Omit<DexterInsight, "generatedAt"> | null 
     ) {
       cta = {
         label: (parsed.cta as { label: string }).label,
-        href: (parsed.cta as { href: string }).href,
+        href: normalizeCtaHref((parsed.cta as { href: string }).href),
       };
     }
     return { insight: parsed.insight, context: parsed.context, mood, cta };
@@ -193,7 +218,10 @@ export async function GET(req: NextRequest) {
   const key = todayKey(userId);
   const cached = (await redis.get(key)) as DexterInsight | null;
   if (cached && typeof cached === "object" && typeof cached.insight === "string") {
-    const payload: DexterResponse = { ...cached, cacheHit: true };
+    const cta = cached.cta
+      ? { label: cached.cta.label, href: normalizeCtaHref(cached.cta.href) }
+      : undefined;
+    const payload: DexterResponse = { ...cached, cta, cacheHit: true };
     return Response.json(payload);
   }
 
