@@ -1,0 +1,214 @@
+// Calibrates per-contract round-turn fees from the user's broker statement.
+//
+// The user pastes the actual balance their broker shows. We back-solve the
+// fee/contract that, when applied retroactively across every imported trade
+// in this account, makes the dashboard balance match. The fee is then saved
+// on accounts.fee_per_contract_round_turn so subsequent imports of the same
+// account apply it automatically.
+
+import { NextRequest, NextResponse } from "next/server";
+import { createSupabaseClientForUser } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface CalibrateBody {
+  /** Real balance the broker reports (not the lucro — the full balance). */
+  actual_balance_usd?: number;
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const accountId = params.id;
+  if (!accountId || !UUID_RE.test(accountId)) {
+    return NextResponse.json(
+      { ok: false, error: "Invalid account id" },
+      { status: 400 }
+    );
+  }
+
+  const auth = req.headers.get("authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) {
+    return NextResponse.json(
+      { ok: false, error: "Missing bearer token" },
+      { status: 401 }
+    );
+  }
+
+  let body: CalibrateBody = {};
+  try {
+    body = (await req.json()) as CalibrateBody;
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Invalid JSON body" },
+      { status: 400 }
+    );
+  }
+  const target =
+    typeof body.actual_balance_usd === "number" &&
+    Number.isFinite(body.actual_balance_usd)
+      ? body.actual_balance_usd
+      : NaN;
+  if (!Number.isFinite(target)) {
+    return NextResponse.json(
+      { ok: false, error: "actual_balance_usd must be a finite number" },
+      { status: 400 }
+    );
+  }
+
+  const supabase = createSupabaseClientForUser(token);
+
+  // Owner check + starting balance.
+  const { data: account, error: accErr } = await supabase
+    .from("accounts")
+    .select("id, user_id, starting_balance_usd")
+    .eq("id", accountId)
+    .maybeSingle();
+  if (accErr) {
+    return NextResponse.json(
+      { ok: false, error: accErr.message },
+      { status: 500 }
+    );
+  }
+  if (!account) {
+    return NextResponse.json(
+      { ok: false, error: "Account not found" },
+      { status: 404 }
+    );
+  }
+  const startingBalance = Number(account.starting_balance_usd ?? 0);
+
+  // Pull every futures-style trade to compute the implicit fee/contract.
+  // We restrict to imports that lack a commission column (csv_tradovate,
+  // csv_generic) — MT5 / NinjaTrader / cTrader CSVs already carry fees.
+  const FEE_LESS_SOURCES = ["csv_tradovate", "csv_generic"];
+  const { data: trades, error: tradesErr } = await supabase
+    .from("journal_trades")
+    .select("id, pnl_usd, fees_usd, volume, external_source")
+    .eq("account_id", accountId)
+    .in("external_source", FEE_LESS_SOURCES);
+  if (tradesErr) {
+    return NextResponse.json(
+      { ok: false, error: tradesErr.message },
+      { status: 500 }
+    );
+  }
+  type TradeRow = {
+    id: string;
+    pnl_usd: number | null;
+    fees_usd: number | null;
+    volume: number | null;
+    external_source: string | null;
+  };
+  const list: TradeRow[] = (trades ?? []) as TradeRow[];
+  if (list.length === 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Esta conta não tem trades importadas de fontes sem comissão (Tradovate Position History etc.). Calibração não se aplica.",
+      },
+      { status: 422 }
+    );
+  }
+
+  const grossPnl = list.reduce((s, t) => s + Number(t.pnl_usd ?? 0), 0);
+  const totalContracts = list.reduce(
+    (s, t) => s + Math.abs(Number(t.volume ?? 0)),
+    0
+  );
+  if (totalContracts <= 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Não foi possível calibrar: nenhuma trade importada tem volume > 0.",
+      },
+      { status: 422 }
+    );
+  }
+
+  // Solve: starting + gross + estimated_fees = target
+  //   estimated_fees = target - starting - gross  (negative if fees > 0)
+  //   fee_per_contract = -estimated_fees / totalContracts  (positive USD)
+  const estimatedFees = target - startingBalance - grossPnl;
+  const feePerContract = -estimatedFees / totalContracts;
+  if (feePerContract <= 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Saldo informado é maior que o saldo bruto sem fees. Verifique o valor.",
+        debug: { startingBalance, grossPnl, target, totalContracts },
+      },
+      { status: 422 }
+    );
+  }
+  if (feePerContract > 50) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Fee/contrato calculado é absurdamente alto (>$50/RT). Verifique se o saldo informado está correto.",
+        debug: { startingBalance, grossPnl, target, totalContracts, feePerContract },
+      },
+      { status: 422 }
+    );
+  }
+
+  // Apply fees to every trade in the affected sources. We REPLACE fees_usd
+  // (not add) so calibrating twice doesn't double-charge.
+  const updates = list.map((t) => ({
+    id: t.id,
+    fees_usd: -Math.abs(Number(t.volume ?? 0)) * feePerContract,
+  }));
+  // Supabase has no batch UPDATE WITH per-row values via the client, so we
+  // run individual updates in parallel chunks. For typical futures accounts
+  // (< 500 trades) this is fast enough.
+  const CHUNK = 25;
+  for (let i = 0; i < updates.length; i += CHUNK) {
+    const slice = updates.slice(i, i + CHUNK);
+    const promises = slice.map((u) =>
+      supabase
+        .from("journal_trades")
+        .update({ fees_usd: u.fees_usd })
+        .eq("id", u.id)
+    );
+    const results = await Promise.all(promises);
+    for (const r of results) {
+      if (r.error) {
+        console.error(
+          "[calibrate-fees] update failed:",
+          r.error.code,
+          r.error.message
+        );
+      }
+    }
+  }
+
+  // Persist on the account so future imports auto-apply.
+  const { error: saveErr } = await supabase
+    .from("accounts")
+    .update({ fee_per_contract_round_turn: feePerContract })
+    .eq("id", accountId);
+  if (saveErr) {
+    console.warn(
+      "[calibrate-fees] account save failed:",
+      saveErr.code,
+      saveErr.message
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    fee_per_contract_round_turn: feePerContract,
+    trades_updated: updates.length,
+    total_contracts: totalContracts,
+    estimated_fees_total: -feePerContract * totalContracts,
+  });
+}

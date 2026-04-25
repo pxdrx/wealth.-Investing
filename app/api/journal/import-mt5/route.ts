@@ -207,6 +207,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Account not found" }, { status: 403 });
     }
 
+    // Fetch account-level fee/contract — applied automatically when the CSV
+    // has no fee column and the user didn't override via FormData. Set by
+    // /api/account/[id]/calibrate-fees after the first import.
+    let accountFeePerContract: number | null = null;
+    {
+      const { data: feeRow } = await supabase
+        .from("accounts")
+        .select("fee_per_contract_round_turn")
+        .eq("id", accountId)
+        .maybeSingle();
+      const v = (feeRow as { fee_per_contract_round_turn?: number | null } | null)
+        ?.fee_per_contract_round_turn;
+      if (typeof v === "number" && Number.isFinite(v) && v > 0) {
+        accountFeePerContract = v;
+      }
+    }
+    const effectiveFeePerContract =
+      feePerContractRoundTurn ?? accountFeePerContract ?? undefined;
+
     // Detect format from file extension
     const fileName = (file.name ?? "").toLowerCase();
     const isCsv = /\.csv$/i.test(fileName);
@@ -286,7 +305,7 @@ export async function POST(request: Request) {
 
       const adapt = parseCsvAdaptive(adaptiveBuffer, {
         extraAliases,
-        feePerContractRoundTurn,
+        feePerContractRoundTurn: effectiveFeePerContract,
       });
       trades = adapt.trades.map((t) => ({
         external_id: t.external_id,
@@ -993,6 +1012,19 @@ export async function POST(request: Request) {
       suggested_by: profileRecord?.suggested_by ?? (usedAdaptive ? suggestedBy : null),
       ai_suggested: aiSuggested,
       fingerprint,
+      // Fee calibration metadata. When the import used a fee-less broker
+      // export (Tradovate Position History → csv_tradovate / csv_generic)
+      // and no fee was supplied or saved on the account, the UI should
+      // surface the calibration banner so the user can paste their broker
+      // statement balance and we back-solve fee/contract.
+      fee_calibration: {
+        needs_calibration:
+          usedAdaptive &&
+          (csvSource === "csv_tradovate" || csvSource === "csv_generic") &&
+          !effectiveFeePerContract,
+        applied_fee_per_contract: effectiveFeePerContract ?? null,
+        external_source: usedAdaptive ? csvSource : null,
+      },
     });
   } catch (err) {
     const durationMs = Date.now() - start;

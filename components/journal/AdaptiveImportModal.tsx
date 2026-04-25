@@ -121,6 +121,11 @@ interface ImportResponse {
   ai_suggested?: boolean;
   mapping?: Record<string, MappingEntry>;
   error?: string;
+  fee_calibration?: {
+    needs_calibration?: boolean;
+    applied_fee_per_contract?: number | null;
+    external_source?: string | null;
+  };
 }
 
 type Phase = "idle" | "uploading_preview" | "preview_ready" | "confirming" | "done" | "error";
@@ -138,6 +143,7 @@ interface AdaptiveImportModalProps {
     duplicateDetails: DuplicateDetail[];
     profileId?: string;
     durationMs: number;
+    needsFeeCalibration?: boolean;
   }) => void;
 }
 
@@ -178,10 +184,6 @@ export function AdaptiveImportModal({
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [mapping, setMapping] = useState<NormalizedMapping>({});
   const [saveProfile, setSaveProfile] = useState(true);
-  // Tradovate Position History (and similar exports) ship gross PnL only.
-  // The user can supply a fee/contract round-turn so the parser estimates
-  // fees_usd and the dashboard balance matches the broker statement.
-  const [feePerContract, setFeePerContract] = useState("");
 
   const startTimeRef = useMemo(() => ({ current: 0 }), []);
 
@@ -258,10 +260,6 @@ export function AdaptiveImportModal({
       );
       fd.set("columnMapping", JSON.stringify(mappingPayload));
       if (preview.matchedProfile?.id) fd.set("profileId", preview.matchedProfile.id);
-      const feeNum = parseFloat(feePerContract.replace(",", "."));
-      if (Number.isFinite(feeNum) && feeNum > 0) {
-        fd.set("feePerContractRoundTurn", feeNum.toString());
-      }
 
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 180_000);
@@ -338,6 +336,8 @@ export function AdaptiveImportModal({
         duplicateDetails,
         profileId: data.profile_id,
         durationMs,
+        needsFeeCalibration:
+          data.fee_calibration?.needs_calibration === true,
       });
       setPhase("done");
     } catch (e) {
@@ -620,29 +620,6 @@ export function AdaptiveImportModal({
               </div>
             </div>
           )}
-
-          {/* Optional: per-contract round-turn fee for brokers (Tradovate
-              Position History, etc.) whose CSV doesn't carry a commission
-              column. Applied as fees_usd = -volume × fee in the parser. */}
-          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-            <span>
-              Taxa por contrato (round-turn) — opcional, em USD
-            </span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="ex: 1.03"
-              value={feePerContract}
-              onChange={(e) => setFeePerContract(e.target.value)}
-              className="w-32 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
-            />
-            <span className="text-[10px] opacity-70">
-              Use quando o relatório só traz PnL bruto (ex: Tradovate Position
-              History). O sistema vai descontar essa taxa por contrato em cada
-              trade.
-            </span>
-          </label>
 
           {/* Remember checkbox */}
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
