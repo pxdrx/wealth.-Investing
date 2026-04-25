@@ -635,7 +635,7 @@ export default function MacroIntelligencePage() {
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-            {refreshing ? "Atualizando..." : "Atualizar"}
+            {refreshing ? t("macro.refreshing") : t("macro.refresh")}
           </Button>
         </div>
       </div>
@@ -654,20 +654,20 @@ export default function MacroIntelligencePage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Atualização Completa
+              {t("macro.dialog.title")}
             </DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-3 text-sm text-muted-foreground">
                 <p>
-                  Esta ação busca dados atualizados de múltiplas fontes e consome recursos externos.
-                  <strong className="text-foreground"> Limite: 1x por dia.</strong>
+                  {t("macro.dialog.body")}
+                  <strong className="text-foreground"> {t("macro.dialog.limit")}</strong>
                 </p>
                 <div className="rounded-lg border border-border/60 p-3 space-y-1.5">
-                  <p className="font-medium text-foreground text-xs uppercase tracking-widest">O que será atualizado:</p>
+                  <p className="font-medium text-foreground text-xs uppercase tracking-widest">{t("macro.dialog.willUpdate")}</p>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>Taxas de juros dos bancos centrais (via TradingEconomics)</li>
-                    <li>Calendário econômico — Previous, Forecast e Actual (via Investing.com)</li>
-                    <li>Backfill de dados da semana anterior</li>
+                    <li>{t("macro.dialog.li1")}</li>
+                    <li>{t("macro.dialog.li2")}</li>
+                    <li>{t("macro.dialog.li3")}</li>
                   </ul>
                 </div>
               </div>
@@ -675,10 +675,10 @@ export default function MacroIntelligencePage() {
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowRefreshDialog(false)}>
-              Cancelar
+              {t("macro.dialog.cancel")}
             </Button>
             <Button onClick={handleRefreshConfirm}>
-              Sim, atualizar agora
+              {t("macro.dialog.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -688,7 +688,7 @@ export default function MacroIntelligencePage() {
       {toastMsg && (
         <div className="w-full mb-4 flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
           <p className="text-sm text-destructive font-medium">{toastMsg}</p>
-          <button type="button" onClick={() => setToastMsg(null)} className="text-destructive/60 hover:text-destructive ml-3" aria-label="Fechar">
+          <button type="button" onClick={() => setToastMsg(null)} className="text-destructive/60 hover:text-destructive ml-3" aria-label={t("macro.toast.close")}>
             &times;
           </button>
         </div>
@@ -706,10 +706,10 @@ export default function MacroIntelligencePage() {
             </div>
             <div>
               <h3 className="text-base font-semibold tracking-tight text-foreground">
-                Dados macroeconômicos em carregamento
+                {t("macro.empty.title")}
               </h3>
               <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                Os dados macroeconômicos estão sendo carregados. Tente novamente em alguns minutos.
+                {t("macro.empty.body")}
               </p>
             </div>
             <Button
@@ -720,7 +720,7 @@ export default function MacroIntelligencePage() {
               className="mt-2 gap-2"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              Tentar novamente
+              {t("macro.empty.retry")}
             </Button>
           </div>
         </div>
@@ -738,11 +738,11 @@ export default function MacroIntelligencePage() {
         <TabsList className="self-start mb-6 h-11">
           <TabsTrigger value="terminal" className="gap-2 px-4">
             <CalendarDays className="h-4 w-4" />
-            Terminal
+            {t("macro.tabs.terminal")}
           </TabsTrigger>
           <TabsTrigger value="report" className="gap-2 px-4 relative" onClick={handleReportTabClick}>
             <FileText className="h-4 w-4" />
-            Relatório Macro
+            {t("macro.tabs.report")}
             {hasUnseenReport && (
               <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse" />
             )}
@@ -757,7 +757,7 @@ export default function MacroIntelligencePage() {
             <section id="macro-calendar" className="flex flex-col rounded-[24px] border border-border/40 shadow-sm overflow-hidden relative isolate p-5 scroll-mt-24" style={{ backgroundColor: "hsl(var(--card))" }}>
               <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                Calendário Econômico
+                {t("macro.section.calendar")}
               </h2>
               <div className="flex-1 min-h-[400px]">
                 <EconomicCalendar
@@ -774,7 +774,7 @@ export default function MacroIntelligencePage() {
               <section className="lg:col-span-2 flex flex-col h-full rounded-[24px] border border-border/40 shadow-sm overflow-hidden relative isolate p-5" style={{ backgroundColor: "hsl(var(--card))" }}>
                 <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Bancos Centrais
+                  {t("macro.section.banks")}
                 </h2>
                 <div className="flex-1">
                   <PaywallGate requiredPlan="pro" blurContent>
@@ -799,7 +799,7 @@ export default function MacroIntelligencePage() {
               <section className="lg:col-span-1 flex flex-col h-full rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
                 <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                  Semana em Números
+                  {t("macro.section.weekNumbers")}
                 </h2>
                 {(() => {
                   const high = filteredEvents.filter((e) => e.impact === "high").length;
@@ -809,19 +809,19 @@ export default function MacroIntelligencePage() {
                   return (
                     <dl className="grid flex-1 grid-cols-2 gap-3 text-sm">
                       <div className="rounded-xl border border-border/40 p-3">
-                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Alto Impacto</dt>
+                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">{t("macro.kpi.highImpact")}</dt>
                         <dd className="mt-1 text-xl font-semibold text-red-500 tabular-nums">{high}</dd>
                       </div>
                       <div className="rounded-xl border border-border/40 p-3">
-                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Médio</dt>
+                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">{t("macro.kpi.medium")}</dt>
                         <dd className="mt-1 text-xl font-semibold text-amber-500 tabular-nums">{medium}</dd>
                       </div>
                       <div className="rounded-xl border border-border/40 p-3">
-                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Países</dt>
+                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">{t("macro.kpi.countries")}</dt>
                         <dd className="mt-1 text-xl font-semibold text-foreground tabular-nums">{countries}</dd>
                       </div>
                       <div className="rounded-xl border border-border/40 p-3">
-                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">Bancos Centrais</dt>
+                        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">{t("macro.kpi.banks")}</dt>
                         <dd className="mt-1 text-xl font-semibold text-foreground tabular-nums">{rateCount}</dd>
                       </div>
                     </dl>
@@ -834,7 +834,7 @@ export default function MacroIntelligencePage() {
             <section className="flex flex-col rounded-[24px] border border-border/40 shadow-sm p-5 isolate" style={{ backgroundColor: "hsl(var(--card))" }}>
               <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-                Histórico Macro Semanal
+                {t("macro.section.history")}
               </h2>
               <PaywallGate requiredPlan="pro" blurContent>
                 <WeeklyHistory weeks={weeks} currentWeek={defaultWeek} />
