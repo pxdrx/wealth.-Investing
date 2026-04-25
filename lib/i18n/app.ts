@@ -616,6 +616,15 @@ const PT: Dict = {
   "prop.target.label": "Meta (0 → ${target})",
   "prop.dd.daily": "Drawdown Diário",
   "prop.dd.overall": "Drawdown Geral",
+  // Mentor page (D3-03 surgical scope: section headers + empty state + rating label)
+  "mentor.title.mentoria": "Mentoria",
+  "mentor.title.panel": "Painel do Mentor",
+  "mentor.title.studentFeedback": "Feedback do seu mentor",
+  "mentor.subtitle.panel": "Acompanhe o desempenho dos seus alunos",
+  "mentor.subtitle.studentFeedback": "Anotações e avaliações enviadas pelo seu mentor",
+  "mentor.empty.unlinked": "Nenhum mentor vinculado a esta conta ainda.",
+  "mentor.section.students": "Alunos",
+  "mentor.note.ratingLabel": "Avaliação (opcional)",
 };
 
 const EN: Dict = {
@@ -1217,6 +1226,15 @@ const EN: Dict = {
   "prop.target.label": "Target (0 → ${target})",
   "prop.dd.daily": "Daily Drawdown",
   "prop.dd.overall": "Overall Drawdown",
+  // Mentor page (D3-03 surgical scope: section headers + empty state + rating label)
+  "mentor.title.mentoria": "Mentorship",
+  "mentor.title.panel": "Mentor Panel",
+  "mentor.title.studentFeedback": "Your mentor's feedback",
+  "mentor.subtitle.panel": "Track your students' performance",
+  "mentor.subtitle.studentFeedback": "Notes and ratings sent by your mentor",
+  "mentor.empty.unlinked": "No mentor linked to this account yet.",
+  "mentor.section.students": "Students",
+  "mentor.note.ratingLabel": "Rating (optional)",
 };
 
 const DICTS: Record<AppLocale, Dict> = { pt: PT, en: EN };

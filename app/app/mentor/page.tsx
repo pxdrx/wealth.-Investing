@@ -29,6 +29,7 @@ import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { MentorOnboardingModal } from "@/components/mentor/MentorOnboardingModal";
 import { StudentFeedbackFeed } from "@/components/mentor/StudentFeedbackFeed";
+import { useAppT } from "@/hooks/useAppLocale";
 
 // ─── Constants ───────────────────────────────────────────────────────
 const easeApple = [0.16, 1, 0.3, 1] as const;
@@ -369,6 +370,7 @@ interface NoteFormProps {
 }
 
 function NoteForm({ onSubmit, submitting }: NoteFormProps) {
+  const t = useAppT();
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(0);
 
@@ -399,7 +401,7 @@ function NoteForm({ onSubmit, submitting }: NoteFormProps) {
           />
         </div>
         <div>
-          <Label className="text-sm mb-1.5 block">Avaliação (opcional)</Label>
+          <Label className="text-sm mb-1.5 block">{t("mentor.note.ratingLabel")}</Label>
           <StarRating value={rating} onChange={setRating} />
         </div>
         <Button
@@ -835,6 +837,7 @@ function StudentDetail({ student, onBack }: StudentDetailProps) {
 // ─── Unlinked Student View ───────────────────────────────────────────
 
 function UnlinkedStudentView({ onLinked }: { onLinked: () => void }) {
+  const t = useAppT();
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -870,10 +873,10 @@ function UnlinkedStudentView({ onLinked }: { onLinked: () => void }) {
       >
         <div className="flex items-center gap-3">
           <Users className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-2xl font-semibold tracking-tight">Mentoria</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("mentor.title.mentoria")}</h1>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          Nenhum mentor vinculado a esta conta ainda.
+          {t("mentor.empty.unlinked")}
         </p>
       </motion.div>
 
@@ -952,6 +955,7 @@ function UnlinkedStudentView({ onLinked }: { onLinked: () => void }) {
 }
 
 export default function MentorPage() {
+  const t = useAppT();
   const router = useRouter();
   const { isMentor, isLoading: subLoading } = useEntitlements();
   const [codes, setCodes] = useState<MentorCode[]>([]);
@@ -1123,11 +1127,11 @@ export default function MentorPage() {
           <div className="flex items-center gap-3">
             <Star className="h-6 w-6 text-muted-foreground" />
             <h1 className="text-2xl font-semibold tracking-tight">
-              Feedback do seu mentor
+              {t("mentor.title.studentFeedback")}
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Anotações e avaliações enviadas pelo seu mentor
+            {t("mentor.subtitle.studentFeedback")}
           </p>
         </motion.div>
         <StudentFeedbackFeed />
@@ -1171,11 +1175,11 @@ export default function MentorPage() {
         <div className="flex items-center gap-3">
           <Users className="h-6 w-6 text-muted-foreground" />
           <h1 className="text-2xl font-semibold tracking-tight">
-            Painel do Mentor
+            {t("mentor.title.panel")}
           </h1>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          Acompanhe o desempenho dos seus alunos
+          {t("mentor.subtitle.panel")}
         </p>
       </motion.div>
 
@@ -1216,7 +1220,7 @@ export default function MentorPage() {
         transition={{ duration: 0.4, delay: 0.1, ease: easeApple }}
       >
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-semibold tracking-tight">Alunos</h2>
+          <h2 className="text-lg font-semibold tracking-tight">{t("mentor.section.students")}</h2>
           {!loadingStudents && (
             <span className="text-sm text-muted-foreground">
               ({students.length})
