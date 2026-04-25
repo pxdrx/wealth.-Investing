@@ -52,20 +52,34 @@ function brtDayBounds(): { dateStr: string; startUtc: string; endUtc: string } {
   return { dateStr, startUtc, endUtc };
 }
 
-// Produces session bands anchored to today in BRT, returned as UTC ISO.
-// Session windows mapped to BRT (UTC-3, year-round):
-//   Tóquio (Asiática, Sydney+Tokyo): 18:00–05:00 BRT (21:00–08:00 UTC). Spans midnight —
-//                                    emitted as two segments per day: 00:00–05:00
-//                                    and 18:00–23:59 BRT.
-//   Londres (Europeia):              04:00–13:00 BRT (07:00–16:00 UTC).
-//   Nova York (Americana):           08:00–18:00 BRT (11:00–21:00 UTC, = 07:00–17:00 NY EDT).
+// Produces session bands anchored to today in NY local time, returned as UTC ISO.
+// User trades NY exclusively — cutoff = 7am NY (NY cash open).
+// Windows in NY local time (America/New_York, DST-aware):
+//   Tóquio   : 0:00–3:00 NY  (madrugada NY)
+//   Londres  : 3:00–7:00 NY  (London cash open → NY open)
+//   Nova York: 7:00–23:59 NY (NY open through end of NY day)
+function nyToUtcIso(dateStr: string, hhmm: string): string {
+  const targetHour = Number(hhmm.split(":")[0]);
+  const targetMin = Number(hhmm.split(":")[1] ?? "0");
+  for (const offsetH of [4, 5]) {
+    const candidate = new Date(`${dateStr}T${hhmm}:00-0${offsetH}:00`);
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(candidate);
+    const h = Number(parts.find((p) => p.type === "hour")?.value ?? -1);
+    const m = Number(parts.find((p) => p.type === "minute")?.value ?? -1);
+    if (h === targetHour && m === targetMin) return candidate.toISOString();
+  }
+  return new Date(`${dateStr}T${hhmm}:00-04:00`).toISOString();
+}
 function todaySessions(dateStr: string): TodayStatsPayload["sessions"] {
-  const toUtc = (hhmm: string) => new Date(`${dateStr}T${hhmm}-03:00`).toISOString();
   return [
-    { market: "Tokyo",     openUtc: toUtc("00:00"), closeUtc: toUtc("05:00") },
-    { market: "Tokyo",     openUtc: toUtc("18:00"), closeUtc: toUtc("23:59") },
-    { market: "Londres",   openUtc: toUtc("04:00"), closeUtc: toUtc("13:00") },
-    { market: "Nova York", openUtc: toUtc("08:00"), closeUtc: toUtc("18:00") },
+    { market: "Tóquio",    openUtc: nyToUtcIso(dateStr, "00:00"), closeUtc: nyToUtcIso(dateStr, "03:00") },
+    { market: "Londres",   openUtc: nyToUtcIso(dateStr, "03:00"), closeUtc: nyToUtcIso(dateStr, "07:00") },
+    { market: "Nova York", openUtc: nyToUtcIso(dateStr, "07:00"), closeUtc: nyToUtcIso(dateStr, "23:59") },
   ];
 }
 

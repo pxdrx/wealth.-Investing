@@ -66,15 +66,27 @@ export function filterTradesByPeriod<T extends { opened_at: string }>(trades: T[
   });
 }
 
+// Renders timestamp as "DD/MM/YYYY HH:mm NY · HH:mm BR" so trade times match
+// the session classifier (which is anchored to NY local hour).
 export function formatDateTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  const h = String(d.getHours()).padStart(2, "0");
-  const m = String(d.getMinutes()).padStart(2, "0");
-  return `${day}/${month}/${year} ${h}:${m}`;
+  const fmt = (timeZone: string) =>
+    new Intl.DateTimeFormat("pt-BR", {
+      timeZone,
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(d);
+  const ny = fmt("America/New_York");
+  const br = fmt("America/Sao_Paulo");
+  // pt-BR Intl returns "DD/MM/YYYY, HH:mm"
+  const [nyDate, nyTime] = ny.split(", ");
+  const [, brTime] = br.split(", ");
+  return `${nyDate} ${nyTime} NY · ${brTime} BR`;
 }
 
 export function formatDuration(openIso: string, closeIso: string): string {

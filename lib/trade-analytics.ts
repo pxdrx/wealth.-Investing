@@ -1,17 +1,29 @@
 import { JournalTradeRow, getNetPnl } from "@/components/journal/types";
 
 // ── Session helper (shared with ai-stats) ──────────────────────────
-// Session windows mapped from BRT (UTC-3) to UTC:
-//   Tokyo (Asiática, Sydney+Tokyo): 21:00–08:00 UTC = 18:00–05:00 BRT
-//   London (Europeia):              07:00–16:00 UTC = 04:00–13:00 BRT
-//   New York (Americana):           11:00–21:00 UTC = 08:00–18:00 BRT (07:00–17:00 NY EDT)
-// Classification = primary session, non-overlapping, NY wins overlap.
-export function getSession(utcHour: number): string {
-  if (utcHour >= 21) return "Tokyo";
-  if (utcHour >= 0 && utcHour < 7) return "Tokyo";
-  if (utcHour >= 7 && utcHour < 11) return "London";
-  if (utcHour >= 11 && utcHour < 21) return "New York";
-  return "Other";
+// User trades NY session exclusively. Cutoff = 7am NY (NY cash open).
+// Windows in NY local time (America/New_York, DST-aware):
+//   Tóquio   : 0:00–2:59 NY  (madrugada NY, overlap Asia tail)
+//   Londres  : 3:00–6:59 NY  (London cash open → NY open)
+//   New York : 7:00–23:59 NY (NY open through end of NY day)
+export function getSession(input: Date | string | number): "Tóquio" | "Londres" | "New York" {
+  // Backwards-compat: numeric arg = legacy utcHour. Treat as UTC hour, convert to NY.
+  let d: Date;
+  if (typeof input === "number") {
+    d = new Date(Date.UTC(2000, 0, 1, input, 0, 0));
+  } else {
+    d = typeof input === "string" ? new Date(input) : input;
+  }
+  const nyHour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      hour: "2-digit",
+      hour12: false,
+    }).format(d)
+  );
+  if (nyHour >= 7) return "New York";
+  if (nyHour >= 3) return "Londres";
+  return "Tóquio";
 }
 
 const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -422,7 +434,7 @@ export function computeTradeAnalytics(trades: JournalTradeRow[], timeZone?: stri
 
   // ── By Session ──
   const bySession: SessionBreakdownItem[] = Array.from(
-    groupBy(sorted, (t) => getSession(new Date(t.opened_at).getUTCHours())).entries()
+    groupBy(sorted, (t) => getSession(t.opened_at)).entries()
   )
     .map(([session, tds]) => ({
       session,

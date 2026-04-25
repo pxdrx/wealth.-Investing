@@ -123,8 +123,7 @@ export async function getPersonalTradeStats(
   // By session
   const sessionMap = new Map<string, TradeRow[]>();
   for (const t of typedTrades) {
-    const hour = new Date(t.opened_at).getUTCHours();
-    const sess = getSession(hour);
+    const sess = getSession(t.opened_at);
     const arr = sessionMap.get(sess) || [];
     arr.push(t);
     sessionMap.set(sess, arr);
