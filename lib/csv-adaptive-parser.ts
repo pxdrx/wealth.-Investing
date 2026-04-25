@@ -1097,6 +1097,28 @@ export function parseCsvAdaptive(
   const priceOpenCol = mapping.price_open;
   const priceCloseCol = mapping.price_close;
 
+  // Pre-pass: count Position IDs across all data rows. Tradovate (and any
+  // broker that exports one row per fill) emits multiple rows that share the
+  // same Position ID — each row representing a partial execution. The
+  // importer's dedupe in app/api/journal/import-mt5/route.ts treats matching
+  // external_ids as duplicates and silently drops every fill after the first,
+  // so without a per-fill discriminator the imported PnL is wrong.
+  const idCounts = new Map<string, number>();
+  if (idCol) {
+    for (const r of dataRows) {
+      const id = (r[idCol.column] ?? "").trim();
+      if (id) idCounts.set(id, (idCounts.get(id) ?? 0) + 1);
+    }
+  }
+  // Identify a column that uniquely names a fill within a position.
+  // Tradovate provides "Pair ID" (one per matched buy/sell leg) and also
+  // "Buy Fill ID" / "Sell Fill ID". Any of them works — they're per-row
+  // unique even when the parent Position ID repeats.
+  const FILL_DISCRIMINATOR_NAMES = ["pair id", "buy fill id", "sell fill id", "fill id"];
+  const fillDiscriminatorCol = headers.findIndex((h) =>
+    FILL_DISCRIMINATOR_NAMES.includes(normalizeHeader(h))
+  );
+
   for (const r of dataRows) {
     const symbol = (r[symbolCol.column] ?? "").trim();
     if (!symbol || /^(total|summary|resumo)$/i.test(symbol)) continue;
@@ -1188,6 +1210,24 @@ export function parseCsvAdaptive(
     const fees_usd = commission + swap + extraFees;
 
     let external_id = idCol ? (r[idCol.column] ?? "").trim() : "";
+    // When the same Position ID appears in multiple rows (multi-fill positions
+    // — common in Tradovate), append a per-row discriminator so the importer
+    // doesn't dedupe legs into one trade. Falls back to a row-content hash
+    // when no fill ID column is present.
+    if (external_id && (idCounts.get(external_id) ?? 0) > 1) {
+      const fillSuffix =
+        fillDiscriminatorCol >= 0 ? (r[fillDiscriminatorCol] ?? "").trim() : "";
+      if (fillSuffix) {
+        external_id = `${external_id}-${fillSuffix}`;
+      } else {
+        external_id =
+          `${external_id}-` +
+          createHash("sha1")
+            .update(r.join("|"))
+            .digest("hex")
+            .slice(0, 8);
+      }
+    }
     if (!external_id) {
       external_id =
         "hash-" +
