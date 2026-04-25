@@ -447,24 +447,24 @@ export default function SettingsPage() {
                 onClick={() => setRetryKey((k) => k + 1)}
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Tentar novamente
+                {t("settings.profile.retry")}
               </Button>
             </div>
           ) : (
             <div className="mt-4 space-y-4">
               <div className="grid gap-1.5">
-                <Label htmlFor="displayName">Nome de exibição</Label>
+                <Label htmlFor="displayName">{t("settings.profile.displayName")}</Label>
                 <Input
                   id="displayName"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Seu nome"
+                  placeholder={t("settings.profile.namePlaceholder")}
                   className="max-w-sm"
                 />
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email">{t("settings.profile.email")}</Label>
                 <Input
                   id="email"
                   value={email}
@@ -473,7 +473,7 @@ export default function SettingsPage() {
                   className="max-w-sm"
                 />
                 <p className="text-xs text-muted-foreground/70">
-                  Para alterar o email, entre em contato com o suporte.
+                  {t("settings.profile.emailHint")}
                 </p>
               </div>
 
@@ -488,7 +488,7 @@ export default function SettingsPage() {
                   ) : (
                     <Save className="mr-2 h-4 w-4" />
                   )}
-                  Salvar
+                  {t("settings.profile.save")}
                 </Button>
 
                 {saveMsg && (
@@ -514,28 +514,28 @@ export default function SettingsPage() {
           {subLoading ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando...
+              {t("settings.subscription.loading")}
             </div>
           ) : (
             <div className="mt-4 space-y-4">
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">
-                  Plano atual:
+                  {t("settings.subscription.currentPlan")}
                 </span>
                 <SubscriptionBadge />
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">Status:</span>
+                <span className="text-sm text-muted-foreground">{t("settings.subscription.status")}</span>
                 <span className="text-sm font-medium capitalize">
-                  {status}
+                  {status === "active" ? t("settings.subscription.statusActive") : status}
                 </span>
               </div>
 
               {subscription?.current_period_end && (
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-muted-foreground">
-                    Renova em:
+                    {t("settings.subscription.renewsOn")}
                   </span>
                   <span className="text-sm font-medium">
                     {formatDate(subscription.current_period_end)}
@@ -556,13 +556,13 @@ export default function SettingsPage() {
                     ) : (
                       <ExternalLink className="mr-2 h-4 w-4" />
                     )}
-                    Gerenciar assinatura
+                    {t("settings.subscription.manage")}
                   </Button>
                 )}
 
                 {plan === "free" && (
                   <Button asChild className="rounded-full">
-                    <Link href="/app/pricing">Fazer upgrade</Link>
+                    <Link href="/app/pricing">{t("settings.subscription.upgrade")}</Link>
                   </Button>
                 )}
               </div>
@@ -581,16 +581,16 @@ export default function SettingsPage() {
           {mentorLoading ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando...
+              {t("settings.mentor.loading")}
             </div>
           ) : myMentor ? (
             <div className="mt-4 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Seu mentor:</p>
+                  <p className="text-sm text-muted-foreground">{t("settings.mentor.yourMentor")}</p>
                   <p className="text-base font-semibold">{myMentor.displayName}</p>
                   <p className="text-xs text-muted-foreground">
-                    Vinculado desde {new Date(myMentor.since).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
+                    {t("settings.mentor.linkedSince")} {new Date(myMentor.since).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -600,7 +600,7 @@ export default function SettingsPage() {
                       className="rounded-full border-red-500/30 text-red-500 hover:bg-red-500/10"
                       onClick={() => setShowRevokeConfirm(true)}
                     >
-                      Revogar acesso
+                      {t("settings.mentor.revoke")}
                     </Button>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
@@ -611,33 +611,33 @@ export default function SettingsPage() {
                         disabled={revokingMentor}
                       >
                         {revokingMentor ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Confirmar
+                        {t("settings.mentor.confirm")}
                       </Button>
                       <Button
                         variant="outline"
                         className="rounded-full"
                         onClick={() => setShowRevokeConfirm(false)}
                       >
-                        Cancelar
+                        {t("settings.mentor.cancel")}
                       </Button>
                     </div>
                   )}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Seu mentor pode visualizar seu journal de trades e adicionar notas de orientação. Você pode revogar o acesso a qualquer momento.
+                {t("settings.mentor.note")}
               </p>
             </div>
           ) : (
             <div className="mt-4 space-y-4">
               <p className="text-sm text-muted-foreground">
-                Vincule-se a um mentor para receber acompanhamento personalizado.
+                {t("settings.mentor.linkPrompt")}
               </p>
               <div className="flex items-center gap-3">
                 <Input
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  placeholder="Código do mentor (ex: MENTOR-A3X9)"
+                  placeholder={t("settings.mentor.codePlaceholder")}
                   className="max-w-xs"
                 />
                 <Button
@@ -646,7 +646,7 @@ export default function SettingsPage() {
                   className="rounded-full"
                 >
                   {linkingMentor ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Vincular
+                  {t("settings.mentor.link")}
                 </Button>
               </div>
             </div>
@@ -655,7 +655,7 @@ export default function SettingsPage() {
           {mentorMsg && (
             <div className={mentorMsg.type === "success" ? "mt-3 flex items-center gap-2 text-sm text-green-600" : "mt-3 flex items-center gap-2 text-sm text-red-500"}>
               <span>{mentorMsg.text}</span>
-              <button onClick={() => setMentorMsg(null)} className="underline text-xs opacity-70 hover:opacity-100">Fechar</button>
+              <button onClick={() => setMentorMsg(null)} className="underline text-xs opacity-70 hover:opacity-100">{t("settings.mentor.close")}</button>
             </div>
           )}
         </Card>
@@ -681,22 +681,22 @@ export default function SettingsPage() {
             {t("settings.section.dashboard")}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Marque os widgets que deseja exibir e use as setas para reordenar.
+            {t("settings.dashboard.intro")}
           </p>
 
           {!dashLayoutLoaded ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando layout...
+              {t("settings.dashboard.loading")}
             </div>
           ) : (
           <>
           {/* Column headers */}
           <div className="mt-4 flex items-center gap-3 px-3 pb-1">
             <span className="w-4" />
-            <span className="flex-1 text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Widget</span>
-            <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Plano</span>
-            <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground w-16 text-center">Ordem</span>
+            <span className="flex-1 text-[10px] uppercase tracking-wider font-medium text-muted-foreground">{t("settings.dashboard.colWidget")}</span>
+            <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">{t("settings.dashboard.colPlan")}</span>
+            <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground w-16 text-center">{t("settings.dashboard.colOrder")}</span>
           </div>
 
           <div className="space-y-1">
@@ -728,7 +728,7 @@ export default function SettingsPage() {
                         onClick={() => moveWidget(w.id, "up")}
                         disabled={idx === 0}
                         className="inline-flex h-11 w-11 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
-                        title="Mover para cima"
+                        title={t("settings.dashboard.moveUp")}
                       >
                         <ChevronUp className="h-4 w-4" />
                       </button>
@@ -737,7 +737,7 @@ export default function SettingsPage() {
                         onClick={() => moveWidget(w.id, "down")}
                         disabled={idx === arr.length - 1}
                         className="inline-flex h-11 w-11 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
-                        title="Mover para baixo"
+                        title={t("settings.dashboard.moveDown")}
                       >
                         <ChevronDown className="h-4 w-4" />
                       </button>
@@ -758,7 +758,7 @@ export default function SettingsPage() {
               ) : (
                 <Save className="mr-2 h-4 w-4" />
               )}
-              Salvar
+              {t("settings.dashboard.save")}
             </Button>
             <Button
               variant="outline"
@@ -766,7 +766,7 @@ export default function SettingsPage() {
               className="rounded-full"
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              Restaurar padrão
+              {t("settings.dashboard.reset")}
             </Button>
 
             {dashMsg && (
@@ -799,9 +799,9 @@ export default function SettingsPage() {
             {plan !== "free" && (
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">Cancelar assinatura</p>
+                  <p className="text-sm font-medium">{t("settings.danger.cancelSub.title")}</p>
                   <p className="text-sm text-muted-foreground">
-                    Você perderá acesso aos recursos premium.
+                    {t("settings.danger.cancelSub.body")}
                   </p>
                 </div>
                 <Button
@@ -810,7 +810,7 @@ export default function SettingsPage() {
                   onClick={() => setShowChurnModal(true)}
                   disabled={portalLoading}
                 >
-                  Cancelar assinatura
+                  {t("settings.danger.cancelSub.cta")}
                 </Button>
               </div>
             )}
@@ -827,9 +827,9 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Excluir conta</p>
+                <p className="text-sm font-medium">{t("settings.danger.deleteAccount.title")}</p>
                 <p className="text-sm text-muted-foreground">
-                  Ação permanente. Todos os seus dados serão removidos.
+                  {t("settings.danger.deleteAccount.body")}
                 </p>
               </div>
               <Button
@@ -838,7 +838,7 @@ export default function SettingsPage() {
                 onClick={() => setShowDeleteModal(true)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Excluir conta
+                {t("settings.danger.deleteAccount.cta")}
               </Button>
             </div>
           </div>
@@ -864,23 +864,21 @@ export default function SettingsPage() {
 
             <h2 className="flex items-center gap-2 text-lg font-semibold text-red-500">
               <AlertTriangle className="h-5 w-5" />
-              Excluir conta
+              {t("settings.deleteModal.title")}
             </h2>
 
             <p className="mt-3 text-sm text-muted-foreground">
-              Esta ação é <strong>permanente e irreversível</strong>. Todos os
-              seus dados, incluindo trades, contas e configurações, serão
-              removidos.
+              {t("settings.deleteModal.warning")}
             </p>
 
             <p className="mt-4 text-sm">
-              Digite <strong>EXCLUIR</strong> abaixo para confirmar:
+              {t("settings.deleteModal.typePrompt")}
             </p>
 
             <Input
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}
-              placeholder="EXCLUIR"
+              placeholder={t("settings.deleteModal.placeholder")}
               className="mt-2"
             />
 
@@ -893,7 +891,7 @@ export default function SettingsPage() {
                   setDeleteConfirm("");
                 }}
               >
-                Cancelar
+                {t("settings.deleteModal.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -926,7 +924,7 @@ export default function SettingsPage() {
                 ) : (
                   <Trash2 className="mr-2 h-4 w-4" />
                 )}
-                {deleting ? "Excluindo..." : "Excluir minha conta"}
+                {deleting ? t("settings.deleteModal.deleting") : t("settings.deleteModal.confirm")}
               </Button>
             </div>
           </Card>
