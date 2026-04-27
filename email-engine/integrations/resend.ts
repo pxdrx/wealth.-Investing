@@ -4,43 +4,9 @@
 //
 // Future: when scheduledFor is set, delegate to schedulers/queue.ts.
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { sendEmail, type SendEmailAttachment } from "@/lib/email/send";
+import { sendEmail } from "@/lib/email/send";
 import { renderTemplate } from "../render";
-import { MASCOT_CID } from "@/email/templates/DailyBriefing";
 import type { TemplateId, TemplatePropsMap } from "../__mocks__/types";
-
-// Cache the mascot PNG bytes once per process so high-fan-out cron
-// runs don't re-read the file on every send.
-let _mascotBuf: Buffer | null = null;
-async function loadMascot(): Promise<Buffer> {
-  if (_mascotBuf) return _mascotBuf;
-  const p = path.join(process.cwd(), "public", "email-assets", "dexter-64.png");
-  _mascotBuf = await readFile(p);
-  return _mascotBuf;
-}
-
-async function attachmentsFor(
-  template: TemplateId,
-): Promise<SendEmailAttachment[] | undefined> {
-  if (template === "daily-briefing" || template === "weekly-recap" || template.startsWith("welcome.") || template.startsWith("upgrade.")) {
-    try {
-      const content = await loadMascot();
-      return [
-        {
-          filename: "dexter.png",
-          content,
-          contentType: "image/png",
-          contentId: MASCOT_CID,
-        },
-      ];
-    } catch {
-      return undefined;
-    }
-  }
-  return undefined;
-}
 
 export interface SendArgs<T extends TemplateId> {
   template: T;
@@ -88,8 +54,6 @@ export async function send<T extends TemplateId>(args: SendArgs<T>): Promise<Sen
   const propsAny = args.props as { unsubscribeUrl?: string };
   const unsubscribeUrl = propsAny.unsubscribeUrl;
 
-  const attachments = await attachmentsFor(args.template);
-
   const ok = await sendEmail({
     to: args.to,
     subject: rendered.subject,
@@ -98,7 +62,6 @@ export async function send<T extends TemplateId>(args: SendArgs<T>): Promise<Sen
     from: FROM,
     listId: args.listId ?? `wealth-investing-${args.template}`,
     unsubscribeUrl,
-    attachments,
   });
 
   return { ok, templateId: args.template, scheduled: false };
