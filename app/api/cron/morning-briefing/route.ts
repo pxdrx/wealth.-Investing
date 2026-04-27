@@ -74,6 +74,13 @@ async function handle(req: NextRequest) {
 
   const testEmail = req.nextUrl.searchParams.get("test_email");
   const dryRun = req.nextUrl.searchParams.get("dry_run") === "true";
+  // ?date=YYYY-MM-DD overrides the briefing date — used for previewing
+  // tomorrow's email today via test_email. Ignored without test_email
+  // to avoid accidentally blasting the wrong day to the whole base.
+  const dateOverride = req.nextUrl.searchParams.get("date");
+  const briefingDate = testEmail && dateOverride
+    ? new Date(`${dateOverride}T12:00:00-03:00`)
+    : new Date();
 
   // Skip weekends
   const utcDay = new Date().getUTCDay();
@@ -98,7 +105,7 @@ async function handle(req: NextRequest) {
   // Generate the shared payload once.
   let payload;
   try {
-    payload = await generateDailyBriefing(new Date());
+    payload = await generateDailyBriefing(briefingDate);
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown";
     console.error("[morning-briefing] generateDailyBriefing failed:", message);
