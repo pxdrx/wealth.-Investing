@@ -1,0 +1,37 @@
+name: email-templates
+
+on:
+  pull_request:
+    paths:
+      - 'email/**'
+      - 'scripts/email-build.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/email.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'email/**'
+      - 'scripts/email-build.ts'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build email HTML
+        run: npm run email:build
+      - name: Run snapshot tests
+        run: npx vitest run email/__tests__
+      - name: Upload built HTMLs
+        uses: actions/upload-artifact@v4
+        with:
+          name: email-dist
+          path: email/dist/
+          retention-days: 14
