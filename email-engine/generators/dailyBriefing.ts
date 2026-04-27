@@ -1,9 +1,10 @@
 // Build the per-day shared payload for the daily briefing email.
 // One call generates the bulk content (events, overnight narrative, bias,
-// principle, tomorrow preview). Per-user fields (firstName, unsubscribeUrl,
-// appUrl, locale, plan) are filled in at send time by the cron caller.
+// principle, tomorrow preview, headlines, edition number, asset impacts).
+// Per-user fields (firstName, unsubscribeUrl, plan, locale, yesterday
+// session, streak) are filled in at send time by the cron caller.
 
-import { addDays, format, startOfWeek } from "date-fns";
+import { addDays, differenceInBusinessDays, format, startOfWeek } from "date-fns";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import type {
   WeeklyPanorama,
@@ -13,8 +14,14 @@ import type {
 import { classifyBias } from "../lib/bias";
 import { randomPrinciple } from "../data/principles";
 import type {
+  AssetImpact,
+  BriefingHeadline,
+  DailyBriefingTemplateProps,
+  StreakInfo,
+  YesterdaySession,
+} from "@/email/templates/DailyBriefing";
+import type {
   BriefingEvent,
-  DailyBriefingProps,
   Impact,
   MarketBias,
   Plan,
@@ -28,6 +35,9 @@ export interface DailyBriefingPayload {
   today: BriefingEvent[];
   tomorrow: string;
   principle: Principle;
+  editionNumber: number;
+  headlines: BriefingHeadline[];
+  assetImpacts: AssetImpact[];
 }
 
 const COUNTRY_TO_TICKER: Record<string, string> = {
@@ -41,17 +51,17 @@ const COUNTRY_TO_TICKER: Record<string, string> = {
   CA: "CAD",
   AU: "AUD",
   NZ: "NZD",
-  DE: "DE",
-  FR: "FR",
-  IT: "IT",
 };
 
 const ACRONYM_RE = /\b([A-Z]{2,5})\b/;
 
+// Edition #001 = 2026-04-01 (business day). Increments per business day.
+const EDITION_EPOCH = new Date("2026-04-01T00:00:00-03:00");
+
 function extractTicker(title: string, country: string | null): string {
+  if (country && COUNTRY_TO_TICKER[country]) return COUNTRY_TO_TICKER[country];
   const m = title.match(ACRONYM_RE);
   if (m) return m[1];
-  if (country && COUNTRY_TO_TICKER[country]) return COUNTRY_TO_TICKER[country];
   return country ?? "—";
 }
 
@@ -67,15 +77,16 @@ function truncate(s: string, max = 80): string {
 }
 
 function pickHighlightedEvents(events: EconomicEvent[]): EconomicEvent[] {
-  // Spec: filter medium+high. Cap at 5 to keep email scannable.
   return events
     .filter((e) => e.impact === "medium" || e.impact === "high")
     .sort((a, b) => {
-      // Sort by impact (high first), then by time.
+      // Sort by time first (chronological), then by impact (high tiebreak).
+      const ta = a.time ?? "99:99";
+      const tb = b.time ?? "99:99";
+      const dt = ta.localeCompare(tb);
+      if (dt !== 0) return dt;
       const w = (i: EconomicEvent["impact"]) => (i === "high" ? 0 : i === "medium" ? 1 : 2);
-      const di = w(a.impact) - w(b.impact);
-      if (di !== 0) return di;
-      return (a.time ?? "99:99").localeCompare(b.time ?? "99:99");
+      return w(a.impact) - w(b.impact);
     })
     .slice(0, 5);
 }
@@ -93,52 +104,116 @@ function buildTomorrowLine(events: EconomicEvent[]): string {
   return `Próximo destaque: ${truncate(e.title, 60)} (${e.country}).`;
 }
 
+function computeEditionNumber(date: Date): number {
+  // Business days between epoch and date (inclusive of date).
+  const days = differenceInBusinessDays(date, EDITION_EPOCH);
+  return Math.max(1, days + 1);
+}
+
+interface MacroHeadlineRow {
+  title: string;
+  source: string;
+  published_at: string | null;
+}
+
+function hoursAgo(iso: string | null, now: Date): number {
+  if (!iso) return 0;
+  const t = Date.parse(iso);
+  if (isNaN(t)) return 0;
+  const diff = now.getTime() - t;
+  return Math.max(0, Math.round(diff / 3_600_000));
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  reuters: "Reuters",
+  forexlive: "ForexLive",
+  trading_economics: "TradingEconomics",
+  te_breaking: "TE Breaking",
+  te_headlines: "TradingEconomics",
+  truth_social: "Truth Social",
+  financial_juice: "Financial Juice",
+};
+
+function labelSource(s: string): string {
+  return SOURCE_LABEL[s] ?? s.replace(/_/g, " ");
+}
+
+function biasArrow(bias: "bullish" | "bearish" | "neutral" | undefined): "up" | "down" | "flat" {
+  if (bias === "bullish") return "up";
+  if (bias === "bearish") return "down";
+  return "flat";
+}
+
+function inverseArrow(arrow: "up" | "down" | "flat"): "up" | "down" | "flat" {
+  if (arrow === "up") return "down";
+  if (arrow === "down") return "up";
+  return "flat";
+}
+
+function buildAssetImpacts(panorama: WeeklyPanorama | null): AssetImpact[] {
+  const impacts = panorama?.asset_impacts;
+  if (!impacts) return [];
+  const dxy = biasArrow(impacts.dollar?.bias);
+  return [
+    { ticker: "DXY", arrow: dxy },
+    { ticker: "EURUSD", arrow: inverseArrow(dxy) },
+    { ticker: "IBOV", arrow: biasArrow(impacts.indices?.bias) },
+    { ticker: "GOLD", arrow: biasArrow(impacts.gold?.bias) },
+    { ticker: "BTC", arrow: biasArrow(impacts.btc?.bias) },
+  ];
+}
+
 export async function generateDailyBriefing(date: Date): Promise<DailyBriefingPayload> {
   const sb = createServiceRoleClient();
   const dateStr = format(date, "yyyy-MM-dd");
   const tomorrow = addDays(date, 1);
   const tomorrowStr = format(tomorrow, "yyyy-MM-dd");
   const weekStart = format(startOfWeek(date, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const oneDayAgo = new Date(date.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-  // 1. Today's events
-  const { data: todayRaw, error: todayErr } = await sb
-    .from("economic_events")
-    .select("*")
-    .eq("date", dateStr);
-  if (todayErr) throw new Error(`events query failed: ${todayErr.message}`);
-  const todayEvents = (todayRaw ?? []) as EconomicEvent[];
+  const [todayQ, tomorrowQ, panoramaQ, adjQ, headlinesQ] = await Promise.all([
+    sb.from("economic_events").select("*").eq("date", dateStr),
+    sb
+      .from("economic_events")
+      .select("*")
+      .eq("date", tomorrowStr)
+      .in("impact", ["medium", "high"])
+      .order("time", { ascending: true })
+      .limit(10),
+    sb.from("weekly_panoramas").select("*").eq("week_start", weekStart).limit(1),
+    sb
+      .from("daily_adjustments")
+      .select("*")
+      .eq("week_start", weekStart)
+      .order("generated_at", { ascending: false })
+      .limit(1),
+    sb
+      .from("macro_headlines")
+      .select("title, source, published_at")
+      .gte("published_at", oneDayAgo)
+      .order("published_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  if (todayQ.error) throw new Error(`events query failed: ${todayQ.error.message}`);
+  const todayEvents = (todayQ.data ?? []) as EconomicEvent[];
   const highlighted = pickHighlightedEvents(todayEvents);
 
-  // 2. Tomorrow's events (for tomorrow line)
-  const { data: tomorrowRaw } = await sb
-    .from("economic_events")
-    .select("*")
-    .eq("date", tomorrowStr)
-    .in("impact", ["medium", "high"])
-    .order("time", { ascending: true })
-    .limit(10);
-  const tomorrowEvents = (tomorrowRaw ?? []) as EconomicEvent[];
-
-  // 3. Panorama for bias
-  const { data: panoramaRows } = await sb
-    .from("weekly_panoramas")
-    .select("*")
-    .eq("week_start", weekStart)
-    .limit(1);
-  const panorama = (panoramaRows?.[0] ?? null) as WeeklyPanorama | null;
+  const tomorrowEvents = (tomorrowQ.data ?? []) as EconomicEvent[];
+  const panorama = (panoramaQ.data?.[0] ?? null) as WeeklyPanorama | null;
   const marketBias = classifyBias(panorama?.asset_impacts ?? null);
+  const adj = (adjQ.data?.[0] ?? null) as DailyAdjustment | null;
+  const overnight = truncate(
+    adj?.narrative ?? panorama?.narrative ?? defaultOvernight(marketBias),
+    700,
+  );
 
-  // 4. Overnight narrative — most recent daily_adjustment for the week,
-  //    fall back to weekly panorama narrative.
-  const { data: adjRows } = await sb
-    .from("daily_adjustments")
-    .select("*")
-    .eq("week_start", weekStart)
-    .order("generated_at", { ascending: false })
-    .limit(1);
-  const adj = (adjRows?.[0] ?? null) as DailyAdjustment | null;
-  const overnight =
-    truncate(adj?.narrative ?? panorama?.narrative ?? defaultOvernight(marketBias), 700);
+  const headlineRows = (headlinesQ.data ?? []) as MacroHeadlineRow[];
+  const headlines: BriefingHeadline[] = headlineRows.map((h) => ({
+    title: truncate(h.title, 140),
+    source: labelSource(h.source),
+    hoursAgo: hoursAgo(h.published_at, date),
+  }));
 
   return {
     date: dateStr,
@@ -152,6 +227,9 @@ export async function generateDailyBriefing(date: Date): Promise<DailyBriefingPa
     })),
     tomorrow: buildTomorrowLine(tomorrowEvents),
     principle: randomPrinciple(),
+    editionNumber: computeEditionNumber(date),
+    headlines,
+    assetImpacts: buildAssetImpacts(panorama),
   };
 }
 
@@ -165,13 +243,20 @@ function defaultOvernight(bias: MarketBias): string {
   return "Sem viés definido no overnight. Mercado lateralizado aguardando catalisadores. Eventos de hoje devem definir direção da sessão.";
 }
 
-// Helper: assemble per-user props from the shared payload.
-export function buildDailyBriefingProps(args: {
+// Helper: assemble per-user props from the shared payload + per-user data.
+export interface PerUserBriefingArgs {
   payload: DailyBriefingPayload;
+  plan: Plan;
   unsubscribeUrl: string;
   appUrl: string;
-  plan: Plan;
-}): DailyBriefingProps {
+  firstName?: string;
+  yesterdaySession?: YesterdaySession;
+  streak?: StreakInfo;
+}
+
+export function buildDailyBriefingProps(
+  args: PerUserBriefingArgs,
+): DailyBriefingTemplateProps {
   return {
     date: args.payload.date,
     locale: "pt-BR",
@@ -183,5 +268,11 @@ export function buildDailyBriefingProps(args: {
     principle: args.payload.principle,
     unsubscribeUrl: args.unsubscribeUrl,
     appUrl: args.appUrl,
+    firstName: args.firstName,
+    editionNumber: args.payload.editionNumber,
+    yesterdaySession: args.yesterdaySession,
+    streak: args.streak,
+    headlines: args.payload.headlines,
+    assetImpacts: args.plan === "ultra" ? args.payload.assetImpacts : undefined,
   };
 }

@@ -134,15 +134,17 @@ async function handle(req: NextRequest) {
     (optOuts ?? []).map((o: { email: string }) => o.email.toLowerCase()),
   );
 
-  // Per-channel opt-in flag.
+  // Profile flags + display names + locale.
   const { data: profileFlags } = await supabase
     .from("profiles")
-    .select("id, briefing_enabled, preferred_locale");
+    .select("id, display_name, briefing_enabled, preferred_locale");
   const briefingEnabledMap = new Map<string, boolean>();
   const localeMap = new Map<string, "pt" | "en">();
+  const nameMap = new Map<string, string>();
   for (const p of profileFlags ?? []) {
     briefingEnabledMap.set(p.id, p.briefing_enabled !== false);
     if (p.preferred_locale === "en") localeMap.set(p.id, "en");
+    if (p.display_name) nameMap.set(p.id, p.display_name);
   }
 
   // Plans.
@@ -154,6 +156,96 @@ async function handle(req: NextRequest) {
     if (sub.status === "active" || sub.status === "trialing") {
       subMap.set(sub.user_id, sub.plan);
     }
+  }
+
+  // Last-session aggregation — find the most recent trading day per user
+  // within the last 7d (skips weekends + holidays automatically since
+  // those days have no trades). Single batched query, then bucket by
+  // user_id and pick the latest date with rows for each.
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+  const todayBRStart = `${brasiliaDateStr(0)}T00:00:00-03:00`;
+  const { data: recentTrades } = await supabase
+    .from("journal_trades")
+    .select("user_id, pnl_usd, net_pnl_usd, opened_at")
+    .gte("opened_at", sevenDaysAgo)
+    .lt("opened_at", todayBRStart);
+
+  function brDateOf(iso: string): string {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(iso));
+  }
+
+  // Group: user_id -> brDate -> running aggregate.
+  const perUserPerDay = new Map<string, Map<string, { trades: number; pnl: number; winners: number }>>();
+  for (const t of (recentTrades ?? []) as Array<{
+    user_id: string;
+    pnl_usd: number | null;
+    net_pnl_usd: number | null;
+    opened_at: string;
+  }>) {
+    const day = brDateOf(t.opened_at);
+    const userMap = perUserPerDay.get(t.user_id) ?? new Map();
+    const cur = userMap.get(day) ?? { trades: 0, pnl: 0, winners: 0 };
+    const pnl = t.net_pnl_usd ?? t.pnl_usd ?? 0;
+    cur.trades++;
+    cur.pnl += pnl;
+    if (pnl > 0) cur.winners++;
+    userMap.set(day, cur);
+    perUserPerDay.set(t.user_id, userMap);
+  }
+
+  // Pick the most-recent BR date with trades for each user.
+  const lastSessionMap = new Map<
+    string,
+    { trades: number; pnl: number; winners: number; date: string }
+  >();
+  perUserPerDay.forEach((days, userId) => {
+    const dates = Array.from(days.keys()).sort().reverse();
+    if (dates.length === 0) return;
+    const latest = dates[0];
+    const agg = days.get(latest)!;
+    lastSessionMap.set(userId, { ...agg, date: latest });
+  });
+
+  // Streak — per-user, last 100 trade dates. Cron-window scale only;
+  // optimize via SQL window function once user count is large.
+  async function streakFor(userId: string): Promise<number> {
+    const { data } = await supabase
+      .from("journal_trades")
+      .select("opened_at")
+      .eq("user_id", userId)
+      .order("opened_at", { ascending: false })
+      .limit(100);
+    if (!data || data.length === 0) return 0;
+    const dateSet = new Set<string>();
+    for (const r of data) {
+      const d = new Date(r.opened_at);
+      dateSet.add(
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Sao_Paulo",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(d),
+      );
+    }
+    let streak = 0;
+    let dayOffset = -1;
+    while (dateSet.has(brasiliaDateStr(dayOffset))) {
+      streak++;
+      dayOffset--;
+    }
+    return streak;
+  }
+
+  function nextStreakMarker(days: number): number {
+    const markers = [3, 7, 14, 21, 30, 60, 90, 180, 365];
+    for (const m of markers) if (m > days) return m;
+    return Math.ceil((days + 1) / 30) * 30;
   }
 
   let sent = 0;
@@ -194,11 +286,38 @@ async function handle(req: NextRequest) {
         const email = user.email!;
         const plan = planFromSub(subMap.get(user.id));
         const unsubscribeUrl = buildUnsubscribeUrl(email);
+        const firstName =
+          nameMap.get(user.id)?.trim().split(/\s+/)[0] ||
+          email.split("@")[0] ||
+          undefined;
+
+        // Per-user enrichment (Pro+ only — keeps Free emails fast).
+        let yesterdaySession:
+          | { trades: number; pnl: number; winRate: number; date: string }
+          | undefined;
+        let streak: { days: number; nextMarker: number } | undefined;
+        if (plan !== "free") {
+          const last = lastSessionMap.get(user.id);
+          if (last && last.trades > 0) {
+            yesterdaySession = {
+              trades: last.trades,
+              pnl: Math.round(last.pnl),
+              winRate: Math.round((last.winners / last.trades) * 100),
+              date: last.date,
+            };
+          }
+          const days = await streakFor(user.id);
+          if (days > 0) streak = { days, nextMarker: nextStreakMarker(days) };
+        }
+
         const props = buildDailyBriefingProps({
           payload,
           unsubscribeUrl,
           appUrl: APP_URL,
           plan,
+          firstName,
+          yesterdaySession,
+          streak,
         });
 
         if (dryRun) return { ok: true, dryRun: true };

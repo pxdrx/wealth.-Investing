@@ -5,7 +5,7 @@
 // Future: when scheduledFor is set, delegate to schedulers/queue.ts.
 
 import { sendEmail } from "@/lib/email/send";
-import { renderTemplate } from "../__mocks__/templates";
+import { renderTemplate } from "../render";
 import type { TemplateId, TemplatePropsMap } from "../__mocks__/types";
 
 export interface SendArgs<T extends TemplateId> {
@@ -47,7 +47,7 @@ export async function send<T extends TemplateId>(args: SendArgs<T>): Promise<Sen
     }
   }
 
-  const rendered = renderTemplate(args.template, args.props);
+  const rendered = await renderTemplate(args.template, args.props);
 
   // unsubscribeUrl lives on rendered props, but lib/email/send.ts also wants it.
   // Most templates carry it on props.unsubscribeUrl; pass through when present.
