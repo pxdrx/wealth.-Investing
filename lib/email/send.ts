@@ -13,6 +13,14 @@ function getResend(): Resend | null {
   return _resend;
 }
 
+export interface SendEmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+  /** When set, the asset is inline-referenced as `cid:<contentId>` from the HTML body. */
+  contentId?: string;
+}
+
 interface SendEmailParams {
   to: string;
   subject: string;
@@ -23,6 +31,7 @@ interface SendEmailParams {
   replyTo?: string;
   listId?: string;
   unsubscribeUrl?: string;
+  attachments?: SendEmailAttachment[];
 }
 
 // Fallback plain-text when caller doesn't supply one. Gmail/Outlook penalize
@@ -56,6 +65,7 @@ export async function sendEmail({
   replyTo,
   listId,
   unsubscribeUrl,
+  attachments,
 }: SendEmailParams): Promise<boolean> {
   const resend = getResend();
   if (!resend) return false;
@@ -82,6 +92,16 @@ export async function sendEmail({
       text: text ?? htmlToText(html),
       replyTo: replyTo ?? "contato@owealthinvesting.com",
       headers: finalHeaders,
+      ...(attachments && attachments.length > 0
+        ? {
+            attachments: attachments.map((a) => ({
+              filename: a.filename,
+              content: a.content,
+              contentType: a.contentType,
+              ...(a.contentId ? { contentId: a.contentId } : {}),
+            })),
+          }
+        : {}),
     });
     return true;
   } catch (err) {

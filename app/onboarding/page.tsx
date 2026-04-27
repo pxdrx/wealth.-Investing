@@ -138,6 +138,19 @@ export default function OnboardingPage() {
     try {
       const result = await upsertMyProfileDisplayName(trimmed);
       if (result.error) { setError(result.error.message); return; }
+      // Fire welcome 7-day sequence (Track B email engine). Fire-and-forget.
+      void (async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+          await fetch("/api/email/welcome/start", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+        } catch {
+          // non-fatal
+        }
+      })();
       markTourPending();
       goNext();
     } catch (err) {

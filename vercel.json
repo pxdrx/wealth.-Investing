@@ -15,7 +15,7 @@
     },
     {
       "path": "/api/cron/morning-briefing",
-      "schedule": "0 10 * * *"
+      "schedule": "0 9 * * 1-5"
     },
     {
       "path": "/api/cron/rates-sync",
@@ -27,7 +27,7 @@
     },
     {
       "path": "/api/cron/weekly-report",
-      "schedule": "0 21 * * *"
+      "schedule": "0 21 * * 0"
     },
     {
       "path": "/api/cron/weekly-briefing",
@@ -36,6 +36,18 @@
     {
       "path": "/api/macro/sentiment",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/email-queue-flush",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/upgrade-trigger",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/churn-trigger",
+      "schedule": "30 14 * * *"
     }
   ]
 }

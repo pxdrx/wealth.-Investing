@@ -11,6 +11,7 @@ export default defineConfig({
     include: [
       "test/**/*.test.{ts,tsx}",
       "components/**/__tests__/**/*.test.{ts,tsx}",
+      "email/__tests__/**/*.test.{ts,tsx}",
     ],
     css: false,
   },
