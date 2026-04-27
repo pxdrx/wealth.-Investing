@@ -188,18 +188,17 @@ function eventCurrencyFromTicker(ev: BriefingEvent): string {
 // Inline mascot Dexter (pixel art SVG, 16x16). Mirrors the proposal.
 // ──────────────────────────────────────────────────────────────────────
 
-// Mascot referenced via Content-ID. The PNG asset is attached inline by
-// the engine at send time (email-engine/integrations/resend.ts) and
-// resolves via the `cid:` scheme — universally supported across Gmail,
-// Apple Mail, Outlook desktop & web. Data URIs and remote URLs both
-// have edge-cases (Gmail proxy strips, deferred image-load), CID is the
-// most reliable path for transactional email.
-export const MASCOT_CID = 'dexter-mascot';
+// Mascot served from the production domain (public/email-assets/, deployed
+// by Vercel from main). Resend's SDK doesn't expose Content-ID inline
+// attachments — hosted URLs are the supported path. NEXT_PUBLIC_APP_URL
+// at server-render time gives the canonical absolute URL.
+const APP_BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://owealthinvesting.com';
+export const MASCOT_URL = `${APP_BASE}/email-assets/dexter-64.png`;
 
 function MascotDexter({ size = 32 }: { size?: number }) {
   return (
     <Img
-      src={`cid:${MASCOT_CID}`}
+      src={MASCOT_URL}
       alt="Dexter"
       width={size}
       height={size}
