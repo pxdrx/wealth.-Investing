@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "email:dev": "email dev --port 3001 --dir ./email",
-    "email:build": "node scripts/email-build.mjs"
+    "email:build": "tsx scripts/email-build.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",
@@ -72,6 +72,7 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.2"
   }
