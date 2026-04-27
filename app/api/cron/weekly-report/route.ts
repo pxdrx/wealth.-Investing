@@ -1,9 +1,15 @@
+// Weekly recap cron — Track B refactor.
+// Schedule: 0 21 * * 0 (UTC) = 18:00 BRT, Sunday.
+// URL preserved as /api/cron/weekly-report.
+
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
+import { subDays } from "date-fns";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
-import { sendEmail } from "@/lib/email/send";
-import { renderWeeklyReport } from "@/lib/email/templates/weekly-report";
 import { acquireCronLock } from "@/lib/cron-lock";
+import { buildUnsubscribeUrl } from "@/lib/email/unsubscribe-token";
+import { send } from "@/email-engine/integrations/resend";
+import { generateWeeklyRecap } from "@/email-engine/generators/weeklyRecap";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -13,17 +19,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  // Test mode: ?test_email=user@example.com — sends only to that email (skips subscription check)
   const testEmail = req.nextUrl.searchParams.get("test_email");
+  const dryRun = req.nextUrl.searchParams.get("dry_run") === "true";
 
   if (!testEmail && !(await acquireCronLock("weekly-report"))) {
     return NextResponse.json({ ok: true, skipped: "lock_held" });
   }
 
-  // Only run on Sunday (UTC). Skip otherwise unless test_email provided.
+  // Sundays only.
   const utcDay = new Date().getUTCDay();
   if (!testEmail && utcDay !== 0) {
-    console.log("[weekly-report] skipped — not Sunday (utcDay=", utcDay, ")");
     return NextResponse.json({ ok: true, skipped: "not_sunday", utcDay });
   }
 
@@ -34,159 +39,117 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
+  const now = new Date();
+  const weekStart = subDays(now, 7);
 
-  // Calculate week range (last 7 days) using Brasilia time (UTC-3)
-  const utcNow = new Date();
-  const brOffset = -3 * 60;
-  const now = new Date(utcNow.getTime() + (brOffset + utcNow.getTimezoneOffset()) * 60000);
-
-  const endOfWeek = new Date(now);
-  endOfWeek.setHours(23, 59, 59, 999);
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(startOfWeek.getDate() - 6);
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const startStr = startOfWeek.toISOString();
-  const endStr = endOfWeek.toISOString();
-
-  const fmt = (d: Date) => new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone: "America/Sao_Paulo" }).format(d);
-  const fmtYear = (d: Date) => new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Sao_Paulo" }).format(d);
-  const weekLabel = `${fmt(startOfWeek)} — ${fmtYear(utcNow)}`;
-
-  // Get target users: test mode = single user, production = all Pro+
-  let subs: { user_id: string; plan: string; status: string }[] | null;
-
-  if (testEmail) {
-    // Find user by email via admin API
-    const { data: { users: allUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-    const testUser = allUsers?.find((u) => u.email === testEmail);
-    if (!testUser) {
-      return NextResponse.json({ ok: false, error: `User not found: ${testEmail}` }, { status: 404 });
+  // Recap goes to all users with email confirmed (free + paid). Track B
+  // contract has no plan-gating on weekly recap; the per-user data
+  // density (own trades) is intrinsic gating. Future: gate via
+  // recap_enabled flag on profiles.
+  const allUsers: User[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000, page });
+    if (error || !data) {
+      return NextResponse.json({ ok: false, error: "Failed to list users" }, { status: 500 });
     }
-    subs = [{ user_id: testUser.id, plan: "pro", status: "active" }];
-  } else {
-    const { data } = await supabase
-      .from("subscriptions")
-      .select("user_id, plan, status")
-      .in("status", ["active", "trialing"])
-      .in("plan", ["pro", "ultra"]);
-    subs = data;
+    allUsers.push(...data.users);
+    if (data.users.length < 1000) break;
   }
 
-  if (!subs || subs.length === 0) {
-    return NextResponse.json({ ok: true, sent: 0, reason: "No Pro+ users" });
+  const targets = testEmail
+    ? allUsers.filter((u) => u.email === testEmail)
+    : allUsers.filter((u) => !!u.email && !!u.email_confirmed_at);
+
+  if (testEmail && targets.length === 0) {
+    return NextResponse.json({ ok: false, error: `User not found: ${testEmail}` }, { status: 404 });
   }
 
-  const { data: { users }, error: usersErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-  if (usersErr || !users) {
-    return NextResponse.json({ ok: false, error: "Failed to list users" }, { status: 500 });
-  }
-
-  const userMap = new Map(users.map((u) => [u.id, u]));
+  // Opt-out + per-channel flag.
+  const { data: optOuts } = await supabase.from("email_opt_outs").select("email");
+  const optOutSet = new Set<string>(
+    (optOuts ?? []).map((o: { email: string }) => o.email.toLowerCase()),
+  );
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, display_name");
-
-  const profileMap = new Map<string, string>();
+    .select("id, display_name, recap_enabled");
+  const displayNameMap = new Map<string, string>();
+  const recapEnabledMap = new Map<string, boolean>();
   for (const p of profiles ?? []) {
-    if (p.display_name) profileMap.set(p.id, p.display_name);
+    if (p.display_name) displayNameMap.set(p.id, p.display_name);
+    recapEnabledMap.set(p.id, p.recap_enabled !== false);
   }
 
   let sent = 0;
   let skipped = 0;
+  let failed = 0;
 
-  for (const sub of subs) {
-    const user = userMap.get(sub.user_id);
-    if (!user?.email || !user.email_confirmed_at) {
+  for (const user of targets) {
+    const email = user.email!;
+    if (optOutSet.has(email.toLowerCase())) {
+      skipped++;
+      continue;
+    }
+    if (recapEnabledMap.get(user.id) === false) {
       skipped++;
       continue;
     }
 
-    const displayName = profileMap.get(user.id) ?? "Trader";
+    const firstName =
+      displayNameMap.get(user.id) ?? email.split("@")[0] ?? "Trader";
 
-    // Get this week's trades
-    const { data: weekTrades } = await supabase
-      .from("journal_trades")
-      .select("symbol, pnl_usd")
-      .eq("user_id", user.id)
-      .gte("opened_at", startStr)
-      .lte("opened_at", endStr)
-      .order("pnl_usd", { ascending: false });
-
-    const trades = weekTrades ?? [];
-    const totalTrades = trades.length;
-    const totalPnl = trades.reduce((sum: number, t: { pnl_usd: number }) => sum + t.pnl_usd, 0);
-    const winners = trades.filter((t: { pnl_usd: number }) => t.pnl_usd > 0).length;
-    const winRate = totalTrades > 0 ? Math.round((winners / totalTrades) * 100) : 0;
-
-    const bestTrade = trades.length > 0 ? { symbol: trades[0].symbol, pnl: trades[0].pnl_usd } : null;
-    const worstTrade = trades.length > 0
-      ? { symbol: trades[trades.length - 1].symbol, pnl: trades[trades.length - 1].pnl_usd }
-      : null;
-
-    // Get all-time stats
-    const { count: totalTradesAllTime } = await supabase
-      .from("journal_trades")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
-
-    const { data: firstTrade } = await supabase
-      .from("journal_trades")
-      .select("opened_at")
-      .eq("user_id", user.id)
-      .order("opened_at", { ascending: true })
-      .limit(1);
-
-    const firstDate = firstTrade?.[0]?.opened_at ? new Date(firstTrade[0].opened_at) : now;
-    const monthsOfData = Math.max(1, Math.ceil((now.getTime() - firstDate.getTime()) / (30.44 * 86400000)));
-
-    // Streak
-    const { data: tradeDates } = await supabase
-      .from("journal_trades")
-      .select("opened_at")
-      .eq("user_id", user.id)
-      .order("opened_at", { ascending: false })
-      .limit(100);
-
-    let streak = 0;
-    if (tradeDates && tradeDates.length > 0) {
-      const dateSet = new Set<string>();
-      for (const row of tradeDates) {
-        dateSet.add(new Date(row.opened_at).toISOString().split("T")[0]);
-      }
-      const checkDate = new Date(now);
-      while (dateSet.has(checkDate.toISOString().split("T")[0])) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      }
+    let props;
+    try {
+      props = await generateWeeklyRecap({
+        userId: user.id,
+        email,
+        firstName,
+        weekEnd: now,
+        unsubscribeUrl: buildUnsubscribeUrl(email),
+      });
+    } catch (err) {
+      console.error("[weekly-report] generator failed for", email, err);
+      failed++;
+      continue;
     }
 
-    const html = renderWeeklyReport({
-      displayName,
-      weekLabel,
-      totalTrades,
-      totalPnl,
-      winRate,
-      bestTrade,
-      worstTrade: worstTrade && worstTrade.pnl < 0 ? worstTrade : null,
-      streak,
-      totalTradesAllTime: totalTradesAllTime ?? 0,
-      monthsOfData,
+    if (dryRun) {
+      sent++;
+      continue;
+    }
+
+    const r = await send({
+      template: "weekly-recap",
+      props,
+      to: email,
     });
 
-    const success = await sendEmail({
-      to: user.email,
-      subject: `📊 Seu relatório semanal — ${weekLabel}`,
-      html,
+    await supabase.from("email_logs").insert({
+      user_id: user.id,
+      template: "weekly-recap",
+      to_email: email,
+      status: r.ok ? "sent" : "failed",
+      error: r.ok ? null : r.error ?? "send failed",
     });
 
-    if (success) sent++;
-    else skipped++;
+    if (r.ok) sent++;
+    else failed++;
+
+    // Throttle to stay under Resend's 10 req/s.
+    await new Promise((res) => setTimeout(res, 100));
   }
 
-  return NextResponse.json({ ok: true, sent, skipped });
+  return NextResponse.json({
+    ok: true,
+    targets: targets.length,
+    sent,
+    skipped,
+    failed,
+    weekStart: weekStart.toISOString(),
+    weekEnd: now.toISOString(),
+    dryRun,
+  });
 }
 
-// Vercel Cron dispatches GET; Next.js returns 405 if the verb isn't exported.
+// Vercel Cron dispatches GET; mirror to POST handler.
 export { POST as GET };
