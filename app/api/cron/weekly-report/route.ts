@@ -153,21 +153,42 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
-    const r = await send({
-      template: "weekly-recap",
-      props,
-      to: email,
-    });
+    let sendResult: { ok: boolean; error?: string } = { ok: false };
+    let attempt = 0;
+    while (true) {
+      attempt++;
+      try {
+        sendResult = await send({ template: "weekly-recap", props, to: email });
+      } catch (err) {
+        sendResult = {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+      // Resend rate-limit backoff: simple linear wait.
+      if (
+        !sendResult.ok &&
+        /rate.?limit|429/i.test(sendResult.error ?? "") &&
+        attempt < 4
+      ) {
+        await new Promise((res) => setTimeout(res, 1000 * attempt));
+        continue;
+      }
+      break;
+    }
 
-    await supabase.from("email_logs").insert({
+    const { error: logErr } = await supabase.from("email_logs").insert({
       user_id: user.id,
       template: "weekly-recap",
       to_email: email,
-      status: r.ok ? "sent" : "failed",
-      error: r.ok ? null : r.error ?? "send failed",
+      status: sendResult.ok ? "sent" : "failed",
+      error: sendResult.ok ? null : sendResult.error ?? "send failed",
     });
+    if (logErr) {
+      console.error("[weekly-report] email_logs insert failed for", email, logErr);
+    }
 
-    if (r.ok) sent++;
+    if (sendResult.ok) sent++;
     else failed++;
 
     // Throttle to stay under Resend's 10 req/s.
