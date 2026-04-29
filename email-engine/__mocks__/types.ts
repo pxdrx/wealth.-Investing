@@ -42,16 +42,19 @@ export interface DailyBriefingProps {
 }
 
 export interface WeeklyRecapProps {
-  date: string;
-  locale: Locale;
-  firstName: string;
-  trades: TradeEntry[];
-  pnlPct: number;
+  displayName: string;
+  weekLabel: string;
+  totalTrades: number;
+  totalPnl: number;
   winRate: number;
-  lesson: string;
-  unsubscribeUrl: string;
-  appUrl: string;
+  bestTrade: { symbol: string; pnl: number } | null;
+  worstTrade: { symbol: string; pnl: number } | null;
+  streak: number;
+  totalTradesAllTime: number;
+  monthsOfData: number;
+  unsubscribeUrl?: string;
 }
+// Keep TradeEntry export — still used by other sequences.
 
 export interface WelcomeProps {
   firstName: string;

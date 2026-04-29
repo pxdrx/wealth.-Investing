@@ -9,16 +9,24 @@ interface WeeklyReportData {
   streak: number;
   totalTradesAllTime: number;
   monthsOfData: number;
+  unsubscribeUrl?: string;
 }
 
 export function renderWeeklyReport(data: WeeklyReportData): string {
   const {
     displayName, weekLabel, totalTrades, totalPnl, winRate,
     bestTrade, worstTrade, streak, totalTradesAllTime, monthsOfData,
+    unsubscribeUrl,
   } = data;
 
   const pnlColor = totalPnl >= 0 ? "#16a34a" : "#ef4444";
   const pnlSign = totalPnl >= 0 ? "+" : "";
+
+  const narrativeHtml = totalTrades > 0
+    ? totalPnl >= 0
+      ? `<p style="margin:0 0 20px;font-size:13px;color:#444">Semana positiva. P&L de <strong style="color:#16a34a">+$${totalPnl.toFixed(2)}</strong> em ${totalTrades} ${totalTrades === 1 ? "trade" : "trades"}.</p>`
+      : `<p style="margin:0 0 20px;font-size:13px;color:#444">Semana de ajuste. P&L de <strong style="color:#ef4444">-$${Math.abs(totalPnl).toFixed(2)}</strong> em ${totalTrades} ${totalTrades === 1 ? "trade" : "trades"} — hora de revisar setups.</p>`
+    : "";
 
   const bestHtml = bestTrade
     ? `<div style="flex:1;background:#f0fdf4;border-radius:10px;padding:12px">
@@ -40,8 +48,10 @@ export function renderWeeklyReport(data: WeeklyReportData): string {
 <div style="max-width:520px;margin:0 auto;padding:32px 20px">
   <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
     <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999">RELATÓRIO SEMANAL</p>
-    <h1 style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111">Sua semana, ${displayName}</h1>
-    <p style="margin:0 0 20px;font-size:13px;color:#666">${weekLabel}</p>
+    <h1 style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111">Sua semana, ${displayName} 📊</h1>
+    <p style="margin:0 0 4px;font-size:13px;color:#666">${weekLabel}</p>
+
+    ${narrativeHtml}
 
     ${totalTrades === 0 ? `
     <div style="background:#f8f9fa;border-radius:12px;padding:20px;text-align:center;margin:16px 0">
@@ -91,7 +101,7 @@ export function renderWeeklyReport(data: WeeklyReportData): string {
     </div>
   </div>
   <p style="text-align:center;margin:16px 0 0;font-size:11px;color:#999">
-    wealth.Investing · <a href="https://owealthinvesting.com/app/settings" style="color:#999">Configurações</a>
+    wealth.Investing · <a href="https://owealthinvesting.com/app/settings" style="color:#999">Configurações</a>${unsubscribeUrl ? ` · <a href="${unsubscribeUrl}" style="color:#999">Cancelar inscrição</a>` : ""}
   </p>
 </div>
 </body></html>`;

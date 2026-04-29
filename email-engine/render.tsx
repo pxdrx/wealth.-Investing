@@ -7,10 +7,11 @@
 import * as React from 'react';
 import { render } from '@react-email/render';
 import { DailyBriefing, type DailyBriefingTemplateProps } from '@/email/templates/DailyBriefing';
-import { WeeklyRecap } from '@/email/templates/WeeklyRecap';
 import { Welcome } from '@/email/templates/Welcome';
 import { Upgrade } from '@/email/templates/Upgrade';
 import { renderTemplate as renderMock } from './__mocks__/templates';
+import { htmlToText } from '@/lib/email/send';
+import { renderWeeklyReport } from '@/lib/email/templates/weekly-report';
 import type {
   RenderedEmail,
   TemplateId,
@@ -50,16 +51,10 @@ export async function renderTemplate<T extends TemplateId>(
 
   if (template === 'weekly-recap') {
     const p = props as TemplatePropsMap['weekly-recap'];
-    const [html, text] = await Promise.all([
-      render(<WeeklyRecap {...p} />, { pretty: false }),
-      render(<WeeklyRecap {...p} />, { plainText: true }),
-    ]);
-    const pnlSign = p.pnlPct >= 0 ? '+' : '';
-    return {
-      subject: `Recap semanal · ${pnlSign}${p.pnlPct.toFixed(2)}%`,
-      html,
-      text,
-    };
+    const html = renderWeeklyReport(p);
+    const text = htmlToText(html);
+    const firstName = p.displayName.split(' ')[0] ?? p.displayName;
+    return { subject: `Sua semana, ${firstName} 📊`, html, text };
   }
 
   if (template === 'welcome.day0') {

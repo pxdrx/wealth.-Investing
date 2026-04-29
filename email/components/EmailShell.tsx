@@ -21,7 +21,10 @@ export interface EmailShellProps {
   children: React.ReactNode;
 }
 
-const ADDRESS_PLACEHOLDER = 'wealth.Investing · Av. Placeholder 123, São Paulo, SP, Brasil';
+const COMPANY_ADDRESS =
+  process.env.COMPANY_ADDRESS ??
+  'Av. Paulista, 1000 — Bela Vista, São Paulo - SP, 01310-100, Brasil';
+const ADDRESS_LINE = `wealth.Investing · ${COMPANY_ADDRESS}`;
 
 const FOOTER_COPY: Record<Locale, { reason: string; unsubscribe: string }> = {
   'pt-BR': {
@@ -104,7 +107,7 @@ export function EmailShell({ preheader, title, locale, unsubscribeUrl, children 
                 lineHeight: lineHeight.snug,
               }}
             >
-              {ADDRESS_PLACEHOLDER}
+              {ADDRESS_LINE}
             </Text>
             <Text style={{ margin: '12px 0 0 0', fontSize: fontSize.xs }}>
               <Link href={unsubscribeUrl} style={{ color: colors.greenDeep, textDecoration: 'underline' }}>

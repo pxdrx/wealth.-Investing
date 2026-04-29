@@ -14,7 +14,8 @@ import type {
 } from "./types";
 
 const COMPANY_ADDRESS =
-  process.env.COMPANY_ADDRESS ?? "wealth.Investing — endereço pendente";
+  process.env.COMPANY_ADDRESS ??
+  "Av. Paulista, 1000 — Bela Vista, São Paulo - SP, 01310-100, Brasil";
 
 function footer(unsubscribeUrl: string, appUrl: string): string {
   return `
@@ -101,47 +102,11 @@ function renderDailyBriefing(p: DailyBriefingProps): RenderedEmail {
 }
 
 function renderWeeklyRecap(p: WeeklyRecapProps): RenderedEmail {
-  const tradesHtml =
-    p.trades.length === 0
-      ? `<p style="font-size:14px;color:#86868b;margin:0 0 16px">Sem trades fechados nesta semana.</p>`
-      : p.trades
-          .map(
-            (t) => `
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f5f5f7;font-size:14px;color:#1d1d1f"><strong>${t.asset}</strong> · ${t.direction}</td>
-          <td style="padding:8px 0;border-bottom:1px solid #f5f5f7;font-size:14px;text-align:right;color:${t.pnl >= 0 ? "#34c759" : "#d70015"};font-variant-numeric:tabular-nums">${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(2)} (${t.pnlPct >= 0 ? "+" : ""}${t.pnlPct.toFixed(2)}%)</td>
-        </tr>`,
-          )
-          .join("");
-
-  const body = `
-    <p style="font-size:13px;color:#86868b;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px">Recap · ${p.date}</p>
-    <h1 style="font-size:24px;font-weight:600;color:#1d1d1f;margin:0 0 24px;letter-spacing:-0.022em">Sua semana, ${p.firstName}</h1>
-
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">
-      <tr>
-        <td style="padding:16px;background:#f5f5f7;border-radius:12px;text-align:center">
-          <div style="font-size:11px;color:#86868b;text-transform:uppercase;letter-spacing:1px">PnL %</div>
-          <div style="font-size:28px;font-weight:600;color:${p.pnlPct >= 0 ? "#34c759" : "#d70015"};margin-top:4px">${p.pnlPct >= 0 ? "+" : ""}${p.pnlPct.toFixed(2)}%</div>
-        </td>
-        <td style="width:16px"></td>
-        <td style="padding:16px;background:#f5f5f7;border-radius:12px;text-align:center">
-          <div style="font-size:11px;color:#86868b;text-transform:uppercase;letter-spacing:1px">Win rate</div>
-          <div style="font-size:28px;font-weight:600;color:#1d1d1f;margin-top:4px">${p.winRate.toFixed(0)}%</div>
-        </td>
-      </tr>
-    </table>
-
-    <h2 style="font-size:13px;color:#86868b;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px">Trades</h2>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">${tradesHtml}</table>
-
-    <h2 style="font-size:13px;color:#86868b;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px">Lição da semana</h2>
-    <p style="font-size:15px;line-height:1.5;color:#1d1d1f;margin:0 0 24px">${p.lesson}</p>`;
-
+  const firstName = p.displayName.split(" ")[0] ?? p.displayName;
   return {
-    subject: `Recap semanal · ${p.pnlPct >= 0 ? "+" : ""}${p.pnlPct.toFixed(2)}%`,
-    html: shell(`Recap ${p.date}`, body, p.unsubscribeUrl, p.appUrl),
-    text: `Recap ${p.date}\n\nPnL: ${p.pnlPct.toFixed(2)}% · Win rate: ${p.winRate.toFixed(0)}%\n\nTrades:\n${p.trades.map((t) => `${t.asset} ${t.direction} ${t.pnl.toFixed(2)} (${t.pnlPct.toFixed(2)}%)`).join("\n") || "Sem trades."}\n\nLição: ${p.lesson}`,
+    subject: `Sua semana, ${firstName} 📊`,
+    html: `<p>Mock weekly recap for ${p.displayName}. ${p.totalTrades} trades.</p>`,
+    text: `Mock weekly recap for ${p.displayName}. ${p.totalTrades} trades.`,
   };
 }
 

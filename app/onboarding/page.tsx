@@ -67,7 +67,8 @@ export default function OnboardingPage() {
   // Step 3
   const [selectedFirm, setSelectedFirm] = useState<string | null>(null);
 
-  // Step 4 — Import
+  // Step 4 — Import + weekly recap opt-in
+  const [recapEnabled, setRecapEnabled] = useState<boolean>(true);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<{
     fileName: string;
@@ -174,7 +175,24 @@ export default function OnboardingPage() {
     }
   }
 
-  function handleFinish() {
+  // Persist the weekly-recap opt-in choice to profiles.recap_enabled.
+  // Fire-and-forget — never blocks the onboarding flow if the column is
+  // missing on a stale deploy or the request fails transiently.
+  async function persistRecapPreference() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      await supabase
+        .from("profiles")
+        .update({ recap_enabled: recapEnabled })
+        .eq("id", session.user.id);
+    } catch {
+      // non-fatal — defaults to true at the DB level
+    }
+  }
+
+  async function handleFinish() {
+    void persistRecapPreference();
     markTourPending();
     window.location.href = "/app";
   }
@@ -243,6 +261,7 @@ export default function OnboardingPage() {
       if (!json.ok) throw new Error(json.error ?? "Falha ao importar");
 
       setImportState("success");
+      void persistRecapPreference();
       markTourPending();
       setTimeout(() => { window.location.href = "/app?imported=true"; }, 1500);
     } catch (err) {
@@ -579,12 +598,34 @@ export default function OnboardingPage() {
                     )}
                     <button
                       type="button"
-                      onClick={() => { markTourPending(); window.location.href = "/app"; }}
+                      onClick={() => { void persistRecapPreference(); markTourPending(); window.location.href = "/app"; }}
                       className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer py-1"
                     >
                       Pular por agora
                     </button>
                   </div>
+                )}
+
+                {/* Weekly recap opt-in — keeps onboarding honest with the
+                    landing-page promise. Defaults to true; user can flip
+                    it later in Configurações. */}
+                {importState !== "success" && (
+                  <label
+                    htmlFor="recap-opt-in"
+                    className="mb-4 flex cursor-pointer items-start gap-3 rounded-[14px] border border-border px-3.5 py-3 hover:border-foreground/30 transition-all duration-200"
+                  >
+                    <input
+                      id="recap-opt-in"
+                      type="checkbox"
+                      checked={recapEnabled}
+                      onChange={(e) => setRecapEnabled(e.target.checked)}
+                      disabled={importState === "importing"}
+                      className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-foreground"
+                    />
+                    <span className="text-xs leading-snug text-muted-foreground">
+                      Quero receber o relatório semanal por email (domingos 18h BRT)
+                    </span>
+                  </label>
                 )}
 
                 <div className="flex gap-3">

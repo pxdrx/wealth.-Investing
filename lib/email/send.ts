@@ -36,7 +36,7 @@ interface SendEmailParams {
 
 // Fallback plain-text when caller doesn't supply one. Gmail/Outlook penalize
 // HTML-only emails — even a rough text part lifts inbox placement.
-function htmlToText(html: string): string {
+export function htmlToText(html: string): string {
   return html
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<script[\s\S]*?<\/script>/gi, "")
