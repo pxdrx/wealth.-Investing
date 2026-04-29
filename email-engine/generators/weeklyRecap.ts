@@ -1,12 +1,15 @@
-// Per-user weekly recap payload. Reads journal_trades for last 7 days,
-// aggregates PnL, win rate, top winner/loser, generates outcome-based
-// lesson, and returns WeeklyRecapProps.
-
-import { format, subDays } from "date-fns";
+// Per-user weekly recap payload. Returns shape consumed by
+// lib/email/templates/weekly-report.ts (renderWeeklyReport).
+import {
+  differenceInCalendarMonths,
+  endOfDay,
+  format,
+  startOfDay,
+  subDays,
+} from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { createServiceRoleClient } from "@/lib/supabase/service";
-import type { TradeEntry, WeeklyRecapProps } from "../__mocks__/types";
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://owealthinvesting.com";
+import type { WeeklyRecapProps } from "../__mocks__/types";
 
 export interface GenerateWeeklyRecapArgs {
   userId: string;
@@ -18,126 +21,129 @@ export interface GenerateWeeklyRecapArgs {
 
 interface JournalTradeRow {
   symbol: string | null;
-  direction: string | null;
   pnl_usd: number | null;
   net_pnl_usd: number | null;
-  risk_usd: number | null;
-  rr_realized: number | null;
-  notes: string | null;
   opened_at: string;
 }
 
-function lessonForOutcome(args: {
-  trades: number;
-  pnlPct: number;
-  winRate: number;
-}): string {
-  if (args.trades === 0) return "Semana sem trades. Revise sua tese.";
-  if (args.pnlPct > 5) {
-    return "Semana forte. Bons resultados vêm de processo, não de sorte. Mantenha o sizing.";
-  }
-  if (args.pnlPct > 0) {
-    return "Semana positiva. Capital crescendo com disciplina. Continue documentando o que funciona.";
-  }
-  if (args.pnlPct < -5) {
-    return "Drawdown relevante. Antes de aumentar tamanho, revise o que rompeu o plano.";
-  }
-  if (args.pnlPct < 0) {
-    return "Semana negativa, mas controlada. Sizing pequeno é o que mantém você no jogo.";
-  }
-  return "Semana lateral. Capital preservado é capital pronto pra próxima oportunidade.";
-}
-
-function mapDirection(d: string | null): "long" | "short" {
-  if (!d) return "long";
-  const lower = d.toLowerCase();
-  if (lower === "sell" || lower === "short") return "short";
-  return "long";
-}
+const fmtDay = (d: Date) => format(d, "d 'de' MMMM", { locale: ptBR });
+const pnlOf = (r: { pnl_usd: number | null; net_pnl_usd: number | null }) =>
+  r.net_pnl_usd ?? r.pnl_usd ?? 0;
 
 export async function generateWeeklyRecap(
   args: GenerateWeeklyRecapArgs,
 ): Promise<WeeklyRecapProps> {
   const sb = createServiceRoleClient();
-  const end = args.weekEnd ?? new Date();
-  const start = subDays(end, 7);
+  const end = endOfDay(args.weekEnd ?? new Date());
+  const start = startOfDay(subDays(end, 6));
 
-  const { data, error } = await sb
+  // Primary query — must succeed.
+  const { data: weekRows, error: weekErr } = await sb
     .from("journal_trades")
-    .select(
-      "symbol, direction, pnl_usd, net_pnl_usd, risk_usd, rr_realized, notes, opened_at",
-    )
+    .select("symbol, pnl_usd, net_pnl_usd, opened_at")
     .eq("user_id", args.userId)
     .gte("opened_at", start.toISOString())
-    .lte("opened_at", end.toISOString())
-    .order("opened_at", { ascending: true });
+    .lte("opened_at", end.toISOString());
+  if (weekErr) throw new Error(`weekly recap query failed: ${weekErr.message}`);
 
-  if (error) {
-    throw new Error(`weekly recap query failed: ${error.message}`);
+  const rows = (weekRows ?? []) as JournalTradeRow[];
+  const totalTrades = rows.length;
+  const totalPnl = rows.reduce((s, r) => s + pnlOf(r), 0);
+  const winners = rows.filter((r) => pnlOf(r) > 0).length;
+  const winRate = totalTrades > 0 ? Math.round((winners / totalTrades) * 100) : 0;
+
+  let bestTrade: WeeklyRecapProps["bestTrade"] = null;
+  let worstTrade: WeeklyRecapProps["worstTrade"] = null;
+  for (const r of rows) {
+    const pnl = pnlOf(r);
+    const sym = r.symbol ?? "—";
+    if (pnl > 0 && (!bestTrade || pnl > bestTrade.pnl)) bestTrade = { symbol: sym, pnl };
+    if (pnl < 0 && (!worstTrade || pnl < worstTrade.pnl)) worstTrade = { symbol: sym, pnl };
   }
 
-  const rows = (data ?? []) as JournalTradeRow[];
-  const totalNetPnl = rows.reduce(
-    (sum, r) => sum + (r.net_pnl_usd ?? r.pnl_usd ?? 0),
-    0,
-  );
-  const totalRisk = rows.reduce((sum, r) => sum + (r.risk_usd ?? 0), 0);
-  const winners = rows.filter(
-    (r) => (r.net_pnl_usd ?? r.pnl_usd ?? 0) > 0,
-  ).length;
-  const winRate = rows.length > 0 ? (winners / rows.length) * 100 : 0;
-  // Use realized RR average if risk_usd missing (older rows). Fallback 0.
-  const pnlPct =
-    totalRisk > 0
-      ? (totalNetPnl / totalRisk) * 100
-      : rows.reduce((sum, r) => sum + (r.rr_realized ?? 0), 0);
+  // Streak — supplementary; default 0 on error.
+  let streak = 0;
+  try {
+    const since = subDays(end, 30);
+    const { data: streakRows } = await sb
+      .from("journal_trades")
+      .select("pnl_usd, net_pnl_usd, opened_at")
+      .eq("user_id", args.userId)
+      .gte("opened_at", since.toISOString())
+      .order("opened_at", { ascending: false });
+    const byDay = new Map<string, number>();
+    for (const r of streakRows ?? []) {
+      const day = (r.opened_at as string).slice(0, 10);
+      byDay.set(day, (byDay.get(day) ?? 0) + pnlOf(r));
+    }
+    let cursor = end;
+    for (let i = 0; i < 30; i++) {
+      const k = format(cursor, "yyyy-MM-dd");
+      const sum = byDay.get(k);
+      if (sum === undefined || sum <= 0) break;
+      streak++;
+      cursor = subDays(cursor, 1);
+    }
+  } catch (e) {
+    console.warn("[weeklyRecap] streak calc failed", e);
+  }
 
-  const trades: TradeEntry[] = rows.map((r) => {
-    const pnl = r.net_pnl_usd ?? r.pnl_usd ?? 0;
-    const risk = r.risk_usd ?? 0;
-    const tradePct = risk > 0 ? (pnl / risk) * 100 : (r.rr_realized ?? 0);
-    return {
-      asset: r.symbol ?? "—",
-      direction: mapDirection(r.direction),
-      pnl,
-      pnlPct: tradePct,
-      note: r.notes ? r.notes.slice(0, 120) : undefined,
-    };
-  });
+  // Total all-time count.
+  let totalTradesAllTime = 0;
+  try {
+    const { count } = await sb
+      .from("journal_trades")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", args.userId);
+    totalTradesAllTime = count ?? 0;
+  } catch (e) {
+    console.warn("[weeklyRecap] count failed", e);
+  }
 
-  const lesson = lessonForOutcome({
-    trades: rows.length,
-    pnlPct,
-    winRate,
-  });
+  // Months of data since first trade.
+  let monthsOfData = 1;
+  try {
+    const { data: firstRow } = await sb
+      .from("journal_trades")
+      .select("opened_at")
+      .eq("user_id", args.userId)
+      .order("opened_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (firstRow?.opened_at) {
+      monthsOfData = Math.max(
+        1,
+        differenceInCalendarMonths(end, new Date(firstRow.opened_at)),
+      );
+    }
+  } catch (e) {
+    console.warn("[weeklyRecap] monthsOfData failed", e);
+  }
+
+  // Display name from profiles, fall through to firstName arg.
+  let displayName = args.firstName;
+  try {
+    const { data: profile } = await sb
+      .from("profiles")
+      .select("display_name")
+      .eq("id", args.userId)
+      .maybeSingle();
+    if (profile?.display_name) displayName = profile.display_name;
+  } catch {
+    /* fall through */
+  }
 
   return {
-    date: format(end, "yyyy-MM-dd"),
-    locale: "pt-BR",
-    firstName: args.firstName,
-    trades,
-    pnlPct,
+    displayName,
+    weekLabel: `Semana de ${fmtDay(start)} a ${fmtDay(end)}`,
+    totalTrades,
+    totalPnl,
     winRate,
-    lesson,
+    bestTrade,
+    worstTrade,
+    streak,
+    totalTradesAllTime,
+    monthsOfData,
     unsubscribeUrl: args.unsubscribeUrl,
-    appUrl: APP_URL,
   };
-}
-
-export interface EquityCurveUrlArgs {
-  userId: string;
-  weekStart: Date;
-  weekEnd: Date;
-}
-
-// Returns the URL Track A's WeeklyRecap template embeds via <Img src=...>.
-// Resolved at render-time by /api/og/equity-curve which queries the same
-// journal_trades window and rasterizes a sparkline.
-export function buildEquityCurveUrl(args: EquityCurveUrlArgs): string {
-  const params = new URLSearchParams({
-    u: args.userId,
-    s: format(args.weekStart, "yyyy-MM-dd"),
-    e: format(args.weekEnd, "yyyy-MM-dd"),
-  });
-  return `${APP_URL}/api/og/equity-curve?${params.toString()}`;
 }
