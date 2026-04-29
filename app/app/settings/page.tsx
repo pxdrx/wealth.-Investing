@@ -11,6 +11,7 @@ import { SubscriptionBadge } from "@/components/billing/SubscriptionBadge";
 import { ChurnPreventionModal } from "@/components/billing/ChurnPreventionModal";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguagePreference } from "@/components/settings/LanguagePreference";
+import { EmailPreferencesForm } from "@/components/settings/EmailPreferencesForm";
 import { useAppT } from "@/hooks/useAppLocale";
 import type { AppMessageKey } from "@/lib/i18n/app";
 import { supabase } from "@/lib/supabase/client";
@@ -49,6 +50,9 @@ export default function SettingsPage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  // ── Email preferences (weekly recap opt-out) ──
+  const [recapEnabled, setRecapEnabled] = useState<boolean | null>(null);
 
   // ── Subscription ──
   const { plan, status, subscription, isLoading: subLoadingRaw, isMentor } =
@@ -123,6 +127,22 @@ export default function SettingsPage() {
         }
         if (session?.user?.email) setEmail(session.user.email);
         if (session?.user?.id) setUserId(session.user.id);
+        if (session?.user?.id) {
+          try {
+            const { data: prefRow } = await supabase
+              .from("profiles")
+              .select("recap_enabled")
+              .eq("id", session.user.id)
+              .maybeSingle();
+            if (mounted) {
+              setRecapEnabled(
+                prefRow?.recap_enabled === false ? false : true,
+              );
+            }
+          } catch {
+            if (mounted) setRecapEnabled(true);
+          }
+        }
       } catch (err) {
         console.error("[settings] failed to load profile:", err);
         if (mounted) {
@@ -584,6 +604,24 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+        </Card>
+
+        {/* ═══════════ Email preferences ═══════════ */}
+        <Card className="rounded-[22px] p-6" style={cardStyle}>
+          <h2 className="text-lg font-semibold">Email</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Controle os emails que enviamos pra você.
+          </p>
+          <div className="mt-4">
+            {recapEnabled === null ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando preferências...
+              </div>
+            ) : (
+              <EmailPreferencesForm initialEnabled={recapEnabled} />
+            )}
+          </div>
         </Card>
 
         {/* ═══════════ Mentor ═══════════ */}
