@@ -10,13 +10,18 @@ import { acquireCronLock } from "@/lib/cron-lock";
 import { buildUnsubscribeUrl } from "@/lib/email/unsubscribe-token";
 import { send } from "@/email-engine/integrations/resend";
 import { generateWeeklyRecap } from "@/email-engine/generators/weeklyRecap";
+import { killSwitchActive } from "@/lib/email/kill-switch";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300; // bumped from 60 — required for fan-out > ~30 users
 
 export async function POST(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (killSwitchActive("weekly-report")) {
+    return NextResponse.json({ ok: true, skipped: "kill_switch" });
   }
 
   const testEmail = req.nextUrl.searchParams.get("test_email");
