@@ -826,6 +826,16 @@ export function DailyBriefing(props: DailyBriefingTemplateProps) {
             <Text
               style={{
                 margin: '10px 0 0 0',
+                fontSize: 11,
+                color: C.ink3,
+                lineHeight: 1.5,
+              }}
+            >
+              {process.env.COMPANY_ADDRESS ?? 'Av. Paulista, 1000 — Bela Vista, São Paulo - SP, 01310-100, Brasil'}
+            </Text>
+            <Text
+              style={{
+                margin: '6px 0 0 0',
                 fontSize: 12,
                 color: C.ink3,
                 lineHeight: 1.5,
