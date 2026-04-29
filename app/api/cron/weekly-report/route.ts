@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(supabaseUrl, serviceKey);
   const now = new Date();
-  const weekStart = subDays(now, 7);
 
   // Recap goes to all users with email confirmed (free + paid). Track B
   // contract has no plan-gating on weekly recap; the per-user data
@@ -75,15 +74,42 @@ export async function POST(req: NextRequest) {
     (optOuts ?? []).map((o: { email: string }) => o.email.toLowerCase()),
   );
 
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesErr } = await supabase
     .from("profiles")
     .select("id, display_name, recap_enabled");
+  if (profilesErr) {
+    // Fail CLOSED — if we cannot see opt-out flags, do not send to anyone.
+    console.error("[weekly-report] profiles query failed", profilesErr);
+    return NextResponse.json(
+      { ok: false, error: "profiles query failed" },
+      { status: 500 },
+    );
+  }
   const displayNameMap = new Map<string, string>();
   const recapEnabledMap = new Map<string, boolean>();
   for (const p of profiles ?? []) {
     if (p.display_name) displayNameMap.set(p.id, p.display_name);
     recapEnabledMap.set(p.id, p.recap_enabled !== false);
   }
+
+  // Per-week idempotency (belt + suspenders against double-fan-out).
+  const weekStart = subDays(now, 6).toISOString();
+  const { data: priorLogs, error: logsErr } = await supabase
+    .from("email_logs")
+    .select("user_id")
+    .eq("template", "weekly-recap")
+    .eq("status", "sent")
+    .gte("sent_at", weekStart);
+  if (logsErr) {
+    console.error("[weekly-report] email_logs probe failed", logsErr);
+    return NextResponse.json(
+      { ok: false, error: "email_logs probe failed" },
+      { status: 500 },
+    );
+  }
+  const alreadySent = new Set<string>(
+    (priorLogs ?? []).map((r: { user_id: string }) => r.user_id),
+  );
 
   let sent = 0;
   let skipped = 0;
@@ -96,6 +122,10 @@ export async function POST(req: NextRequest) {
       continue;
     }
     if (recapEnabledMap.get(user.id) === false) {
+      skipped++;
+      continue;
+    }
+    if (!testEmail && alreadySent.has(user.id)) {
       skipped++;
       continue;
     }
@@ -150,7 +180,7 @@ export async function POST(req: NextRequest) {
     sent,
     skipped,
     failed,
-    weekStart: weekStart.toISOString(),
+    weekStart,
     weekEnd: now.toISOString(),
     dryRun,
   });
