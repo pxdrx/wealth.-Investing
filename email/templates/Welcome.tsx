@@ -10,6 +10,7 @@ const COPY: Record<Locale, {
   greeting: (n: string) => string;
   subtitle: string;
   trial: (date: string) => string;
+  recapNotice: string;
   steps: { label: string; title: string; body: string }[];
   ctaLabel: string;
 }> = {
@@ -20,6 +21,8 @@ const COPY: Record<Locale, {
     subtitle: 'Em poucos minutos sua mesa de trabalho está pronta. Comece pelos 3 passos abaixo.',
     trial: (date) =>
       `Seu trial vai até ${new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}.`,
+    recapNotice:
+      'A partir do próximo domingo (18:00 BRT), você vai receber o seu relatório semanal — resumo dos trades, P&L, melhor/pior, streak. Pode desativar a qualquer momento em Configurações.',
     steps: [
       {
         label: '01',
@@ -46,6 +49,8 @@ const COPY: Record<Locale, {
     subtitle: 'Your workspace is ready in minutes. Start with the 3 steps below.',
     trial: (date) =>
       `Your trial ends on ${new Date(date).toLocaleDateString('en-US', { day: '2-digit', month: 'long' })}.`,
+    recapNotice:
+      'Starting next Sunday (6:00pm BRT), you will receive your weekly recap — trade summary, P&L, best/worst, streak. You can turn it off anytime in Settings.',
     steps: [
       {
         label: '01',
@@ -108,6 +113,16 @@ export function Welcome({ firstName, locale, trialEndsAt, unsubscribeUrl, appUrl
           }}
         >
           {copy.trial(trialEndsAt)}
+        </Text>
+        <Text
+          style={{
+            margin: `${spacing[3]}px 0 0 0`,
+            fontSize: fontSize.sm,
+            color: colors.ink2,
+            lineHeight: lineHeight.snug,
+          }}
+        >
+          {copy.recapNotice}
         </Text>
       </Section>
 
