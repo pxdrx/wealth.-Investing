@@ -6,28 +6,32 @@ import { CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { supabase } from "@/lib/supabase/client";
-import {
-  ProOnboardingModal,
-  hasSeenProOnboarding,
-  markProOnboardingSeen,
-} from "@/components/billing/ProOnboardingModal";
+import { TierOnboardingModal } from "@/components/onboarding/TierOnboardingModal";
+import { useOnboardingState } from "@/lib/onboarding/use-onboarding-state";
+import { TIER_RANK, type TierName } from "@/lib/onboarding/types";
 
 type VerifyState = "loading" | "verified" | "failed";
+type SupportedTier = Exclude<TierName, "free">;
 
-function resolveOnboardingPlan(plan: string | null | undefined): "pro" | "ultra" {
-  return plan === "ultra" ? "ultra" : "pro";
+function resolveOnboardingTier(plan: string | null | undefined): SupportedTier {
+  if (plan === "ultra") return "ultra";
+  if (plan === "mentor") return "mentor";
+  return "pro";
 }
 
 function SubscriptionSuccessInner() {
   const { refreshSubscription, plan } = useEntitlements();
+  const { state: onboardingState, isLoading: onboardingLoading, markTierSeen } = useOnboardingState();
   const searchParams = useSearchParams();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [verifyState, setVerifyState] = useState<VerifyState>("loading");
-  const [verifiedPlanState, setVerifiedPlanState] = useState<"pro" | "ultra" | null>(null);
-  // Use verified plan from Stripe response; fall back to context plan only after verification
-  const onboardingPlan = verifiedPlanState ?? resolveOnboardingPlan(plan);
+  const [verifiedTierState, setVerifiedTierState] = useState<SupportedTier | null>(null);
+  // Use verified tier from Stripe response; fall back to context plan only after verification
+  const onboardingTier: SupportedTier =
+    verifiedTierState ?? resolveOnboardingTier(plan);
 
   useEffect(() => {
+    if (onboardingLoading || !onboardingState) return;
     async function verifySession() {
       const sessionId = searchParams.get("session_id");
       if (!sessionId) {
@@ -51,11 +55,17 @@ function SubscriptionSuccessInner() {
         if (json.ok && json.verified) {
           setVerifyState("verified");
           refreshSubscription();
-          // Mentor plan has its own onboarding (MentorOnboardingModal on /app/mentor)
+          // Mentor plan onboarding is handled by TierOnboardingGuard globally
           const verifiedPlan = json.plan ?? plan;
-          const resolved = resolveOnboardingPlan(verifiedPlan);
-          setVerifiedPlanState(verifiedPlan === "mentor" ? null : resolved);
-          if (verifiedPlan !== "mentor" && !hasSeenProOnboarding(resolved)) {
+          if (verifiedPlan === "mentor") {
+            setVerifiedTierState(null);
+            return;
+          }
+          const resolved = resolveOnboardingTier(verifiedPlan);
+          setVerifiedTierState(resolved);
+          // Only show onboarding if the user hasn't already seen this (or higher) tier
+          const seenRank = TIER_RANK[onboardingState?.maxTierSeen ?? "free"];
+          if (TIER_RANK[resolved] > seenRank) {
             setShowOnboarding(true);
           }
         } else {
@@ -67,7 +77,7 @@ function SubscriptionSuccessInner() {
     }
 
     verifySession();
-  }, [searchParams, refreshSubscription]);
+  }, [searchParams, refreshSubscription, onboardingState, onboardingLoading]);
 
   if (verifyState === "loading") {
     return (
@@ -118,11 +128,11 @@ function SubscriptionSuccessInner() {
         </Link>
       </div>
 
-      <ProOnboardingModal
+      <TierOnboardingModal
         open={showOnboarding}
-        plan={onboardingPlan}
-        onClose={() => {
-          markProOnboardingSeen(onboardingPlan);
+        tier={onboardingTier}
+        onClose={async () => {
+          await markTierSeen(onboardingTier);
           setShowOnboarding(false);
         }}
       />

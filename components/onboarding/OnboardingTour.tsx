@@ -55,6 +55,27 @@ const TOUR_STEPS: TourStep[] = [
     mobileTarget: "mobile-mentor",
   },
   {
+    id: "prop",
+    title: "Contas",
+    description:
+      "Gerencie suas contas de prop firm, pessoal e cripto em um só lugar. Acompanhe drawdown, payouts e alocação.",
+    sidebarTarget: "sidebar-prop",
+  },
+  {
+    id: "chart",
+    title: "Gráfico",
+    description:
+      "Análise técnica integrada com seus trades plotados no gráfico. Veja entradas, saídas e contexto de mercado.",
+    sidebarTarget: "sidebar-chart",
+  },
+  {
+    id: "backtest",
+    title: "Backtest",
+    description:
+      "Teste estratégias com dados históricos. Valide setups antes de operar com dinheiro real.",
+    sidebarTarget: "sidebar-backtest",
+  },
+  {
     id: "macro",
     title: "Inteligencia Macro",
     description:
@@ -98,43 +119,50 @@ function getTooltipPosition(
   return "left";
 }
 
+const TOOLTIP_WIDTH = 320;
+const VIEWPORT_MARGIN = 16;
+const ESTIMATED_HEIGHT = 280;
+
 function getTooltipStyle(
   rect: SpotlightRect,
   position: TooltipPosition
 ): React.CSSProperties {
   const OFFSET = 16;
-  const TOOLTIP_WIDTH = 320;
+  let top = 0;
+  let left = 0;
 
   switch (position) {
     case "right":
-      return {
-        top: rect.top + rect.height / 2,
-        left: rect.left + rect.width + OFFSET,
-        transform: "translateY(-50%)",
-        maxWidth: TOOLTIP_WIDTH,
-      };
+      top = rect.top + rect.height / 2 - ESTIMATED_HEIGHT / 2;
+      left = rect.left + rect.width + OFFSET;
+      break;
     case "left":
-      return {
-        top: rect.top + rect.height / 2,
-        right: window.innerWidth - rect.left + OFFSET,
-        transform: "translateY(-50%)",
-        maxWidth: TOOLTIP_WIDTH,
-      };
+      top = rect.top + rect.height / 2 - ESTIMATED_HEIGHT / 2;
+      left = rect.left - TOOLTIP_WIDTH - OFFSET;
+      break;
     case "top":
-      return {
-        bottom: window.innerHeight - rect.top + OFFSET,
-        left: rect.left + rect.width / 2,
-        transform: "translateX(-50%)",
-        maxWidth: TOOLTIP_WIDTH,
-      };
+      top = rect.top - ESTIMATED_HEIGHT - OFFSET;
+      left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+      break;
     case "bottom":
-      return {
-        top: rect.top + rect.height + OFFSET,
-        left: rect.left + rect.width / 2,
-        transform: "translateX(-50%)",
-        maxWidth: TOOLTIP_WIDTH,
-      };
+      top = rect.top + rect.height + OFFSET;
+      left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+      break;
   }
+
+  // Clamp to viewport so tooltip never overflows the screen edges.
+  const maxLeft = Math.max(
+    VIEWPORT_MARGIN,
+    window.innerWidth - TOOLTIP_WIDTH - VIEWPORT_MARGIN
+  );
+  const maxTop = Math.max(
+    VIEWPORT_MARGIN,
+    window.innerHeight - ESTIMATED_HEIGHT - VIEWPORT_MARGIN
+  );
+  left = Math.min(Math.max(left, VIEWPORT_MARGIN), maxLeft);
+  top = Math.min(Math.max(top, VIEWPORT_MARGIN), maxTop);
+
+  return { top, left, width: TOOLTIP_WIDTH, maxWidth: TOOLTIP_WIDTH };
 }
 
 interface TourCardProps {
@@ -159,7 +187,11 @@ function TourCard({
   return (
     <div
       className="rounded-[18px] border border-border/60 p-6 shadow-xl"
-      style={{ backgroundColor: "hsl(var(--card))" }}
+      style={{
+        backgroundColor: "hsl(var(--card))",
+        maxHeight: "min(80vh, 540px)",
+        overflowY: "auto",
+      }}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
@@ -268,10 +300,16 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // On mobile, sidebar-only steps (prop/chart/backtest — not in mobileBar)
+  // fall back to a centered modal so we never spotlight an offscreen element.
+  const effectiveCentered =
+    !!step?.centered ||
+    (isMobile && !!step?.sidebarTarget && !step?.mobileTarget);
+
   // Find and measure target element
   const measureTarget = useCallback(() => {
     if (!step) return;
-    if (step.centered) {
+    if (effectiveCentered) {
       setTargetRect(null);
       return;
     }
@@ -288,15 +326,28 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
       return;
     }
 
-    const rect = el.getBoundingClientRect();
-    const padding = 6;
-    setTargetRect({
-      top: rect.top - padding,
-      left: rect.left - padding,
-      width: rect.width + padding * 2,
-      height: rect.height + padding * 2,
+    // Scroll target into view (sidebar nav can be scrolled / target offscreen).
+    try {
+      el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    } catch {
+      // Older browsers may not accept the options bag — ignore safely.
+    }
+
+    // Double RAF: first frame lets scrollIntoView commit, second frame measures
+    // after the layout has settled so getBoundingClientRect is accurate.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        const padding = 6;
+        setTargetRect({
+          top: rect.top - padding,
+          left: rect.left - padding,
+          width: rect.width + padding * 2,
+          height: rect.height + padding * 2,
+        });
+      });
     });
-  }, [step, isMobile]);
+  }, [step, isMobile, effectiveCentered]);
 
   useEffect(() => {
     measureTarget();
@@ -419,7 +470,7 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
 
         {/* Tooltip / Centered Modal */}
         <AnimatePresence mode="wait">
-          {step.centered ? (
+          {effectiveCentered ? (
             <div
               key={`center-wrap-${step.id}`}
               className="fixed inset-0 z-10 flex items-center justify-center pointer-events-none"
@@ -427,7 +478,12 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
               <motion.div
                 key={step.id}
                 className="pointer-events-auto"
-                style={{ maxWidth: 400, width: "calc(100% - 48px)" }}
+                style={{
+                  maxWidth: 400,
+                  width: "calc(100% - 48px)",
+                  maxHeight: "min(85vh, 600px)",
+                  overflowY: "auto",
+                }}
                 initial={{ opacity: 0, y: 8, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.96 }}
