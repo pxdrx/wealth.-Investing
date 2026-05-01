@@ -27,7 +27,6 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
 import { safeGetSession } from "@/lib/supabase/safe-session";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { MentorOnboardingModal } from "@/components/mentor/MentorOnboardingModal";
 import { StudentFeedbackFeed } from "@/components/mentor/StudentFeedbackFeed";
 import { useAppT } from "@/hooks/useAppLocale";
 
@@ -966,7 +965,6 @@ export default function MentorPage() {
   const [selectedStudent, setSelectedStudent] = useState<StudentSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [isStudent, setIsStudent] = useState<boolean | null>(null);
 
   // Detect if the current user is a student with an active mentor relationship
@@ -1008,31 +1006,6 @@ export default function MentorPage() {
 
   // Non-mentor, non-student users now see an empty-state with invite-code input
   // (no more silent redirect to /app)
-
-  useEffect(() => {
-    if (subLoading || !isMentor) return;
-    let mounted = true;
-    (async () => {
-      try {
-        const {
-          data: { session },
-        } = await safeGetSession();
-        if (!session) return;
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("mentor_onboarded_at")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        if (error) return;
-        if (mounted && data && data.mentor_onboarded_at === null) {
-          setShowOnboarding(true);
-        }
-      } catch {}
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [subLoading, isMentor]);
 
   useEffect(() => {
     if (!isMentor) return;
@@ -1149,18 +1122,12 @@ export default function MentorPage() {
 
   if (selectedStudent) {
     return (
-      <>
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden">
-          <StudentDetail
-            student={selectedStudent}
-            onBack={() => setSelectedStudent(null)}
-          />
-        </div>
-        <MentorOnboardingModal
-          open={showOnboarding}
-          onComplete={() => setShowOnboarding(false)}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 overflow-x-hidden">
+        <StudentDetail
+          student={selectedStudent}
+          onBack={() => setSelectedStudent(null)}
         />
-      </>
+      </div>
     );
   }
 
@@ -1271,10 +1238,6 @@ export default function MentorPage() {
           </div>
         )}
       </motion.div>
-      <MentorOnboardingModal
-        open={showOnboarding}
-        onComplete={() => setShowOnboarding(false)}
-      />
     </div>
   );
 }

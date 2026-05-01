@@ -103,7 +103,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Register activity listeners
   useEffect(() => {
-    touchActivity();
+    // Initialize key only if missing — never reset the inactivity clock on
+    // mount/navigation, otherwise the 4h timeout never fires when the user
+    // navigates within /app/** or returns to the tab after days away.
+    if (!localStorage.getItem(LAST_ACTIVITY_KEY)) touchActivity();
     const events: Array<keyof WindowEventMap> = ["mousedown", "keydown", "touchstart", "scroll"];
     events.forEach((evt) => window.addEventListener(evt, handleActivity, { passive: true }));
     return () => {
@@ -296,7 +299,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     async function handleVisibilityChange() {
       if (document.visibilityState !== "visible") return;
 
-      touchActivity();
+      // Do NOT touchActivity here — coming back to the tab is not user
+      // activity. If user has been inactive >4h, redirect immediately.
+      if (isInactive()) {
+        clearSessionAndRedirect();
+        return;
+      }
 
       // Check if session expired while tab was hidden (overnight scenario)
       try {
