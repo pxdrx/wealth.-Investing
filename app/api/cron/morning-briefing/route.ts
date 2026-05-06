@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type User } from "@supabase/supabase-js";
+import * as Sentry from "@sentry/nextjs";
 import { verifyCronAuthDetailed } from "@/lib/macro/cron-auth";
 import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { acquireCronLock } from "@/lib/cron-lock";
@@ -281,77 +282,120 @@ async function handle(req: NextRequest) {
 
   for (let i = 0; i < eligible.length; i += BATCH) {
     const batch = eligible.slice(i, i + BATCH);
-    const results = await Promise.allSettled(
-      batch.map(async (user) => {
-        const email = user.email!;
-        const plan = planFromSub(subMap.get(user.id));
-        const unsubscribeUrl = buildUnsubscribeUrl(email);
-        const firstName =
-          nameMap.get(user.id)?.trim().split(/\s+/)[0] ||
-          email.split("@")[0] ||
-          undefined;
+    // Serial loop inside the batch — Resend caps at 10 req/s and parallel
+    // fan-out (Promise.allSettled) was silently 429-ing past the first ~10
+    // sends. 120ms sleep ≈ 8 req/s, comfortably under the limit.
+    for (const user of batch) {
+      const email = user.email!;
+      const plan = planFromSub(subMap.get(user.id));
+      const unsubscribeUrl = buildUnsubscribeUrl(email);
+      const firstName =
+        nameMap.get(user.id)?.trim().split(/\s+/)[0] ||
+        email.split("@")[0] ||
+        undefined;
 
-        // Per-user enrichment (Pro+ only — keeps Free emails fast).
-        let yesterdaySession:
-          | { trades: number; pnl: number; winRate: number; date: string }
-          | undefined;
-        let streak: { days: number; nextMarker: number } | undefined;
-        if (plan !== "free") {
-          const last = lastSessionMap.get(user.id);
-          if (last && last.trades > 0) {
-            yesterdaySession = {
-              trades: last.trades,
-              pnl: Math.round(last.pnl),
-              winRate: Math.round((last.winners / last.trades) * 100),
-              date: last.date,
-            };
-          }
-          const days = await streakFor(user.id);
-          if (days > 0) streak = { days, nextMarker: nextStreakMarker(days) };
+      // Per-user enrichment (Pro+ only — keeps Free emails fast).
+      let yesterdaySession:
+        | { trades: number; pnl: number; winRate: number; date: string }
+        | undefined;
+      let streak: { days: number; nextMarker: number } | undefined;
+      if (plan !== "free") {
+        const last = lastSessionMap.get(user.id);
+        if (last && last.trades > 0) {
+          yesterdaySession = {
+            trades: last.trades,
+            pnl: Math.round(last.pnl),
+            winRate: Math.round((last.winners / last.trades) * 100),
+            date: last.date,
+          };
         }
-
-        const props = buildDailyBriefingProps({
-          payload,
-          unsubscribeUrl,
-          appUrl: APP_URL,
-          plan,
-          firstName,
-          yesterdaySession,
-          streak,
-        });
-
-        if (dryRun) return { ok: true, dryRun: true };
-
-        const r = await send({
-          template: "daily-briefing",
-          props,
-          to: email,
-        });
-
-        // Audit log.
-        await supabase.from("email_logs").insert({
-          user_id: user.id,
-          template: "daily-briefing",
-          to_email: email,
-          status: r.ok ? "sent" : "failed",
-          error: r.ok ? null : r.error ?? "send failed",
-        });
-
-        return r;
-      }),
-    );
-
-    for (const res of results) {
-      if (res.status === "fulfilled" && (res.value as { ok: boolean }).ok) {
-        sent++;
-      } else {
-        skipReasons.send_failed++;
+        const days = await streakFor(user.id);
+        if (days > 0) streak = { days, nextMarker: nextStreakMarker(days) };
       }
+
+      const props = buildDailyBriefingProps({
+        payload,
+        unsubscribeUrl,
+        appUrl: APP_URL,
+        plan,
+        firstName,
+        yesterdaySession,
+        streak,
+      });
+
+      if (dryRun) {
+        sent++;
+        continue;
+      }
+
+      // 429 retry loop — mirrors weekly-report. Max 4 attempts with linear
+      // backoff. Resend SDK v3 doesn't throw on rate-limit, so we inspect
+      // the structured error returned by sendEmail.
+      let r: {
+        ok: boolean;
+        id?: string;
+        error?: string;
+      } = { ok: false };
+      let attempt = 0;
+      while (true) {
+        attempt++;
+        try {
+          r = await send({
+            template: "daily-briefing",
+            props,
+            to: email,
+          });
+        } catch (err) {
+          r = {
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          };
+          Sentry.captureException(err, {
+            tags: { route: "cron/morning-briefing", phase: "send" },
+            extra: { email, attempt },
+          });
+        }
+        if (
+          !r.ok &&
+          /rate.?limit|429/i.test(r.error ?? "") &&
+          attempt < 4
+        ) {
+          await new Promise((res) => setTimeout(res, 1000 * attempt));
+          continue;
+        }
+        break;
+      }
+
+      if (!r.ok) {
+        Sentry.captureException(
+          new Error(`morning-briefing send failed: ${r.error ?? "unknown"}`),
+          {
+            tags: { route: "cron/morning-briefing", phase: "send" },
+            extra: { email, attempts: attempt },
+          },
+        );
+      }
+
+      // Audit log — capture resend_id for downstream delivery audit.
+      await supabase.from("email_logs").insert({
+        user_id: user.id,
+        template: "daily-briefing",
+        to_email: email,
+        status: r.ok ? "sent" : "failed",
+        resend_id: r.id ?? null,
+        error: r.ok ? null : r.error ?? "send failed",
+      });
+
+      if (r.ok) sent++;
+      else skipReasons.send_failed++;
+
+      // Per-message throttle (≈8 req/s).
+      await new Promise((res) => setTimeout(res, 120));
     }
 
-    // Throttle between batches.
+    // Light pause between batches (memory hygiene only — throttle is per-message).
     if (i + BATCH < eligible.length) {
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 250));
     }
   }
 

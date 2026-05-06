@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type User } from "@supabase/supabase-js";
-import { subDays } from "date-fns";
+import { startOfWeek } from "date-fns";
 import { verifyCronAuth } from "@/lib/macro/cron-auth";
 import { acquireCronLock } from "@/lib/cron-lock";
 import { buildUnsubscribeUrl } from "@/lib/email/unsubscribe-token";
@@ -110,7 +110,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Per-week idempotency (belt + suspenders against double-fan-out).
-  const weekStart = subDays(now, 6).toISOString();
+  // ISO week (Mon-start) so a mid-week test/preview send doesn't bleed into
+  // the next cron's window. Sunday cron @ 21:00 UTC still falls inside the
+  // ISO week that started the previous Monday, so the probe correctly
+  // catches duplicate sends within the same week without false positives
+  // from prior-week test sends.
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
   const { data: priorLogs, error: logsErr } = await supabase
     .from("email_logs")
     .select("user_id")
@@ -177,7 +182,7 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
-    let sendResult: { ok: boolean; error?: string } = { ok: false };
+    let sendResult: { ok: boolean; id?: string; error?: string } = { ok: false };
     let attempt = 0;
     while (true) {
       attempt++;
@@ -210,6 +215,7 @@ export async function POST(req: NextRequest) {
       template: "weekly-recap",
       to_email: email,
       status: sendResult.ok ? "sent" : "failed",
+      resend_id: sendResult.id ?? null,
       error: sendResult.ok ? null : sendResult.error ?? "send failed",
     });
     if (logErr) {
