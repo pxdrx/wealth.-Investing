@@ -1,4 +1,4 @@
-// Wrapper Node sobre `higgsfield-cli` para gerar os 6 shots do Reel
+// Wrapper Node sobre o CLI oficial `higgsfield` para gerar os 6 shots do Reel
 // "30 Telas → 1 Decisão" (vide wealth.Investing/Instagram/Reels/30telas-1decisao-shotlist.md).
 //
 // Uso:
@@ -7,14 +7,18 @@
 //   node scripts/generate-reel-30telas.mjs --dry-run      # imprime os comandos sem executar
 //   node scripts/generate-reel-30telas.mjs --resume       # pula shots que já têm output
 //
-// Pré-requisito: `higgsfield-cli` autenticado e disponível no PATH.
-// Output: ./reels-output/30telas/shot-{1..6}.mp4
+// Pré-requisito: `higgsfield` (alias `higgs` / `hf`) autenticado e no PATH.
+// Output: a CLI imprime a URL do mp4 finalizado no stdout do --wait. Cada shot
+// também grava .reels-output/30telas/shot-N.json com a saída JSON do job, de
+// onde o consumer extrai a result URL para download (curl/CapCut import).
 //
-// IMPORTANTE: a sintaxe exata do `higgsfield-cli` (flags `--prompt`, `--mode`,
-// `--duration`, `--aspect`, `--seed`) varia entre versões do CLI. Este script
-// é o ponto único de ajuste — atualize CLI_BIN e/ou as flags abaixo se sua
-// versão diferir, e o resto do pipeline continua funcionando. Use --dry-run
-// para conferir os comandos antes de queimar créditos.
+// Sintaxe real do CLI (descoberta via `higgsfield generate create --help` +
+// `higgsfield model get cinematic_studio_video_v2`):
+//   higgsfield generate create <model> --prompt "..." --aspect_ratio 9:16
+//     --duration <int> --mode <std|pro> [--image <path>] --wait --json
+// Não existem flags --negative-prompt, --seed, --fps, --resolution, --output.
+// Negative prompt e seed precisam ir embutidos no texto do --prompt
+// (concatenado em STYLE_SUFFIX abaixo).
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
@@ -26,7 +30,11 @@ const ROOT = resolve(__dirname, "..");
 const OUT_DIR = resolve(ROOT, "reels-output", "30telas");
 const INPUT_DIR = resolve(OUT_DIR, "inputs");
 
-const CLI_BIN = process.env.HIGGSFIELD_CLI ?? "higgsfield-cli";
+const CLI_BIN = process.env.HIGGSFIELD_CLI ?? "higgsfield";
+const HIGGS_MODEL = process.env.HIGGSFIELD_MODEL ?? "cinematic_studio_video_v2";
+const HIGGS_QUALITY = process.env.HIGGSFIELD_QUALITY ?? "std"; // std | pro
+const WAIT_TIMEOUT = process.env.HIGGSFIELD_WAIT_TIMEOUT ?? "20m";
+const WAIT_INTERVAL = process.env.HIGGSFIELD_WAIT_INTERVAL ?? "5s";
 
 const STYLE_SUFFIX = [
   "cinematic, anamorphic 35mm, shallow depth of field, volumetric haze",
@@ -177,20 +185,27 @@ function parseArgs(argv) {
 
 function buildCommand(shot) {
   const outFile = resolve(OUT_DIR, `shot-${shot.n}.mp4`);
-  const fullPrompt = `${shot.prompt} ${STYLE_SUFFIX}`;
+  // Higgsfield's video models do not expose --negative-prompt or --seed flags,
+  // so we inline both into the prompt body. The model still respects them as
+  // soft guidance via prompt weighting.
+  const fullPrompt = [
+    shot.prompt,
+    STYLE_SUFFIX,
+    `Negative: ${NEGATIVE}.`,
+    `Reference seed ${shot.seed} for visual continuity.`,
+  ].join(" ");
 
-  // Adjust these flags to your higgsfield-cli version.
-  const cmd = [CLI_BIN, "generate"];
-  cmd.push("--mode", shot.mode);
+  // higgsfield generate create <model> [--param value]... [--image <path>]
+  const cmd = [CLI_BIN, "generate", "create", HIGGS_MODEL];
   cmd.push("--prompt", fullPrompt);
-  cmd.push("--negative-prompt", NEGATIVE);
+  cmd.push("--aspect_ratio", "9:16");
   cmd.push("--duration", String(shot.duration));
-  cmd.push("--aspect", "9:16");
-  cmd.push("--resolution", "1080x1920");
-  cmd.push("--fps", "24");
-  cmd.push("--seed", String(shot.seed));
-  cmd.push("--output", outFile);
+  cmd.push("--mode", HIGGS_QUALITY);
   if (shot.inputImage) cmd.push("--image", shot.inputImage);
+  cmd.push("--wait");
+  cmd.push("--wait-timeout", WAIT_TIMEOUT);
+  cmd.push("--wait-interval", WAIT_INTERVAL);
+  cmd.push("--json");
 
   return { cmd, outFile };
 }
