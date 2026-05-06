@@ -21,6 +21,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Reels / video generation outputs (Higgs Field clips, intermediate mp4s)
+reels-output/
+
 # IDE
 .idea
 .vscode
