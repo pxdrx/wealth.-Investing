@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, ShieldAlert, Users } from "lucide-react";
+import { Search, Loader2, ShieldAlert, Users, Mail, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AdminUser {
@@ -147,6 +147,52 @@ export default function AdminPage() {
     }
   }, []);
 
+  const [emailTrigger, setEmailTrigger] = useState<{
+    target: "daily" | "weekly" | null;
+    status: "idle" | "loading" | "success" | "error";
+    message: string;
+  }>({ target: null, status: "idle", message: "" });
+
+  const handleEmailTrigger = useCallback(
+    async (which: "daily" | "weekly") => {
+      const path =
+        which === "daily"
+          ? "/api/cron/morning-briefing"
+          : "/api/cron/weekly-report";
+      setEmailTrigger({ target: which, status: "loading", message: "" });
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.user?.email) throw new Error("Sessao expirada");
+        const res = await fetch(`${path}?test_email=${encodeURIComponent(session.user.email)}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json?.ok === false) {
+          throw new Error(json?.error ?? `HTTP ${res.status}`);
+        }
+        setEmailTrigger({
+          target: which,
+          status: "success",
+          message: `Disparado pra ${session.user.email}. Olha a caixa em ~30s.`,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Erro desconhecido";
+        setEmailTrigger({ target: which, status: "error", message });
+      }
+      setTimeout(
+        () => setEmailTrigger((s) => (s.target === which ? { target: null, status: "idle", message: "" } : s)),
+        8000,
+      );
+    },
+    [],
+  );
+
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;
     const q = search.toLowerCase();
@@ -193,6 +239,64 @@ export default function AdminPage() {
           Gerencie usuarios e planos
         </p>
       </div>
+
+      {/* Email triggers */}
+      <Card
+        className="rounded-[22px] border p-5 mb-6"
+        style={{ backgroundColor: "hsl(var(--card))" }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Mail className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold tracking-tight">Disparar email pra mim (teste)</h2>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Envia uma copia do briefing pro seu email. Util pra QA dos templates apos deploy.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => handleEmailTrigger("daily")}
+            disabled={emailTrigger.status === "loading"}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all",
+              "bg-foreground text-background hover:bg-foreground/85 disabled:opacity-50",
+            )}
+          >
+            {emailTrigger.target === "daily" && emailTrigger.status === "loading" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+            Daily briefing
+          </button>
+          <button
+            type="button"
+            onClick={() => handleEmailTrigger("weekly")}
+            disabled={emailTrigger.status === "loading"}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all",
+              "bg-muted text-foreground hover:bg-muted/70 disabled:opacity-50",
+            )}
+          >
+            {emailTrigger.target === "weekly" && emailTrigger.status === "loading" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+            Weekly recap
+          </button>
+        </div>
+        {emailTrigger.status !== "idle" && emailTrigger.status !== "loading" && (
+          <p
+            className={cn(
+              "mt-3 text-xs font-medium",
+              emailTrigger.status === "success" ? "text-emerald-500" : "text-destructive",
+            )}
+          >
+            {emailTrigger.message}
+          </p>
+        )}
+      </Card>
 
       {/* Search */}
       <div className="relative mb-6 max-w-sm">
