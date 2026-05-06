@@ -5,7 +5,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type User } from "@supabase/supabase-js";
 import { startOfWeek } from "date-fns";
-import { verifyCronAuth } from "@/lib/macro/cron-auth";
+import { verifyCronAuthDetailed } from "@/lib/macro/cron-auth";
+import { isAdminRequest } from "@/lib/macro/admin-trigger";
 import { acquireCronLock } from "@/lib/cron-lock";
 import { buildUnsubscribeUrl } from "@/lib/email/unsubscribe-token";
 import * as Sentry from "@sentry/nextjs";
@@ -17,8 +18,18 @@ export const runtime = "nodejs";
 export const maxDuration = 300; // bumped from 60 — required for fan-out > ~30 users
 
 export async function POST(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = verifyCronAuthDetailed(req);
+  if (!auth.ok) {
+    if (!(auth.reason === "invalid_auth" && (await isAdminRequest(req)))) {
+      console.error("[weekly-report] auth failed:", auth.reason);
+      if (auth.reason === "missing_secret") {
+        return NextResponse.json(
+          { ok: false, error: "CRON_SECRET not configured on server" },
+          { status: 503 },
+        );
+      }
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   if (killSwitchActive("weekly-report")) {
