@@ -11,7 +11,7 @@ date: 2026-03-25
 
 | Data | Slug | Tema | Engajamento |
 |------|------|------|-------------|
-| — | — | — | — |
+| _pendente_ | [[Reels/30telas-1decisao-20260505\|30telas-1decisao-20260505]] | Reel cinematográfico Dexter Analyst — "30 Telas → 1 Decisão" (28s, Higgs Field) | _aguardando publicação_ |
 
 ## Template de Entrada
 
