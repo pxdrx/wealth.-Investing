@@ -18,6 +18,7 @@ export interface SendArgs<T extends TemplateId> {
 
 export interface SendResult {
   ok: boolean;
+  id?: string;
   templateId: TemplateId;
   scheduled: boolean;
   error?: string;
@@ -54,7 +55,7 @@ export async function send<T extends TemplateId>(args: SendArgs<T>): Promise<Sen
   const propsAny = args.props as { unsubscribeUrl?: string };
   const unsubscribeUrl = propsAny.unsubscribeUrl;
 
-  const ok = await sendEmail({
+  const r = await sendEmail({
     to: args.to,
     subject: rendered.subject,
     html: rendered.html,
@@ -64,5 +65,11 @@ export async function send<T extends TemplateId>(args: SendArgs<T>): Promise<Sen
     unsubscribeUrl,
   });
 
-  return { ok, templateId: args.template, scheduled: false };
+  return {
+    ok: r.ok,
+    id: r.id,
+    error: r.error,
+    templateId: args.template,
+    scheduled: false,
+  };
 }
